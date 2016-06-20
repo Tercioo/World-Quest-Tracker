@@ -226,7 +226,7 @@ WorldMapFrame:HookScript ("OnUpdate", function (self, deltaTime)
 			WorldQuestTracker.CanChangeMap = nil
 			WorldQuestTracker.LastMapID = GetCurrentMapAreaID()
 		else
-			if (WorldQuestTracker.LastMapID ~= GetCurrentMapAreaID()) then
+			if (WorldQuestTracker.LastMapID ~= GetCurrentMapAreaID() and WorldQuestTracker.LastMapID) then
 				SetMapByID (WorldQuestTracker.LastMapID)
 			end
 		end
@@ -653,6 +653,26 @@ local mapTable = {
 	},
 }
 
+--Dump: value=WorldMapFrame:GetSize()
+--o tamanho varia
+-- quando esta em fullscreen ele não mostra as quests
+--precisa então pegar o POIFrame pra saber o tamanho certo
+--WorldMapPOIFrame
+
+--	/run C_Timer.After (1, function() print (WorldMapPOIFrame:GetSize()) end)
+
+--POIFrame size:
+--696.39001464844 464.25997924805 (window)
+--1002 668 (fullscreen) esse é o valor default no WorldMapFrame.xml
+--o POI frame é ligado aqui: WorldMapDetailFrame com topleft e bottomtight
+
+-- /run C_Timer.After (1, function()for a,b in pairs (WORLDMAP_SETTINGS) do print (a, b) end end)
+-- .size = 1 quando esta em fullscreen
+-- .size = 0.695 quando esta em window mode
+
+--window mode: 992, 534
+--full screen size: 1307.2341308594 768.00006103516
+
 --create widgets
 
 WorldQuestTracker.InWindowMode = WorldMapFrame_InWindowedMode()
@@ -923,12 +943,16 @@ end
 
 WorldMapFrameSizeDownButton:HookScript ("OnClick", function()
 	if (WorldQuestTracker.UpdateWorldQuestsOnWorldMap) then
-		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, true)
+		if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+			WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, true)
+		end
 	end
 end)
 WorldMapFrameSizeUpButton:HookScript ("OnClick", function()
 	if (WorldQuestTracker.UpdateWorldQuestsOnWorldMap) then
-		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, true)
+		if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+			WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, true)
+		end
 	end
 end)
 
