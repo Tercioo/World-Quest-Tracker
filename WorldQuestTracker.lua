@@ -177,6 +177,20 @@ step1:SetToAlpha (1)
 step1:SetDuration (0.3)
 worldFramePOIs.fadeInAnimation = fadeInAnimation
 
+--avisar sobre duplo tap
+WorldQuestTracker.DoubleTapFrame = CreateFrame ("frame", nil, worldFramePOIs)
+WorldQuestTracker.DoubleTapFrame:SetSize (1, 1)
+WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", worldFramePOIs, "bottomleft", 3, 3)
+local doubleTapBackground = WorldQuestTracker.DoubleTapFrame:CreateTexture (nil, "overlay")
+doubleTapBackground:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-Achievement-HorizontalShadow]])
+doubleTapBackground:SetPoint ("bottomleft", WorldQuestTracker.DoubleTapFrame, "bottomleft", 0, 0)
+doubleTapBackground:SetSize (430, 12)
+local doubleTapText = WorldQuestTracker.DoubleTapFrame:CreateFontString (nil, "overlay", "GameFontNormal")
+doubleTapText:SetPoint ("bottomleft", WorldQuestTracker.DoubleTapFrame, "bottomleft", 0, 0)
+--doubleTapText:
+doubleTapText:SetText ("Double tap 'M' to show the local map.")
+
+
 worldFramePOIs:SetScript ("OnShow", function()
 	worldFramePOIs.fadeInAnimation:Play()
 end)
@@ -188,12 +202,22 @@ hooksecurefunc ("SetMapToCurrentZone", function()
 	
 end)
 
+function WorldQuestTracker.CanShowBrokenIsles()
+	return SWITCH_TO_WORLD_ON_DALARAN and GetCurrentMapAreaID() ~= MAPID_BROKENISLES and (C_Garrison.IsPlayerInGarrison (LE_GARRISON_TYPE_7_0) or GetCurrentMapAreaID() == MAPID_DALARAN)
+end
+
 WorldMapFrame:HookScript ("OnEvent", function (self, event)
 	if (event == "WORLD_MAP_UPDATE") then
 		if (WorldQuestTracker.CurrentMapID ~= self.mapID) then
 			if (WorldQuestTracker.LastWorldMapClick+0.017 > GetTime()) then
 				WorldQuestTracker.CurrentMapID = self.mapID
 			end
+		end
+		
+		if (self.mapID == MAPID_BROKENISLES) then
+			WorldQuestTracker.DoubleTapFrame:Show()
+		else
+			WorldQuestTracker.DoubleTapFrame:Hide()
 		end
 	end
 end)
@@ -235,17 +259,46 @@ end)
 
 hooksecurefunc ("WorldMap_UpdateQuestBonusObjectives", function (self, event)
 	if (WorldMapFrame:IsShown() and not WorldQuestTracker.NoAutoSwitchToWorldMap) then
-		if (GetCurrentMapAreaID() == MAPID_DALARAN and SWITCH_TO_WORLD_ON_DALARAN) then
+		if (WorldQuestTracker.CanShowBrokenIsles()) then
 			SetMapByID (MAPID_BROKENISLES)
 			WorldQuestTracker.CanChangeMap = true
 			WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, true)
 		end
 	end
 end)
+
+local lastMapTap = 0
 hooksecurefunc ("ToggleWorldMap", function (self)
+	
+	--verifica duplo click
+	if (lastMapTap+0.3 > GetTime()) then
+		
+		--SetMapToCurrentZone()
+		SetMapByID (GetCurrentMapAreaID())
 
+		if (not WorldMapFrame:IsShown()) then
+			WorldQuestTracker.NoAutoSwitchToWorldMap = true
+			WorldMapFrame.mapID = GetCurrentMapAreaID()
+			WorldQuestTracker.LastMapID = GetCurrentMapAreaID()
+			WorldQuestTracker.CanChangeMap = true
+			ToggleWorldMap()
+			can_show_worldmap_widgets()
+		else
+			if (WorldQuestTracker.LastMapID ~= GetCurrentMapAreaID()) then
+				WorldQuestTracker.NoAutoSwitchToWorldMap = true
+				WorldMapFrame.mapID = GetCurrentMapAreaID()
+				WorldQuestTracker.LastMapID = GetCurrentMapAreaID()
+				WorldQuestTracker.CanChangeMap = true
+				ToggleWorldMap()
+				can_show_worldmap_widgets()
+			end
+		end
+		return
+	end
+	lastMapTap = GetTime()
+	
 	WorldQuestTracker.LastMapID = WorldMapFrame.mapID
-
+	
 	if (WorldMapFrame:IsShown()) then
 		--é a primeira vez que é mostrado?
 		if (not WorldMapFrame.firstRun) then
@@ -261,7 +314,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 		end
 	
 		--esta dentro de dalaran?
-		if (GetCurrentMapAreaID() == MAPID_DALARAN and SWITCH_TO_WORLD_ON_DALARAN) then
+		if (WorldQuestTracker.CanShowBrokenIsles()) then
 			SetMapByID (MAPID_BROKENISLES)
 			WorldQuestTracker.CanChangeMap = true
 			WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, true)
@@ -302,6 +355,27 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			local extraBg = tutorialFrame:CreateTexture (nil, "background")
 			extraBg:SetAllPoints()
 			extraBg:SetColorTexture (0, 0, 0, 0.3)
+			local extraBg2 = tutorialFrame:CreateTexture (nil, "background")
+			extraBg2:SetPoint ("topleft", tutorialFrame, "bottomleft")
+			extraBg2:SetPoint ("topright", tutorialFrame, "bottomright")
+			extraBg2:SetHeight (36)
+			extraBg2:SetColorTexture (0, 0, 0, 1)
+			local downLine2 = tutorialFrame:CreateTexture (nil, "overlay")
+			downLine2:SetColorTexture (1, 1, 1)
+			downLine2:SetHeight (1)
+			downLine2:SetPoint ("bottomleft", extraBg2, "bottomleft")
+			downLine2:SetPoint ("bottomright", extraBg2, "bottomright")
+			local doubleTap = tutorialFrame:CreateFontString (nil, "overlay", "GameFontNormal")
+			doubleTap:SetPoint ("left", extraBg2, "left", 246, 2)
+			DF:SetFontSize (doubleTap, 12)
+			doubleTap:SetText ("On Dalaran and Order Hall, Broken Isles map is shown when pressing 'M'\nDouble tap 'M' to show the regular zone map instead")
+			doubleTap:SetJustifyH ("left")
+			doubleTap:SetTextColor (1, 1, 1)
+			local doubleTabTexture = tutorialFrame:CreateTexture (nil, "overlay")
+			doubleTabTexture:SetTexture ([[Interface\DialogFrame\UI-Dialog-Icon-AlertNew]])
+			doubleTabTexture:SetTexCoord (0, 1, 0, .9)
+			doubleTabTexture:SetPoint ("right", doubleTap, "left", -4, 0)
+			doubleTabTexture:SetSize (32, 32)
 			
 			local texture = tutorialFrame:CreateTexture (nil, "border")
 			texture:SetSize (120, 120)
@@ -664,7 +738,7 @@ local mapTable = {
 --POIFrame size:
 --696.39001464844 464.25997924805 (window)
 --1002 668 (fullscreen) esse é o valor default no WorldMapFrame.xml
---o POI frame é ligado aqui: WorldMapDetailFrame com topleft e bottomtight
+--o POI frame é ligado aqui: WorldMapDetailFrame com topleft e bottomright
 
 -- /run C_Timer.After (1, function()for a,b in pairs (WORLDMAP_SETTINGS) do print (a, b) end end)
 -- .size = 1 quando esta em fullscreen
@@ -707,7 +781,13 @@ local ipairs = ipairs
 local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest
 
 local do_worldmap_update = function()
-	WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
+	if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
+	else
+		if (WorldQuestTracker.ScheduledWorldUpdate and not WorldQuestTracker.ScheduledWorldUpdate._cancelled) then
+			WorldQuestTracker.ScheduledWorldUpdate:Cancel()
+		end
+	end
 end
 function WorldQuestTracker.ScheduleWorldMapUpdate (seconds)
 	if (WorldQuestTracker.ScheduledWorldUpdate and not WorldQuestTracker.ScheduledWorldUpdate._cancelled) then
