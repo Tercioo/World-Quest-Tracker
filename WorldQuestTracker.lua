@@ -209,6 +209,9 @@ function WorldQuestTracker.UpdateBorder (self, rarity)
 			end
 			
 			self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag_common]])
+			self.bgFlag:Hide()
+			--self.bgFlag:Show()
+			self.bgFlagText:SetWidth (40)
 
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_RARE) then
 			if (self.squareBorder:IsShown()) then
@@ -225,6 +228,7 @@ function WorldQuestTracker.UpdateBorder (self, rarity)
 			self.rareGlow:Show()
 			self.rareGlow:SetVertexColor (0, 0.56863, 0.94902)
 			self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag]])
+			self.bgFlag:Show()
 			
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
 			if (self.squareBorder:IsShown()) then
@@ -241,6 +245,7 @@ function WorldQuestTracker.UpdateBorder (self, rarity)
 			self.rareGlow:Show()
 			self.rareGlow:SetVertexColor (0.78431, 0.27059, 0.98039)
 			self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag]])
+			self.bgFlag:Show()
 		end
 	end
 
@@ -396,7 +401,7 @@ function WorldQuestTracker.GetArtifactPowerIcon (artifactPower, rounded)
 end
 
 --pega os coordenadas para a textura da borda
---> não é mais usado!
+-- não é mais usado!
 local rarity_border_common = {150/512, 206/512, 158/512, 214/512}
 local rarity_border_rare = {10/512, 66/512, 158/512, 214/512}
 local rarity_border_epic = {80/512, 136/512, 158/512, 214/512}
@@ -521,6 +526,7 @@ function WorldQuestTracker.GetOrCreateZoneWidget (info, index)
 	if (not taskPOI) then
 		local button = CreateFrame ("button", "WorldQuestTrackerZonePOIWidget" .. index, WorldMapPOIFrame)
 		button:SetSize (POISize, POISize)
+		button.IsZoneQuestButton = true
 		
 		button:SetScript ("OnEnter", TaskPOI_OnEnter)
 		button:SetScript ("OnLeave", TaskPOI_OnLeave)
@@ -530,15 +536,25 @@ function WorldQuestTracker.GetOrCreateZoneWidget (info, index)
 		
 		button.Texture = button:CreateTexture (button:GetName() .. "Texture", "BACKGROUND")
 		button.Texture:SetPoint ("center", button, "center")
-		
 		button.Texture:SetMask ([[Interface\CharacterFrame\TempPortraitAlphaMask]])
 
-		button.Glow = button:CreateTexture(button:GetName() .. "Glow", "BACKGROUND", -2)
+		button.Glow = button:CreateTexture(button:GetName() .. "Glow", "BACKGROUND", -6)
 		button.Glow:SetSize (50, 50)
 		button.Glow:SetPoint ("center", button, "center")
 		button.Glow:SetTexture ([[Interface/WorldMap/UI-QuestPoi-IconGlow]])
 		button.Glow:SetBlendMode ("ADD")
+		button.Glow:Hide()
 
+		button.IsTrackingGlow = button:CreateTexture(button:GetName() .. "IsTrackingGlow", "BACKGROUND", -6)
+		button.IsTrackingGlow:SetSize (40, 40)
+		button.IsTrackingGlow:SetPoint ("center", button, "center")
+		button.IsTrackingGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\glow_blue]])
+		button.IsTrackingGlow:SetBlendMode ("ADD")
+		button.IsTrackingGlow:SetAlpha (1)
+		--button.IsTrackingGlow:SetAlpha (1)
+		button.IsTrackingGlow:Hide()
+		button.IsTrackingGlow:SetDesaturated (true)
+		
 		button.SelectedGlow = button:CreateTexture (button:GetName() .. "SelectedGlow", "OVERLAY", 2)
 		button.SelectedGlow:SetBlendMode ("ADD")
 		button.SelectedGlow:SetPoint ("center", button, "center")
@@ -553,7 +569,7 @@ function WorldQuestTracker.GetOrCreateZoneWidget (info, index)
 			button.flagCriteriaMatchGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag_criteriamatch]])
 			button.flagCriteriaMatchGlow:SetPoint ("top", self, "bottom", 0, 3)
 			button.flagCriteriaMatchGlow:SetSize (64, 32)
-			
+		
 		button.SpellTargetGlow = button:CreateTexture(button:GetName() .. "SpellTargetGlow", "OVERLAY", 1)
 		button.SpellTargetGlow:SetAtlas ("worldquest-questmarker-abilityhighlight", true)
 		button.SpellTargetGlow:SetAlpha (.6)
@@ -564,9 +580,8 @@ function WorldQuestTracker.GetOrCreateZoneWidget (info, index)
 		button.rareSerpent:SetWidth (34 * 1.1)
 		button.rareSerpent:SetHeight (34 * 1.1)
 		button.rareSerpent:SetPoint ("CENTER", 0, -1)
-		button.rareSerpent:SetDrawLayer ("overlay", 3)
 		
-		--> é a sombra da serpente no fundo, pode ser na cor azul ou roxa
+		-- é a sombra da serpente no fundo, pode ser na cor azul ou roxa
 		button.rareGlow = button:CreateTexture (nil, "background")
 		button.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\borders]])
 		button.rareGlow:SetTexCoord (155/512, 194/512, 17/512, 55/512)
@@ -579,56 +594,80 @@ function WorldQuestTracker.GetOrCreateZoneWidget (info, index)
 		button.blackBackground:SetColorTexture (0, 0, 0, 1)
 		button.blackBackground:SetPoint ("topleft", button, "topleft")
 		button.blackBackground:SetPoint ("bottomright", button, "bottomright")
-		button.blackBackground:SetDrawLayer ("background", 3)
 		button.blackBackground:Hide()
 
 		--borda circular
-		button.circleBorder = button:CreateTexture (nil, "overlay")
+		button.circleBorder = button:CreateTexture (nil, "OVERLAY", 1)
 		button.circleBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\borders]])
 		button.circleBorder:SetTexCoord (80/512, 138/512, 6/512, 64/512)
 		button.circleBorder:SetPoint ("topleft", button, "topleft", -1, 1)
 		button.circleBorder:SetPoint ("bottomright", button, "bottomright", 1, -1)
-		button.circleBorder:SetDrawLayer ("overlay", 1)
-		
+
 		--borda quadrada
-		button.squareBorder = button:CreateTexture (nil, "overlay")
+		button.squareBorder = button:CreateTexture (nil, "OVERLAY", 1)
 		button.squareBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\borders]])
 		button.squareBorder:SetTexCoord (8/512, 68/512, 6/512, 66/512)
 		button.squareBorder:SetPoint ("topleft", button, "topleft", -1, 1)
 		button.squareBorder:SetPoint ("bottomright", button, "bottomright", 1, -1)
-		button.squareBorder:SetDrawLayer ("overlay", 1)
-		
+
 		--blip do tempo restante
-		button.timeBlip = button:CreateTexture (nil, "overlay", 2)
+		button.timeBlip = button:CreateTexture (nil, "OVERLAY", 2)
 		button.timeBlip:SetPoint ("bottomright", button, "bottomright", 4, -4)
 		button.timeBlip:SetSize (WORLDMAP_SQUARE_TIMEBLIP_SIZE, WORLDMAP_SQUARE_TIMEBLIP_SIZE)
-		button.timeBlip:SetDrawLayer ("overlay", 7)
 		
 		--faixa com o tempo
-		button.bgFlag = button:CreateTexture (nil, "overlay")
+		button.bgFlag = button:CreateTexture (nil, "OVERLAY", 5)
 		button.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag]])
 		--button.bgFlag:SetTexCoord (0/512, 75/512, 82/512, 107/512)
 		--button.bgFlag:SetPoint ("center", button, "center")
 		button.bgFlag:SetPoint ("top", button, "bottom", 0, 3)
 		button.bgFlag:SetSize (64, 32)
-		button.bgFlag:SetDrawLayer ("overlay", 4)
 		
-		button.bgFlagText = button:CreateTexture (nil, "overlay")
+		button.bgFlagText = button:CreateTexture (nil, "OVERLAY")
 		button.bgFlagText:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\background_blackgradient]])
-		button.bgFlagText:SetDrawLayer ("overlay", 5)
 		button.bgFlagText:SetPoint ("top", button.bgFlag, "top", 0, -3)
 		button.bgFlagText:SetSize (32, 10)
 		button.bgFlagText:SetAlpha (.7)
 		
 		--string da flag
-		button.flagText = button:CreateFontString (nil, "overlay", "GameFontNormal")
+		button.flagText = button:CreateFontString (nil, "OVERLAY", "GameFontNormal")
 		button.flagText:SetText ("13m")
-		--button.flagText:SetPoint ("top", button, "bottom", 0, 0)
 		button.flagText:SetPoint ("top", button.bgFlag, "top", 0, -3)
-		button.flagText:SetDrawLayer ("overlay", 6)
 		DF:SetFontSize (button.flagText, 8)
-		--DF:SetFontColor (button.flagText, "white")
-		--DF:SetFontOutline (button.flagText, true)
+		
+		local criteriaIndicator = button:CreateTexture (nil, "OVERLAY", 4)
+		criteriaIndicator:SetPoint ("bottomleft", button, "bottomleft", -2, -2)
+		criteriaIndicator:SetSize (23*.3, 37*.3)
+		criteriaIndicator:SetAlpha (.8)
+		criteriaIndicator:SetTexture ([[Interface\AdventureMap\AdventureMap]])
+		criteriaIndicator:SetTexCoord (901/1024, 924/1024, 251/1024, 288/1024)
+		criteriaIndicator:Hide()
+		local criteriaIndicatorGlow = button:CreateTexture (nil, "OVERLAY", 3)
+		criteriaIndicatorGlow:SetPoint ("center", criteriaIndicator, "center")
+		criteriaIndicatorGlow:SetSize (13, 13)
+		criteriaIndicatorGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\criteriaIndicatorGlow]])
+		criteriaIndicatorGlow:SetTexCoord (0, 1, 0, 1)
+		criteriaIndicatorGlow:Hide()
+		
+		button.IsTrackingGlow:SetDrawLayer ("BACKGROUND", -6)
+		button.Glow:SetDrawLayer ("BACKGROUND", -6)
+		button.Texture:SetDrawLayer ("BACKGROUND", -5)
+		button.blackBackground:SetDrawLayer ("BACKGROUND", 3)
+
+		button.circleBorder:SetDrawLayer ("overlay", 1)
+		button.squareBorder:SetDrawLayer ("overlay", 1)
+		button.rareSerpent:SetDrawLayer ("overlay", 3)
+		button.bgFlag:SetDrawLayer ("overlay", 4)
+		button.bgFlagText:SetDrawLayer ("overlay", 5)
+		button.flagText:SetDrawLayer ("overlay", 6)
+		criteriaIndicator:SetDrawLayer ("overlay", 6)
+		criteriaIndicatorGlow:SetDrawLayer ("overlay", 7)
+		button.timeBlip:SetDrawLayer ("overlay", 7)
+
+		button.criteriaIndicator = criteriaIndicator
+		button.criteriaIndicatorGlow = criteriaIndicatorGlow
+		
+		button.bgFlag:Hide()
 		
 		taskPOI = button
 		taskPOI.worldQuest = true
@@ -731,7 +770,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 	self.SelectedGlow:Hide()
 	self.CriteriaMatchGlow:Hide()
 	self.SpellTargetGlow:Hide()
-	
+	self.IsTrackingGlow:Hide()
 	self.rareSerpent:Hide()
 	self.rareGlow:Hide()
 	
@@ -742,8 +781,16 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 		
 		if (self.isCriteria) then
 			self.flagCriteriaMatchGlow:Show()
+			self.criteriaIndicator:Show()
+			self.criteriaIndicatorGlow:Show()
 		else
 			self.flagCriteriaMatchGlow:Hide()
+			self.criteriaIndicator:Hide()
+			self.criteriaIndicatorGlow:Hide()
+		end
+		
+		if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
+			self.IsTrackingGlow:Show()
 		end
 		
 		-- tempo restante
@@ -1245,6 +1292,11 @@ function WorldQuestTracker.OnQuestClicked (self, button)
 		--adicionar a quest ao track
 		WorldQuestTracker.AddQuestToTracker (self)
 	end
+	if (self.IsZoneQuestButton) then
+		WorldQuestTracker.UpdateZoneWidgets()
+	elseif (self.IsWorldQuestButton) then
+		WorldQuestTracker.UpdateWorldQuestsOnWorldMap()
+	end
 end
 
 --organiza as quest para as quests do mapa atual serem jogadas para cima
@@ -1360,8 +1412,9 @@ local buildTooltip = function (self)
 			if (capped) then
 				GameTooltip:AddLine (factionName, GRAY_FONT_COLOR:GetRGB())
 			else
-				GameTooltip:AddLine (factionName)
+				GameTooltip:AddLine (factionName, 0.4, 0.733, 1.0)
 			end
+			GameTooltip:AddLine (" ")
 		end
 	end
 
@@ -1372,17 +1425,18 @@ local buildTooltip = function (self)
 		local timeString
 		if (timeLeftMinutes <= WORLD_QUESTS_TIME_CRITICAL_MINUTES) then
 			color = RED_FONT_COLOR
-			timeString = SecondsToTime(timeLeftMinutes * 60)
+			timeString = SecondsToTime (timeLeftMinutes * 60)
 		elseif (timeLeftMinutes <= 60 + WORLD_QUESTS_TIME_CRITICAL_MINUTES) then
-			timeString = SecondsToTime((timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) * 60)
+			timeString = SecondsToTime ((timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) * 60)
 		elseif (timeLeftMinutes < 24 * 60 + WORLD_QUESTS_TIME_CRITICAL_MINUTES) then
-			timeString = D_HOURS:format(math.floor(timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) / 60)
+			timeString = D_HOURS:format (math.floor(timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) / 60)
 		else
-			timeString = D_DAYS:format(math.floor(timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) / 1440)
+			local days = math.floor(timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) / 1440
+			local hours = math.floor(timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) / 60
+			timeString = D_DAYS:format (days) .. " " .. D_HOURS:format (hours - (floor (days)*24))
 		end
 		GameTooltip:AddLine (BONUS_OBJECTIVE_TIME_LEFT:format (timeString), color.r, color.g, color.b)
 	end
-
 
 	--all objectives
 	for objectiveIndex = 1, self.numObjectives do
@@ -1786,6 +1840,7 @@ end
 local create_worldmap_square = function (mapName, index)
 	local button = CreateFrame ("button", "WorldQuestTrackerWorldMapPOI " .. mapName .. "POI" .. index, worldFramePOIs)
 	button:SetSize (WORLDMAP_SQUARE_SIZE, WORLDMAP_SQUARE_SIZE)
+	button.IsWorldQuestButton = true
 	
 	button:SetScript ("OnEnter", questButton_OnEnter)
 	button:SetScript ("OnLeave", questButton_OnLeave)
@@ -1817,6 +1872,27 @@ local create_worldmap_square = function (mapName, index)
 	trackingGlowBorder:SetSize (WORLDMAP_SQUARE_SIZE * 1.33, WORLDMAP_SQUARE_SIZE * 1.33)
 	trackingGlowBorder:Hide()
 	
+	trackingGlowBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\glow_blue_square]])
+	trackingGlowBorder:SetBlendMode ("ADD")
+	trackingGlowBorder:SetDesaturated (true)
+	trackingGlowBorder:SetSize (55, 55)
+	trackingGlowBorder:SetAlpha (.6)
+	trackingGlowBorder:SetDrawLayer ("BACKGROUND", -5)
+	
+	local criteriaIndicator = button:CreateTexture (nil, "OVERLAY", 2)
+	criteriaIndicator:SetPoint ("bottomleft", button, "bottomleft", -2, 0)
+	criteriaIndicator:SetSize (23*.4, 37*.4)
+	criteriaIndicator:SetAlpha (.8)
+	criteriaIndicator:SetTexture ([[Interface\AdventureMap\AdventureMap]])
+	criteriaIndicator:SetTexCoord (901/1024, 924/1024, 251/1024, 288/1024)
+	criteriaIndicator:Hide()
+	local criteriaIndicatorGlow = button:CreateTexture (nil, "OVERLAY", 1)
+	criteriaIndicatorGlow:SetPoint ("center", criteriaIndicator, "center")
+	criteriaIndicatorGlow:SetSize (18, 18)
+	criteriaIndicatorGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\criteriaIndicatorGlow]])
+	criteriaIndicatorGlow:SetTexCoord (0, 1, 0, 1)
+	criteriaIndicatorGlow:Hide()
+
 	commonBorder:Hide()
 	rareBorder:Hide()
 	epicBorder:Hide()
@@ -1840,6 +1916,15 @@ local create_worldmap_square = function (mapName, index)
 	highlight:SetAllPoints()
 	highlight:SetTexCoord (10/64, 54/64, 10/64, 54/64)
 	highlight:SetTexture ([[Interface\Store\store-item-highlight]])
+	highlight:SetDrawLayer ("highlight", 1)
+	
+	local criteriaHighlight = button:CreateTexture (nil, "highlight")
+	criteriaHighlight:SetPoint ("bottomleft", button, "bottomleft", -2, 0)
+	criteriaHighlight:SetSize (23*.4, 37*.4)
+	criteriaHighlight:SetAlpha (.8)
+	criteriaHighlight:SetTexture ([[Interface\AdventureMap\AdventureMap]])
+	criteriaHighlight:SetTexCoord (901/1024, 924/1024, 251/1024, 288/1024)
+	criteriaHighlight:SetDrawLayer ("highlight", 2)
 	
 	button.background = background
 	button.texture = texture
@@ -1851,6 +1936,9 @@ local create_worldmap_square = function (mapName, index)
 	button.timeBlip = timeBlip
 	button.amountText = amountText
 	button.amountBackground = amountBackground
+	button.criteriaIndicator = criteriaIndicator
+	button.criteriaHighlight = criteriaHighlight
+	button.criteriaIndicatorGlow = criteriaIndicatorGlow
 	button.isWorldMapWidget = true
 	
 	return button
@@ -1961,6 +2049,23 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade)
 									if (widget.texture:GetTexture() == nil) then
 										WorldQuestTracker.ScheduleWorldMapUpdate()
 									end
+									
+									if (isCriteria) then
+										widget.criteriaIndicator:Show()
+										widget.criteriaHighlight:Show()
+										widget.criteriaIndicatorGlow:Show()
+									else
+										widget.criteriaIndicator:Hide()
+										widget.criteriaHighlight:Hide()
+										widget.criteriaIndicatorGlow:Hide()
+									end
+									
+									if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
+										widget.trackingGlowBorder:Show()
+									else
+										widget.trackingGlowBorder:Hide()
+									end
+									
 								else
 									--faz uma atualização total do bloco
 									
@@ -1983,6 +2088,22 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade)
 									widget.IconTexture = nil
 									widget.IconText = nil
 									widget.QuestType = nil
+									
+									if (isCriteria) then
+										widget.criteriaIndicator:Show()
+										widget.criteriaHighlight:Show()
+										widget.criteriaIndicatorGlow:Show()
+									else
+										widget.criteriaIndicator:Hide()
+										widget.criteriaHighlight:Hide()
+										widget.criteriaIndicatorGlow:Hide()
+									end
+									
+									if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
+										widget.trackingGlowBorder:Show()
+									else
+										widget.trackingGlowBorder:Hide()
+									end
 									
 									WorldQuestTracker.SetTimeBlipColor (widget.timeBlip, timeLeft)
 									
@@ -2203,7 +2324,7 @@ hooksecurefunc (WorldMapFrame.UIElementsFrame.BountyBoard, "RefreshBountyTabs", 
 --self é o BountyBoard
 	local bountyData = self.bounties [self.selectedBountyIndex] -- self.bounties é a tabela com as 3 icones das facções
 	
-	--> abriu o mapa em uma região aonde não é mostrado as bounties.
+	-- abriu o mapa em uma região aonde não é mostrado as bounties.
 	if (not bountyData) then
 		return
 	end
