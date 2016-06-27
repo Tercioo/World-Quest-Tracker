@@ -122,11 +122,56 @@ end
 function WorldQuestTracker.GetTrackedQuests()
 	return WorldQuestTracker.QuestTrackList
 end
+
+function WorldQuestTracker:UpdateCurrentStandingZone()
+	if (WorldMapFrame:IsShown()) then
+		return
+	end
+
+	if (WorldQuestTracker.ScheduledMapFrameShownCheck and not WorldQuestTracker.ScheduledMapFrameShownCheck._cancelled) then
+		WorldQuestTracker.ScheduledMapFrameShownCheck:Cancel()
+	end
+	
+	local mapID = GetCurrentMapAreaID()	
+	if (mapID == 1080 or mapID == 1072) then
+		mapID = 1024
+	end
+	WorldMapFrame.currentStandingZone = mapID
+	WorldQuestTracker:FullTrackerUpdate()
+end
+function WorldQuestTracker:WaitUntilWorldMapIsClose()
+	if (WorldQuestTracker.ScheduledMapFrameShownCheck and not WorldQuestTracker.ScheduledMapFrameShownCheck._cancelled) then
+		WorldQuestTracker.ScheduledMapFrameShownCheck:Cancel()
+	end
+	WorldQuestTracker.ScheduledMapFrameShownCheck = C_Timer.NewTicker (1, WorldQuestTracker.UpdateCurrentStandingZone)
+end
+
 function WorldQuestTracker:OnInit()
 	WorldQuestTracker.InitAt = GetTime()
 	WorldQuestTracker.LastMapID = GetCurrentMapAreaID()
 	WorldQuestTracker.GetTrackedQuestsOnDB()
+	
+	function WorldQuestTracker:ZONE_CHANGED_NEW_AREA()
+		if (IsInInstance()) then
+			WorldQuestTrackerScreenPanel:Hide()
+		else
+			WorldQuestTrackerScreenPanel:Show()
+			WorldQuestTrackerScreenPanel:SetSize (235, 500)
+			WorldQuestTracker:FullTrackerUpdate()
+			
+			if (WorldMapFrame:IsShown()) then
+				return WorldQuestTracker:WaitUntilWorldMapIsClose()
+			else
+				C_Timer.After (.5, WorldQuestTracker.UpdateCurrentStandingZone)
+			end
+		end
+	end
+	WorldQuestTracker:RegisterEvent ("ZONE_CHANGED_NEW_AREA")
+	
+	C_Timer.After (.5, WorldQuestTracker.ZONE_CHANGED_NEW_AREA)
 end
+
+
 
 --o mapa é uma zona de broken isles?
 function WorldQuestTracker.IsBrokenIslesZone (mapID)
@@ -164,6 +209,27 @@ function WorldQuestTracker.CanShowBrokenIsles()
 	return SWITCH_TO_WORLD_ON_DALARAN and GetCurrentMapAreaID() ~= MAPID_BROKENISLES and (C_Garrison.IsPlayerInGarrison (LE_GARRISON_TYPE_7_0) or GetCurrentMapAreaID() == MAPID_DALARAN)
 end
 
+--todo: replace this with real animations
+local animFrame, t = CreateFrame ("frame"), 0
+local tickAnimation = function (self, deltaTime)
+	t = t + deltaTime
+	local squareAlphaAmount = Lerp (.35, .7, abs (sin (t*10)))
+	local roundAlphaAmount = Lerp (.5, .8, abs (sin (t*5)))
+
+	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
+		for index, button in ipairs (configTable.widgets) do
+			if (button.trackingGlowBorder:IsShown()) then
+				button.trackingGlowBorder:SetAlpha (squareAlphaAmount)
+			end
+		end
+	end
+	
+	for index, button in ipairs (WorldWidgetPool) do
+		if (button.IsTrackingGlow:IsShown()) then
+			button.IsTrackingGlow:SetAlpha (roundAlphaAmount)
+		end
+	end	
+end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> quest info
@@ -537,28 +603,32 @@ function WorldQuestTracker.GetOrCreateZoneWidget (info, index)
 		button.Texture = button:CreateTexture (button:GetName() .. "Texture", "BACKGROUND")
 		button.Texture:SetPoint ("center", button, "center")
 		button.Texture:SetMask ([[Interface\CharacterFrame\TempPortraitAlphaMask]])
-
+		
 		button.Glow = button:CreateTexture(button:GetName() .. "Glow", "BACKGROUND", -6)
 		button.Glow:SetSize (50, 50)
 		button.Glow:SetPoint ("center", button, "center")
 		button.Glow:SetTexture ([[Interface/WorldMap/UI-QuestPoi-IconGlow]])
 		button.Glow:SetBlendMode ("ADD")
 		button.Glow:Hide()
-
+		
+		button.highlight = button:CreateTexture (nil, "highlight")
+		button.highlight:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\highlight_circle]])
+		button.highlight:SetPoint ("center")
+		button.highlight:SetSize (16, 16)
+		
 		button.IsTrackingGlow = button:CreateTexture(button:GetName() .. "IsTrackingGlow", "BACKGROUND", -6)
-		button.IsTrackingGlow:SetSize (40, 40)
+		button.IsTrackingGlow:SetSize (46, 46)
 		button.IsTrackingGlow:SetPoint ("center", button, "center")
-		button.IsTrackingGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\glow_blue]])
+		button.IsTrackingGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\glow_yellow_round]])
 		button.IsTrackingGlow:SetBlendMode ("ADD")
 		button.IsTrackingGlow:SetAlpha (1)
-		--button.IsTrackingGlow:SetAlpha (1)
 		button.IsTrackingGlow:Hide()
-		button.IsTrackingGlow:SetDesaturated (true)
+		button.IsTrackingGlow:SetDesaturated (nil)
 		
 		button.SelectedGlow = button:CreateTexture (button:GetName() .. "SelectedGlow", "OVERLAY", 2)
 		button.SelectedGlow:SetBlendMode ("ADD")
 		button.SelectedGlow:SetPoint ("center", button, "center")
-
+		
 		button.CriteriaMatchGlow = button:CreateTexture(button:GetName() .. "CriteriaMatchGlow", "BACKGROUND", -1)
 		button.CriteriaMatchGlow:SetAlpha (.6)
 		button.CriteriaMatchGlow:SetBlendMode ("ADD")
@@ -618,8 +688,6 @@ function WorldQuestTracker.GetOrCreateZoneWidget (info, index)
 		--faixa com o tempo
 		button.bgFlag = button:CreateTexture (nil, "OVERLAY", 5)
 		button.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag]])
-		--button.bgFlag:SetTexCoord (0/512, 75/512, 82/512, 107/512)
-		--button.bgFlag:SetPoint ("center", button, "center")
 		button.bgFlag:SetPoint ("top", button, "bottom", 0, 3)
 		button.bgFlag:SetSize (64, 32)
 		
@@ -944,6 +1012,12 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 	
 	WorldMapFrame.currentStandingZone = GetCurrentMapAreaID()
 	
+	if (WorldMapFrame:IsShown()) then
+		animFrame:SetScript ("OnUpdate", tickAnimation)
+	else
+		animFrame:SetScript ("OnUpdate", nil)
+	end
+	
 	--verifica duplo click
 	if (lastMapTap+0.3 > GetTime()) then
 		
@@ -1195,7 +1269,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 end)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
---> quest tracker
+--> tracker quest
 
 --verifica se a quest ja esta na lista de track
 function WorldQuestTracker.IsQuestBeingTracked (questID)
@@ -1267,7 +1341,6 @@ function WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker()
 	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
 		local quest = WorldQuestTracker.QuestTrackList [i]
 		if (quest.expireAt < now) then
-			--print ("quest timeout", i, quest.rewardAmount)
 			WorldQuestTracker.RemoveQuestFromTracker (quest.questID, true)
 			gotRemoval = true
 		end
@@ -1321,6 +1394,10 @@ end
 function WorldQuestTracker.ReorderQuestsOnTracker()
 	--joga as quests do mapa atual pra cima
 	Sort_currentMapID = WorldMapFrame.currentStandingZone or GetCurrentMapAreaID()
+	if (Sort_currentMapID == 1080 or Sort_currentMapID == 1072) then
+		--Thunder Totem or Trueshot Lodge
+		Sort_currentMapID = 1024
+	end
 	table.sort (WorldQuestTracker.QuestTrackList, Sort_QuestsOnTracker)
 end
 
@@ -1328,6 +1405,7 @@ end
 --esse frame é quem vai ser anexado ao tracker da blizzard
 local WorldQuestTrackerFrame = CreateFrame ("frame", "WorldQuestTrackerScreenPanel", UIParent)
 WorldQuestTrackerFrame:SetSize (235, 500)
+
 local WorldQuestTrackerFrame_QuestHolder = CreateFrame ("frame", "WorldQuestTrackerScreenPanel_QuestHolder", WorldQuestTrackerFrame)
 WorldQuestTrackerFrame_QuestHolder:SetAllPoints()
 
@@ -1711,6 +1789,10 @@ ObjectiveTrackerFrame.HeaderMenu.MinimizeButton:HookScript ("OnClick", function(
 	On_ObjectiveTracker_Update()
 end)
 
+function WorldQuestTracker:FullTrackerUpdate()
+	On_ObjectiveTracker_Update()
+end
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> world map widgets
 
@@ -1722,7 +1804,7 @@ WorldQuestTracker.LastUpdate = 0
 local factionAmountForEachMap = {}
 
 --tabela de configuração
-local mapTable = {
+WorldQuestTracker.mapTables = {
 	[azsuna_mapId] = {
 		worldMapLocation = {x = 10, y = -345, lineWidth = 233},
 		worldMapLocationMax = {x = 168, y = -468, lineWidth = 330},
@@ -1841,7 +1923,7 @@ local create_worldmap_square = function (mapName, index)
 	local button = CreateFrame ("button", "WorldQuestTrackerWorldMapPOI " .. mapName .. "POI" .. index, worldFramePOIs)
 	button:SetSize (WORLDMAP_SQUARE_SIZE, WORLDMAP_SQUARE_SIZE)
 	button.IsWorldQuestButton = true
-	
+	button:SetFrameLevel (302)
 	button:SetScript ("OnEnter", questButton_OnEnter)
 	button:SetScript ("OnLeave", questButton_OnLeave)
 	button:SetScript ("OnClick", questButton_OnClick)
@@ -1852,7 +1934,7 @@ local create_worldmap_square = function (mapName, index)
 	
 	local texture = button:CreateTexture (nil, "background", -2)
 	texture:SetAllPoints()	
-
+	
 	local commonBorder = button:CreateTexture (nil, "artwork", 1)
 	commonBorder:SetPoint ("topleft", button, "topleft")
 	commonBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_white]])
@@ -1872,9 +1954,9 @@ local create_worldmap_square = function (mapName, index)
 	trackingGlowBorder:SetSize (WORLDMAP_SQUARE_SIZE * 1.33, WORLDMAP_SQUARE_SIZE * 1.33)
 	trackingGlowBorder:Hide()
 	
-	trackingGlowBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\glow_blue_square]])
+	trackingGlowBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\glow_yellow_square]])
 	trackingGlowBorder:SetBlendMode ("ADD")
-	trackingGlowBorder:SetDesaturated (true)
+	--trackingGlowBorder:SetDesaturated (true)
 	trackingGlowBorder:SetSize (55, 55)
 	trackingGlowBorder:SetAlpha (.6)
 	trackingGlowBorder:SetDrawLayer ("BACKGROUND", -5)
@@ -1916,7 +1998,6 @@ local create_worldmap_square = function (mapName, index)
 	highlight:SetAllPoints()
 	highlight:SetTexCoord (10/64, 54/64, 10/64, 54/64)
 	highlight:SetTexture ([[Interface\Store\store-item-highlight]])
-	highlight:SetDrawLayer ("highlight", 1)
 	
 	local criteriaHighlight = button:CreateTexture (nil, "highlight")
 	criteriaHighlight:SetPoint ("bottomleft", button, "bottomleft", -2, 0)
@@ -1924,6 +2005,20 @@ local create_worldmap_square = function (mapName, index)
 	criteriaHighlight:SetAlpha (.8)
 	criteriaHighlight:SetTexture ([[Interface\AdventureMap\AdventureMap]])
 	criteriaHighlight:SetTexCoord (901/1024, 924/1024, 251/1024, 288/1024)
+	
+	trackingGlowBorder:SetDrawLayer ("BACKGROUND", -5)
+	--trackingGlowBorder:SetDrawLayer ("overlay", 7)
+	background:SetDrawLayer ("background", -3)
+	texture:SetDrawLayer ("background", -2)
+	commonBorder:SetDrawLayer ("border", 1)
+	rareBorder:SetDrawLayer ("border", 1)
+	epicBorder:SetDrawLayer ("border", 1)
+	amountBackground:SetDrawLayer ("overlay", 0)
+	amountText:SetDrawLayer ("overlay", 1)
+	criteriaIndicatorGlow:SetDrawLayer ("OVERLAY", 1)
+	criteriaIndicator:SetDrawLayer ("OVERLAY", 2)
+	timeBlip:SetDrawLayer ("overlay", 2)
+	highlight:SetDrawLayer ("highlight", 1)
 	criteriaHighlight:SetDrawLayer ("highlight", 2)
 	
 	button.background = background
@@ -1946,7 +2041,7 @@ end
 
 --cria os widgets do world map
 --esta criando logo na leitura do addon
-for mapId, configTable in pairs (mapTable) do
+for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 	local mapName = GetMapNameByID (mapId)
 	local line, blip, factionFrame = create_worldmap_line (configTable.worldMapLocation.lineWidth, mapId)
 	if (WorldQuestTracker.InWindowMode) then
@@ -2009,7 +2104,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade)
 	local needAnotherUpdate = false
 	local availableQuests = 0
 
-	for mapId, configTable in pairs (mapTable) do
+	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		local taskInfo = GetQuestsForPlayerByMapID (mapId)
 		local taskIconIndex = 1
 		local widgets = configTable.widgets
@@ -2242,7 +2337,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade)
 	C_Timer.After (0.5, WorldQuestTracker.UpdateFactionAlpha)
 	
 	if (WorldMapFrame_InWindowedMode() and not WorldQuestTracker.InWindowMode) then
-		for mapId, configTable in pairs (mapTable) do
+		for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 			configTable.line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocation.x, configTable.worldMapLocation.y)
 			configTable.line:SetWidth (configTable.worldMapLocation.lineWidth)
 		end
@@ -2250,7 +2345,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade)
 		WorldQuestTracker.InWindowMode = true
 	elseif (not WorldMapFrame_InWindowedMode() and WorldQuestTracker.InWindowMode) then
 		
-		for mapId, configTable in pairs (mapTable) do
+		for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 			configTable.line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
 			configTable.line:SetWidth (configTable.worldMapLocationMax.lineWidth)
 		end
