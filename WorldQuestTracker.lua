@@ -6,6 +6,8 @@ if (not DF) then
 	return
 end
 
+--219978
+
 local _
 local default_config = {
 	profile = {
@@ -213,7 +215,7 @@ end
 local animFrame, t = CreateFrame ("frame"), 0
 local tickAnimation = function (self, deltaTime)
 	t = t + deltaTime
-	local squareAlphaAmount = Lerp (.35, .7, abs (sin (t*10)))
+	local squareAlphaAmount = Lerp (.5, .8, abs (sin (t*10)))
 	local roundAlphaAmount = Lerp (.5, .8, abs (sin (t*5)))
 
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
@@ -349,12 +351,16 @@ local GameTooltipFrameTextLeft1 = _G ["WorldQuestTrackerScanTooltipTextLeft2"]
 local GameTooltipFrameTextLeft2 = _G ["WorldQuestTrackerScanTooltipTextLeft3"]
 local GameTooltipFrameTextLeft3 = _G ["WorldQuestTrackerScanTooltipTextLeft4"]
 
+
+
 function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 	GameTooltipFrame:SetOwner (WorldFrame, "ANCHOR_NONE")
 	GameTooltipFrame:SetHyperlink (itemLink)
 	local text = GameTooltipFrameTextLeft1:GetText()
 	if (text:match ("|cFFE6CC80")) then
-		local power = GameTooltipFrameTextLeft3:GetText():match ("%d.-%s") or 0
+		--local power = GameTooltipFrameTextLeft3:GetText():match ("%d.-%s") or 0 - problemas com pontuação
+		local power = GameTooltipFrameTextLeft3:GetText():gsub ("%p", ""):match ("%d+")
+
 		power = tonumber (power)
 		return true, power or 0
 	end
@@ -1074,9 +1080,10 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			WorldQuestTracker.HideWorldQuestsOnWorldMap()
 		end
 
+		--WorldQuestTracker.db.profile.GotTutorial = nil
 		if (not WorldQuestTracker.db.profile.GotTutorial) then
 			local tutorialFrame = CreateFrame ("button", "WorldQuestTrackerTutorial", WorldMapFrame)
-			tutorialFrame:SetSize (160, 190)
+			tutorialFrame:SetSize (160, 280)
 			tutorialFrame:SetPoint ("left", WorldMapFrame, "left")
 			tutorialFrame:SetPoint ("right", WorldMapFrame, "right")
 			tutorialFrame:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
@@ -1127,7 +1134,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			
 			local texture = tutorialFrame:CreateTexture (nil, "border")
 			texture:SetSize (120, 120)
-			texture:SetPoint ("left", tutorialFrame, "left", 100, 10)
+			texture:SetPoint ("left", tutorialFrame, "left", 100, 50)
 			texture:SetTexture ([[Interface\ICONS\INV_Chest_Mail_RaidHunter_I_01]])
 			
 			local square = tutorialFrame:CreateTexture (nil, "artwork")
@@ -1158,6 +1165,18 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			amountBackground:SetTexCoord (12/512, 74/512, 251/512, 281/512)
 			amountBackground:SetSize (32*2, 10*2)
 			amountBackground:SetAlpha (.7)
+
+			local criteriaIndicator = tutorialFrame:CreateTexture (nil, "OVERLAY", 2)
+			criteriaIndicator:SetPoint ("bottomleft", texture, "bottomleft", 0, -6)
+			criteriaIndicator:SetSize (23*.8, 37*.8)
+			criteriaIndicator:SetAlpha (.8)
+			criteriaIndicator:SetTexture ([[Interface\AdventureMap\AdventureMap]])
+			criteriaIndicator:SetTexCoord (901/1024, 924/1024, 251/1024, 288/1024)
+			local criteriaIndicatorGlow = tutorialFrame:CreateTexture (nil, "OVERLAY", 1)
+			criteriaIndicatorGlow:SetPoint ("center", criteriaIndicator, "center")
+			criteriaIndicatorGlow:SetSize (32, 32)
+			criteriaIndicatorGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\criteriaIndicatorGlow]])
+			criteriaIndicatorGlow:SetTexCoord (0, 1, 0, 1)
 			
 			flag:SetDrawLayer ("overlay", 1)
 			amountBackground:SetDrawLayer ("overlay", 2)
@@ -1253,15 +1272,75 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			textureText:SetText ("indicates the reward (equipment, gold, artifact power, resources, reagents)")
 			
 			--indicador de facção
-			local faccao = tutorialFrame:CreateTexture (nil, "overlay")
-			faccao:SetSize (28, 28)
-			faccao:SetPoint ("topright", texture, "topright", 50, -120)
-			faccao:SetTexture ([[Interface\QUESTFRAME\WorldQuest]])
-			faccao:SetTexCoord (0.546875, 0.62109375, 0.6875, 0.984375)
+			local criteriaIndicator = tutorialFrame:CreateTexture (nil, "OVERLAY", 2)
+			criteriaIndicator:SetPoint ("topright", texture, "topright", 48, -122)
+			criteriaIndicator:SetSize (23*.8, 37*.8)
+			criteriaIndicator:SetAlpha (.8)
+			criteriaIndicator:SetTexture ([[Interface\AdventureMap\AdventureMap]])
+			criteriaIndicator:SetTexCoord (901/1024, 924/1024, 251/1024, 288/1024)
+			local criteriaIndicatorGlow = tutorialFrame:CreateTexture (nil, "OVERLAY", 1)
+			criteriaIndicatorGlow:SetPoint ("center", criteriaIndicator, "center")
+			criteriaIndicatorGlow:SetSize (18, 18)
+			criteriaIndicatorGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\criteriaIndicatorGlow]])
+			criteriaIndicatorGlow:SetTexCoord (0, 1, 0, 1)
+
 			local faccaoText = tutorialFrame:CreateFontString (nil, "overlay", "GameFontNormal")
-			faccaoText:SetPoint ("left", faccao, "right", 6, 0)
+			faccaoText:SetPoint ("left", criteriaIndicator, "right", 6, 0)
 			DF:SetFontSize (faccaoText, 12)
 			faccaoText:SetText ("indicates the quest counts towards the selected faction.")
+			
+			--indicator de quantas questes ha para a facção
+			local factionFrame = CreateFrame ("frame", nil, tutorialFrame)
+			factionFrame:SetSize (20, 20)
+			factionFrame:SetPoint ("topright", texture, "topright", 50, -162)
+			
+			local factionIcon = factionFrame:CreateTexture (nil, "background")
+			factionIcon:SetSize (18, 18)
+			factionIcon:SetPoint ("center", factionFrame, "center")
+			factionIcon:SetDrawLayer ("background", -2)
+			
+			local factionHighlight = factionFrame:CreateTexture (nil, "background")
+			factionHighlight:SetSize (36, 36)
+			factionHighlight:SetTexture ([[Interface\QUESTFRAME\WorldQuest]])
+			factionHighlight:SetTexCoord (0.546875, 0.62109375, 0.6875, 0.984375)
+			factionHighlight:SetDrawLayer ("background", -3)
+			factionHighlight:SetPoint ("center", factionFrame, "center")
+
+			local factionIconBorder = factionFrame:CreateTexture (nil, "artwork", 0)
+			factionIconBorder:SetSize (20, 20)
+			factionIconBorder:SetPoint ("center", factionFrame, "center")
+			factionIconBorder:SetTexture ([[Interface\COMMON\GoldRing]])
+			
+			local factionQuestAmount = factionFrame:CreateFontString (nil, "overlay", "GameFontNormal")
+			factionQuestAmount:SetPoint ("center", factionFrame, "center")
+			factionQuestAmount:SetText ("4")
+			
+			local factionQuestAmountBackground = factionFrame:CreateTexture (nil, "background")
+			factionQuestAmountBackground:SetPoint ("center", factionFrame, "center")
+			factionQuestAmountBackground:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\borders]])
+			factionQuestAmountBackground:SetTexCoord (12/512, 74/512, 251/512, 281/512)
+			factionQuestAmountBackground:SetSize (20, 10)
+			factionQuestAmountBackground:SetAlpha (.7)
+			factionQuestAmountBackground:SetDrawLayer ("background", 3)
+			
+			local faccaoAmountText = tutorialFrame:CreateFontString (nil, "overlay", "GameFontNormal")
+			faccaoAmountText:SetPoint ("left", factionFrame, "right", 6, 0)
+			DF:SetFontSize (faccaoAmountText, 12)
+			faccaoAmountText:SetText ("indicates how many quest are on the map for the selected faction.")
+			
+			--click para colocar no tracker
+			local clickToTrack = factionFrame:CreateTexture (nil, "background")
+			clickToTrack:SetPoint ("topright", texture, "topright", 51, -192)
+			clickToTrack:SetTexture ([[Interface\TUTORIALFRAME\UI-TUTORIAL-FRAME]])
+			clickToTrack:SetTexCoord (15/512, 63/512, 231/512, 306/512)
+			clickToTrack:SetSize (48*.5, 75*.5)
+			clickToTrack:SetDrawLayer ("background", 3)
+			
+			local clickToTrack2 = tutorialFrame:CreateFontString (nil, "overlay", "GameFontNormal")
+			clickToTrack2:SetPoint ("left", clickToTrack, "right", 6, 0)
+			DF:SetFontSize (clickToTrack2, 12)
+			clickToTrack2:SetText ("Left click to track a quest. On the tracker, you may |cFFFFFFFFright click|r to untrack it.")
+			
 		end
 	else
 		WorldQuestTracker.NoAutoSwitchToWorldMap = nil
