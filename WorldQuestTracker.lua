@@ -1,4 +1,4 @@
- 
+
 --details! framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
@@ -24,6 +24,7 @@ local default_config = {
 		taxy_showquests = true,
 		taxy_trackedonly = false,
 		taxy_tracked_scale = 3,
+		map_lock = true,
 		auto_worldmap = true,
 		enable_doubletap = true,
 		history = {
@@ -346,7 +347,7 @@ function WorldQuestTracker.CanShowWorldMapWidgets()
 end
 --verifica se pode trocar o mapa e mostrar broken isles ao inves do mapa solicitado
 function WorldQuestTracker.CanShowBrokenIsles()
-	return WorldQuestTracker.db.profile.enable_doubletap and GetCurrentMapAreaID() ~= MAPID_BROKENISLES and (C_Garrison.IsPlayerInGarrison (LE_GARRISON_TYPE_7_0) or GetCurrentMapAreaID() == MAPID_DALARAN)
+	return WorldQuestTracker.db.profile.enable_doubletap and not InCombatLockdown() and GetCurrentMapAreaID() ~= MAPID_BROKENISLES and (C_Garrison.IsPlayerInGarrison (LE_GARRISON_TYPE_7_0) or GetCurrentMapAreaID() == MAPID_DALARAN)
 end
 
 --todo: replace this with real animations
@@ -719,12 +720,12 @@ end)
 
 --se o mapa mudar automaticamente, voltar para o mapa atual
 WorldMapFrame:HookScript ("OnUpdate", function (self, deltaTime)
-	if (LOCK_MAP and GetCurrentMapContinent() == 8) then
+	if (WorldQuestTracker.db.profile.map_lock and GetCurrentMapContinent() == 8) then
 		if (WorldQuestTracker.CanChangeMap) then
 			WorldQuestTracker.CanChangeMap = nil
 			WorldQuestTracker.LastMapID = GetCurrentMapAreaID()
 		else
-			if (WorldQuestTracker.LastMapID ~= GetCurrentMapAreaID() and WorldQuestTracker.LastMapID) then
+			if (WorldQuestTracker.LastMapID ~= GetCurrentMapAreaID() and WorldQuestTracker.LastMapID and not InCombatLockdown()) then
 				SetMapByID (WorldQuestTracker.LastMapID)
 				WorldQuestTracker.UpdateZoneWidgets()
 			end
@@ -1267,7 +1268,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 	end
 	
 	--verifica duplo click
-	if (lastMapTap+0.3 > GetTime()) then
+	if (lastMapTap+0.3 > GetTime() and not InCombatLockdown() and WorldQuestTracker.CanShowBrokenIsles()) then
 		
 		--SetMapToCurrentZone()
 		SetMapByID (GetCurrentMapAreaID())
@@ -1297,7 +1298,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 	
 	if (WorldMapFrame:IsShown()) then
 		--é a primeira vez que é mostrado?
-		if (not WorldMapFrame.firstRun) then
+		if (not WorldMapFrame.firstRun and not InCombatLockdown()) then
 			local currentMapId = WorldMapFrame.mapID
 			SetMapByID (1015)
 			SetMapByID (1018)
@@ -1331,9 +1332,23 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			--C_Timer.NewTicker (1, function() print (checkboxDoubleTap:GetBackdropColor()) end)
 			--checkboxDoubleTap.widget:SetBackdropColor (1, 0, 0, 0)
 
-			local doubleTapText = DF:CreateLabel (checkboxDoubleTap, "Auto World Map", 12, "orange", nil, "checkboxDoubleTapLabel", nil, "overlay")
+			local doubleTapText = DF:CreateLabel (checkboxDoubleTap, "Auto World Map", 10, "orange", nil, "checkboxDoubleTapLabel", nil, "overlay")
 			doubleTapText:SetPoint ("left", checkboxDoubleTap, "right", 2, 0)
 			
+			--------------
+			local checkboxSupressMapChanges_func = function (self, actorTypeIndex, value) 
+				WorldQuestTracker.db.profile.map_lock = value
+			end
+			local checkboxSupressMapChanges = DF:CreateSwitch (WorldQuestTracker.DoubleTapFrame, checkboxSupressMapChanges_func, WorldQuestTracker.db.profile.map_lock, nil, nil, nil, nil, "checkboxSupressMapChanges1")
+			checkboxSupressMapChanges:SetTemplate (DF:GetTemplate ("switch", "OPTIONS_CHECKBOX_TEMPLATE"))
+			checkboxSupressMapChanges:SetAsCheckBox()
+			checkboxSupressMapChanges:SetSize (16, 16)
+			checkboxSupressMapChanges.tooltip = "Periodically, the map resets to your current zone. Check this box to avoid this."
+			checkboxSupressMapChanges:SetPoint ("left", doubleTapText, "right", 2, 0)
+			
+			local supressMapChangesLabel = DF:CreateLabel (checkboxSupressMapChanges, "Suppress Map Changes", 10, "orange", nil, "checkboxSupressMapChangesLabel", nil, "overlay")
+			supressMapChangesLabel:SetPoint ("left", checkboxSupressMapChanges, "right", 2, 0)
+
 			--animação
 			worldFramePOIs:SetScript ("OnShow", function()
 				worldFramePOIs.fadeInAnimation:Play()
@@ -2200,6 +2215,7 @@ function WorldQuestTracker:GetQuestFullInfo (questID)
 	return title, questType, texture, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, selected, isSpellTarget, timeLeft, isCriteria, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable
 end
 
+--não esta sendo usado no momento
 function WorldQuestTracker:GetAllWorldQuests_Info()
 	local result = {}
 	SetMapByID (MAPID_BROKENISLES)
