@@ -4,7 +4,7 @@ local DF = _G ["DetailsFramework"]
 if (not DF) then
 	print ("|cFFFFAA00Plater: framework not found, if you just installed or updated the addon, please restart your client.|r")
 	return
-end
+end 
 
 do
 	local color = OBJECTIVE_TRACKER_COLOR ["Header"]
