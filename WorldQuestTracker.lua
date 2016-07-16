@@ -243,6 +243,8 @@ function WorldQuestTracker:OnInit()
 	WorldQuestTracker.LastMapID = GetCurrentMapAreaID()
 	WorldQuestTracker.GetTrackedQuestsOnDB()
 	
+	WorldQuestTracker.CreateLoadingIcon()
+	
 	WQTrackerDBChr = WQTrackerDBChr or {}
 	WorldQuestTracker.dbChr = WQTrackerDBChr
 	
@@ -1428,6 +1430,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 	
 	if (WorldMapFrame:IsShown()) then
 		--é a primeira vez que é mostrado?
+
 		if (not WorldMapFrame.firstRun and not InCombatLockdown()) then
 			local currentMapId = WorldMapFrame.mapID
 			SetMapByID (1015)
@@ -2977,14 +2980,25 @@ function WorldQuestTracker.ScheduleWorldMapUpdate (seconds)
 	WorldQuestTracker.ScheduledWorldUpdate = C_Timer.NewTimer (seconds or 1, do_worldmap_update)
 end
 
+local re_check_for_questcompleted = function()
+	WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, true, true)
+end
+
 --faz a atualização dos widgets no world map
-function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade)
+function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQuestFlaggedRecheck)
 	
 	--do not update more then once per tick
 	if (WorldQuestTracker.LastUpdate+0.017 > GetTime()) then
 		return
-	elseif (UnitLevel ("player") < 110 or not IsQuestFlaggedCompleted (43341)) then
+	elseif (UnitLevel ("player") < 110) then
 		WorldQuestTracker.HideWorldQuestsOnWorldMap()
+		return
+	elseif (not IsQuestFlaggedCompleted (43341)) then
+		WorldQuestTracker.HideWorldQuestsOnWorldMap()
+		--print ("quest nao completada...")
+		if (not isQuestFlaggedRecheck) then
+			C_Timer.After (3, re_check_for_questcompleted)
+		end
 		return
 	end
 	
@@ -3202,13 +3216,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade)
 				widgets[i]:Hide()
 			end
 		else
-			if (not taskInfo) then
-				--não tem task info
-				needAnotherUpdate = true
-			elseif (#taskInfo == 0) then
-				--nao tem os dados do mapa
-				needAnotherUpdate = true
-			end
+			needAnotherUpdate = true
 		end
 		
 		--quantidade de quest para a faccao
@@ -3218,6 +3226,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade)
 	if (needAnotherUpdate) then
 		if (WorldMapFrame:IsShown()) then
 			WorldQuestTracker.ScheduleWorldMapUpdate (1.5)
+			WorldQuestTracker.PlayLoadingAnimation()
+		end
+	else
+		if (WorldQuestTracker.IsPlayingLoadAnimation()) then
+			WorldQuestTracker.StopLoadingAnimation()
 		end
 	end
 	if (showFade) then
@@ -3314,6 +3327,79 @@ function WorldQuestTracker.UpdateFactionAlpha()
 			factionFrame:SetAlpha (.65)
 		end
 	end
+end
+
+function WorldQuestTracker.CreateLoadingIcon()
+	local f = CreateFrame ("frame", nil, WorldMapFrame)
+	f:SetSize (48, 48)
+	f:SetPoint ("bottom", WorldMapFrame, "top", 0, -150)
+	f:SetFrameLevel (3000)
+	
+	local animGroup1 = f:CreateAnimationGroup()
+	local anim1 = animGroup1:CreateAnimation ("Alpha")
+	anim1:SetOrder (1)
+	anim1:SetFromAlpha (0)
+	anim1:SetToAlpha (1)
+	anim1:SetDuration (2)
+	f.FadeIN = animGroup1
+	
+	local animGroup2 = f:CreateAnimationGroup()
+	local anim2 = animGroup2:CreateAnimation ("Alpha")
+	f.FadeOUT = animGroup2
+	anim2:SetOrder (2)
+	anim2:SetFromAlpha (1)
+	anim2:SetToAlpha (0)
+	anim2:SetDuration (4)
+	animGroup2:SetScript ("OnFinished", function()
+		f:Hide()
+	end)
+	
+	f.Text = f:CreateFontString (nil, "overlay", "GameFontNormal")
+	f.Text:SetText ("please wait...")
+	f.Text:SetPoint ("left", f, "right", -5, 1)
+	f.TextBackground = f:CreateTexture (nil, "background")
+	f.TextBackground:SetPoint ("left", f, "right", -20, 0)
+	f.TextBackground:SetSize (160, 14)
+	f.TextBackground:SetTexture ([[Interface\COMMON\ShadowOverlay-Left]])
+	
+	f.CircleAnim = CreateFrame ("frame", nil, f)
+	f.CircleAnim:SetAllPoints()
+	f.CircleAnim.Circle = f.CircleAnim:CreateTexture (nil, "border")
+	f.CircleAnim.Circle:SetTexture ([[Interface\COMMON\StreamCircle]])
+	f.CircleAnim.Circle:SetAllPoints()
+	f.CircleAnim.Circle:SetVertexColor (.5, 1, .5)
+	f.CircleAnim.Spin = f.CircleAnim:CreateTexture (nil, "background")
+	f.CircleAnim.Spin:SetTexture ([[Interface\COMMON\StreamBackground]])
+	f.CircleAnim.Spin:SetAllPoints()
+	f.CircleAnim.Frame = f.CircleAnim:CreateTexture (nil, "artwork")
+	f.CircleAnim.Frame:SetTexture ([[Interface\COMMON\StreamFrame]])
+	f.CircleAnim.Frame:SetAllPoints()
+	
+	local animGroup3 = f.CircleAnim:CreateAnimationGroup()
+	animGroup3:SetLooping ("Repeat")
+	local animLoop = animGroup3:CreateAnimation ("Rotation")
+	f.Loop = animGroup3
+	animLoop:SetOrder (1)
+	animLoop:SetDuration (6)
+	animLoop:SetDegrees (-360)
+	animLoop:SetTarget (f.CircleAnim)
+	
+	WorldQuestTracker.LoadingAnimation = f
+	f:Hide()
+end
+
+function WorldQuestTracker.PlayLoadingAnimation()
+	WorldQuestTracker.LoadingAnimation:Show()
+	WorldQuestTracker.LoadingAnimation.FadeIN:Play()
+	WorldQuestTracker.LoadingAnimation.Loop:Play()
+	WorldQuestTracker.LoadingAnimation.IsPlaying = true
+end
+function WorldQuestTracker.StopLoadingAnimation()
+	WorldQuestTracker.LoadingAnimation.FadeOUT:Play()
+	WorldQuestTracker.LoadingAnimation.IsPlaying = false
+end
+function WorldQuestTracker.IsPlayingLoadAnimation()
+	return WorldQuestTracker.LoadingAnimation.IsPlaying
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
