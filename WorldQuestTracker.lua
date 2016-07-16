@@ -1,4 +1,4 @@
- 
+
 --details! framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
@@ -13,6 +13,7 @@ do
 	DF:NewColor ("WQT_QUESTZONE_INMAP", 1, 1, 1, 1)
 	DF:NewColor ("WQT_QUESTZONE_OUTMAP", 1, 1, 1, .7)
 end
+
 
 --219978
 --world of quets IsQuestFlaggedCompleted (43341) - colocar junto com o level do personagem
@@ -80,7 +81,7 @@ local measurePerformance = function (self, deltaTime)
 		if (self.DumpTime == 8) then
 			for i = 1, #self.timeTable do
 				local v = self.timeTable [i]
-				if (v > .05) then
+				if (v > .02) then
 					print ("Load Time:", v, "seconds.")
 				end
 			end
@@ -188,6 +189,8 @@ local POISize = 20
 
 local lastZoneWidgetsUpdate = 0
 local lastMapTap = 0
+
+local ITEMLEVEL_UPGRADE_SYMBOL = "" -- "+"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> initialize the addon
@@ -425,8 +428,8 @@ end
 local animFrame, t = CreateFrame ("frame"), 0
 local tickAnimation = function (self, deltaTime)
 	t = t + deltaTime
-	local squareAlphaAmount = Lerp (.5, .8, abs (sin (t*10)))
-	local roundAlphaAmount = Lerp (.5, .8, abs (sin (t*5)))
+	local squareAlphaAmount = Lerp (.7, .95, abs (sin (t*10)))
+	local roundAlphaAmount = Lerp (.75, .95, abs (sin (t*40)))
 
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		for index, button in ipairs (configTable.widgets) do
@@ -463,6 +466,22 @@ local anime_square = function (self, deltaTime)
 	end
 end
 
+function WorldQuestTracker.GetBorderByQuestType (self, rarity, worldQuestType)
+	if (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
+		return "border_zone_browT"
+	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
+		return "border_zone_greenT"
+	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
+		return ""
+	elseif (rarity == LE_WORLD_QUEST_QUALITY_COMMON) then
+		return "border_zone_whiteT"
+	elseif (rarity == LE_WORLD_QUEST_QUALITY_RARE) then
+		return "border_zone_blueT"
+	elseif (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
+		return "border_zone_pinkT"
+	end
+end
+
 --atualiza a borda nas squares do world map e no mapa da zona
 function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 	if (self.isWorldMapWidget) then
@@ -472,9 +491,11 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 		
 		if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
 			self.borderAnimation:Show()
-			AutoCastShine_AutoCastStart (self.borderAnimation, 1, 1, 1)
+			--AutoCastShine_AutoCastStart (self.borderAnimation, 1, .7, 0)
+			self.trackingBorder:Show()
 		else
 			self.borderAnimation:Hide()
+			self.trackingBorder:Hide()
 		end
 		
 		local coords = WorldQuestTracker.GetBorderCoords (rarity)
@@ -519,67 +540,45 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 		end
 
 	else
+		local borderTextureFile = WorldQuestTracker.GetBorderByQuestType (self, rarity, worldQuestType)
+		self.circleBorder:Show()
+		self.circleBorder:SetTexture ("Interface\\AddOns\\WorldQuestTracker\\media\\" .. borderTextureFile)
+		
 		if (rarity == LE_WORLD_QUEST_QUALITY_COMMON) then
-			if (self.squareBorder:IsShown()) then
-				if (self.isArtifact) then
-					self.squareBorder:SetVertexColor (230/255, 204/255, 128/255)
-				else
-					self.squareBorder:SetVertexColor (.9, .9, .9)
-				end
-			end
-			if (self.circleBorder:IsShown()) then
-				self.circleBorder:SetVertexColor (.9, .9, .9)
-			end
-			
-			self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag_commonT]])
+			--self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag_commonT]])
 			self.bgFlag:Hide()
-			--self.bgFlag:Show()
+			--self.glassTransparence:Hide()
 			self.bgFlagText:SetWidth (40)
 
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_RARE) then
-			if (self.squareBorder:IsShown()) then
-				self.squareBorder:SetVertexColor (0, 0.56863, 0.94902)
-			end
-			self.squareBorder:Hide()
-			self.circleBorder:Show()
-			if (self.circleBorder:IsShown()) then
-				self.circleBorder:SetVertexColor (0, 0.56863, 0.94902)
-			end
-			
 			self.rareSerpent:Show()
-			self.rareSerpent:SetAtlas ("worldquest-questmarker-dragon")
+			self.rareSerpent:SetSize (48, 52)
+			--self.rareSerpent:SetAtlas ("worldquest-questmarker-dragon")
+			self.rareSerpent:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragon_curveT]])
 			self.rareGlow:Show()
-			self.rareGlow:SetVertexColor (0, 0.56863, 0.94902)
+			self.rareGlow:SetVertexColor (0, 0.36863, 0.74902)
+			self.rareGlow:SetSize (48, 52)
+			self.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragonT]])
+			
 			self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
 			self.bgFlag:Show()
+			--self.glassTransparence:Show()
 			
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
-			if (self.squareBorder:IsShown()) then
-				self.squareBorder:SetVertexColor (0.78431, 0.27059, 0.98039)
-			end
-			self.squareBorder:Hide()
-			self.circleBorder:Show()
-			if (self.circleBorder:IsShown()) then
-				self.circleBorder:SetVertexColor (0.78431, 0.27059, 0.98039)
-			end
-			
 			self.rareSerpent:Show()
-			self.rareSerpent:SetAtlas ("worldquest-questmarker-dragon")
+			self.rareSerpent:SetSize (48, 52)
+			--self.rareSerpent:SetAtlas ("worldquest-questmarker-dragon")
+			self.rareSerpent:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragon_curveT]])
 			self.rareGlow:Show()
-			self.rareGlow:SetVertexColor (0.78431, 0.27059, 0.98039)
+			self.rareGlow:SetVertexColor (0.58431, 0.07059, 0.78039)
+			self.rareGlow:SetSize (48, 52)
+			self.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragonT]])
+			
 			self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
 			self.bgFlag:Show()
+			--self.glassTransparence:Show()
 		end
 		
-		if (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
-			self.circleBorder:SetVertexColor (1, .7, .2)
-			
-		elseif (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
-			self.circleBorder:SetVertexColor (.4, 1, .4)
-			
-		elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
-			
-		end
 	end
 
 end
@@ -638,7 +637,15 @@ local GameTooltipFrameTextLeft1 = _G ["WorldQuestTrackerScanTooltipTextLeft2"]
 local GameTooltipFrameTextLeft2 = _G ["WorldQuestTrackerScanTooltipTextLeft3"]
 local GameTooltipFrameTextLeft3 = _G ["WorldQuestTrackerScanTooltipTextLeft4"]
 
-
+--GameTooltip_ShowCompareItem(GameTooltip);
+--EmbeddedItemTooltip_SetItemByQuestReward(self, questLogIndex, questID)
+function WorldQuestTracker.RewardRealItemLevel (questID)
+	GameTooltipFrame:SetOwner (WorldFrame, "ANCHOR_NONE")
+	--GameTooltipFrame:SetHyperlink (itemLink)
+	GameTooltipFrame:SetQuestLogItem ("reward", 1, questID)
+	local itemLevel = tonumber (GameTooltipFrameTextLeft1:GetText():match ("%d+"))
+	return itemLevel or 1
+end
 
 function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 	GameTooltipFrame:SetOwner (WorldFrame, "ANCHOR_NONE")
@@ -684,6 +691,9 @@ function WorldQuestTracker.GetQuestReward_Item (questID)
 			local itemName, itemLink, itemRarity, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, itemSellPrice = GetItemInfo (itemID)
 			if (itemName) then
 				local isArtifact, artifactPower = WorldQuestTracker.RewardIsArtifactPower (itemLink)
+				local hasUpgrade = WorldQuestTracker.RewardRealItemLevel (questID)
+				itemLevel = itemLevel > hasUpgrade and itemLevel or hasUpgrade
+				
 				if (isArtifact) then
 					return itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, true, artifactPower, itemStackCount > 1
 				else
@@ -887,6 +897,7 @@ local clear_widget = function (self)
 	self.questTypeBlip:Hide()
 end
 
+-- ~zoneicon
 function WorldQuestTracker.CreateZoneWidget (index, name, parent)
 	local button = CreateFrame ("button", name .. index, parent)
 	button:SetSize (POISize, POISize)
@@ -948,12 +959,12 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent)
 	button.rareSerpent = button:CreateTexture (button:GetName() .. "RareSerpent", "OVERLAY")
 	button.rareSerpent:SetWidth (34 * 1.1)
 	button.rareSerpent:SetHeight (34 * 1.1)
-	button.rareSerpent:SetPoint ("CENTER", 0, -1)
+	button.rareSerpent:SetPoint ("CENTER", 1, -2)
 	
 	-- é a sombra da serpente no fundo, pode ser na cor azul ou roxa
 	button.rareGlow = button:CreateTexture (nil, "background")
-	button.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragonT]])
-	button.rareGlow:SetPoint ("center", button, "center")
+	--button.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragonT]])
+	button.rareGlow:SetPoint ("CENTER", 1, -2)
 	button.rareGlow:SetSize (48, 48)
 	button.rareGlow:SetAlpha (.85)
 	
@@ -964,14 +975,22 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent)
 
 	--borda circular
 	button.circleBorder = button:CreateTexture (nil, "OVERLAY", 1)
-	--button.circleBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_roundedT]])
-	--button.circleBorder:SetTexCoord (7/64, 58/64, 6/64, 57/64)
-	button.circleBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\bordersT]])
-	--button.circleBorder:SetTexCoord (80/512, 138/512, 6/512, 64/512)
-	button.circleBorder:SetTexCoord (80/256, 138/256, 6/64, 64/64)
 	button.circleBorder:SetPoint ("topleft", button, "topleft", -1, 1)
 	button.circleBorder:SetPoint ("bottomright", button, "bottomright", 1, -1)
-
+	button.circleBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_white2T]])
+	button.circleBorder:SetTexCoord (0, 1, 0, 1)
+--	button.circleBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\bordersT]])
+--	button.circleBorder:SetTexCoord (80/256, 138/256, 6/64, 64/64)
+--	button.circleBorder:SetTexture ([[Interface\Artifacts\Artifacts]])
+--	button.circleBorder:SetTexCoord (6/1024, 56/1024, 964/1024, 1013/1024) 
+	
+	button.glassTransparence = button:CreateTexture (nil, "OVERLAY", 1)
+	button.glassTransparence:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_transparency_overlay]])
+	button.glassTransparence:SetPoint ("topleft", button, "topleft", -1, 1)
+	button.glassTransparence:SetPoint ("bottomright", button, "bottomright", 1, -1)
+	button.glassTransparence:SetAlpha (.5)
+	button.glassTransparence:Hide()
+	
 	--borda quadrada
 	button.squareBorder = button:CreateTexture (nil, "OVERLAY", 1)
 	button.squareBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_whiteT]])
@@ -1048,7 +1067,8 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent)
 	button.IsTrackingGlow:SetDrawLayer ("BACKGROUND", -6)
 	button.Glow:SetDrawLayer ("BACKGROUND", -6)
 	button.Texture:SetDrawLayer ("BACKGROUND", -5)
-
+	button.glassTransparence:SetDrawLayer ("BACKGROUND", -4)
+	
 	button.circleBorder:SetDrawLayer ("overlay", 1)
 	button.squareBorder:SetDrawLayer ("overlay", 1)
 	button.rareSerpent:SetDrawLayer ("overlay", 3)
@@ -1313,7 +1333,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 					if (itemLevel > 600 and itemLevel < 780) then
 						itemLevel = 810
 					end
-					self.flagText:SetText ((isStackable and quantity and quantity >= 1 and quantity or false) or (itemLevel and itemLevel > 5 and itemLevel .. "+") or "")
+					self.flagText:SetText ((isStackable and quantity and quantity >= 1 and quantity or false) or (itemLevel and itemLevel > 5 and itemLevel .. ITEMLEVEL_UPGRADE_SYMBOL) or "")
 					
 					self.IconTexture = itemTexture
 					self.IconText = self.flagText:GetText()
@@ -2793,12 +2813,17 @@ local create_worldmap_square = function (mapName, index)
 	epicBorder:SetPoint ("topleft", button, "topleft")
 	epicBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_pinkT]])
 	epicBorder:SetSize (WORLDMAP_SQUARE_SIZE, WORLDMAP_SQUARE_SIZE)
+	local trackingBorder = button:CreateTexture (nil, "artwork", 1)
+	trackingBorder:SetPoint ("topleft", button, "topleft")
+	trackingBorder:SetTexture ([[Interface\Artifacts\Artifacts]])
+	trackingBorder:SetTexCoord (269/1024, 327/1024, 943/1024, 1001/1024)
+	trackingBorder:SetSize (WORLDMAP_SQUARE_SIZE, WORLDMAP_SQUARE_SIZE)
 	
 	local borderAnimation = CreateFrame ("frame", "$parentBorderShineAnimation", button, "AutoCastShineTemplate")
 	borderAnimation:SetFrameLevel (303)
 	borderAnimation:SetPoint ("topleft", 2, -2)
 	borderAnimation:SetPoint ("bottomright", -2, 2)
-	borderAnimation:SetAlpha (.15)
+	borderAnimation:SetAlpha (.05)
 	borderAnimation:Hide()
 	button.borderAnimation = borderAnimation
 	
@@ -2838,6 +2863,7 @@ local create_worldmap_square = function (mapName, index)
 	commonBorder:Hide()
 	rareBorder:Hide()
 	epicBorder:Hide()
+	trackingBorder:Hide()
 	
 --	local timeBlip = button:CreateTexture (nil, "overlay", 2)
 --	timeBlip:SetPoint ("bottomright", button, "bottomright", 2, -2)
@@ -2906,6 +2932,7 @@ local create_worldmap_square = function (mapName, index)
 	commonBorder:SetDrawLayer ("border", 1)
 	rareBorder:SetDrawLayer ("border", 1)
 	epicBorder:SetDrawLayer ("border", 1)
+	trackingBorder:SetDrawLayer ("border", 2)
 	amountBackground:SetDrawLayer ("overlay", 0)
 	amountText:SetDrawLayer ("overlay", 1)
 	criteriaIndicatorGlow:SetDrawLayer ("OVERLAY", 1)
@@ -2924,6 +2951,7 @@ local create_worldmap_square = function (mapName, index)
 	button.commonBorder = commonBorder
 	button.rareBorder = rareBorder
 	button.epicBorder = epicBorder
+	button.trackingBorder = trackingBorder
 	button.trackingGlowBorder = trackingGlowBorder
 	
 	button.timeBlip = timeBlip
@@ -3182,7 +3210,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 												itemLevel = 810
 											end
 											
-											widget.amountText:SetText ((isStackable and quantity and quantity >= 1 and quantity or false) or (itemLevel and itemLevel > 5 and itemLevel .. "+") or "")
+											widget.amountText:SetText ((isStackable and quantity and quantity >= 1 and quantity or false) or (itemLevel and itemLevel > 5 and itemLevel .. ITEMLEVEL_UPGRADE_SYMBOL) or "")
 
 											if (widget.amountText:GetText() and widget.amountText:GetText() ~= "") then
 												widget.amountBackground:Show()
