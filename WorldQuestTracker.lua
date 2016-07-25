@@ -1,8 +1,10 @@
 
+
+
 --details! framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
-	print ("|cFFFFAA00Plater: framework not found, if you just installed or updated the addon, please restart your client.|r")
+	print ("|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r")
 	return
 end
 
@@ -73,6 +75,14 @@ local QUESTTYPE_RESOURCE = 0x2
 local QUESTTYPE_ITEM = 0x4
 local QUESTTYPE_ARTIFACTPOWER = 0x8
 
+local QUEST_COMMENTS = {
+	[42275] = {help = "'Dimensional Anchors' are green crystals on the second floor of the central build."}, --azsuna - not on my watch
+	[43963] = {help = "Kill and loot mobs around the quest location."},
+	[42108] = {help = "Use the extra button near friendly ghosty npcs."},
+	[42080] = {help = "Select eagles and use the extra button. Click on sheeps outside the town."},
+	[41701] = {help = "Kill fish inside the water. Walk on outlined garbage."},
+}
+
 local calcPerformance = CreateFrame ("frame")
 calcPerformance.timeTable = {}
 local measurePerformance = function (self, deltaTime)
@@ -142,6 +152,20 @@ WorldQuestTracker.QuestTrackList = {} --place holder until OnInit is triggered
 WorldQuestTracker.AllTaskPOIs = {}
 WorldQuestTracker.CurrentMapID = 0
 WorldQuestTracker.LastWorldMapClick = 0
+WorldQuestTracker.MapSeason = 0
+WorldQuestTracker.MapOpenedAt = 0
+
+--debug
+function WorldQuestTracker.DumpTrackingList()
+	local t = WorldQuestTracker.table.dump (WorldQuestTracker.QuestTrackList)
+	print (t)
+end
+
+hooksecurefunc ("TaskPOI_OnEnter", function (self)
+	--WorldMapTooltip:AddLine ("quest ID: " .. self.questID)
+	--print (self.questID)
+end)
+--enddebug
 
 local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID
 local HaveQuestData = HaveQuestData
@@ -250,6 +274,7 @@ function WorldQuestTracker:OnInit()
 	
 	WQTrackerDBChr = WQTrackerDBChr or {}
 	WorldQuestTracker.dbChr = WQTrackerDBChr
+	WorldQuestTracker.dbChr.ActiveQuests = WorldQuestTracker.dbChr.ActiveQuests or {}
 	
 	local canLoad = IsQuestFlaggedCompleted (43341)
 	
@@ -269,13 +294,19 @@ function WorldQuestTracker:OnInit()
 		end
 	end
 	
+	-- ~reward
 	function WorldQuestTracker:QUEST_TURNED_IN (event, questID, XP, gold)
+
+		--> Court of Farondis 42420
+		--> The Dreamweavers 42170
+		--print (questID)
+	
 		if (QuestMapFrame_IsQuestWorldQuest (questID)) then
 			--print (event, questID, XP, gold)
 			--QUEST_TURNED_IN 44300 0 772000
 			
 			-- QINFO: 0 nil nil Petrified Axe Haft true 370
-			
+
 			if (QuestMapFrame_IsQuestWorldQuest (questID)) then
 				local title, questType, texture, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, selected, isSpellTarget, timeLeft, isCriteria, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker:GetQuestFullInfo (questID)
 				--print ("QINFO:", goldFormated, rewardName, numRewardItems, itemName, isArtifact, artifactPower)
@@ -399,6 +430,7 @@ end
 --onenter das squares no world map
 local questButton_OnEnter = function (self)
 	if (self.questID) then
+		self.UpdateTooltip = TaskPOI_OnEnter
 		TaskPOI_OnEnter (self)
 	end
 end
@@ -421,6 +453,11 @@ function WorldQuestTracker.CanShowWorldMapWidgets()
 end
 --verifica se pode trocar o mapa e mostrar broken isles ao inves do mapa solicitado
 function WorldQuestTracker.CanShowBrokenIsles()
+	if (UnitLevel ("player") < 110) then
+		return
+	elseif (not IsQuestFlaggedCompleted (43341)) then
+		return
+	end
 	return WorldQuestTracker.db.profile.enable_doubletap and not InCombatLockdown() and GetCurrentMapAreaID() ~= MAPID_BROKENISLES and (C_Garrison.IsPlayerInGarrison (LE_GARRISON_TYPE_7_0) or GetCurrentMapAreaID() == MAPID_DALARAN)
 end
 
@@ -444,6 +481,31 @@ local tickAnimation = function (self, deltaTime)
 			button.IsTrackingGlow:SetAlpha (roundAlphaAmount)
 		end
 	end	
+end
+
+function WorldQuestTracker.GetAllWorldQuests_Ids()
+	local allQuests, dataUnavaliable = {}, false
+	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
+		local taskInfo = GetQuestsForPlayerByMapID (mapId)
+		if (taskInfo and #taskInfo > 0) then
+			for i, info  in ipairs (taskInfo) do
+				local questID = info.questId
+				if (HaveQuestData (questID)) then
+					local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
+					if (isWorldQuest) then
+						allQuests [questID] = true
+						C_TaskQuest.RequestPreloadRewardData (questID)
+					end
+				else
+					dataUnavaliable = true
+				end
+			end
+		else
+			dataUnavaliable = true
+		end
+	end
+	
+	return allQuests, dataUnavaliable
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -774,7 +836,6 @@ end
 local rarity_border_common = {150/512, 206/512, 158/512, 214/512}
 local rarity_border_rare = {10/512, 66/512, 158/512, 214/512}
 local rarity_border_epic = {80/512, 136/512, 158/512, 214/512}
-
 function WorldQuestTracker.GetBorderCoords (rarity)
 	if (rarity == LE_WORLD_QUEST_QUALITY_COMMON) then
 		return rarity_border_common
@@ -784,6 +845,54 @@ function WorldQuestTracker.GetBorderCoords (rarity)
 		return rarity_border_epic
 	end
 end
+
+--pega a lista de quests que o jogador tem disponível
+function WorldQuestTracker.SavedQuestList_GetList()
+	return WorldQuestTracker.dbChr.ActiveQuests
+end
+-- ~saved ~pool ~data
+local map_seasons = {}
+function WorldQuestTracker.SavedQuestList_IsNew (questID)
+	if (WorldQuestTracker.MapSeason == 0) then
+		--o mapa esta carregando e não mandou o primeiro evento ainda
+		return false
+	end
+
+	local ActiveQuests = WorldQuestTracker.SavedQuestList_GetList()
+	
+	if (ActiveQuests [questID]) then --a quest esta armazenada
+		if (map_seasons [questID] == WorldQuestTracker.MapSeason) then
+			--a quest já esta na lista porém foi adicionada nesta season do mapa
+			return true
+		else
+			--apenas retornar que não é nova
+			return false
+		end
+	else --a quest não esta na lista
+		local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
+		if (timeLeft and timeLeft > 0) then
+			--adicionar a quest a lista de quets
+			ActiveQuests [questID] = time() + (timeLeft*60)
+			map_seasons [questID] = WorldQuestTracker.MapSeason
+			--retornar que a quest é nova
+			return true
+		else
+			--o tempo da quest expirou.
+			return false
+		end
+	end
+end
+
+function WorldQuestTracker.SavedQuestList_CleanUp()
+	local ActiveQuests = WorldQuestTracker.SavedQuestList_GetList()
+	local now = time()
+	for questID, expireAt in pairs (ActiveQuests) do
+		if (expireAt < now) then
+			ActiveQuests [questID] = nil
+		end
+	end
+end
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> build up our standing frame
@@ -811,7 +920,7 @@ WorldMapFrame:HookScript ("OnEvent", function (self, event)
 			end
 		end
 		
-		if (WorldQuestTracker.DoubleTapFrame) then
+		if (WorldQuestTracker.DoubleTapFrame and not InCombatLockdown()) then
 			if (self.mapID == MAPID_BROKENISLES) then
 				WorldQuestTracker.DoubleTapFrame:Show()
 			else
@@ -1410,6 +1519,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 	
 	if (WorldMapFrame:IsShown()) then
 		animFrame:SetScript ("OnUpdate", tickAnimation)
+		WorldQuestTracker.MapSeason = WorldQuestTracker.MapSeason + 1
+		WorldQuestTracker.MapOpenedAt = GetTime()
 	else
 		animFrame:SetScript ("OnUpdate", nil)
 		for mapId, configTable in pairs (WorldQuestTracker.mapTables) do --WorldQuestTracker.SetIconTexture
@@ -1875,9 +1986,20 @@ end
 function WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker()
 	local now = time()
 	local gotRemoval
+	
+--	local allQuests, isParcial = WorldQuestTracker.GetAllWorldQuests_Ids()
+--	if (isParcial) then
+--		return C_Timer.After (10, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker)
+--	end
+	
 	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
 		local quest = WorldQuestTracker.QuestTrackList [i]
-		if (quest.expireAt < now) then
+		local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (quest.questID)
+		
+		--print (select (1, C_TaskQuest.GetQuestInfoByQuestID(quest.questID)), ":", timeLeft)
+		
+		if (quest.expireAt < now or not timeLeft or timeLeft <= 0) then -- or not allQuests [quest.questID]
+			--print ("removing", quest.expireAt, now, quest.expireAt < now, select (1, C_TaskQuest.GetQuestInfoByQuestID(quest.questID)))
 			WorldQuestTracker.RemoveQuestFromTracker (quest.questID, true)
 			gotRemoval = true
 		end
@@ -2313,7 +2435,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 	
 	WorldQuestTracker.RefreshAnchor()
 end
-	
+
 --quando o tracker da interface atualizar, atualizar tbm o nosso tracker
 --verifica se o jogador esta na area da questa
 function WorldQuestTracker.UpdateQuestsInArea()
@@ -2384,7 +2506,7 @@ function WorldQuestTracker:FullTrackerUpdate()
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
---> taxy map widgets
+--> taxy map widgets ~taxy ~fly
 local taxyMapWidgets = {}
 
 --
@@ -2547,7 +2669,9 @@ end
 
 function WorldQuestTracker:TAXIMAP_OPENED()
 
-	if (not WorldQuestTracker.FlyMapHook) then
+	if (not WorldQuestTracker.FlyMapHook and FlightMapFrame) then
+	
+		WorldQuestTracker.Taxy_CurrentShownBlips = WorldQuestTracker.Taxy_CurrentShownBlips or {}
 	
 		--tracking options
 		FlightMapFrame.WorldQuestTrackerOptions = CreateFrame ("frame", "WorldQuestTrackerTaxyMapFrame", FlightMapFrame.BorderFrame)
@@ -2609,16 +2733,19 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			
 			if (not isShowingQuests and not hasZoom) then
 				pin._WQT_Twin:Hide()
+				WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
 				return
 			end
 			if (isShowingOnlyTracked) then
 				if (not WorldQuestTracker.IsQuestBeingTracked (pin.questID) and not hasZoom) then
 					pin._WQT_Twin:Hide()
+					WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
 					return
 				end
 			end
 
 			pin._WQT_Twin:Show()
+			WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = true
 			
 			local title, questType, texture, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, selected, isSpellTarget, timeLeft, isCriteria, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker:GetQuestFullInfo (pin.questID)
 			local inProgress
@@ -2641,8 +2768,20 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				format_for_taxy_zoom_allquests (pin._WQT_Twin)
 			end
 		end)
+		
 		WorldQuestTracker.FlyMapHook = true
 	end
+	
+	for _WQT_Twin, isShown in pairs (WorldQuestTracker.Taxy_CurrentShownBlips) do
+		if (_WQT_Twin:IsShown() and not WorldQuestTracker.IsQuestBeingTracked (_WQT_Twin.questID)) then
+			_WQT_Twin:Hide()
+			WorldQuestTracker.Taxy_CurrentShownBlips [_WQT_Twin] = nil
+			--local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (_WQT_Twin.questID)
+			--print ("Taxy Hide", title)
+		end
+	end
+	
+	
 end
 
 function WorldQuestTracker:TAXIMAP_CLOSED()
@@ -2925,6 +3064,45 @@ local create_worldmap_square = function (mapName, index)
 	criteriaHighlight:SetTexture ([[Interface\AdventureMap\AdventureMap]])
 	criteriaHighlight:SetTexCoord (901/1024, 924/1024, 251/1024, 288/1024)
 	
+	local new = button:CreateTexture (nil, "overlay")
+	--new:SetPoint ("bottom", button, "bottom", 0, -2)
+	--new:SetPoint ("bottom", button, "bottom", 0, -5)
+	new:SetPoint ("bottom", button, "top", 0, -5)
+	new:SetSize (64*.45, 32*.45)
+	new:SetAlpha (.75)
+	new:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\new]])
+	button.newIndicator = new
+	
+	local newFlashTexture = button:CreateTexture (nil, "overlay")
+	newFlashTexture:SetPoint ("bottom", new, "bottom")
+	newFlashTexture:SetSize (64*.45, 32*.45)
+	newFlashTexture:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\new]])
+	newFlashTexture:Hide()
+	
+	local newFlash = newFlashTexture:CreateAnimationGroup()
+	newFlash.In = newFlash:CreateAnimation ("Alpha")
+	newFlash.In:SetOrder (1)
+	newFlash.In:SetFromAlpha (0)
+	newFlash.In:SetToAlpha (1)
+	newFlash.In:SetDuration (.3)
+	newFlash.On = newFlash:CreateAnimation ("Alpha")
+	newFlash.On:SetOrder (2)
+	newFlash.On:SetFromAlpha (1)
+	newFlash.On:SetToAlpha (1)
+	newFlash.On:SetDuration (2)
+	newFlash.Out = newFlash:CreateAnimation ("Alpha")
+	newFlash.Out:SetOrder (3)
+	newFlash.Out:SetFromAlpha (1)
+	newFlash.Out:SetToAlpha (0)
+	newFlash.Out:SetDuration (10)
+	newFlash:SetScript ("OnPlay", function()
+		newFlashTexture:Show()
+	end)
+	newFlash:SetScript ("OnFinished", function()
+		newFlashTexture:Hide()
+	end)
+	button.newFlash = newFlash
+	
 	trackingGlowBorder:SetDrawLayer ("BACKGROUND", -5)
 	--trackingGlowBorder:SetDrawLayer ("overlay", 7)
 	background:SetDrawLayer ("background", -3)
@@ -2937,6 +3115,8 @@ local create_worldmap_square = function (mapName, index)
 	amountText:SetDrawLayer ("overlay", 1)
 	criteriaIndicatorGlow:SetDrawLayer ("OVERLAY", 1)
 	criteriaIndicator:SetDrawLayer ("OVERLAY", 2)
+	newFlashTexture:SetDrawLayer ("OVERLAY", 7)
+	new:SetDrawLayer ("OVERLAY", 6)
 	
 	button.timeBlipRed:SetDrawLayer ("overlay", 2)
 	button.timeBlipOrange:SetDrawLayer ("overlay", 2)
@@ -3012,13 +3192,14 @@ local re_check_for_questcompleted = function()
 	WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, true, true)
 end
 
---faz a atualização dos widgets no world map
+--faz a atualização dos widgets no world map ~world
 function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQuestFlaggedRecheck)
 	
 	--do not update more then once per tick
-	if (WorldQuestTracker.LastUpdate+0.017 > GetTime()) then
-		return
-	elseif (UnitLevel ("player") < 110) then
+--	if (WorldQuestTracker.LastUpdate+0.017 > GetTime()) then
+--		return
+
+	if (UnitLevel ("player") < 110) then
 		WorldQuestTracker.HideWorldQuestsOnWorldMap()
 		return
 	elseif (not IsQuestFlaggedCompleted (43341)) then
@@ -3056,7 +3237,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 					if (isWorldQuest) then
 					
 						C_TaskQuest.RequestPreloadRewardData (questID)
-
+						
+						--se é nova
+						local isNew = WorldQuestTracker.SavedQuestList_IsNew (questID)
+						--isNew = true --debug
+						
 						--info
 						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 						--tempo restante
@@ -3099,6 +3284,13 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										widget.criteriaIndicatorGlow:Hide()
 									end
 									
+									if (isNew) then
+										widget.newIndicator:Show()
+										widget.newFlash:Play()
+									else
+										widget.newIndicator:Hide()
+									end
+									
 									if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
 										widget.trackingGlowBorder:Show()
 									else
@@ -3137,6 +3329,13 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										widget.criteriaIndicator:Hide()
 										widget.criteriaHighlight:Hide()
 										widget.criteriaIndicatorGlow:Hide()
+									end
+									
+									if (isNew) then
+										widget.newIndicator:Show()
+										widget.newFlash:Play()
+									else
+										widget.newIndicator:Hide()
 									end
 									
 									if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
@@ -3181,7 +3380,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										widget.texture:SetTexture (rewardTexture)
 										--WorldQuestTracker.SetIconTexture (widget.texture, rewardTexture, false, false)
 										--widget.texture:SetTexCoord (0, 1, 0, 1)
-										widget.amountText:SetText (numRewardItems)
+										if (numRewardItems >= 1000) then
+											widget.amountText:SetText (format ("%.1fK", numRewardItems/1000))
+										else
+											widget.amountText:SetText (numRewardItems)
+										end
 										widget.amountBackground:Show()
 										
 										widget.IconTexture = rewardTexture
@@ -3195,7 +3398,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 											widget.texture:SetTexture (artifactIcon)
 											--WorldQuestTracker.SetIconTexture (widget.texture, artifactIcon, false, false)
 											widget.isArtifact = true
-											widget.amountText:SetText (artifactPower)
+											if (artifactPower >= 1000) then
+												widget.amountText:SetText (format ("%.1fK", artifactPower/1000))
+											else
+												widget.amountText:SetText (artifactPower)
+											end
 											widget.amountBackground:Show()
 											
 											local artifactIcon = WorldQuestTracker.GetArtifactPowerIcon (artifactPower, true)
@@ -3326,6 +3533,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	end
 	
 	WorldQuestTracker.HideZoneWidgets()
+	WorldQuestTracker.SavedQuestList_CleanUp()
 	
 	calcPerformance.DumpTime = 0
 end
@@ -3471,4 +3679,4 @@ hooksecurefunc (WorldMapFrame.UIElementsFrame.BountyBoard, "AnchorBountyTab", fu
 	end
 end)
 
--- doq dow
+-- doq dow endf

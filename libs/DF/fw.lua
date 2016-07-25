@@ -1,5 +1,5 @@
 
-local dversion = 19
+local dversion = 25
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary (major, minor)
 
@@ -29,6 +29,9 @@ DF.ButtonCounter = DF.ButtonCounter or init_counter
 DF.SliderCounter = DF.SliderCounter or init_counter
 DF.SwitchCounter = DF.SwitchCounter or init_counter
 DF.SplitBarCounter = DF.SplitBarCounter or init_counter
+
+DF.FRAMELEVEL_OVERLAY = 750
+DF.FRAMELEVEL_BACKGROUND = 150
 
 DF.FrameWorkVersion = tostring (dversion)
 function DF:PrintVersion()
@@ -105,6 +108,9 @@ local embed_functions = {
 	"GetFrameworkFolder",
 	"ShowPanicWarning",
 	"SetFrameworkDebugState",
+	"FindHighestParent",
+	"OpenInterfaceProfile",
+	"CreateInCombatTexture",
 }
 
 DF.table = {}
@@ -337,13 +343,11 @@ function DF:CreateFlashAnimation (frame, onFinishFunc, onLoopFunc)
 	
 	FlashAnimation.fadeOut = FlashAnimation:CreateAnimation ("Alpha") --> fade out anime
 	FlashAnimation.fadeOut:SetOrder (1)
-	--FlashAnimation.fadeOut:SetChange (1)
 	FlashAnimation.fadeOut:SetFromAlpha (0)
 	FlashAnimation.fadeOut:SetToAlpha (1)
 	
 	FlashAnimation.fadeIn = FlashAnimation:CreateAnimation ("Alpha") --> fade in anime
 	FlashAnimation.fadeIn:SetOrder (2)
-	--FlashAnimation.fadeIn:SetChange (-1)
 	FlashAnimation.fadeIn:SetFromAlpha (1)
 	FlashAnimation.fadeIn:SetToAlpha (0)
 	
@@ -559,6 +563,10 @@ end
 				slider.widget_type = "range"
 				slider:SetHook ("OnValueChange", widget_table.set)
 				
+				if (widget_table.thumbscale) then
+					slider:SetThumbSize (slider.thumb:GetWidth()*widget_table.thumbscale, nil)
+				end
+				
 				local label = DF:NewLabel (parent, nil, "$parentLabel" .. index, nil, widget_table.name .. (use_two_points and ": " or ""), "GameFontNormal", widget_table.text_template or text_template or 12)
 				slider:SetPoint ("left", label, "right", 2)
 				label:SetPoint (cur_x, cur_y)
@@ -680,6 +688,34 @@ end
 			
 		end
 	end)
+	
+	function DF:CreateInCombatTexture (frame)
+		if (DF.debug and not frame) then
+			error ("Details! Framework: CreateInCombatTexture invalid frame on parameter 1.")
+		end
+	
+		local in_combat_background = DF:CreateImage (frame)
+		in_combat_background:SetColorTexture (.6, 0, 0, .1)
+		in_combat_background:Hide()
+
+		local in_combat_label = Plater:CreateLabel (frame, "you are in combat", 24, "silver")
+		in_combat_label:SetPoint ("right", in_combat_background, "right", -10, 0)
+		in_combat_label:Hide()
+
+		frame:RegisterEvent ("PLAYER_REGEN_DISABLED")
+		frame:RegisterEvent ("PLAYER_REGEN_ENABLED")
+		frame:SetScript ("OnEvent", function (self, event)
+			if (event == "PLAYER_REGEN_DISABLED") then
+				in_combat_background:Show()
+				in_combat_label:Show()
+			elseif (event == "PLAYER_REGEN_ENABLED") then
+				in_combat_background:Hide()
+				in_combat_label:Hide()
+			end
+		end)
+		
+		return in_combat_background
+	end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> tutorials
@@ -1076,4 +1112,50 @@ function DF:AddMemberForWidget (widgetName, memberType, memberName, func)
 			error ("Details! Framework: AddMemberForWidget unknown widget type: " .. (widgetName or "") .. ".")
 		end
 	end
+end
+
+-----------------------------
+
+function DF:OpenInterfaceProfile()
+	InterfaceOptionsFrame_OpenToCategory (self.__name)
+	InterfaceOptionsFrame_OpenToCategory (self.__name)
+	for i = 1, 100 do
+		local button = _G ["InterfaceOptionsFrameAddOnsButton" .. i]
+		if (button) then
+			local text = _G ["InterfaceOptionsFrameAddOnsButton" .. i .. "Text"]
+			if (text) then
+				text = text:GetText()
+				if (text == self.__name) then
+					local toggle = _G ["InterfaceOptionsFrameAddOnsButton" .. i .. "Toggle"]
+					if (toggle) then
+						if (toggle:GetNormalTexture():GetTexture():find ("PlusButton")) then
+							--is minimized, need expand
+							toggle:Click()
+							_G ["InterfaceOptionsFrameAddOnsButton" .. i+1]:Click()
+						elseif (toggle:GetNormalTexture():GetTexture():find ("MinusButton")) then
+							--isn't minimized
+							_G ["InterfaceOptionsFrameAddOnsButton" .. i+1]:Click()
+						end
+					end
+					break
+				end
+			end
+		else
+			self:Msg ("Couldn't not find the profile panel.")
+			break
+		end
+	end
+end
+
+-----------------------------
+--safe copy from blizz api
+function DF:Mixin (object, ...)
+	for i = 1, select("#", ...) do
+		local mixin = select(i, ...);
+		for k, v in pairs(mixin) do
+			object[k] = v;
+		end
+	end
+
+	return object;
 end
