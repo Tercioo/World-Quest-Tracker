@@ -16,14 +16,22 @@ do
 	DF:NewColor ("WQT_QUESTZONE_OUTMAP", 1, 1, 1, .7)
 end
 
-
 --219978
---world of quets IsQuestFlaggedCompleted (43341) - colocar junto com o level do personagem
-
+--world of quets IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID) - colocar junto com o level do personagem
 
 local _
 local default_config = {
 	profile = {
+		filters = {
+			pet_battles = true,
+			pvp = true,
+			profession = true,
+			dungeon = true,
+			gold = true,
+			artifact_power = true,
+			garrison_resource = true,
+			equipment = true,
+		},
 		quests_tracked = {},
 		syntheticMapIdList = {
 			[1015] = 1, --azsuna
@@ -74,6 +82,15 @@ local QUESTTYPE_GOLD = 0x1
 local QUESTTYPE_RESOURCE = 0x2
 local QUESTTYPE_ITEM = 0x4
 local QUESTTYPE_ARTIFACTPOWER = 0x8
+
+local FILTER_TYPE_PET_BATTLES = "pet_battles"
+local FILTER_TYPE_PVP = "pvp"
+local FILTER_TYPE_PROFESSION = "profession"
+local FILTER_TYPE_DUNGEON = "dungeon"
+local FILTER_TYPE_GOLD = "gold"
+local FILTER_TYPE_ARTIFACT_POWER = "artifact_power"
+local FILTER_TYPE_GARRISON_RESOURCE = "garrison_resource"
+local FILTER_TYPE_EQUIPMENT = "equipment"
 
 local QUEST_COMMENTS = {
 	[42275] = {help = "'Dimensional Anchors' are green crystals on the second floor of the central build."}, --azsuna - not on my watch
@@ -276,7 +293,7 @@ function WorldQuestTracker:OnInit()
 	WorldQuestTracker.dbChr = WQTrackerDBChr
 	WorldQuestTracker.dbChr.ActiveQuests = WorldQuestTracker.dbChr.ActiveQuests or {}
 	
-	local canLoad = IsQuestFlaggedCompleted (43341)
+	local canLoad = IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID)
 	
 	function WorldQuestTracker:ZONE_CHANGED_NEW_AREA()
 		if (IsInInstance()) then
@@ -455,7 +472,7 @@ end
 function WorldQuestTracker.CanShowBrokenIsles()
 	if (UnitLevel ("player") < 110) then
 		return
-	elseif (not IsQuestFlaggedCompleted (43341)) then
+	elseif (not IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID)) then
 		return
 	end
 	return WorldQuestTracker.db.profile.enable_doubletap and not InCombatLockdown() and GetCurrentMapAreaID() ~= MAPID_BROKENISLES and (C_Garrison.IsPlayerInGarrison (LE_GARRISON_TYPE_7_0) or GetCurrentMapAreaID() == MAPID_DALARAN)
@@ -3192,6 +3209,37 @@ local re_check_for_questcompleted = function()
 	WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, true, true)
 end
 
+function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact)
+	local filter, order
+	
+	if (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
+		return FILTER_TYPE_PET_BATTLES, 1
+	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
+		return FILTER_TYPE_PVP, 2
+	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
+		return FILTER_TYPE_PROFESSION, 3
+	elseif (worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON) then
+		filter = FILTER_TYPE_DUNGEON
+		order = 4
+	end
+	
+	if (gold and gold > 0) then
+		order = 5
+		filter = FILTER_TYPE_GOLD
+	elseif (rewardName) then
+		order = 6
+		filter = FILTER_TYPE_GARRISON_RESOURCE
+	elseif (isArtifact) then
+		order = 7
+		filter = FILTER_TYPE_ARTIFACT_POWER
+	elseif (itemName) then
+		order = 4
+		filter = FILTER_TYPE_EQUIPMENT
+	end
+	
+	return filter, order
+end
+
 --faz a atualização dos widgets no world map ~world
 function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQuestFlaggedRecheck)
 	
@@ -3202,7 +3250,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	if (UnitLevel ("player") < 110) then
 		WorldQuestTracker.HideWorldQuestsOnWorldMap()
 		return
-	elseif (not IsQuestFlaggedCompleted (43341)) then
+	elseif (not IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID)) then
 		WorldQuestTracker.HideWorldQuestsOnWorldMap()
 		--print ("quest nao completada...")
 		if (not isQuestFlaggedRecheck) then
@@ -3219,7 +3267,49 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		widget:Show()
 	end
 	
+--
+	local questsAvailable = {}
 	local needAnotherUpdate = false
+	local filters = WorldQuestTracker.db.profile.filters
+	
+	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
+		
+		questsAvailable [mapId] = {}
+		local taskInfo = GetQuestsForPlayerByMapID (mapId)
+		
+		if (taskInfo and #taskInfo > 0) then
+			for i, info  in ipairs (taskInfo) do
+				local questID = info.questId
+				if (HaveQuestData (questID)) then
+					local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
+					if (isWorldQuest) then
+						--gold
+						local gold, goldFormated = WorldQuestTracker.GetQuestReward_Gold (questID)
+						--class hall resource
+						local rewardName, rewardTexture, numRewardItems = WorldQuestTracker.GetQuestReward_Resource (questID)
+						--item
+						local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker.GetQuestReward_Item (questID)
+						--type
+						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+						
+						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact)
+						if (filters [filter]) then
+							tinsert (questsAvailable [mapId], {questID, order, info.numObjectives})
+						end
+					end
+				else
+					needAnotherUpdate = true
+				end
+			end
+			
+			table.sort (questsAvailable [mapId], function (t1, t2) return t1[2] < t2[2] end)
+		else
+			needAnotherUpdate = true
+		end
+	end
+	
+--
+
 	local availableQuests = 0
 
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
@@ -3230,8 +3320,13 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		if (taskInfo and #taskInfo > 0) then
 			availableQuests = availableQuests + #taskInfo
 			
-			for i, info  in ipairs (taskInfo) do
-				local questID = info.questId
+			--for i, info  in ipairs (taskInfo) do
+			for i, quest in ipairs (questsAvailable [mapId]) do
+			--print (i, quest)
+				--local questID = info.questId
+				local questID = quest [1]
+				local numObjectives = quest [3]
+
 				if (HaveQuestData (questID)) then
 					local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
 					if (isWorldQuest) then
@@ -3313,7 +3408,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 									widget.questID = questID
 									widget.lastQuestID = questID
 									widget.worldQuest = true
-									widget.numObjectives = info.numObjectives
+									--widget.numObjectives = info.numObjectives
+									widget.numObjectives = numObjectives
 									widget.amountText:SetText ("")
 									widget.amountBackground:Hide()
 									widget.mapID = mapId
@@ -3565,10 +3661,41 @@ function WorldQuestTracker.UpdateFactionAlpha()
 	end
 end
 
+function WorldQuestTracker.UpdateLoadingIconAnchor()
+	local adjust_anchor = false
+	if (GetCVarBool ("questLogOpen")) then
+		if (WorldMapFrame_InWindowedMode()) then
+			adjust_anchor = true
+		end
+	end
+	
+	if (adjust_anchor) then
+		WorldQuestTracker.LoadingAnimation:SetPoint ("bottom", WorldMapScrollFrame, "top", 0, -75)
+	else
+		WorldQuestTracker.LoadingAnimation:SetPoint ("bottom", WorldMapScrollFrame, "top", 0, -75)
+	end
+end
+function WorldQuestTracker.NeedUpdateLoadingIconAnchor()
+	if (WorldQuestTracker.LoadingAnimation.FadeIN:IsPlaying()) then
+		WorldQuestTracker.UpdateLoadingIconAnchor()
+	elseif (WorldQuestTracker.LoadingAnimation.FadeOUT:IsPlaying()) then
+		WorldQuestTracker.UpdateLoadingIconAnchor()
+	elseif (WorldQuestTracker.LoadingAnimation.Loop:IsPlaying()) then
+		WorldQuestTracker.UpdateLoadingIconAnchor()
+	end
+end
+hooksecurefunc ("QuestMapFrame_Open", function()
+	WorldQuestTracker.NeedUpdateLoadingIconAnchor()
+end)
+hooksecurefunc ("QuestMapFrame_Close", function()
+	WorldQuestTracker.NeedUpdateLoadingIconAnchor()
+end)
+
+--C_Timer.NewTicker (5, function()WorldQuestTracker.PlayLoadingAnimation()end)
 function WorldQuestTracker.CreateLoadingIcon()
 	local f = CreateFrame ("frame", nil, WorldMapFrame)
 	f:SetSize (48, 48)
-	f:SetPoint ("bottom", WorldMapFrame, "top", 0, -150)
+	f:SetPoint ("bottom", WorldMapScrollFrame, "top", 0, -75) --289/2 = 144
 	f:SetFrameLevel (3000)
 	
 	local animGroup1 = f:CreateAnimationGroup()
@@ -3598,19 +3725,28 @@ function WorldQuestTracker.CreateLoadingIcon()
 	f.TextBackground:SetSize (160, 14)
 	f.TextBackground:SetTexture ([[Interface\COMMON\ShadowOverlay-Left]])
 	
+	f.Text:Hide()
+	f.TextBackground:Hide()
+	
+	f.CircleAnimStatic = CreateFrame ("frame", nil, f)
+	f.CircleAnimStatic:SetAllPoints()
+	f.CircleAnimStatic.Alpha = f.CircleAnimStatic:CreateTexture (nil, "overlay")
+	f.CircleAnimStatic.Alpha:SetTexture ([[Interface\COMMON\StreamFrame]])
+	f.CircleAnimStatic.Alpha:SetAllPoints()
+	f.CircleAnimStatic.Background = f.CircleAnimStatic:CreateTexture (nil, "background")
+	f.CircleAnimStatic.Background:SetTexture ([[Interface\COMMON\StreamBackground]])
+	f.CircleAnimStatic.Background:SetAllPoints()
+	
 	f.CircleAnim = CreateFrame ("frame", nil, f)
 	f.CircleAnim:SetAllPoints()
-	f.CircleAnim.Circle = f.CircleAnim:CreateTexture (nil, "border")
-	f.CircleAnim.Circle:SetTexture ([[Interface\COMMON\StreamCircle]])
-	f.CircleAnim.Circle:SetAllPoints()
-	f.CircleAnim.Circle:SetVertexColor (.5, 1, .5)
-	f.CircleAnim.Spin = f.CircleAnim:CreateTexture (nil, "background")
-	f.CircleAnim.Spin:SetTexture ([[Interface\COMMON\StreamBackground]])
-	f.CircleAnim.Spin:SetAllPoints()
-	f.CircleAnim.Frame = f.CircleAnim:CreateTexture (nil, "artwork")
-	f.CircleAnim.Frame:SetTexture ([[Interface\COMMON\StreamFrame]])
-	f.CircleAnim.Frame:SetAllPoints()
-	
+	f.CircleAnim.Spinner = f.CircleAnim:CreateTexture (nil, "artwork")
+	f.CircleAnim.Spinner:SetTexture ([[Interface\COMMON\StreamCircle]])
+	f.CircleAnim.Spinner:SetVertexColor (.5, 1, .5, 1)
+	f.CircleAnim.Spinner:SetAllPoints()
+	f.CircleAnim.Spark = f.CircleAnim:CreateTexture (nil, "overlay")
+	f.CircleAnim.Spark:SetTexture ([[Interface\COMMON\StreamSpark]])
+	f.CircleAnim.Spark:SetAllPoints()
+
 	local animGroup3 = f.CircleAnim:CreateAnimationGroup()
 	animGroup3:SetLooping ("Repeat")
 	local animLoop = animGroup3:CreateAnimation ("Rotation")
@@ -3621,6 +3757,8 @@ function WorldQuestTracker.CreateLoadingIcon()
 	animLoop:SetTarget (f.CircleAnim)
 	
 	WorldQuestTracker.LoadingAnimation = f
+	WorldQuestTracker.UpdateLoadingIconAnchor()
+	
 	f:Hide()
 end
 
