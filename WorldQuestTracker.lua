@@ -44,8 +44,8 @@ local default_config = {
 		taxy_trackedonly = false,
 		taxy_tracked_scale = 3,
 		map_lock = true,
-		auto_worldmap = true,
-		enable_doubletap = true,
+		auto_worldmap = false,
+		enable_doubletap = false,
 		history = {
 			reward = {
 				global = {},
@@ -480,9 +480,13 @@ local questButton_OnClick = function (self, button)
 end
 
 --verifica se pode mostrar os widgets de broken isles
-function WorldQuestTracker.CanShowWorldMapWidgets()
+function WorldQuestTracker.CanShowWorldMapWidgets (noFade)
 	if (WorldMapFrame.mapID == 1007) then
-		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, true)
+		if (noFade) then
+			WorldQuestTracker.UpdateWorldQuestsOnWorldMap()
+		else
+			WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, true)
+		end
 	else
 		WorldQuestTracker.HideWorldQuestsOnWorldMap()
 	end
@@ -983,13 +987,20 @@ end)
 
 --quando clicar para ir para dalaran ele vai ativar o automap e não vai entrar no mapa de dalaran
 --desativar o auto switch quando o click for manual
+
+local currentMap
 local deny_auto_switch = function()
 	WorldQuestTracker.NoAutoSwitchToWorldMap = true
+	currentMap = GetCurrentMapAreaID()
 end
  
 --apos o click, verifica se pode mostrar os widgets e permitir que o mapa seja alterado no proximo tick
 local allow_map_change = function (...)
-	WorldQuestTracker.CanShowWorldMapWidgets()
+	if (currentMap == GetCurrentMapAreaID()) then
+		WorldQuestTracker.CanShowWorldMapWidgets (true)
+	else
+		WorldQuestTracker.CanShowWorldMapWidgets (false)
+	end
 	WorldQuestTracker.CanChangeMap = true
 	WorldQuestTracker.LastMapID = GetCurrentMapAreaID()
 	WorldQuestTracker.UpdateZoneWidgets()
@@ -1534,7 +1545,7 @@ hooksecurefunc ("WorldMap_UpdateQuestBonusObjectives", function (self, event)
 		if (WorldQuestTracker.CanShowBrokenIsles()) then
 			SetMapByID (MAPID_BROKENISLES)
 			WorldQuestTracker.CanChangeMap = true
-			WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, true)
+			WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, false)
 		end
 	end
 	
@@ -3232,7 +3243,7 @@ end
 --agenda uma atualização nos widgets do world map caso os dados das quests estejam indisponíveis
 local do_worldmap_update = function()
 	if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
-		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
+		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true) --no cache true
 	else
 		if (WorldQuestTracker.ScheduledWorldUpdate and not WorldQuestTracker.ScheduledWorldUpdate._cancelled) then
 			WorldQuestTracker.ScheduledWorldUpdate:Cancel()
@@ -3813,11 +3824,16 @@ function WorldQuestTracker.CreateLoadingIcon()
 	f:Hide()
 end
 
+function WorldQuestTracker.IsPlayingLoadingAnimation()
+	return WorldQuestTracker.LoadingAnimation.IsPlaying
+end
 function WorldQuestTracker.PlayLoadingAnimation()
-	WorldQuestTracker.LoadingAnimation:Show()
-	WorldQuestTracker.LoadingAnimation.FadeIN:Play()
-	WorldQuestTracker.LoadingAnimation.Loop:Play()
-	WorldQuestTracker.LoadingAnimation.IsPlaying = true
+	if (not WorldQuestTracker.IsPlayingLoadingAnimation()) then
+		WorldQuestTracker.LoadingAnimation:Show()
+		WorldQuestTracker.LoadingAnimation.FadeIN:Play()
+		WorldQuestTracker.LoadingAnimation.Loop:Play()
+		WorldQuestTracker.LoadingAnimation.IsPlaying = true
+	end
 end
 function WorldQuestTracker.StopLoadingAnimation()
 	WorldQuestTracker.LoadingAnimation.FadeOUT:Play()
