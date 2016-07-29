@@ -171,6 +171,7 @@ WorldQuestTracker.CurrentMapID = 0
 WorldQuestTracker.LastWorldMapClick = 0
 WorldQuestTracker.MapSeason = 0
 WorldQuestTracker.MapOpenedAt = 0
+WorldQuestTracker.QueuedRefresh = 1
 
 --debug
 function WorldQuestTracker.DumpTrackingList()
@@ -434,7 +435,12 @@ function WorldQuestTracker:OnInit()
 	C_Timer.After (.5, WorldQuestTracker.ZONE_CHANGED_NEW_AREA)
 end
 
-
+local onStartClickAnimation = function (self)
+	self:GetParent():Show()
+end
+local onEndClickAnimation = function (self)
+	self:GetParent():Hide()
+end
 
 --o mapa é uma zona de broken isles?
 function WorldQuestTracker.IsBrokenIslesZone (mapID)
@@ -458,6 +464,19 @@ end
 --ao clicar no botão de uma quest na zona ou no world map, colocar para trackear ela
 local questButton_OnClick = function (self, button)
 	WorldQuestTracker.OnQuestClicked (self, button)
+	--if (self.IsWorldQuestButton) then
+		if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
+			if (self.onEndTrackAnimation:IsPlaying()) then
+				self.onEndTrackAnimation:Stop()
+			end
+			self.onStartTrackAnimation:Play()
+		else
+			if (self.onStartTrackAnimation:IsPlaying()) then
+				self.onStartTrackAnimation:Stop()
+			end
+			self.onEndTrackAnimation:Play()
+		end
+	--end
 end
 
 --verifica se pode mostrar os widgets de broken isles
@@ -483,7 +502,7 @@ local animFrame, t = CreateFrame ("frame"), 0
 local tickAnimation = function (self, deltaTime)
 	t = t + deltaTime
 	local squareAlphaAmount = Lerp (.7, .95, abs (sin (t*10)))
-	local roundAlphaAmount = Lerp (.75, .95, abs (sin (t*40)))
+	local roundAlphaAmount = Lerp (.65, .95, abs (sin (t*30)))
 
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		for index, button in ipairs (configTable.widgets) do
@@ -1060,6 +1079,13 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent)
 	button.IsTrackingGlow:SetAlpha (1)
 	button.IsTrackingGlow:Hide()
 	button.IsTrackingGlow:SetDesaturated (nil)
+	
+	local onStartTrackAnimation = DF:CreateAnimationHub (button.IsTrackingGlow, onStartClickAnimation)
+	WorldQuestTracker:CreateAnimation (onStartTrackAnimation, "Scale", .12, .9, .9, 1, 1)
+	local onEndTrackAnimation = DF:CreateAnimationHub (button.IsTrackingGlow, onStartClickAnimation, onEndClickAnimation)
+	WorldQuestTracker:CreateAnimation (onEndTrackAnimation, "Scale", .5, 1, 1, .1, .1)
+	button.onStartTrackAnimation = onStartTrackAnimation
+	button.onEndTrackAnimation = onEndTrackAnimation
 	
 	button.SelectedGlow = button:CreateTexture (button:GetName() .. "SelectedGlow", "OVERLAY", 2)
 	button.SelectedGlow:SetBlendMode ("ADD")
@@ -2947,7 +2973,7 @@ local create_worldmap_square = function (mapName, index)
 	step1:SetFromAlpha (0)
 	step1:SetToAlpha (1)
 	step1:SetDuration (0.1)
-	button.fadeInAnimation = fadeInAnimation	
+	button.fadeInAnimation = fadeInAnimation
 	
 	tinsert (all_widgets, button)
 	
@@ -3001,6 +3027,20 @@ local create_worldmap_square = function (mapName, index)
 	trackingGlowBorder:SetSize (55, 55)
 	trackingGlowBorder:SetAlpha (.6)
 	trackingGlowBorder:SetDrawLayer ("BACKGROUND", -5)
+	
+	local onStartTrackAnimation = DF:CreateAnimationHub (trackingGlowBorder, onStartClickAnimation)
+	WorldQuestTracker:CreateAnimation (onStartTrackAnimation, "Scale", .12, .9, .9, 1, 1)
+	local onEndTrackAnimation = DF:CreateAnimationHub (trackingGlowBorder, onStartClickAnimation, onEndClickAnimation)
+	WorldQuestTracker:CreateAnimation (onEndTrackAnimation, "Scale", .5, 1, 1, .6, .6)
+	button.onStartTrackAnimation = onStartTrackAnimation
+	button.onEndTrackAnimation = onEndTrackAnimation
+	
+	local shadow = button:CreateTexture (nil, "BACKGROUND")
+	shadow:SetTexture ([[Interface\COMMON\icon-shadow]])
+	shadow:SetAlpha (.3)
+	local shadow_offset = 8
+	shadow:SetPoint ("topleft", -shadow_offset, shadow_offset)
+	shadow:SetPoint ("bottomright", shadow_offset, -shadow_offset)
 	
 	local criteriaIndicator = button:CreateTexture (nil, "OVERLAY", 2)
 	criteriaIndicator:SetPoint ("bottomleft", button, "bottomleft", -2, 0)
@@ -3120,6 +3160,7 @@ local create_worldmap_square = function (mapName, index)
 	end)
 	button.newFlash = newFlash
 	
+	shadow:SetDrawLayer ("BACKGROUND", -6)
 	trackingGlowBorder:SetDrawLayer ("BACKGROUND", -5)
 	--trackingGlowBorder:SetDrawLayer ("overlay", 7)
 	background:SetDrawLayer ("background", -3)
@@ -3268,6 +3309,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	end
 	
 --
+
 	local questsAvailable = {}
 	local needAnotherUpdate = false
 	local filters = WorldQuestTracker.db.profile.filters
@@ -3278,7 +3320,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		local taskInfo = GetQuestsForPlayerByMapID (mapId)
 		
 		if (taskInfo and #taskInfo > 0) then
-			for i, info  in ipairs (taskInfo) do
+			for i, info in ipairs (taskInfo) do
 				local questID = info.questId
 				if (HaveQuestData (questID)) then
 					local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
@@ -3291,6 +3333,10 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 						local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker.GetQuestReward_Item (questID)
 						--type
 						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+						
+						if ((not gold or gold <= 0) and not rewardName and not itemName) then
+							needAnotherUpdate = true
+						end
 						
 						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact)
 						if (filters [filter]) then
@@ -3308,8 +3354,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		end
 	end
 	
---
-
+--	
+	
 	local availableQuests = 0
 
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
@@ -3389,7 +3435,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 									if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
 										widget.trackingGlowBorder:Show()
 									else
-										widget.trackingGlowBorder:Hide()
+										--widget.trackingGlowBorder:Hide()
 									end
 									
 								else
@@ -3560,8 +3606,13 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 			WorldQuestTracker.PlayLoadingAnimation()
 		end
 	else
-		if (WorldQuestTracker.IsPlayingLoadAnimation()) then
-			WorldQuestTracker.StopLoadingAnimation()
+		if (WorldQuestTracker.QueuedRefresh > 0) then
+			WorldQuestTracker.ScheduleWorldMapUpdate (1.5)
+			WorldQuestTracker.QueuedRefresh = WorldQuestTracker.QueuedRefresh - 1
+		else
+			if (WorldQuestTracker.IsPlayingLoadAnimation()) then
+				WorldQuestTracker.StopLoadingAnimation()
+			end
 		end
 	end
 	if (showFade) then
