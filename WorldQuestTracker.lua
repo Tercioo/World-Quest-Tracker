@@ -548,6 +548,17 @@ function WorldQuestTracker.GetAllWorldQuests_Ids()
 	return allQuests, dataUnavaliable
 end
 
+--http://richard.warburton.it
+local function comma_value (n)
+	if (not n) then return "0" end
+	n = floor (n)
+	if (n == 0) then
+		return "0"
+	end
+	local left,num,right = string.match (n,'^([^%d]*%d)(%d*)(.-)$')
+	return left..(num:reverse():gsub('(%d%d%d)','%1,'):reverse())..right
+end
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> quest info
 
@@ -650,7 +661,8 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 			--self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag_commonT]])
 			self.bgFlag:Hide()
 			--self.glassTransparence:Hide()
-			self.bgFlagText:SetWidth (40)
+			self.blackGradient:SetWidth (40)
+			self.flagText:SetPoint ("top", self.bgFlag, "top", 0, -2)
 
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_RARE) then
 			self.rareSerpent:Show()
@@ -664,6 +676,7 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 			
 			self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
 			self.bgFlag:Show()
+			self.flagText:SetPoint ("top", self.bgFlag, "top", 0, -3)
 			--self.glassTransparence:Show()
 			
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
@@ -678,11 +691,12 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 			
 			self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
 			self.bgFlag:Show()
+			self.flagText:SetPoint ("top", self.bgFlag, "top", 0, -3)
 			--self.glassTransparence:Show()
 		end
 		
 	end
-
+	
 end
 
 --pega o nome da zona
@@ -1046,7 +1060,7 @@ local clear_widget = function (self)
 	self.timeBlipYellow:Hide()
 	self.timeBlipGreen:Hide()
 	self.bgFlag:Hide()
-	self.bgFlagText:Hide()
+	self.blackGradient:Hide()
 	self.flagText:Hide()
 	self.criteriaIndicator:Hide()
 	self.criteriaIndicatorGlow:Hide()
@@ -1090,6 +1104,13 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent)
 	button.IsTrackingGlow:SetAlpha (1)
 	button.IsTrackingGlow:Hide()
 	button.IsTrackingGlow:SetDesaturated (nil)
+	
+	button.Shadow = button:CreateTexture(button:GetName() .. "Shadow", "BACKGROUND", -8)
+	button.Shadow:SetSize (24, 24)
+	button.Shadow:SetPoint ("center", button, "center")
+	button.Shadow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\glow_yellow_roundT]])
+	button.Shadow:SetTexture ([[Interface\PETBATTLES\BattleBar-AbilityBadge-Neutral]])
+	button.Shadow:SetAlpha (1)
 	
 	local onStartTrackAnimation = DF:CreateAnimationHub (button.IsTrackingGlow, onStartClickAnimation)
 	WorldQuestTracker:CreateAnimation (onStartTrackAnimation, "Scale", .12, .9, .9, 1, 1)
@@ -1200,16 +1221,16 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent)
 	button.bgFlag:SetPoint ("top", button, "bottom", 0, 3)
 	button.bgFlag:SetSize (64, 32)
 	
-	button.bgFlagText = button:CreateTexture (nil, "OVERLAY")
-	button.bgFlagText:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT]])
-	button.bgFlagText:SetPoint ("top", button.bgFlag, "top", 0, -3)
-	button.bgFlagText:SetSize (32, 10)
-	button.bgFlagText:SetAlpha (.7)
+	button.blackGradient = button:CreateTexture (nil, "OVERLAY")
+	button.blackGradient:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT]])
+	button.blackGradient:SetPoint ("top", button.bgFlag, "top", 0, -1)
+	button.blackGradient:SetSize (32, 10)
+	button.blackGradient:SetAlpha (.7)
 	
 	--string da flag
 	button.flagText = button:CreateFontString (nil, "OVERLAY", "GameFontNormal")
 	button.flagText:SetText ("13m")
-	button.flagText:SetPoint ("top", button.bgFlag, "top", 0, -3)
+	button.flagText:SetPoint ("top", button.bgFlag, "top", 0, -2)
 	DF:SetFontSize (button.flagText, 8)
 	
 	local criteriaIndicator = button:CreateTexture (nil, "OVERLAY", 4)
@@ -1226,6 +1247,7 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent)
 	criteriaIndicatorGlow:SetTexCoord (0, 1, 0, 1)
 	criteriaIndicatorGlow:Hide()
 	
+	button.Shadow:SetDrawLayer ("BACKGROUND", -8)
 	button.blackBackground:SetDrawLayer ("BACKGROUND", -7)
 	button.IsTrackingGlow:SetDrawLayer ("BACKGROUND", -6)
 	button.Glow:SetDrawLayer ("BACKGROUND", -6)
@@ -1236,7 +1258,7 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent)
 	button.squareBorder:SetDrawLayer ("overlay", 1)
 	button.rareSerpent:SetDrawLayer ("overlay", 3)
 	button.bgFlag:SetDrawLayer ("overlay", 4)
-	button.bgFlagText:SetDrawLayer ("overlay", 5)
+	button.blackGradient:SetDrawLayer ("overlay", 5)
 	button.flagText:SetDrawLayer ("overlay", 6)
 	criteriaIndicator:SetDrawLayer ("overlay", 6)
 	criteriaIndicatorGlow:SetDrawLayer ("overlay", 7)
@@ -1377,7 +1399,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 	self.timeBlipOrange:Hide()
 	self.timeBlipYellow:Hide()
 	self.timeBlipGreen:Hide()
-	self.bgFlagText:Show()
+	self.blackGradient:Show()
 
 	self.Texture:SetMask ([[Interface\CharacterFrame\TempPortraitAlphaMask]])
 
@@ -1463,8 +1485,14 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 					self.IconTexture = texture
 					self.IconText = numRewardItems
 					self.QuestType = QUESTTYPE_RESOURCE
-					self.flagText:SetText (numRewardItems)
 					
+					if (numRewardItems >= 1000) then
+						self.flagText:SetText (format ("%.1fK", numRewardItems/1000))
+						--self.flagText:SetText (comma_value (numRewardItems))
+					else
+						self.flagText:SetText (numRewardItems)
+					end
+
 					WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 					
 					if (self:GetHighlightTexture()) then
@@ -1484,7 +1512,13 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 					self.Texture:SetMask (nil)
 					self.Texture:SetTexture (texture)
 					
-					self.flagText:SetText (artifactPower)
+					if (artifactPower >= 1000) then
+						self.flagText:SetText (format ("%.1fK", artifactPower/1000))
+						--self.flagText:SetText (comma_value (artifactPower))
+					else
+						self.flagText:SetText (artifactPower)
+					end
+
 					self.isArtifact = true
 					self.IconTexture = texture
 					self.IconText = artifactPower
@@ -1993,6 +2027,7 @@ function WorldQuestTracker.AddQuestToTracker (self)
 		local iconText = self.IconText
 		local questType = self.QuestType
 		local numObjectives = self.numObjectives
+		--local x, y = 
 		
 		if (iconTexture) then
 			tinsert (WorldQuestTracker.QuestTrackList, {
@@ -2383,7 +2418,18 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.Arrow:SetPoint ("right", f, "right", 0, 0)
 	f.Arrow:SetSize (32, 32)
 	f.Arrow:SetAlpha (.6)
+	--f.Arrow:SetAlpha (1)
 	f.Arrow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]])
+	
+	f.ArrowDistance = f:CreateTexture (nil, "overlay")
+	--f.ArrowDistance:SetPoint ("center", f.Arrow, "center", -5, 0)
+	f.ArrowDistance:SetPoint ("center", f.Arrow, "center", 0, 0)
+	f.ArrowDistance:SetSize (34, 34)
+	f.ArrowDistance:SetAlpha (.5)
+	f.ArrowDistance:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridTGlow]])
+
+	f.ArrowDistance:SetDrawLayer ("overlay", 4)
+	f.Arrow:SetDrawLayer ("overlay", 5)
 	
 	TrackerWidgetPool [index] = f
 	return f
@@ -2397,8 +2443,16 @@ local TrackerOnTick = function (self, deltaTime)
 	local angle = (((questYaw + playerYaw)%pipi)+pi)%pipi
 	local imageIndex = 1+(floor (DF:MapRangeClamped (0, pipi, 1, 144, angle)) + 48)%144 --48º quadro é o que aponta para o norte
 	local line = ceil (imageIndex / 12)
-	local x = (imageIndex - ((line-1) * 12)) / 12
-	self.Arrow:SetTexCoord (x-0.0833, x, 0.0833 * (line-1), 0.0833 * line)
+	local coord = (imageIndex - ((line-1) * 12)) / 12
+	self.Arrow:SetTexCoord (coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line)
+	--self.ArrowDistance:SetTexCoord (coord-0.0905, coord-0.0160, 0.0833 * (line-1), 0.0833 * line) -- 0.0763
+	self.ArrowDistance:SetTexCoord (coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line) -- 0.0763
+	
+	local distance = abs (DF:GetDistance_Point (x, y, qx, qy) - 1)
+	distance = Saturate (distance - 0.75) * 4
+	local alpha = DF:MapRangeClamped (0, 1, 0, 0.5, distance)
+	self.Arrow:SetAlpha (.5 + (alpha))
+	self.ArrowDistance:SetVertexColor (distance, distance, distance)
 end
 
 --atualiza os widgets e reajusta a ancora
@@ -3116,7 +3170,6 @@ local create_worldmap_square = function (mapName, index)
 	local amountBackground = button:CreateTexture (nil, "overlay", 0)
 	amountBackground:SetPoint ("center", amountText, "center")
 	amountBackground:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT]])
-	--amountBackground:SetTexCoord (12/512, 74/512, 251/512, 281/512)
 	amountBackground:SetSize (32, 10)
 	amountBackground:SetAlpha (.7)
 	
@@ -3498,6 +3551,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 									end
 									
 									WorldQuestTracker.SetTimeBlipColor (widget, timeLeft)
+									widget.amountBackground:SetWidth (32)
 									
 									if (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
 										widget.questTypeBlip:Show()
@@ -3535,6 +3589,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										--widget.texture:SetTexCoord (0, 1, 0, 1)
 										if (numRewardItems >= 1000) then
 											widget.amountText:SetText (format ("%.1fK", numRewardItems/1000))
+											widget.amountBackground:SetWidth (40)
 										else
 											widget.amountText:SetText (numRewardItems)
 										end
@@ -3553,6 +3608,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 											widget.isArtifact = true
 											if (artifactPower >= 1000) then
 												widget.amountText:SetText (format ("%.1fK", artifactPower/1000))
+												widget.amountBackground:SetWidth (36)
 											else
 												widget.amountText:SetText (artifactPower)
 											end
