@@ -44,8 +44,7 @@ local default_config = {
 		taxy_trackedonly = false,
 		taxy_tracked_scale = 3,
 		map_lock = true,
-		auto_worldmap = false,
-		enable_doubletap = false,
+		enable_doubletap = true,
 		history = {
 			reward = {
 				global = {},
@@ -69,6 +68,15 @@ local stormheim_mapId = 1017
 local suramar_mapId = 1033
 local valsharah_mapId = 1018
 local eoa_mapId = 1096
+
+local is_broken_isles_map = {
+	[azsuna_mapId] = true,
+	[highmountain_mapId] = true,
+	[stormheim_mapId] = true,
+	[suramar_mapId] = true,
+	[valsharah_mapId] = true,
+	[eoa_mapId] = true,
+}
 
 local MAPID_BROKENISLES = 1007
 local MAPID_DALARAN = 1014
@@ -465,19 +473,22 @@ end
 --ao clicar no botão de uma quest na zona ou no world map, colocar para trackear ela
 local questButton_OnClick = function (self, button)
 	WorldQuestTracker.OnQuestClicked (self, button)
-	--if (self.IsWorldQuestButton) then
-		if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
-			if (self.onEndTrackAnimation:IsPlaying()) then
-				self.onEndTrackAnimation:Stop()
-			end
-			self.onStartTrackAnimation:Play()
-		else
-			if (self.onStartTrackAnimation:IsPlaying()) then
-				self.onStartTrackAnimation:Stop()
-			end
-			self.onEndTrackAnimation:Play()
+	
+	if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
+		if (self.onEndTrackAnimation:IsPlaying()) then
+			self.onEndTrackAnimation:Stop()
 		end
-	--end
+		self.onStartTrackAnimation:Play()
+	else
+		if (self.onStartTrackAnimation:IsPlaying()) then
+			self.onStartTrackAnimation:Stop()
+		end
+		self.onEndTrackAnimation:Play()
+	end
+	
+	if (not self.IsWorldQuestButton) then
+		WorldQuestTracker.WorldWidgets_NeedFullRefresh = true
+	end
 end
 
 --verifica se pode mostrar os widgets de broken isles
@@ -503,11 +514,12 @@ function WorldQuestTracker.CanShowBrokenIsles()
 end
 
 --todo: replace this with real animations
+local zone_widget_rotation = 0
 local animFrame, t = CreateFrame ("frame"), 0
 local tickAnimation = function (self, deltaTime)
 	t = t + deltaTime
 	local squareAlphaAmount = Lerp (.7, .95, abs (sin (t*10)))
-	local roundAlphaAmount = Lerp (.65, .95, abs (sin (t*30)))
+	local roundAlphaAmount = Lerp (.745, .90, abs (sin (t*30)))
 
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		for index, button in ipairs (configTable.widgets) do
@@ -520,8 +532,10 @@ local tickAnimation = function (self, deltaTime)
 	for index, button in ipairs (WorldWidgetPool) do
 		if (button.IsTrackingGlow:IsShown()) then
 			button.IsTrackingGlow:SetAlpha (roundAlphaAmount)
+			button.IsTrackingGlow:SetRotation (zone_widget_rotation)
 		end
 	end	
+	zone_widget_rotation = (zone_widget_rotation + (deltaTime * 1.25)) % 360
 end
 
 function WorldQuestTracker.GetAllWorldQuests_Ids()
@@ -1052,6 +1066,7 @@ local clear_widget = function (self)
 	self.Glow:Hide()
 	self.highlight:Hide()
 	self.IsTrackingGlow:Hide()
+	self.IsTrackingRareGlow:Hide()
 	self.SelectedGlow:Hide()
 	self.CriteriaMatchGlow:Hide()
 	self.SpellTargetGlow:Hide()
@@ -1109,7 +1124,17 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.IsTrackingGlow:SetAlpha (1)
 	button.IsTrackingGlow:Hide()
 	button.IsTrackingGlow:SetDesaturated (nil)
+	--testing another texture
+	button.IsTrackingGlow:SetTexture ([[Interface\Calendar\EventNotificationGlow]])
+	button.IsTrackingGlow:SetSize (36, 36)
 	
+	button.IsTrackingRareGlow = button:CreateTexture(button:GetName() .. "IsTrackingRareGlow", "BACKGROUND", -6)
+	button.IsTrackingRareGlow:SetSize (44, 44)
+	button.IsTrackingRareGlow:SetPoint ("center", button, "center")
+	button.IsTrackingRareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragon_TrackingT]])
+	--button.IsTrackingRareGlow:SetBlendMode ("ADD")
+	button.IsTrackingRareGlow:Hide()
+
 	button.Shadow = button:CreateTexture(button:GetName() .. "Shadow", "BACKGROUND", -8)
 	button.Shadow:SetSize (24, 24)
 	button.Shadow:SetPoint ("center", button, "center")
@@ -1258,7 +1283,8 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.Glow:SetDrawLayer ("BACKGROUND", -6)
 	button.Texture:SetDrawLayer ("BACKGROUND", -5)
 	button.glassTransparence:SetDrawLayer ("BACKGROUND", -4)
-	
+
+	button.IsTrackingRareGlow:SetDrawLayer ("overlay", 0)
 	button.circleBorder:SetDrawLayer ("overlay", 1)
 	button.squareBorder:SetDrawLayer ("overlay", 1)
 	button.rareSerpent:SetDrawLayer ("overlay", 3)
@@ -1388,6 +1414,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 	self.CriteriaMatchGlow:Hide()
 	self.SpellTargetGlow:Hide()
 	self.IsTrackingGlow:Hide()
+	self.IsTrackingRareGlow:Hide()
 	self.rareSerpent:Hide()
 	self.rareGlow:Hide()
 	self.blackBackground:Hide()
@@ -1422,6 +1449,9 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 		end
 		
 		if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
+			if (rarity == LE_WORLD_QUEST_QUALITY_RARE or rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
+				self.IsTrackingRareGlow:Show()
+			end
 			self.IsTrackingGlow:Show()
 		end
 		
@@ -1605,6 +1635,49 @@ function oie ()
 	end
 end
 
+--WorldQuestTracker.db.profile.AlertTutorialStep = nil
+-- ~tutorial
+local re_ShowTutorialAlert = function()
+	WorldQuestTracker ["ShowTutorialAlert"]()
+end
+local hook_AlertCloseButton = function (self) 
+	re_ShowTutorialAlert()
+end
+function WorldQuestTracker.ShowTutorialAlert()
+	if (not WorldQuestTracker.db.profile.GotTutorial) then
+		return
+	end
+	
+	WorldQuestTracker.db.profile.AlertTutorialStep = WorldQuestTracker.db.profile.AlertTutorialStep or 1
+	
+	if (WorldQuestTracker.db.profile.AlertTutorialStep == 1) then
+		local alert = CreateFrame ("frame", "WorldQuestTrackerTutorialAlert1", worldFramePOIs, "MicroButtonAlertTemplate")
+		alert:SetFrameLevel (302)
+		alert.label = "Click to track a quest."
+		alert.Text:SetSpacing (4)
+		MicroButtonAlert_SetText (alert, alert.label)
+		alert:SetPoint ("topleft", worldFramePOIs, "topleft", 64, -270)
+		alert.CloseButton:HookScript ("OnClick", hook_AlertCloseButton)
+		alert:Show()
+		
+		WorldQuestTracker.db.profile.AlertTutorialStep = WorldQuestTracker.db.profile.AlertTutorialStep + 1
+		
+	elseif (WorldQuestTracker.db.profile.AlertTutorialStep == 2) then
+		local alert = CreateFrame ("frame", "WorldQuestTrackerTutorialAlert2", worldFramePOIs, "MicroButtonAlertTemplate")
+		alert:SetFrameLevel (302)
+		alert.label = "Auto World Map shows Broken Isles map when you are within Dalaran or Class Hall."
+		alert.Text:SetSpacing (4)
+		MicroButtonAlert_SetText (alert, alert.label)
+		alert:SetPoint ("topleft", worldFramePOIs, "topleft", 10, -383)
+		alert.CloseButton:HookScript ("OnClick", hook_AlertCloseButton)
+		alert.Arrow:ClearAllPoints()
+		alert.Arrow:SetPoint ("topleft", alert, "bottomleft", 10, 0)
+		alert:Show()
+		
+		WorldQuestTracker.db.profile.AlertTutorialStep = WorldQuestTracker.db.profile.AlertTutorialStep + 1
+	end
+end
+
 --ao abrir ou fechar o mapa
 hooksecurefunc ("ToggleWorldMap", function (self)
 	
@@ -1736,9 +1809,10 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 		end
 
 		--WorldQuestTracker.db.profile.GotTutorial = nil
+		-- ~tutorial
 		if (not WorldQuestTracker.db.profile.GotTutorial) then
 			local tutorialFrame = CreateFrame ("button", "WorldQuestTrackerTutorial", WorldMapFrame)
-			tutorialFrame:SetSize (160, 280)
+			tutorialFrame:SetSize (160, 320)
 			tutorialFrame:SetPoint ("left", WorldMapFrame, "left")
 			tutorialFrame:SetPoint ("right", WorldMapFrame, "right")
 			tutorialFrame:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
@@ -1749,6 +1823,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			tutorialFrame:SetScript ("OnClick", function()
 				WorldQuestTracker.db.profile.GotTutorial = true
 				tutorialFrame:Hide()
+				WorldQuestTracker.ShowTutorialAlert()
 			end)
 			
 			local upLine = tutorialFrame:CreateTexture (nil, "overlay")
@@ -1787,9 +1862,24 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			doubleTabTexture:SetPoint ("right", doubleTap, "left", -4, 0)
 			doubleTabTexture:SetSize (32, 32)
 			
+			doubleTap:Hide()
+			doubleTabTexture:Hide()
+			local title = tutorialFrame:CreateFontString (nil, "overlay", "GameFontNormal")
+			title:SetPoint ("center", extraBg2, "center")
+			title:SetText ("World Quest Tracker")
+			DF:SetFontSize (title, 24)
+			
+			local close = DF:CreateButton (tutorialFrame, function()
+				WorldQuestTracker.db.profile.GotTutorial = true
+				tutorialFrame:Hide()
+				WorldQuestTracker.ShowTutorialAlert()
+			end, 100, 24, "Close Tutorial")
+			close:SetPoint ("right", extraBg2, "right", -8, 0)
+			close:InstallCustomTexture()
+
 			local texture = tutorialFrame:CreateTexture (nil, "border")
 			texture:SetSize (120, 120)
-			texture:SetPoint ("left", tutorialFrame, "left", 100, 50)
+			texture:SetPoint ("left", tutorialFrame, "left", 100, 70)
 			texture:SetTexture ([[Interface\ICONS\INV_Chest_Mail_RaidHunter_I_01]])
 			
 			local square = tutorialFrame:CreateTexture (nil, "artwork")
@@ -1993,7 +2083,25 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			DF:SetFontSize (clickToTrack2, 12)
 			clickToTrack2:SetText ("Left click to track a quest. On the tracker, you may |cFFFFFFFFright click|r to untrack it.")
 			
+			--disable auto world map
+			local checkboxDoubleTap = DF:CreateSwitch (tutorialFrame, function()end, WorldQuestTracker.db.profile.enable_doubletap, nil, nil, nil, nil, "checkboxDoubleTap1")
+			checkboxDoubleTap:SetTemplate (DF:GetTemplate ("switch", "OPTIONS_CHECKBOX_TEMPLATE"))
+			checkboxDoubleTap:SetAsCheckBox()
+			checkboxDoubleTap:SetSize (24, 24)
+			checkboxDoubleTap.tooltip = "When in Dalaran or Class Hall, pressing 'M' goes directly to Broken Isles map.\n\nDouble tap 'M' goes to the map you are standing in."
+			checkboxDoubleTap:SetPoint ("topright", texture, "topright", 51, -236)
+			local doubleTapText = DF:CreateLabel (checkboxDoubleTap, "Auto World Map", 14, "orange", nil, "checkboxDoubleTapLabel", nil, "overlay")
+			doubleTapText:SetPoint ("left", checkboxDoubleTap, "right", 2, 0)
+			
+			local checkboxDoubleTapLabel = tutorialFrame:CreateFontString (nil, "overlay", "GameFontNormal")
+			checkboxDoubleTapLabel:SetPoint ("left", doubleTapText.widget, "right", 6, 0)
+			DF:SetFontSize (checkboxDoubleTapLabel, 12)
+			checkboxDoubleTapLabel:SetText ("When enabled, toggling the map on Dalaran or Class Hall shows Broken Isles instead.")
 		end
+
+		-- ~tutorial
+		WorldQuestTracker.ShowTutorialAlert()
+		
 	else
 		WorldQuestTracker.NoAutoSwitchToWorldMap = nil
 	end
@@ -2221,6 +2329,19 @@ local TrackerFrameOnClick = function (self, button)
 	--??--
 	if (button == "RightButton") then
 		WorldQuestTracker.RemoveQuestFromTracker (self.questID)
+		---se o worldmap estiver aberto, dar refresh
+		if (WorldMapFrame:IsShown()) then
+			if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+				--refresh no world map
+				WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
+			elseif (is_broken_isles_map [GetCurrentMapAreaID()]) then
+				--refresh nos widgets
+				WorldQuestTracker.UpdateZoneWidgets()
+				WorldQuestTracker.WorldWidgets_NeedFullRefresh = true
+			end
+		else
+			WorldQuestTracker.WorldWidgets_NeedFullRefresh = true
+		end
 	end
 end
 
@@ -2370,7 +2491,7 @@ local TrackerFrameOnLeave = function (self)
 	GameTooltip:Hide()
 end
 
---pega um widget já criado ou cria um novo
+--pega um widget já criado ou cria um novo ~trackercreate
 function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	if (TrackerWidgetPool [index]) then
 		return TrackerWidgetPool [index]
@@ -2528,6 +2649,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				widget.questX, widget.questY = x, y
 				widget:SetScript ("OnUpdate", TrackerOnTick)
 				widget.Arrow:Show()
+				widget.ArrowDistance:Show()
 				widget.RightBackground:Show()
 				widget:SetAlpha (TRACKER_FRAME_ALPHA_INMAP)
 				widget.Title.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
@@ -2817,7 +2939,7 @@ local format_for_taxy_nozoom_allquests = function (button)
 end
 
 function WorldQuestTracker:TAXIMAP_OPENED()
-
+	
 	if (not WorldQuestTracker.FlyMapHook and FlightMapFrame) then
 	
 		WorldQuestTracker.Taxy_CurrentShownBlips = WorldQuestTracker.Taxy_CurrentShownBlips or {}
@@ -2921,12 +3043,14 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 		WorldQuestTracker.FlyMapHook = true
 	end
 	
-	for _WQT_Twin, isShown in pairs (WorldQuestTracker.Taxy_CurrentShownBlips) do
-		if (_WQT_Twin:IsShown() and not WorldQuestTracker.IsQuestBeingTracked (_WQT_Twin.questID)) then
-			_WQT_Twin:Hide()
-			WorldQuestTracker.Taxy_CurrentShownBlips [_WQT_Twin] = nil
-			--local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (_WQT_Twin.questID)
-			--print ("Taxy Hide", title)
+	if (WorldQuestTracker.Taxy_CurrentShownBlips) then
+		for _WQT_Twin, isShown in pairs (WorldQuestTracker.Taxy_CurrentShownBlips) do
+			if (_WQT_Twin:IsShown() and not WorldQuestTracker.IsQuestBeingTracked (_WQT_Twin.questID)) then
+				_WQT_Twin:Hide()
+				WorldQuestTracker.Taxy_CurrentShownBlips [_WQT_Twin] = nil
+				--local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (_WQT_Twin.questID)
+				--print ("Taxy Hide", title)
+			end
 		end
 	end
 	
@@ -3062,7 +3186,7 @@ local create_worldmap_line = function (lineWidth, mapId)
 	return line, blip, factionFrame
 end
 
---cria uma square widget no world map
+--cria uma square widget no world map ~world
 local create_worldmap_square = function (mapName, index)
 	local button = CreateFrame ("button", "WorldQuestTrackerWorldMapPOI" .. mapName .. "POI" .. index, worldFramePOIs)
 	button:SetSize (WORLDMAP_SQUARE_SIZE, WORLDMAP_SQUARE_SIZE)
@@ -3414,6 +3538,10 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	end
 	
 --
+	if (WorldQuestTracker.WorldWidgets_NeedFullRefresh) then
+		WorldQuestTracker.WorldWidgets_NeedFullRefresh = nil
+		noCache = true
+	end
 
 	local questsAvailable = {}
 	local needAnotherUpdate = false
