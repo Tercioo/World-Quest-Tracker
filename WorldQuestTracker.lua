@@ -16,8 +16,36 @@ do
 	DF:NewColor ("WQT_QUESTZONE_OUTMAP", 1, 1, 1, .7)
 end
 
+local WQT_QUESTTYPE_MAX = 8
+local WQT_QUESTTYPE_GOLD = "gold"
+local WQT_QUESTTYPE_RESOURCE = "resource"
+local WQT_QUESTTYPE_APOWER = "apower"
+local WQT_QUESTTYPE_EQUIPMENT = "equipment"
+local WQT_QUESTTYPE_DUNGEON = "dungeon"
+local WQT_QUESTTYPE_PROFESSION = "profession"
+local WQT_QUESTTYPE_PVP = "pvp"
+local WQT_QUESTTYPE_PETBATTLE = "petbattle"
+
+local WQT_QUERYTYPE_REWARD = "reward"
+local WQT_QUERYTYPE_QUEST = "quest"
+local WQT_QUERYTYPE_PERIOD = "period"
+local WQT_QUERYDB_ACCOUNT = "global"
+local WQT_QUERYDB_LOCAL = "character"
+local WQT_REWARD_RESOURCE = "resource"
+local WQT_REWARD_GOLD = "gold"
+local WQT_REWARD_APOWER = "artifact"
+local WQT_QUESTS_TOTAL = "total"
+local WQT_QUESTS_PERIOD = "quest"
+local WQT_DATE_TODAY = 1
+local WQT_DATE_YESTERDAY = 2
+local WQT_DATE_1WEEK = 3
+local WQT_DATE_2WEEK = 4
+local WQT_DATE_MONTH = 5
+
 --219978
 --world of quets IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID) - colocar junto com o level do personagem
+
+
 
 local _
 local default_config = {
@@ -31,6 +59,16 @@ local default_config = {
 			artifact_power = true,
 			garrison_resource = true,
 			equipment = true,
+		},
+		sort_order = {
+			[WQT_QUESTTYPE_APOWER] = 8,
+			[WQT_QUESTTYPE_GOLD] = 6,
+			[WQT_QUESTTYPE_RESOURCE] = 7,
+			[WQT_QUESTTYPE_EQUIPMENT] = 5,
+			[WQT_QUESTTYPE_DUNGEON] = 4,
+			[WQT_QUESTTYPE_PROFESSION] = 3,
+			[WQT_QUESTTYPE_PVP] = 2,
+			[WQT_QUESTTYPE_PETBATTLE] = 1,
 		},
 		quests_tracked = {},
 		syntheticMapIdList = {
@@ -99,6 +137,20 @@ local FILTER_TYPE_GOLD = "gold"
 local FILTER_TYPE_ARTIFACT_POWER = "artifact_power"
 local FILTER_TYPE_GARRISON_RESOURCE = "garrison_resource"
 local FILTER_TYPE_EQUIPMENT = "equipment"
+
+local WQT_QUEST_NAMES_AND_ICONS = {
+	[WQT_QUESTTYPE_APOWER] = {name = "Artifact Power", icon = [[Interface\AddOns\WorldQuestTracker\media\icon_artifactpower_red_roundT]], coords = {0, 1, 0, 1}},
+	[WQT_QUESTTYPE_GOLD] = {name = "Gold", icon = [[Interface\GossipFrame\auctioneerGossipIcon]], coords = {0, 1, 0, 1}},
+	[WQT_QUESTTYPE_RESOURCE] = {name = "Resources", icon = [[Interface\AddOns\WorldQuestTracker\media\resource_iconT]], coords = {0, 1, 0, 1}},
+	[WQT_QUESTTYPE_EQUIPMENT] = {name = "Equipment", icon = [[Interface\PaperDollInfoFrame\UI-EquipmentManager-Toggle]], coords = {0, 1, 0, 1}},
+	--[WQT_QUESTTYPE_EQUIPMENT] = {name = "Equipment", icon = [[Interface\PaperDollInfoFrame\PaperDollSidebarTabs]], coords = {4/64, 32/64, 122/256, 155/256}},
+	[WQT_QUESTTYPE_DUNGEON] = {name = "Dungeon", icon = [[Interface\TARGETINGFRAME\Nameplates]], coords = {41/256, 0/256, 42/128, 80/128}},
+	[WQT_QUESTTYPE_PROFESSION] = {name = "Profession", icon = [[Interface\MINIMAP\TRACKING\Profession]], coords = {2/32, 30/32, 2/32, 30/32}},
+	--[WQT_QUESTTYPE_PROFESSION] = {name = "Profession", icon = [[Interface\Garrison\MobileAppIcons]], coords = {256/1024, 384/1024, 0/1024, 128/1024}},
+	--[WQT_QUESTTYPE_PVP] = {name = "PvP", icon = [[Interface\PVPFrame\Icon-Combat]], coords = {0, 1, 0, 1}},
+	[WQT_QUESTTYPE_PVP] = {name = "PvP", icon = [[Interface\QUESTFRAME\QuestTypeIcons]], coords = {37/128, 53/128, 19/64, 36/64}},
+	[WQT_QUESTTYPE_PETBATTLE] = {name = "Pet Battle", icon = [[Interface\MINIMAP\ObjectIconsAtlas]], coords = {172/512, 201/512, 270/512, 301/512}},
+}
 
 local QUEST_COMMENTS = {
 	[42275] = {help = "'Dimensional Anchors' are green crystals on the second floor of the central build."}, --azsuna - not on my watch
@@ -180,6 +232,7 @@ WorldQuestTracker.LastWorldMapClick = 0
 WorldQuestTracker.MapSeason = 0
 WorldQuestTracker.MapOpenedAt = 0
 WorldQuestTracker.QueuedRefresh = 1
+WorldQuestTracker.WorldQuestButton_Click = 0
 
 --debug
 function WorldQuestTracker.DumpTrackingList()
@@ -321,7 +374,95 @@ function WorldQuestTracker:OnInit()
 		end
 	end
 	
-	-- ~reward
+	-- ~reward ~questcompleted
+	local oneday = 60*60*24
+	local days_amount = {
+		WQT_DATE_1WEEK = 8,
+		WQT_DATE_2WEEK = 15,
+		WQT_DATE_MONTH = 30,
+	}
+	
+	function WorldQuestTracker.GetDateString (t)
+		if (t == WQT_DATE_TODAY) then
+			return date ("%y%m%d")
+		elseif (t == WQT_DATE_YESTERDAY) then
+			return date ("%y%m%d", time() - oneday)
+		elseif (t == WQT_DATE_1WEEK or t == WQT_DATE_2WEEK or t == WQT_DATE_MONTH) then
+			local days = days_amount [t]
+			local result = {}
+			for i = 1, days do
+				tinsert (result, date ("%y%m%d", time() - (oneday * (i-1) )))
+			end
+			return result
+		else
+			return t
+		end
+	end
+	
+	function WorldQuestTracker.QueryHistory (queryType, dbLevel, arg1, arg2, arg3)
+		local db = WorldQuestTracker.db.profile.history
+		db = db [queryType]
+		db = db [dbLevel]
+		
+		if (dbLevel == WQT_QUERYDB_LOCAL) then
+			db = db [UnitGUID ("player")]
+			if (not db) then
+				return
+			end
+		end
+		
+		if (not arg1) then
+			return db
+		end
+		
+		if (queryType == WQT_QUERYTYPE_REWARD) then
+			return db [arg1] --arg1 = the reward type (gold, resource, artifact)
+			
+		elseif (queryType == WQT_QUERYTYPE_QUEST) then
+			return db [arg1] --arg1 = the questID
+			
+		elseif (queryType == WQT_QUERYTYPE_PERIOD) then
+			
+			local dateString = WorldQuestTracker.GetDateString (arg1)
+			
+			if (type (dateString) == "table") then --mais de 1 dia
+				--quer saber da some total ou quer dia a dia para fazer um gráfico
+				local result = {}
+				local total = 0
+				local dayTable = dateString
+
+				for i = 1, #dayTable do --table com várias strings representando dias
+					local day = db [dayTable [i]]
+					if (day) then
+						if (arg2) then
+							total = total + (day [arg2] or 0)
+						else
+							tinsert (result, day)
+						end
+					end
+				end
+				
+				if (arg2) then
+					return total
+				else
+					return result
+				end
+				
+			else --um unico dia
+				if (arg2) then --pediu apenas 1 reward
+					db = db [dateString] --tabela do dia
+					if (db) then
+						return db [arg2] --quantidade de recursos
+					end
+					return
+				end
+				return db [dateString] --arg1 = data0 / retorna a tabela do dia com todos os rewards
+			end
+		end
+	
+	end
+	
+	-- ~completed ~questdone
 	function WorldQuestTracker:QUEST_TURNED_IN (event, questID, XP, gold)
 
 		--> Court of Farondis 42420
@@ -339,10 +480,15 @@ function WorldQuestTracker:OnInit()
 				--print ("QINFO:", goldFormated, rewardName, numRewardItems, itemName, isArtifact, artifactPower)
 				
 				local questHistory = WorldQuestTracker.db.profile.history
-
+				
 				local guid = UnitGUID ("player")
 				local today = date ("%y%m%d") -- YYMMDD
 				
+				local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker.GetQuestReward_Item (questID)
+				--print ("WQT", itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable)
+				--WQT Blood of Sargeras 1417744 110 1 3 true 124124 false 0 true
+				
+				--quanto de gold recursos e poder de artefato ganho na conta e no personagem (é o total)
 				local rewardHistory = questHistory.reward
 					local _global = rewardHistory.global
 					local _local = rewardHistory.character [guid]
@@ -376,6 +522,12 @@ function WorldQuestTracker:OnInit()
 						--print ("Resource added:", _global ["resource"], _local ["resource"])
 					end
 					
+					if (itemID == 124124) then
+						_global ["blood"] = (_global ["blood"] or 0) + quantity
+						_local ["blood"] = (_local ["blood"] or 0) + quantity
+					end
+				
+				--quais quest ja foram completadas e quantas vezes
 				local questDoneHistory = questHistory.quest
 					local _global = questDoneHistory.global
 					local _local = questDoneHistory.character [guid]
@@ -385,7 +537,10 @@ function WorldQuestTracker:OnInit()
 					end
 					_global [questID] = (_global [questID] or 0) + 1
 					_local [questID] = (_local [questID] or 0) + 1
-					
+					_global ["total"] = (_global ["total"] or 0) + 1
+					_local ["total"] = (_local ["total"] or 0) + 1
+				
+				--estatísticas dia a dia
 				local periodHistory = questHistory.period
 					local _global = periodHistory.global
 					local _local = periodHistory.character [guid]
@@ -404,7 +559,15 @@ function WorldQuestTracker:OnInit()
 						_localToday = {}
 						_local [today] = _localToday
 					end
-
+					
+					_globalToday ["quest"] = (_globalToday ["quest"] or 0) + 1
+					_localToday ["quest"] = (_localToday ["quest"] or 0) + 1
+					
+					if (itemID == 124124) then
+						_globalToday ["blood"] = (_globalToday ["blood"] or 0) + quantity
+						_localToday ["blood"] = (_localToday ["blood"] or 0) + quantity
+					end
+					
 					if (gold and gold > 0) then
 						_globalToday ["gold"] = _globalToday ["gold"] or 0
 						_localToday ["gold"] = _localToday ["gold"] or 0
@@ -610,7 +773,7 @@ function WorldQuestTracker.GetBorderByQuestType (self, rarity, worldQuestType)
 	end
 end
 
---atualiza a borda nas squares do world map e no mapa da zona
+--atualiza a borda nas squares do world map e no mapa da zona ~border
 function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 	if (self.isWorldMapWidget) then
 		self.commonBorder:Hide()
@@ -646,7 +809,9 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 				self.commonBorder:SetVertexColor (.4, 1, .4)
 				
 			elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
-				
+			
+			else
+				self.commonBorder:SetVertexColor (1, 1, 1)
 			end
 			
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_RARE) then
@@ -792,6 +957,7 @@ function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 end
 
 --pega a quantidade de gold da quest
+
 function WorldQuestTracker.GetQuestReward_Gold (questID)
 	local gold = GetQuestLogRewardMoney  (questID) or 0
 	local formated
@@ -1001,7 +1167,7 @@ end)
 
 --se o mapa mudar automaticamente, voltar para o mapa atual
 WorldMapFrame:HookScript ("OnUpdate", function (self, deltaTime)
-	if (WorldQuestTracker.db.profile.map_lock and GetCurrentMapContinent() == 8) then
+	if (WorldQuestTracker.db.profile.map_lock and (GetCurrentMapContinent() == 8 or WorldQuestTracker.WorldQuestButton_Click+30 > GetTime())) then
 		if (WorldQuestTracker.CanChangeMap) then
 			WorldQuestTracker.CanChangeMap = nil
 			WorldQuestTracker.LastMapID = GetCurrentMapAreaID()
@@ -1342,6 +1508,11 @@ function WorldQuestTracker.UpdateZoneWidgets()
 	
 	local taskInfo = GetQuestsForPlayerByMapID (mapID)
 	local index = 1
+	
+	--parar a animação de loading
+	if (WorldQuestTracker.IsPlayingLoadAnimation()) then
+		WorldQuestTracker.StopLoadingAnimation()
+	end	
 	
 	if (taskInfo and #taskInfo > 0) then
 		for i, info  in ipairs (taskInfo) do
@@ -1739,24 +1910,221 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			SetMapByID (currentMapId)
 			WorldMapFrame.firstRun = true
 			
+			--go to broken isles button
+			local WorldQuestButton = CreateFrame ("button", "WorldQuestTrackerGoToBIButton", WorldMapFrame.UIElementsFrame)
+			WorldQuestButton:SetSize (64, 32)
+			WorldQuestButton:SetPoint ("right", WorldMapFrame.UIElementsFrame.CloseQuestPanelButton, "left", -2, 0)
+			WorldQuestButton.Background = WorldQuestButton:CreateTexture (nil, "background")
+			WorldQuestButton.Background:SetSize (64, 32)
+			WorldQuestButton.Background:SetAtlas ("MapCornerShadow-Right")
+			WorldQuestButton.Background:SetPoint ("bottomright", 2, -1)
+			WorldQuestButton:SetNormalTexture ([[Interface\AddOns\WorldQuestTracker\media\world_quest_button]])
+			
+			WorldQuestButton.Highlight = WorldQuestButton:CreateTexture (nil, "highlight")
+			WorldQuestButton.Highlight:SetTexture ([[Interface\Buttons\UI-Common-MouseHilight]])
+			WorldQuestButton.Highlight:SetBlendMode ("ADD")
+			WorldQuestButton.Highlight:SetSize (64*1.5, 32*1.5)
+			WorldQuestButton.Highlight:SetPoint ("center")
+			
+			WorldQuestButton:SetScript ("OnClick", function()
+				SetMapByID (MAPID_BROKENISLES)
+				PlaySound ("igMainMenuOptionCheckBoxOn")
+				WorldQuestTracker.WorldQuestButton_Click = GetTime()
+			end)
+			WorldQuestButton:HookScript ("PreClick", deny_auto_switch)
+			WorldQuestButton:HookScript ("PostClick", allow_map_change)
+			
 			--avisar sobre duplo tap
 			WorldQuestTracker.DoubleTapFrame = CreateFrame ("frame", "WorldQuestTrackerDoubleTapFrame", worldFramePOIs)
 			WorldQuestTracker.DoubleTapFrame:SetSize (1, 1)
 			WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", worldFramePOIs, "bottomleft", 3, 3)
 			
+			--
 			local rewardButton = CreateFrame ("button", "WorldQuestTrackerRewardHistoryButton", WorldQuestTracker.DoubleTapFrame)
-			rewardButton:SetSize (20, 20)
+			rewardButton:SetSize (16, 16)
 			rewardButton:SetPoint ("bottomleft", WorldQuestTracker.DoubleTapFrame, "bottomleft", 0, 0)
 			rewardButton.Texture = rewardButton:CreateTexture (nil, "overlay")
 			rewardButton.Texture:SetPoint ("center")
-			rewardButton.Texture:SetSize (20, 20)
+			rewardButton.Texture:SetSize (18, 18)
 			rewardButton.Texture:SetTexture ([[Interface\Garrison\GarrisonShipMapIcons]])
-			rewardButton.Texture:SetTexCoord (271/512, 325/512, 330/512, 383/512)
+			rewardButton.Texture:SetTexCoord (325/512, 271/512, 330/512, 383/512)
+			
+			local optionsButton = CreateFrame ("button", "WorldQuestTrackerOptionsButton", WorldQuestTracker.DoubleTapFrame)
+			optionsButton:SetSize (16, 16)
+			optionsButton:SetPoint ("bottomleft", rewardButton, "bottomright", 0, 0)
+			optionsButton.Texture = optionsButton:CreateTexture (nil, "overlay")
+			optionsButton.Texture:SetPoint ("center")
+			optionsButton.Texture:SetSize (16, 16)
+			--optionsButton.Texture:SetTexture ([[Interface\GossipFrame\HealerGossipIcon]])
+			optionsButton.Texture:SetTexture ([[Interface\BUTTONS\UI-OptionsButton]])
+			optionsButton.Texture:SetVertexColor (1, .85, 0)
+			optionsButton.Texture:SetAlpha (.8)
+			
+			--sort options
+			local sortButton = CreateFrame ("button", "WorldQuestTrackerSortButton", WorldQuestTracker.DoubleTapFrame)
+			sortButton:SetSize (80, 16)
+			sortButton.Text = sortButton:CreateFontString (nil, "overlay", "GameFontNormal")
+			sortButton.Text:SetText ("Sort Order")
+			sortButton.Text:SetPoint ("center")
+			sortButton:SetPoint ("bottomleft", optionsButton, "bottomright", 0, 0)
+			
+			-- ~sort
+			local change_sort_mode = function (a, b, questType, _, _, mouseButton)
+				local currentIndex = WorldQuestTracker.db.profile.sort_order [questType]
+				--print ("current", currentIndex)
+				if (currentIndex < WQT_QUESTTYPE_MAX) then
+					--print ("eh menor")
+					for type, order in pairs (WorldQuestTracker.db.profile.sort_order) do
+						if (WorldQuestTracker.db.profile.sort_order [type] == currentIndex+1) then
+							WorldQuestTracker.db.profile.sort_order [type] = currentIndex
+							break
+						end
+					end
+					
+					WorldQuestTracker.db.profile.sort_order [questType] = WorldQuestTracker.db.profile.sort_order [questType] + 1
+				end
+				
+				--[[
+				WorldQuestTracker.db.profile.sort_order [questType] = WQT_QUESTTYPE_MAX
+				if (currentIndex < WQT_QUESTTYPE_MAX) then
+					for i = 1, currentIndex-1 do
+						if (WorldQuestTracker.db.profile.sort_order [i] > currentIndex) then
+							WorldQuestTracker.db.profile.sort_order [i] = WorldQuestTracker.db.profile.sort_order [i] - 1
+						end
+					end
+				end
+				--]]
+				
+				GameCooltip:ExecFunc (sortButton)
+				
+				--atualiza as quests
+				if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
+				end
+			end
+			
+			local BuildSortMenu = function()
+				local t = {}
+				for type, order in pairs (WorldQuestTracker.db.profile.sort_order) do
+					tinsert (t, {type, order})
+				end
+				table.sort (t, function(a, b) return a[2] > b[2] end)
+				
+				GameCooltip:Preset (2)
+				
+				for i, questType in ipairs (t) do
+					local type = questType [1]
+					local info = WQT_QUEST_NAMES_AND_ICONS [type]
+					GameCooltip:AddLine (info.name)
+					GameCooltip:AddIcon (info.icon, 1, 1, 16, 16, unpack (info.coords))
+					GameCooltip:AddMenu (1, change_sort_mode, type)
+				end
+			end
+			
+			sortButton.CoolTip = {
+					Type = "menu",
+					BuildFunc = BuildSortMenu, --> called when user mouse over the frame
+					OnEnterFunc = function (self) 
+						sortButton.button_mouse_over = true
+						--OnEnterMainWindow (instancia, baseframe.cabecalho.atributo, 3) 
+						--show_anti_overlap (instancia, self, "top")
+					end,
+					OnLeaveFunc = function (self) 
+						sortButton.button_mouse_over = false;
+						--OnLeaveMainWindow (instancia, baseframe.cabecalho.atributo, 3) 
+						--hide_anti_overlap (instancia.baseframe.anti_menu_overlap)
+					end,
+					FixedValue = "none",
+					ShowSpeed = 0.05,
+					Options = function()
+						--_detalhes:SetMenuOwner (baseframe.cabecalho.atributo.widget, instancia)
+						--if (instancia.toolbar_side == 1) then --top
+						--	return {TextSize = _detalhes.font_sizes.menus}
+						--elseif (instancia.toolbar_side == 2) then --bottom
+						--	return {TextSize = _detalhes.font_sizes.menus, HeightAnchorMod = 0} -- -7
+						--end
+					end}
+			
+			GameCooltip:CoolTipInject (sortButton, openOnClick)
+			
+			function WorldQuestTracker.ShowHistoryTooltip()
+				local _
+				GameCooltip:Preset (2)
+				GameCooltip:SetOption ("TextSize", 10)
+				GameCooltip:SetOption ("ButtonsYMod", -2)
+				GameCooltip:SetOption ("YSpacingMod", 3)
+				GameCooltip:SetOption ("FixedHeight", 170)
+				GameCooltip:AddLine (" ")
+				GameCooltip:AddLine ("Today's Rewards:", _, _, _, _, 12)
+				
+				local today = WorldQuestTracker.QueryHistory (WQT_QUERYTYPE_PERIOD, WQT_QUERYDB_LOCAL, WQT_DATE_TODAY)
+				today = today or {}
+				--print (today.blood)
+				
+				GameCooltip:AddLine ("Gold:", today.gold and today.gold > 0 and GetCoinTextureString (today.gold) or 0, 1, "white", "orange")
+				local texture, coords = WorldQuestTracker.GetGoldIcon()
+				GameCooltip:AddIcon (texture, 1, 1, 16, 16)
+				
+				GameCooltip:AddLine ("Resources:", comma_value (today.resource or 0), 1, "white", "orange")
+				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\resource_iconT]], 1, 1, 14, 14)
+				
+				local artifactIcon = WorldQuestTracker.GetArtifactPowerIcon (100000, true)
+				GameCooltip:AddLine ("Artifact Power:", comma_value (today.artifact or 0), 1, "white", "orange")
+				GameCooltip:AddIcon (artifactIcon, 1, 1, 16, 16)
+				
+				local quests_completed = WorldQuestTracker.QueryHistory (WQT_QUERYTYPE_PERIOD, WQT_QUERYDB_LOCAL, WQT_DATE_TODAY, WQT_QUESTS_PERIOD)
+				GameCooltip:AddLine ("Quests Completed:", quests_completed or 0, 1, "white", "orange")
+				GameCooltip:AddIcon ([[Interface\GossipFrame\AvailableQuestIcon]], 1, 1, 16, 16)
+				--
+				GameCooltip:AddLine (" ")
+				GameCooltip:AddLine ("Account Wide:", _, _, _, _, 12)
+				--GameCooltip:AddLine (" ")
+				
+				local today_account = WorldQuestTracker.QueryHistory (WQT_QUERYTYPE_PERIOD, WQT_QUERYDB_ACCOUNT, WQT_DATE_TODAY)-- or {}
+				today_account = today_account or {}
+				
+				GameCooltip:AddLine ("Gold:", today_account.gold and today_account.gold > 0 and GetCoinTextureString (today_account.gold) or 0, 1, "white", "orange")
+				local texture, coords = WorldQuestTracker.GetGoldIcon()
+				GameCooltip:AddIcon (texture, 1, 1, 16, 16)
+				
+				GameCooltip:AddLine ("Resources:", comma_value (today_account.resource or 0), 1, "white", "orange")
+				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\resource_iconT]], 1, 1, 14, 14)
+				
+				local artifactIcon = WorldQuestTracker.GetArtifactPowerIcon (100000, true)
+				GameCooltip:AddLine ("Artifact Power:", comma_value (today_account.artifact or 0), 1, "white", "orange")
+				GameCooltip:AddIcon (artifactIcon, 1, 1, 16, 16)
+				
+				local quests_completed = WorldQuestTracker.QueryHistory (WQT_QUERYTYPE_PERIOD, WQT_QUERYDB_ACCOUNT, WQT_DATE_TODAY, WQT_QUESTS_PERIOD)
+				GameCooltip:AddLine ("Quests Completed:", quests_completed or 0, 1, "white", "orange")
+				GameCooltip:AddIcon ([[Interface\GossipFrame\AvailableQuestIcon]], 1, 1, 16, 16)
+				
+				--
+				GameCooltip:SetOwner (rewardButton)
+				GameCooltip:Show()
+			end
+			
+			function WorldQuestTracker.ShowOptionsTooltip()
+				GameCooltip:Preset (2)
+				GameCooltip:AddLine ("I'm just a little happy options button living on the corner of this frame.")
+				GameCooltip:SetOwner (optionsButton)
+				GameCooltip:Show()
+			end
+			
+			local button_onLeave = function()
+				GameCooltip:Hide()
+			end
+			
+			rewardButton:SetScript ("OnEnter", WorldQuestTracker.ShowHistoryTooltip)
+			optionsButton:SetScript ("OnEnter", WorldQuestTracker.ShowOptionsTooltip)
+			rewardButton:SetScript ("OnLeave", button_onLeave)
+			optionsButton:SetScript ("OnLeave", button_onLeave)
+			
+			--
 			
 			local doubleTapBackground = WorldQuestTracker.DoubleTapFrame:CreateTexture (nil, "overlay")
 			doubleTapBackground:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-Achievement-HorizontalShadow]])
 			doubleTapBackground:SetPoint ("bottomleft", rewardButton, "bottomleft", 0, 0)
-			doubleTapBackground:SetSize (430, 16)
+			doubleTapBackground:SetSize (830, 16)
 			
 			local checkboxDoubleTap_func = function (self, actorTypeIndex, value) 
 				WorldQuestTracker.db.profile.enable_doubletap = value
@@ -1766,7 +2134,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			checkboxDoubleTap:SetAsCheckBox()
 			checkboxDoubleTap:SetSize (16, 16)
 			checkboxDoubleTap.tooltip = "When in Dalaran or Class Hall, pressing 'M' goes directly to Broken Isles map.\n\nDouble tap 'M' goes to the map you are standing in."
-			checkboxDoubleTap:SetPoint ("bottomleft", rewardButton, "bottomright", 0, 0)
+			checkboxDoubleTap:SetPoint ("bottomleft", doubleTapBackground, "bottomleft", 150, 0)
 			
 			--checkboxDoubleTap:SetValue (WorldQuestTracker.db.profile.enable_doubletap)
 			--C_Timer.NewTicker (1, function() print (checkboxDoubleTap:GetBackdropColor()) end)
@@ -3483,27 +3851,27 @@ function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rew
 	local filter, order
 	
 	if (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
-		return FILTER_TYPE_PET_BATTLES, 1
+		return FILTER_TYPE_PET_BATTLES, WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_PETBATTLE]
 	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
-		return FILTER_TYPE_PVP, 2
+		return FILTER_TYPE_PVP, WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_PVP]
 	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
-		return FILTER_TYPE_PROFESSION, 3
+		return FILTER_TYPE_PROFESSION, WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_PROFESSION]
 	elseif (worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON) then
 		filter = FILTER_TYPE_DUNGEON
-		order = 4
+		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_DUNGEON]
 	end
 	
 	if (gold and gold > 0) then
-		order = 5
+		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_GOLD]
 		filter = FILTER_TYPE_GOLD
 	elseif (rewardName) then
-		order = 6
+		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_RESOURCE]
 		filter = FILTER_TYPE_GARRISON_RESOURCE
 	elseif (isArtifact) then
-		order = 7
+		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_APOWER]
 		filter = FILTER_TYPE_ARTIFACT_POWER
 	elseif (itemName) then
-		order = 4
+		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_EQUIPMENT]
 		filter = FILTER_TYPE_EQUIPMENT
 	end
 	
@@ -4049,11 +4417,11 @@ function WorldQuestTracker.CreateLoadingIcon()
 	f:Hide()
 end
 
-function WorldQuestTracker.IsPlayingLoadingAnimation()
+function WorldQuestTracker.IsPlayingLoadAnimation()
 	return WorldQuestTracker.LoadingAnimation.IsPlaying
 end
 function WorldQuestTracker.PlayLoadingAnimation()
-	if (not WorldQuestTracker.IsPlayingLoadingAnimation()) then
+	if (not WorldQuestTracker.IsPlayingLoadAnimation()) then
 		WorldQuestTracker.LoadingAnimation:Show()
 		WorldQuestTracker.LoadingAnimation.FadeIN:Play()
 		WorldQuestTracker.LoadingAnimation.Loop:Play()
@@ -4064,9 +4432,7 @@ function WorldQuestTracker.StopLoadingAnimation()
 	WorldQuestTracker.LoadingAnimation.FadeOUT:Play()
 	WorldQuestTracker.LoadingAnimation.IsPlaying = false
 end
-function WorldQuestTracker.IsPlayingLoadAnimation()
-	return WorldQuestTracker.LoadingAnimation.IsPlaying
-end
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> faction bounty
