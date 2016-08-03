@@ -14,17 +14,43 @@ do
 	DF:NewColor ("WQT_QUESTTITLE_OUTMAP", 1, .8, .2, .7)
 	DF:NewColor ("WQT_QUESTZONE_INMAP", 1, 1, 1, 1)
 	DF:NewColor ("WQT_QUESTZONE_OUTMAP", 1, 1, 1, .7)
+	
+	DF:NewColor ("WQT_ORANGE_ON_ENTER", 1, 0.847059, 0, 1)
 end
 
-local WQT_QUESTTYPE_MAX = 8
+local WQT_QUESTTYPE_MAX = 9
 local WQT_QUESTTYPE_GOLD = "gold"
 local WQT_QUESTTYPE_RESOURCE = "resource"
 local WQT_QUESTTYPE_APOWER = "apower"
 local WQT_QUESTTYPE_EQUIPMENT = "equipment"
+local WQT_QUESTTYPE_TRADE = "trade"
 local WQT_QUESTTYPE_DUNGEON = "dungeon"
 local WQT_QUESTTYPE_PROFESSION = "profession"
 local WQT_QUESTTYPE_PVP = "pvp"
 local WQT_QUESTTYPE_PETBATTLE = "petbattle"
+
+local FILTER_TO_QUEST_TYPE ={
+	pet_battles = WQT_QUESTTYPE_PETBATTLE,
+	pvp = WQT_QUESTTYPE_PVP,
+	profession = WQT_QUESTTYPE_PROFESSION,
+	dungeon = WQT_QUESTTYPE_DUNGEON,
+	gold = WQT_QUESTTYPE_GOLD,
+	artifact_power = WQT_QUESTTYPE_APOWER,
+	garrison_resource = WQT_QUESTTYPE_RESOURCE,
+	equipment = WQT_QUESTTYPE_EQUIPMENT,
+	trade_skill = WQT_QUESTTYPE_TRADE,
+}
+local QUEST_TYPE_TO_FILTER = {
+	[WQT_QUESTTYPE_GOLD] = "gold",
+	[WQT_QUESTTYPE_RESOURCE] = "garrison_resource",
+	[WQT_QUESTTYPE_APOWER] = "artifact_power",
+	[WQT_QUESTTYPE_EQUIPMENT] = "equipment",
+	[WQT_QUESTTYPE_TRADE] = "trade_skill",
+	[WQT_QUESTTYPE_DUNGEON] = "dungeon",
+	[WQT_QUESTTYPE_PROFESSION] = "profession",
+	[WQT_QUESTTYPE_PVP] = "pvp",
+	[WQT_QUESTTYPE_PETBATTLE] = "pet_battles",
+}
 
 local WQT_QUERYTYPE_REWARD = "reward"
 local WQT_QUERYTYPE_QUEST = "quest"
@@ -45,8 +71,6 @@ local WQT_DATE_MONTH = 5
 --219978
 --world of quets IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID) - colocar junto com o level do personagem
 
-
-
 local _
 local default_config = {
 	profile = {
@@ -59,8 +83,10 @@ local default_config = {
 			artifact_power = true,
 			garrison_resource = true,
 			equipment = true,
+			trade_skill = true,
 		},
 		sort_order = {
+			[WQT_QUESTTYPE_TRADE] = 9,
 			[WQT_QUESTTYPE_APOWER] = 8,
 			[WQT_QUESTTYPE_GOLD] = 6,
 			[WQT_QUESTTYPE_RESOURCE] = 7,
@@ -82,7 +108,7 @@ local default_config = {
 		taxy_trackedonly = false,
 		taxy_tracked_scale = 3,
 		map_lock = true,
-		enable_doubletap = true,
+		enable_doubletap = false,
 		history = {
 			reward = {
 				global = {},
@@ -137,6 +163,7 @@ local FILTER_TYPE_GOLD = "gold"
 local FILTER_TYPE_ARTIFACT_POWER = "artifact_power"
 local FILTER_TYPE_GARRISON_RESOURCE = "garrison_resource"
 local FILTER_TYPE_EQUIPMENT = "equipment"
+local FILTER_TYPE_TRADESKILL = "trade_skill"
 
 local WQT_QUEST_NAMES_AND_ICONS = {
 	[WQT_QUESTTYPE_APOWER] = {name = "Artifact Power", icon = [[Interface\AddOns\WorldQuestTracker\media\icon_artifactpower_red_roundT]], coords = {0, 1, 0, 1}},
@@ -150,6 +177,7 @@ local WQT_QUEST_NAMES_AND_ICONS = {
 	--[WQT_QUESTTYPE_PVP] = {name = "PvP", icon = [[Interface\PVPFrame\Icon-Combat]], coords = {0, 1, 0, 1}},
 	[WQT_QUESTTYPE_PVP] = {name = "PvP", icon = [[Interface\QUESTFRAME\QuestTypeIcons]], coords = {37/128, 53/128, 19/64, 36/64}},
 	[WQT_QUESTTYPE_PETBATTLE] = {name = "Pet Battle", icon = [[Interface\MINIMAP\ObjectIconsAtlas]], coords = {172/512, 201/512, 270/512, 301/512}},
+	[WQT_QUESTTYPE_TRADE] = {name = "Trade Skin", icon = [[Interface\ICONS\INV_Blood of Sargeras]], coords = {5/64, 59/64, 5/64, 59/64}},
 }
 
 local QUEST_COMMENTS = {
@@ -992,9 +1020,9 @@ function WorldQuestTracker.GetQuestReward_Item (questID)
 				itemLevel = itemLevel > hasUpgrade and itemLevel or hasUpgrade
 				
 				if (isArtifact) then
-					return itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, true, artifactPower, itemStackCount > 1
+					return itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, true, artifactPower, itemStackCount > 1, itemStackCount
 				else
-					return itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, false, 0, itemStackCount > 1
+					return itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, false, 0, itemStackCount > 1, itemStackCount
 				end
 			else
 				--ainda não possui info do item
@@ -1939,34 +1967,51 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			WorldQuestTracker.DoubleTapFrame:SetSize (1, 1)
 			WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", worldFramePOIs, "bottomleft", 3, 3)
 			
-			--
-			local rewardButton = CreateFrame ("button", "WorldQuestTrackerRewardHistoryButton", WorldQuestTracker.DoubleTapFrame)
-			rewardButton:SetSize (16, 16)
-			rewardButton:SetPoint ("bottomleft", WorldQuestTracker.DoubleTapFrame, "bottomleft", 0, 0)
-			rewardButton.Texture = rewardButton:CreateTexture (nil, "overlay")
-			rewardButton.Texture:SetPoint ("center")
-			rewardButton.Texture:SetSize (18, 18)
-			rewardButton.Texture:SetTexture ([[Interface\Garrison\GarrisonShipMapIcons]])
-			rewardButton.Texture:SetTexCoord (325/512, 271/512, 330/512, 383/512)
+			---------------------------------------------------------
 			
+			local buttons_width = 70
+			
+			local setup_button = function (button, name)
+				button:SetSize (buttons_width, 16)
+			
+				button.Text = button:CreateFontString (nil, "overlay", "GameFontNormal")
+				button.Text:SetText (name)
+			
+				WorldQuestTracker:SetFontSize (button.Text, 10)
+				WorldQuestTracker:SetFontColor (button.Text, "orange")
+				button.Text:SetPoint ("center")
+				
+				local shadow = button:CreateTexture (nil, "background")
+				shadow:SetPoint ("center")
+				shadow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT]])
+				shadow:SetSize (buttons_width+10, 10)
+				shadow:SetAlpha (.3)
+			end
+			
+			local button_onenter = function (self)
+				WorldQuestTracker:SetFontColor (self.Text, "WQT_ORANGE_ON_ENTER")
+			end
+			local button_onleave = function (self)
+				WorldQuestTracker:SetFontColor (self.Text, "orange")
+			end
+			
+			--reward history / summary
+			local rewardButton = CreateFrame ("button", "WorldQuestTrackerRewardHistoryButton", WorldQuestTracker.DoubleTapFrame)
+			rewardButton:SetPoint ("bottomleft", WorldQuestTracker.DoubleTapFrame, "bottomleft", 0, 0)
+			setup_button (rewardButton, "Sumarry")
+
+			---------------------------------------------------------
+			--options button
 			local optionsButton = CreateFrame ("button", "WorldQuestTrackerOptionsButton", WorldQuestTracker.DoubleTapFrame)
-			optionsButton:SetSize (16, 16)
-			optionsButton:SetPoint ("bottomleft", rewardButton, "bottomright", 0, 0)
-			optionsButton.Texture = optionsButton:CreateTexture (nil, "overlay")
-			optionsButton.Texture:SetPoint ("center")
-			optionsButton.Texture:SetSize (16, 16)
-			--optionsButton.Texture:SetTexture ([[Interface\GossipFrame\HealerGossipIcon]])
-			optionsButton.Texture:SetTexture ([[Interface\BUTTONS\UI-OptionsButton]])
-			optionsButton.Texture:SetVertexColor (1, .85, 0)
-			optionsButton.Texture:SetAlpha (.8)
+			optionsButton:SetPoint ("left", rewardButton, "right", 2, 0)
+			setup_button (optionsButton, "Options")
+			
+			---------------------------------------------------------
 			
 			--sort options
 			local sortButton = CreateFrame ("button", "WorldQuestTrackerSortButton", WorldQuestTracker.DoubleTapFrame)
-			sortButton:SetSize (80, 16)
-			sortButton.Text = sortButton:CreateFontString (nil, "overlay", "GameFontNormal")
-			sortButton.Text:SetText ("Sort Order")
-			sortButton.Text:SetPoint ("center")
-			sortButton:SetPoint ("bottomleft", optionsButton, "bottomright", 0, 0)
+			sortButton:SetPoint ("left", optionsButton, "right", 2, 0)
+			setup_button (sortButton, "Sort Order")
 			
 			-- ~sort
 			local change_sort_mode = function (a, b, questType, _, _, mouseButton)
@@ -2011,43 +2056,111 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				table.sort (t, function(a, b) return a[2] > b[2] end)
 				
 				GameCooltip:Preset (2)
+				GameCooltip:SetOption ("TextSize", 10)
+				GameCooltip:SetOption ("FixedWidth", 160)
 				
 				for i, questType in ipairs (t) do
 					local type = questType [1]
 					local info = WQT_QUEST_NAMES_AND_ICONS [type]
-					GameCooltip:AddLine (info.name)
-					GameCooltip:AddIcon (info.icon, 1, 1, 16, 16, unpack (info.coords))
+					local isEnabled = WorldQuestTracker.db.profile.filters [QUEST_TYPE_TO_FILTER [type]]
+					if (isEnabled) then
+						GameCooltip:AddLine (info.name)
+						GameCooltip:AddIcon (info.icon, 1, 1, 16, 16, unpack (info.coords))
+					else
+						GameCooltip:AddLine (info.name, _, _, "silver")
+						local l, r, t, b = unpack (info.coords)
+						GameCooltip:AddIcon (info.icon, 1, 1, 16, 16, l, r, t, b, _, _, true)
+					end
+					
 					GameCooltip:AddMenu (1, change_sort_mode, type)
 				end
 			end
 			
 			sortButton.CoolTip = {
-					Type = "menu",
-					BuildFunc = BuildSortMenu, --> called when user mouse over the frame
-					OnEnterFunc = function (self) 
-						sortButton.button_mouse_over = true
-						--OnEnterMainWindow (instancia, baseframe.cabecalho.atributo, 3) 
-						--show_anti_overlap (instancia, self, "top")
-					end,
-					OnLeaveFunc = function (self) 
-						sortButton.button_mouse_over = false;
-						--OnLeaveMainWindow (instancia, baseframe.cabecalho.atributo, 3) 
-						--hide_anti_overlap (instancia.baseframe.anti_menu_overlap)
-					end,
-					FixedValue = "none",
-					ShowSpeed = 0.05,
-					Options = function()
-						--_detalhes:SetMenuOwner (baseframe.cabecalho.atributo.widget, instancia)
-						--if (instancia.toolbar_side == 1) then --top
-						--	return {TextSize = _detalhes.font_sizes.menus}
-						--elseif (instancia.toolbar_side == 2) then --bottom
-						--	return {TextSize = _detalhes.font_sizes.menus, HeightAnchorMod = 0} -- -7
-						--end
-					end}
+				Type = "menu",
+				BuildFunc = BuildSortMenu, --> called when user mouse over the frame
+				OnEnterFunc = function (self) 
+					sortButton.button_mouse_over = true
+					button_onenter (self)
+				end,
+				OnLeaveFunc = function (self) 
+					sortButton.button_mouse_over = false
+					button_onleave (self)
+				end,
+				FixedValue = "none",
+				ShowSpeed = 0.05,
+				Options = function()
+				end
+			}
 			
 			GameCooltip:CoolTipInject (sortButton, openOnClick)
 			
-			function WorldQuestTracker.ShowHistoryTooltip()
+			---------------------------------------------------------
+			
+			-- ~filter
+			local filterButton = CreateFrame ("button", "WorldQuestTrackerFilterButton", WorldQuestTracker.DoubleTapFrame)
+			filterButton:SetPoint ("left", sortButton, "right", 2, 0)
+			setup_button (filterButton, "Filter")
+			
+			local filter_quest_type = function (_, _, questType, _, _, mouseButton)
+				WorldQuestTracker.db.profile.filters [questType] = not WorldQuestTracker.db.profile.filters [questType]
+			
+				GameCooltip:ExecFunc (filterButton)
+				
+				--atualiza as quests
+				if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
+				end
+			end
+			
+			local BuildFilterMenu = function()
+				GameCooltip:Preset (2)
+				GameCooltip:SetOption ("TextSize", 10)
+				GameCooltip:SetOption ("FixedWidth", 160)
+				
+				local t = {}
+				for filterType, canShow in pairs (WorldQuestTracker.db.profile.filters) do
+					local sortIndex = WorldQuestTracker.db.profile.sort_order [FILTER_TO_QUEST_TYPE [filterType]]
+					tinsert (t, {filterType, sortIndex})
+				end
+				table.sort (t, function(a, b) return a[2] > b[2] end)
+				
+				for i, filter in ipairs (t) do
+					local filterType = filter [1]
+					local info = WQT_QUEST_NAMES_AND_ICONS [FILTER_TO_QUEST_TYPE [filterType]]
+					local isEnabled = WorldQuestTracker.db.profile.filters [filterType]
+					if (isEnabled) then
+						GameCooltip:AddLine (info.name)
+						GameCooltip:AddIcon (info.icon, 1, 1, 16, 16, unpack (info.coords))
+					else
+						GameCooltip:AddLine (info.name, _, _, "silver")
+						local l, r, t, b = unpack (info.coords)
+						GameCooltip:AddIcon (info.icon, 1, 1, 16, 16, l, r, t, b, _, _, true)
+					end
+					GameCooltip:AddMenu (1, filter_quest_type, filterType)
+				end
+			end
+			
+			filterButton.CoolTip = {
+				Type = "menu",
+				BuildFunc = BuildFilterMenu, --> called when user mouse over the frame
+				OnEnterFunc = function (self) 
+					filterButton.button_mouse_over = true
+					button_onenter (self)
+				end,
+				OnLeaveFunc = function (self) 
+					filterButton.button_mouse_over = false
+					button_onleave (self)
+				end,
+				FixedValue = "none",
+				ShowSpeed = 0.05,
+				Options = function()
+				end
+			}
+			
+			GameCooltip:CoolTipInject (filterButton)
+			
+			function WorldQuestTracker.ShowHistoryTooltip (self)
 				local _
 				GameCooltip:Preset (2)
 				GameCooltip:SetOption ("TextSize", 10)
@@ -2056,6 +2169,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:SetOption ("FixedHeight", 170)
 				GameCooltip:AddLine (" ")
 				GameCooltip:AddLine ("Today's Rewards:", _, _, _, _, 12)
+				
+				button_onenter (self)
 				
 				local today = WorldQuestTracker.QueryHistory (WQT_QUERYTYPE_PERIOD, WQT_QUERYDB_LOCAL, WQT_DATE_TODAY)
 				today = today or {}
@@ -2103,15 +2218,17 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:Show()
 			end
 			
-			function WorldQuestTracker.ShowOptionsTooltip()
+			function WorldQuestTracker.ShowOptionsTooltip (self)
 				GameCooltip:Preset (2)
 				GameCooltip:AddLine ("I'm just a little happy options button living on the corner of this frame.")
 				GameCooltip:SetOwner (optionsButton)
 				GameCooltip:Show()
+				button_onenter (self)
 			end
 			
-			local button_onLeave = function()
+			local button_onLeave = function (self)
 				GameCooltip:Hide()
+				button_onleave (self)
 			end
 			
 			rewardButton:SetScript ("OnEnter", WorldQuestTracker.ShowHistoryTooltip)
@@ -2123,8 +2240,11 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			
 			local doubleTapBackground = WorldQuestTracker.DoubleTapFrame:CreateTexture (nil, "overlay")
 			doubleTapBackground:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-Achievement-HorizontalShadow]])
-			doubleTapBackground:SetPoint ("bottomleft", rewardButton, "bottomleft", 0, 0)
-			doubleTapBackground:SetSize (830, 16)
+			doubleTapBackground:SetPoint ("bottomleft", rewardButton, "bottomleft", 0, -1)
+			doubleTapBackground:SetPoint ("bottomright", WorldQuestButton, "bottomleft", 0, -1)
+			doubleTapBackground:SetTexCoord (0, .5, 0, 1)
+			--doubleTapBackground:SetSize (830, 16)
+			doubleTapBackground:SetHeight (18)
 			
 			local checkboxDoubleTap_func = function (self, actorTypeIndex, value) 
 				WorldQuestTracker.db.profile.enable_doubletap = value
@@ -2134,7 +2254,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			checkboxDoubleTap:SetAsCheckBox()
 			checkboxDoubleTap:SetSize (16, 16)
 			checkboxDoubleTap.tooltip = "When in Dalaran or Class Hall, pressing 'M' goes directly to Broken Isles map.\n\nDouble tap 'M' goes to the map you are standing in."
-			checkboxDoubleTap:SetPoint ("bottomleft", doubleTapBackground, "bottomleft", 150, 0)
+			checkboxDoubleTap:SetPoint ("left", filterButton, "right", 2, 0)
 			
 			--checkboxDoubleTap:SetValue (WorldQuestTracker.db.profile.enable_doubletap)
 			--C_Timer.NewTicker (1, function() print (checkboxDoubleTap:GetBackdropColor()) end)
@@ -2152,7 +2272,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			checkboxSupressMapChanges:SetAsCheckBox()
 			checkboxSupressMapChanges:SetSize (16, 16)
 			checkboxSupressMapChanges.tooltip = "Periodically, the map resets to your current zone. Check this box to avoid this."
-			checkboxSupressMapChanges:SetPoint ("left", doubleTapText, "right", 2, 0)
+			checkboxSupressMapChanges:SetPoint ("left", doubleTapText, "right", 8, 0)
 			
 			local supressMapChangesLabel = DF:CreateLabel (checkboxSupressMapChanges, "Suppress Map Changes", 10, "orange", nil, "checkboxSupressMapChangesLabel", nil, "overlay")
 			supressMapChangesLabel:SetPoint ("left", checkboxSupressMapChanges, "right", 2, 0)
@@ -3847,7 +3967,8 @@ local re_check_for_questcompleted = function()
 	WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, true, true)
 end
 
-function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact)
+-- ~filter
+function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
 	local filter, order
 	
 	if (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
@@ -3871,8 +3992,13 @@ function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rew
 		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_APOWER]
 		filter = FILTER_TYPE_ARTIFACT_POWER
 	elseif (itemName) then
-		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_EQUIPMENT]
-		filter = FILTER_TYPE_EQUIPMENT
+		if (stackAmount > 1) then
+			order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_TRADE]
+			filter = FILTER_TYPE_TRADESKILL
+		else
+			order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_EQUIPMENT]
+			filter = FILTER_TYPE_EQUIPMENT
+		end
 	end
 	
 	return filter, order
@@ -3931,7 +4057,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 						--class hall resource
 						local rewardName, rewardTexture, numRewardItems = WorldQuestTracker.GetQuestReward_Resource (questID)
 						--item
-						local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker.GetQuestReward_Item (questID)
+						local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetQuestReward_Item (questID)
 						--type
 						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 						
@@ -3939,7 +4065,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 							needAnotherUpdate = true
 						end
 						
-						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact)
+						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
 						if (filters [filter]) then
 							tinsert (questsAvailable [mapId], {questID, order, info.numObjectives})
 						end
