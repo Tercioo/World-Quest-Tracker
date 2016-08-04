@@ -18,6 +18,7 @@ do
 	DF:NewColor ("WQT_ORANGE_ON_ENTER", 1, 0.847059, 0, 1)
 end
 
+local GameCooltip = GameCooltip2
 local Saturate = Saturate
 local floor = floor
 local ceil = ceil
