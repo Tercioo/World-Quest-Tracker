@@ -18,6 +18,39 @@ do
 	DF:NewColor ("WQT_ORANGE_ON_ENTER", 1, 0.847059, 0, 1)
 end
 
+local Saturate = Saturate
+local floor = floor
+local ceil = ceil
+local ipairs = ipairs
+local SecondsToTime = SecondsToTime
+local GetItemInfo = GetItemInfo
+local p = math.pi/2
+local pi = math.pi
+local pipi = math.pi*2
+local GetPlayerFacing = GetPlayerFacing
+local GetPlayerMapPosition = GetPlayerMapPosition
+local GetCurrentMapZone = GetCurrentMapZone
+local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID
+local HaveQuestData = HaveQuestData
+local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest
+local GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
+local GetQuestLogRewardInfo = GetQuestLogRewardInfo
+local GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
+local GetQuestLogRewardMoney = GetQuestLogRewardMoney
+local GetQuestLogIndexByID = GetQuestLogIndexByID
+local GetQuestTagInfo = GetQuestTagInfo
+local GetNumQuestLogRewards = GetNumQuestLogRewards
+local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
+local LE_WORLD_QUEST_QUALITY_COMMON = LE_WORLD_QUEST_QUALITY_COMMON
+local LE_WORLD_QUEST_QUALITY_RARE = LE_WORLD_QUEST_QUALITY_RARE
+local LE_WORLD_QUEST_QUALITY_EPIC = LE_WORLD_QUEST_QUALITY_EPIC
+local GetQuestTimeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes
+local WORLD_QUESTS_TIME_CRITICAL_MINUTES = WORLD_QUESTS_TIME_CRITICAL_MINUTES
+
+local MapRangeClamped = DF.MapRangeClamped
+local FindLookAtRotation = DF.FindLookAtRotation
+local GetDistance_Point = DF.GetDistance_Point
+
 local WQT_QUESTTYPE_MAX = 9
 local WQT_QUESTTYPE_GOLD = "gold"
 local WQT_QUESTTYPE_RESOURCE = "resource"
@@ -123,6 +156,7 @@ local default_config = {
 				character = {},
 			},
 		},
+		show_yards_distance = true,
 	},
 }
 
@@ -273,31 +307,6 @@ hooksecurefunc ("TaskPOI_OnEnter", function (self)
 	--print (self.questID)
 end)
 --enddebug
-
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID
-local HaveQuestData = HaveQuestData
-local ipairs = ipairs
-local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest
-local GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
-local GetQuestLogRewardInfo = GetQuestLogRewardInfo
-local GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
-local GetQuestLogRewardMoney = GetQuestLogRewardMoney
-local GetQuestLogIndexByID = GetQuestLogIndexByID
-local GetQuestTagInfo = GetQuestTagInfo
-local GetNumQuestLogRewards = GetNumQuestLogRewards
-local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
-local LE_WORLD_QUEST_QUALITY_COMMON = LE_WORLD_QUEST_QUALITY_COMMON
-local LE_WORLD_QUEST_QUALITY_RARE = LE_WORLD_QUEST_QUALITY_RARE
-local LE_WORLD_QUEST_QUALITY_EPIC = LE_WORLD_QUEST_QUALITY_EPIC
-local GetQuestTimeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes
-local WORLD_QUESTS_TIME_CRITICAL_MINUTES = WORLD_QUESTS_TIME_CRITICAL_MINUTES
-local SecondsToTime = SecondsToTime
-local GetItemInfo = GetItemInfo
-local p = math.pi/2
-local pi = math.pi
-local pipi = math.pi*2
-local floor = floor
-local ceil = ceil
 
 local all_widgets = {}
 local extra_widgets = {}
@@ -631,6 +640,8 @@ function WorldQuestTracker:OnInit()
 	WorldQuestTracker:RegisterEvent ("ZONE_CHANGED_NEW_AREA")
 	WorldQuestTracker:RegisterEvent ("QUEST_TURNED_IN")
 	WorldQuestTracker:RegisterEvent ("QUEST_LOOT_RECEIVED")
+	WorldQuestTracker:RegisterEvent ("PLAYER_STARTED_MOVING")
+	WorldQuestTracker:RegisterEvent ("PLAYER_STOPPED_MOVING")
 	
 	C_Timer.After (.5, WorldQuestTracker.ZONE_CHANGED_NEW_AREA)
 end
@@ -1171,6 +1182,9 @@ step1:SetFromAlpha (0)
 step1:SetToAlpha (1)
 step1:SetDuration (0.3)
 worldFramePOIs.fadeInAnimation = fadeInAnimation
+fadeInAnimation:SetScript ("OnFinished", function()
+	worldFramePOIs:SetAlpha (1)
+end)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> world map frame hooks
@@ -1874,6 +1888,19 @@ function WorldQuestTracker.ShowTutorialAlert()
 		alert:Show()
 		
 		WorldQuestTracker.db.profile.AlertTutorialStep = WorldQuestTracker.db.profile.AlertTutorialStep + 1
+		
+	elseif (WorldQuestTracker.db.profile.AlertTutorialStep == 3) then
+		local alert = CreateFrame ("frame", "WorldQuestTrackerTutorialAlert3", worldFramePOIs, "MicroButtonAlertTemplate")
+		alert:SetFrameLevel (302)
+		alert.label = "This button brings you the Broken Isles map."
+		alert.Text:SetSpacing (4)
+		MicroButtonAlert_SetText (alert, alert.label)
+		alert:SetPoint ("topleft", worldFramePOIs, "topleft", 522, -403)
+		alert.CloseButton:HookScript ("OnClick", hook_AlertCloseButton)
+		alert:Show()
+		
+		WorldQuestTracker.db.profile.AlertTutorialStep = WorldQuestTracker.db.profile.AlertTutorialStep + 1
+		
 	end
 end
 
@@ -1887,6 +1914,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 		WorldQuestTracker.MapSeason = WorldQuestTracker.MapSeason + 1
 		WorldQuestTracker.MapOpenedAt = GetTime()
 	else
+		GameCooltipFrame1:SetParent (UIParent)
 		animFrame:SetScript ("OnUpdate", nil)
 		for mapId, configTable in pairs (WorldQuestTracker.mapTables) do --WorldQuestTracker.SetIconTexture
 			for i, f in ipairs (configTable.widgets) do
@@ -1938,7 +1966,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			SetMapByID (currentMapId)
 			WorldMapFrame.firstRun = true
 			
-			--go to broken isles button
+			--go to broken isles button ~worldquestbutton ~worldmapbutton
 			local WorldQuestButton = CreateFrame ("button", "WorldQuestTrackerGoToBIButton", WorldMapFrame.UIElementsFrame)
 			WorldQuestButton:SetSize (64, 32)
 			WorldQuestButton:SetPoint ("right", WorldMapFrame.UIElementsFrame.CloseQuestPanelButton, "left", -2, 0)
@@ -1947,6 +1975,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			WorldQuestButton.Background:SetAtlas ("MapCornerShadow-Right")
 			WorldQuestButton.Background:SetPoint ("bottomright", 2, -1)
 			WorldQuestButton:SetNormalTexture ([[Interface\AddOns\WorldQuestTracker\media\world_quest_button]])
+			WorldQuestButton:SetPushedTexture ([[Interface\AddOns\WorldQuestTracker\media\world_quest_button_pushed]])
 			
 			WorldQuestButton.Highlight = WorldQuestButton:CreateTexture (nil, "highlight")
 			WorldQuestButton.Highlight:SetTexture ([[Interface\Buttons\UI-Common-MouseHilight]])
@@ -1965,7 +1994,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			--avisar sobre duplo tap
 			WorldQuestTracker.DoubleTapFrame = CreateFrame ("frame", "WorldQuestTrackerDoubleTapFrame", worldFramePOIs)
 			WorldQuestTracker.DoubleTapFrame:SetSize (1, 1)
-			WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", worldFramePOIs, "bottomleft", 3, 3)
+			--WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", worldFramePOIs, "bottomleft", 3, 3)
+			WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", WorldMapPOIFrame, "bottomleft", 0, 0)
 			
 			---------------------------------------------------------
 			
@@ -1994,7 +2024,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			local button_onleave = function (self)
 				WorldQuestTracker:SetFontColor (self.Text, "orange")
 			end
-			
+				
 			--reward history / summary
 			local rewardButton = CreateFrame ("button", "WorldQuestTrackerRewardHistoryButton", WorldQuestTracker.DoubleTapFrame)
 			rewardButton:SetPoint ("bottomleft", WorldQuestTracker.DoubleTapFrame, "bottomleft", 0, 0)
@@ -2081,6 +2111,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				BuildFunc = BuildSortMenu, --> called when user mouse over the frame
 				OnEnterFunc = function (self) 
 					sortButton.button_mouse_over = true
+					GameCooltipFrame1:SetParent (self)
 					button_onenter (self)
 				end,
 				OnLeaveFunc = function (self) 
@@ -2147,6 +2178,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				OnEnterFunc = function (self) 
 					filterButton.button_mouse_over = true
 					button_onenter (self)
+					GameCooltipFrame1:SetParent (self)
 				end,
 				OnLeaveFunc = function (self) 
 					filterButton.button_mouse_over = false
@@ -2170,6 +2202,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:AddLine (" ")
 				GameCooltip:AddLine ("Today's Rewards:", _, _, _, _, 12)
 				
+				GameCooltipFrame1:SetParent (self)
 				button_onenter (self)
 				
 				local today = WorldQuestTracker.QueryHistory (WQT_QUERYTYPE_PERIOD, WQT_QUERYDB_LOCAL, WQT_DATE_TODAY)
@@ -2219,7 +2252,9 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			end
 			
 			function WorldQuestTracker.ShowOptionsTooltip (self)
+				------
 				GameCooltip:Preset (2)
+				GameCooltipFrame1:SetParent (self)
 				GameCooltip:AddLine ("I'm just a little happy options button living on the corner of this frame.")
 				GameCooltip:SetOwner (optionsButton)
 				GameCooltip:Show()
@@ -2231,10 +2266,60 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				button_onleave (self)
 			end
 			
+			--build option menu
+			local options_on_click = function (_, _, option, value, _, mouseButton)
+			
+				WorldQuestTracker.db.profile [option] = value
+			
+				GameCooltip:ExecFunc (optionsButton)
+				
+				--atualiza o tracker?
+
+			end
+			
+			local BuildOptionsMenu = function()
+				GameCooltip:Preset (2)
+				GameCooltip:SetOption ("TextSize", 10)
+				GameCooltip:SetOption ("FixedWidth", 160)
+				
+				--
+				GameCooltip:AddLine ("Show Yards Distance")
+				if (WorldQuestTracker.db.profile.show_yards_distance) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (1, options_on_click, "show_yards_distance", not WorldQuestTracker.db.profile.show_yards_distance)
+				
+				--
+				
+			end
+			
+			optionsButton.CoolTip = {
+				Type = "menu",
+				BuildFunc = BuildOptionsMenu, --> called when user mouse over the frame
+				OnEnterFunc = function (self) 
+					optionsButton.button_mouse_over = true
+					button_onenter (self)
+					GameCooltipFrame1:SetParent (self)
+				end,
+				OnLeaveFunc = function (self) 
+					optionsButton.button_mouse_over = false
+					button_onleave (self)
+				end,
+				FixedValue = "none",
+				ShowSpeed = 0.05,
+				Options = function()
+				end
+			}
+			
+			GameCooltip:CoolTipInject (optionsButton)			
+
+			
 			rewardButton:SetScript ("OnEnter", WorldQuestTracker.ShowHistoryTooltip)
-			optionsButton:SetScript ("OnEnter", WorldQuestTracker.ShowOptionsTooltip)
+			--optionsButton:SetScript ("OnEnter", WorldQuestTracker.ShowOptionsTooltip)
 			rewardButton:SetScript ("OnLeave", button_onLeave)
-			optionsButton:SetScript ("OnLeave", button_onLeave)
+			--optionsButton:SetScript ("OnLeave", button_onLeave)
 			
 			--
 			
@@ -3016,6 +3101,14 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.Zone.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
 	--f.Zone = f:CreateFontString (nil, "overlay", "ObjectiveFont")
 	f.Zone:SetPoint ("topleft", f, "topleft", 10, -17)
+	
+	f.YardsDistance = f:CreateFontString (nil, "overlay", "GameFontNormal")
+	f.YardsDistance:SetPoint ("left", f.Zone.widget, "right", 2, 0)
+	f.YardsDistance:SetJustifyH ("left")
+	DF:SetFontColor (f.YardsDistance, "white")
+	DF:SetFontSize (f.YardsDistance, 12)
+	f.YardsDistance:SetAlpha (.5)
+	
 	f.Icon = f:CreateTexture (nil, "artwork")
 	f.Icon:SetPoint ("topleft", f, "topleft", -13, -2)
 	f.Icon:SetSize (16, 16)
@@ -3055,33 +3148,56 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	return f
 end
 
+local zoneXLength, zoneYLength = 0, 0
+local playerIsMoving = true
+
+function WorldQuestTracker:PLAYER_STARTED_MOVING()
+	playerIsMoving = true
+end
+function WorldQuestTracker:PLAYER_STOPPED_MOVING()
+	playerIsMoving = false
+end
+
 local TrackerOnTick = function (self, deltaTime)
+	if (Sort_currentMapID ~= GetCurrentMapAreaID()) then
+		self.Arrow:SetAlpha (.3)
+		return
+	end
+	
 	local x, y = GetPlayerMapPosition ("player")
-	local questYaw = (DF:FindLookAtRotation (x, y, self.questX, self.questY) + p)%pipi
+	local questYaw = (FindLookAtRotation (_, x, y, self.questX, self.questY) + p)%pipi
 	local playerYaw = GetPlayerFacing()
 	local angle = (((questYaw + playerYaw)%pipi)+pi)%pipi
-	local imageIndex = 1+(floor (DF:MapRangeClamped (0, pipi, 1, 144, angle)) + 48)%144 --48º quadro é o que aponta para o norte
+	local imageIndex = 1+(floor (MapRangeClamped (_, 0, pipi, 1, 144, angle)) + 48)%144 --48º quadro é o que aponta para o norte
 	local line = ceil (imageIndex / 12)
 	local coord = (imageIndex - ((line-1) * 12)) / 12
 	self.Arrow:SetTexCoord (coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line)
 	--self.ArrowDistance:SetTexCoord (coord-0.0905, coord-0.0160, 0.0833 * (line-1), 0.0833 * line) -- 0.0763
 	self.ArrowDistance:SetTexCoord (coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line) -- 0.0763
 	
-	local distance = DF:GetDistance_Point (x, y, self.questX, self.questY)
+	self.NextPositionUpdate = self.NextPositionUpdate - deltaTime
 	
---	local _, left, top, right, bot = GetCurrentMapZone()
---	local a, b = left - right, top - bot
---	a = a * distance; b = b * distance
---	print ((a*a + b*b) ^ .5)
-	
-	distance = abs (distance - 1)
-	self.info.LastDistance = distance
-	
-	distance = Saturate (distance - 0.75) * 4
-	local alpha = DF:MapRangeClamped (0, 1, 0, 0.5, distance)
-	self.Arrow:SetAlpha (.5 + (alpha))
-	self.ArrowDistance:SetVertexColor (distance, distance, distance)
+	if ((playerIsMoving or self.ForceUpdate) and self.NextPositionUpdate < 0) then
+		local distance = GetDistance_Point (_, x, y, self.questX, self.questY)
+		local x = zoneXLength * distance
+		local y = zoneYLength * distance
+		local yards = (x*x + y*y) ^ 0.5
+		self.YardsDistance:SetText ("[" .. floor (yards) .. "]")
+
+		distance = abs (distance - 1)
+		self.info.LastDistance = distance
+		
+		distance = Saturate (distance - 0.75) * 4
+		local alpha = MapRangeClamped (_, 0, 1, 0, 0.5, distance)
+		self.Arrow:SetAlpha (.5 + (alpha))
+		self.ArrowDistance:SetVertexColor (distance, distance, distance)
+		
+		self.NextPositionUpdate = .5
+		self.ForceUpdate = nil
+	end
+
 end
+
 
 function WorldQuestTracker.SortTrackerByQuestDistance()
 	WorldQuestTracker.ReorderQuestsOnTracker()
@@ -3135,6 +3251,15 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 			if (Sort_currentMapID == quest.mapID) then
 				local x, y = C_TaskQuest.GetQuestLocation (quest.questID, quest.mapID)
 				widget.questX, widget.questY = x, y
+				
+				local curZone, zoneLeft, zoneTop, zoneRight, zoneBottom = GetCurrentMapZone()
+				if (zoneLeft) then
+					zoneXLength, zoneYLength = zoneLeft - zoneRight, zoneTop - zoneBottom
+				end
+				
+				widget.NextPositionUpdate = -1
+				widget.ForceUpdate = true
+				
 				widget:SetScript ("OnUpdate", TrackerOnTick)
 				widget.Arrow:Show()
 				widget.ArrowDistance:Show()
@@ -3143,6 +3268,13 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				widget.Title.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
 				widget.Zone.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
 				needSortByDistance = needSortByDistance + 1
+				
+				if (WorldQuestTracker.db.profile.show_yards_distance) then
+					widget.YardsDistance:Show()
+				else
+					widget.YardsDistance:Hide()
+				end
+				
 				--widget.Title.textcolor = "WQT_QUESTTITLE_INMAP"
 				--widget.Zone.textcolor = "WQT_QUESTZONE_INMAP"
 			else
@@ -3152,6 +3284,8 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				widget:SetAlpha (TRACKER_FRAME_ALPHA_OUTMAP)
 				widget.Title.textsize = TRACKER_TITLE_TEXT_SIZE_OUTMAP
 				widget.Zone.textsize = TRACKER_TITLE_TEXT_SIZE_OUTMAP
+				widget.YardsDistance:SetText ("")
+				widget:SetScript ("OnUpdate", nil)
 				--widget.Title.textcolor = "WQT_QUESTTITLE_OUTMAP"
 				--widget.Zone.textcolor = "WQT_QUESTZONE_OUTMAP"
 			end
@@ -4010,7 +4144,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	--do not update more then once per tick
 --	if (WorldQuestTracker.LastUpdate+0.017 > GetTime()) then
 --		return
-
+	
 	if (UnitLevel ("player") < 110) then
 		WorldQuestTracker.HideWorldQuestsOnWorldMap()
 		return
@@ -4031,12 +4165,12 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		widget:Show()
 	end
 	
---
+--	
 	if (WorldQuestTracker.WorldWidgets_NeedFullRefresh) then
 		WorldQuestTracker.WorldWidgets_NeedFullRefresh = nil
 		noCache = true
 	end
-
+	
 	local questsAvailable = {}
 	local needAnotherUpdate = false
 	local filters = WorldQuestTracker.db.profile.filters
