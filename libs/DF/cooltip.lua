@@ -156,6 +156,9 @@ function DF:CreateCoolTip()
 			frame1 = CreateFrame ("Frame", "GameCooltipFrame1", UIParent, "DFCooltipMainFrameTemplate")
 			tinsert (UISpecialFrames, "GameCooltipFrame1")
 			DF:CreateFlashAnimation (frame1)
+			
+			DF:CreateBorder (frame1)
+			
 		else
 			frame1 = GameCooltipFrame1
 		end
@@ -174,6 +177,8 @@ function DF:CreateCoolTip()
 			tinsert (UISpecialFrames, "GameCooltipFrame2")
 			DF:CreateFlashAnimation (frame2)
 			frame2:SetClampedToScreen (true)
+			
+			DF:CreateBorder (frame2)
 		else
 			frame2 = GameCooltipFrame2
 		end
@@ -602,7 +607,7 @@ function DF:CreateCoolTip()
 			CoolTip:ShowSelectedTexture (frame)
 		end
 		
-		GameCooltip_OnClickFunctionButtonPrincipal = function (self, button)
+		local OnClickFunctionButtonPrincipal = function (self, button)
 					if (CoolTip.IndexesSub [self.index] and CoolTip.IndexesSub [self.index] > 0) then
 						CoolTip:ShowSub (self.index)
 						CoolTip.last_button = self.index
@@ -623,7 +628,7 @@ function DF:CreateCoolTip()
 					end
 				end
 				
-		GameCooltip_OnClickFunctionButtonSecundario = function (self, button)
+		local OnClickFunctionButtonSecundario = function (self, button)
 					CoolTip.buttonClicked = true
 					
 					CoolTip:SetSelectedAnchor (frame2, self)
@@ -983,7 +988,7 @@ function DF:CreateCoolTip()
 			CoolTip:StatusBar (menuButton, CoolTip.StatusBarTable [index])
 
 			--> click
-			menuButton:RegisterForClicks ("LeftButtonDown", "RightButtonDown")
+			menuButton:RegisterForClicks ("LeftButtonDown")
 			
 			--> string length
 			if (not CoolTip.OptionsTable.FixedWidth) then
@@ -994,7 +999,7 @@ function DF:CreateCoolTip()
 			end
 			
 			--> register click function
-			menuButton:SetScript ("OnClick", GameCooltip_OnClickFunctionButtonPrincipal)
+			menuButton:SetScript ("OnClick", OnClickFunctionButtonPrincipal)
 			menuButton:Show()
 		end
 
@@ -1013,7 +1018,7 @@ function DF:CreateCoolTip()
 
 
 			--> click
-			menuButton:RegisterForClicks ("LeftButtonDown", "RightButtonDown")
+			menuButton:RegisterForClicks ("LeftButtonDown")
 			
 			menuButton:ClearAllPoints()
 			menuButton:SetPoint ("center", frame2, "center")
@@ -1029,7 +1034,7 @@ function DF:CreateCoolTip()
 				frame2.w = stringWidth
 			end
 
-			menuButton:SetScript ("OnClick", GameCooltip_OnClickFunctionButtonSecundario)
+			menuButton:SetScript ("OnClick", OnClickFunctionButtonSecundario)
 			menuButton:Show()
 
 			return true
@@ -2846,6 +2851,11 @@ function DF:CreateCoolTip()
 		
 		function CoolTip:ShowCooltip (frame, menuType, color)
 
+			frame1:SetFrameStrata ("TOOLTIP")
+			frame2:SetFrameStrata ("TOOLTIP")
+			frame1:SetParent (UIParent)
+			frame2:SetParent (UIParent)
+		
 			CoolTip.had_interaction = false
 		
 			if (frame) then
@@ -3066,10 +3076,10 @@ function DF:CreateCoolTip()
 			self:SetOption ("YSpacingMod", -4)
 			self:SetOption ("IgnoreButtonAutoHeight", true)
 			
-			--self:SetColor (1, 0.5, 0.5, 0.5, 0.5)
 			self:SetColor (1, 0.5, 0.5, 0.5, 0)
 			
 			self:SetBackdrop (1, preset2_backdrop, gray_table, black_table)
+			self:SetBackdrop (2, preset2_backdrop, gray_table, black_table)
 		end
 	end
 	
