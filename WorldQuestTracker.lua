@@ -297,6 +297,7 @@ local BROKEN_ISLES_ZONES = {
 local WorldQuestTracker = DF:CreateAddOn ("WorldQuestTrackerAddon", "WQTrackerDB", default_config)
 WorldQuestTracker.QuestTrackList = {} --place holder until OnInit is triggered
 WorldQuestTracker.AllTaskPOIs = {}
+WorldQuestTracker.JustAddedToTracker = {}
 WorldQuestTracker.CurrentMapID = 0
 WorldQuestTracker.LastWorldMapClick = 0
 WorldQuestTracker.MapSeason = 0
@@ -729,10 +730,12 @@ local questButton_OnClick = function (self, button)
 		end
 		self.onStartTrackAnimation:Play()
 	else
-		if (self.onStartTrackAnimation:IsPlaying()) then
-			self.onStartTrackAnimation:Stop()
+		if (self.onStartTrackAnimation) then
+			if (self.onStartTrackAnimation:IsPlaying()) then
+				self.onStartTrackAnimation:Stop()
+			end
+			self.onEndTrackAnimation:Play()
 		end
-		self.onEndTrackAnimation:Play()
 	end
 	
 	if (not self.IsWorldQuestButton) then
@@ -3201,6 +3204,7 @@ function WorldQuestTracker.AddQuestToTracker (self)
 				questType = questType,
 				numObjectives = numObjectives,
 			})
+			WorldQuestTracker.JustAddedToTracker [questID] = true
 		else
 			WorldQuestTracker:Msg ("This quest isn't loaded yet, please wait few seconds.")
 		end
@@ -3615,6 +3619,76 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.ArrowDistance:SetDrawLayer ("overlay", 4)
 	f.Arrow:SetDrawLayer ("overlay", 5)
 	
+	------------------------
+	
+	f.AnimationFrame = CreateFrame ("frame", "$parentAnimation", f)
+	f.AnimationFrame:SetAllPoints()
+	f.AnimationFrame:SetFrameLevel (f:GetFrameLevel()-1)
+	f.AnimationFrame:Hide()
+	
+	local star = f.AnimationFrame:CreateTexture (nil, "overlay")
+	star:SetTexture ([[Interface\Cooldown\star4]])
+	star:SetSize (168, 168)
+	star:SetPoint ("center", f.Icon, "center", 1, -1)
+	star:SetBlendMode ("ADD")
+	star:Hide()
+	
+	local flash = f.AnimationFrame:CreateTexture (nil, "overlay")
+	flash:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-Achievement-Alert-Glow]])
+	flash:SetTexCoord (0, 400/512, 0, 170/256)
+	flash:SetPoint ("topleft", -60, 30)
+	flash:SetPoint ("bottomright", 40, -30)
+	flash:SetBlendMode ("ADD")
+	
+	local spark = f.AnimationFrame:CreateTexture (nil, "overlay")
+	spark:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-Achievement-Alert-Glow]])
+	spark:SetTexCoord (400/512, 470/512, 0, 70/256)
+	spark:SetSize (50, 34)
+	spark:SetBlendMode ("ADD")
+	spark:SetPoint ("left")
+	
+	local iconoverlay = f:CreateTexture (nil, "overlay")
+	iconoverlay:SetTexture ([[Interface\COMMON\StreamBackground]])
+	iconoverlay:SetPoint ("center", f.Icon, "center", 0, 0)
+	iconoverlay:Hide()
+	--iconoverlay:SetSize (256, 256)
+	iconoverlay:SetDrawLayer ("overlay", 7)
+	
+	--iconoverlay:SetSize (50, 34)
+	--iconoverlay:SetBlendMode ("ADD")
+	
+	
+	local StarShowAnimation = DF:CreateAnimationHub (star, function() star:Show() end, function() star:Hide() end)
+	DF:CreateAnimation (StarShowAnimation, "alpha", 1, .3, 0, .2)
+	DF:CreateAnimation (StarShowAnimation, "rotation", 1, .3, 90)
+	DF:CreateAnimation (StarShowAnimation, "scale", 1, .3, 0, 0, 1.2, 1.2)
+	DF:CreateAnimation (StarShowAnimation, "alpha", 2, .3, .2, 0)
+	DF:CreateAnimation (StarShowAnimation, "rotation", 2, .3, .8)
+	DF:CreateAnimation (StarShowAnimation, "scale", 1, .3, 1.2, 1.2, 0, 0)
+	
+	local FlashAnimation = DF:CreateAnimationHub (flash, function() flash:Show() end, function() flash:Hide() end)
+	DF:CreateAnimation (FlashAnimation, "alpha", 1, .05, 0, .3)
+	DF:CreateAnimation (FlashAnimation, "alpha", 2, .5, .3, 0)
+	
+	local SparkAnimation = DF:CreateAnimationHub (spark, function() spark:Show() end, function() spark:Hide() end)
+	DF:CreateAnimation (SparkAnimation, "alpha", 1, .2, 0, .1)
+	DF:CreateAnimation (SparkAnimation, "translation", 2, .3, 255, 0)
+	
+	local CircleOverlayAnimation = DF:CreateAnimationHub (iconoverlay, function() iconoverlay:Show() end, function() iconoverlay:Hide() end)
+	DF:CreateAnimation (CircleOverlayAnimation, "alpha", 1, .05, 0, 1)
+	DF:CreateAnimation (CircleOverlayAnimation, "alpha", 2, .5, 1, 0)
+	
+	f.AnimationFrame.ShowAnimation = function()
+		f.AnimationFrame:Show()
+		StarShowAnimation:Play()
+		spark:SetPoint ("left", -40, 0)
+		SparkAnimation:Play()
+		FlashAnimation:Play()
+		CircleOverlayAnimation:Play()
+	end
+	
+	------------------------
+	
 	TrackerWidgetPool [index] = f
 	return f
 end
@@ -3632,7 +3706,15 @@ end
 local TrackerOnTick = function (self, deltaTime)
 	if (Sort_currentMapID ~= GetCurrentMapAreaID()) then
 		self.Arrow:SetAlpha (.3)
+		self.Arrow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]])
+		self.Arrow:SetTexCoord (0, 1, 0, 1)
+		self.ArrowDistance:Hide()
+		self.Arrow.Frozen = true
 		return
+	elseif (self.Arrow.Frozen) then
+		self.Arrow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]])
+		self.ArrowDistance:Show()
+		self.Arrow.Frozen = nil
 	end
 	
 	local x, y = GetPlayerMapPosition ("player")
@@ -3719,6 +3801,12 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 			widget.RewardAmount:SetText (quest.rewardAmount)
 			
 			widget:Show()
+			
+			if (WorldQuestTracker.JustAddedToTracker [quest.questID]) then
+				widget.AnimationFrame.ShowAnimation()
+				WorldQuestTracker.JustAddedToTracker [quest.questID] = nil
+			end
+			
 			if (Sort_currentMapID == quest.mapID) then
 				local x, y = C_TaskQuest.GetQuestLocation (quest.questID, quest.mapID)
 				widget.questX, widget.questY = x, y
