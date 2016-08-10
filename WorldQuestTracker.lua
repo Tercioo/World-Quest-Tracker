@@ -124,6 +124,7 @@ local default_config = {
 			equipment = true,
 			trade_skill = true,
 		},
+		filter_always_show_faction_objectives = true,
 		sort_order = {
 			[WQT_QUESTTYPE_TRADE] = 9,
 			[WQT_QUESTTYPE_APOWER] = 8,
@@ -219,7 +220,7 @@ local WQT_QUEST_NAMES_AND_ICONS = {
 	--[WQT_QUESTTYPE_PVP] = {name = "PvP", icon = [[Interface\PVPFrame\Icon-Combat]], coords = {0, 1, 0, 1}},
 	[WQT_QUESTTYPE_PVP] = {name = "PvP", icon = [[Interface\QUESTFRAME\QuestTypeIcons]], coords = {37/128, 53/128, 19/64, 36/64}},
 	[WQT_QUESTTYPE_PETBATTLE] = {name = "Pet Battle", icon = [[Interface\MINIMAP\ObjectIconsAtlas]], coords = {172/512, 201/512, 270/512, 301/512}},
-	[WQT_QUESTTYPE_TRADE] = {name = "Trade Skin", icon = [[Interface\ICONS\INV_Blood of Sargeras]], coords = {5/64, 59/64, 5/64, 59/64}},
+	[WQT_QUESTTYPE_TRADE] = {name = "Trade Skill", icon = [[Interface\ICONS\INV_Blood of Sargeras]], coords = {5/64, 59/64, 5/64, 59/64}},
 }
 
 local QUEST_COMMENTS = {
@@ -2555,11 +2556,24 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 			end
 			
+			local toggle_faction_objectives = function()
+				WorldQuestTracker.db.profile.filter_always_show_faction_objectives = not WorldQuestTracker.db.profile.filter_always_show_faction_objectives
+				GameCooltip:ExecFunc (filterButton)
+				
+				--atualiza as quests
+				if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
+				end
+			end
+			
 			local BuildFilterMenu = function()
 				GameCooltip:Preset (2)
 				GameCooltip:SetOption ("TextSize", 10)
 				GameCooltip:SetOption ("FixedWidth", 180)
-				
+				GameCooltip:SetOption ("FixedWidthSub", 200)
+				GameCooltip:SetOption ("SubMenuIsTooltip", true)
+				GameCooltip:SetOption ("IgnoreArrows", true)
+
 				local t = {}
 				for filterType, canShow in pairs (WorldQuestTracker.db.profile.filters) do
 					local sortIndex = WorldQuestTracker.db.profile.sort_order [FILTER_TO_QUEST_TYPE [filterType]]
@@ -2582,6 +2596,14 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 					GameCooltip:AddMenu (1, filter_quest_type, filterType)
 				end
+				
+				GameCooltip:AddLine ("$div")
+				GameCooltip:AddLine ("Faction Objectives")
+				GameCooltip:AddLine ("Show faction quests even if they has been filtered out.", "", 2)
+				if (WorldQuestTracker.db.profile.filter_always_show_faction_objectives) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 2, 16, 16, 0, 1, 0, 1, overlayColor, nil, true)
+				end
+				GameCooltip:AddMenu (1, toggle_faction_objectives)
 			end
 			
 			filterButton.CoolTip = {
@@ -2598,7 +2620,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				FixedValue = "none",
 				ShowSpeed = 0.05,
 				Options = function()
-				end
+				end,
 			}
 			
 			GameCooltip:CoolTipInject (filterButton)
@@ -4705,6 +4727,8 @@ function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rew
 	return filter, order
 end
 
+local quest_bugged = {}
+
 --faz a atualização dos widgets no world map ~world
 function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQuestFlaggedRecheck)
 	
@@ -4767,12 +4791,23 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 						end
 						
 						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
+						order = order or 1
 						if (filters [filter]) then
 							tinsert (questsAvailable [mapId], {questID, order, info.numObjectives})
+						else
+							if (WorldQuestTracker.db.profile.filter_always_show_faction_objectives) then
+								local isCriteria = WorldMapFrame.UIElementsFrame.BountyBoard:IsWorldQuestCriteriaForSelectedBounty (questID)
+								if (isCriteria) then
+									tinsert (questsAvailable [mapId], {questID, order, info.numObjectives})
+								end
+							end
 						end
 					end
 				else
-					needAnotherUpdate = true
+					quest_bugged [questID] = (quest_bugged [questID] or 0) + 1
+					if (quest_bugged [questID] < 20) then
+						needAnotherUpdate = true
+					end
 				end
 			end
 			
