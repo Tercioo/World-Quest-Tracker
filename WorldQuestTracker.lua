@@ -746,7 +746,7 @@ end
 
 --verifica se pode mostrar os widgets de broken isles
 function WorldQuestTracker.CanShowWorldMapWidgets (noFade)
-	if (WorldMapFrame.mapID == 1007) then
+	if (WorldMapFrame.mapID == 1007 or GetCurrentMapAreaID() == 1007) then
 		if (noFade) then
 			WorldQuestTracker.UpdateWorldQuestsOnWorldMap()
 		else
@@ -2026,6 +2026,11 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 	
 	WorldMapFrame.currentStandingZone = GetCurrentMapAreaID()
 	
+	if (GameCooltipFrame1 and GameCooltipFrame2) then
+		GameCooltipFrame1:SetParent (UIParent)
+		GameCooltipFrame2:SetParent (UIParent)
+	end
+	
 	if (WorldMapFrame:IsShown()) then
 		animFrame:SetScript ("OnUpdate", tickAnimation)
 		WorldQuestTracker.MapSeason = WorldQuestTracker.MapSeason + 1
@@ -2081,6 +2086,13 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			SetMapByID (1096)
 			SetMapByID (currentMapId)
 			WorldMapFrame.firstRun = true
+			
+			local CooltipOnTop_WhenFullScreen = function()
+				if (not WorldMapFrame_InWindowedMode()) then
+					GameCooltipFrame1:SetParent (WorldMapFrame)
+					GameCooltipFrame1:SetFrameLevel (4000)
+				end
+			end
 			
 			--go to broken isles button ~worldquestbutton ~worldmapbutton
 			local WorldQuestButton = CreateFrame ("button", "WorldQuestTrackerGoToBIButton", WorldMapFrame.UIElementsFrame)
@@ -2457,9 +2469,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			-- ~sort
 			local change_sort_mode = function (a, b, questType, _, _, mouseButton)
 				local currentIndex = WorldQuestTracker.db.profile.sort_order [questType]
-				--print ("current", currentIndex)
 				if (currentIndex < WQT_QUESTTYPE_MAX) then
-					--print ("eh menor")
 					for type, order in pairs (WorldQuestTracker.db.profile.sort_order) do
 						if (WorldQuestTracker.db.profile.sort_order [type] == currentIndex+1) then
 							WorldQuestTracker.db.profile.sort_order [type] = currentIndex
@@ -2525,6 +2535,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				OnEnterFunc = function (self) 
 					sortButton.button_mouse_over = true
 					button_onenter (self)
+					C_Timer.After (.05, CooltipOnTop_WhenFullScreen)
 				end,
 				OnLeaveFunc = function (self) 
 					sortButton.button_mouse_over = false
@@ -2612,6 +2623,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				OnEnterFunc = function (self) 
 					filterButton.button_mouse_over = true
 					button_onenter (self)
+					C_Timer.After (.05, CooltipOnTop_WhenFullScreen)
 				end,
 				OnLeaveFunc = function (self) 
 					filterButton.button_mouse_over = false
@@ -2634,6 +2646,9 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:SetOption ("FixedHeight", 185)
 				GameCooltip:AddLine (" ")
 				GameCooltip:AddLine ("Today's Rewards:", _, _, _, _, 12)
+				
+				C_Timer.After (.05, CooltipOnTop_WhenFullScreen)
+				
 				--~sumary
 				button_onenter (self)
 				
@@ -2794,6 +2809,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				OnEnterFunc = function (self) 
 					optionsButton.button_mouse_over = true
 					button_onenter (self)
+					C_Timer.After (.05, CooltipOnTop_WhenFullScreen)
 				end,
 				OnLeaveFunc = function (self) 
 					optionsButton.button_mouse_over = false
@@ -2831,7 +2847,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			checkboxDoubleTap:SetPoint ("left", filterButton, "right", 2, 0)
 			
 			--checkboxDoubleTap:SetValue (WorldQuestTracker.db.profile.enable_doubletap)
-			--C_Timer.NewTicker (1, function() print (checkboxDoubleTap:GetBackdropColor()) end)
+			
 			--checkboxDoubleTap.widget:SetBackdropColor (1, 0, 0, 0)
 
 			local doubleTapText = DF:CreateLabel (checkboxDoubleTap, "Auto World Map", 10, "orange", nil, "checkboxDoubleTapLabel", nil, "overlay")
@@ -4279,6 +4295,7 @@ WorldQuestTracker.mapTables = {
 	[azsuna_mapId] = {
 		worldMapLocation = {x = 10, y = -345, lineWidth = 233},
 		worldMapLocationMax = {x = 168, y = -468, lineWidth = 330},
+		worldMapLocationMaxElvUI = {x = 10, y = -468, lineWidth = 330},
 		bipAnchor = {side = "right", x = 0, y = -1},
 		factionAnchor = {mySide = "left", anchorSide = "right", x = 0, y = 0},
 		squarePoints = {mySide = "topleft", anchorSide = "bottomleft", y = -1, xDirection = 1},
@@ -4287,6 +4304,7 @@ WorldQuestTracker.mapTables = {
 	[valsharah_mapId] = {
 		worldMapLocation = {x = 10, y = -218, lineWidth = 240},
 		worldMapLocationMax = {x = 168, y = -284, lineWidth = 340},
+		worldMapLocationMaxElvUI = {x = 10, y = -284, lineWidth = 340},
 		bipAnchor = {side = "right", x = 0, y = -1},
 		factionAnchor = {mySide = "left", anchorSide = "right", x = 0, y = 0},
 		squarePoints = {mySide = "topleft", anchorSide = "bottomleft", y = -1, xDirection = 1},
@@ -4295,6 +4313,7 @@ WorldQuestTracker.mapTables = {
 	[highmountain_mapId] = {
 		worldMapLocation = {x = 10, y = -179, lineWidth = 320},
 		worldMapLocationMax = {x = 168, y = -230, lineWidth = 452},
+		worldMapLocationMaxElvUI = {x = 10, y = -230, lineWidth = 452},
 		bipAnchor = {side = "right", x = 0, y = -1},
 		factionAnchor = {mySide = "left", anchorSide = "right", x = 0, y = 0},
 		squarePoints = {mySide = "topleft", anchorSide = "bottomleft", y = -1, xDirection = 1},
@@ -4303,6 +4322,7 @@ WorldQuestTracker.mapTables = {
 	[stormheim_mapId] = {
 		worldMapLocation = {x = 415, y = -235, lineWidth = 277},
 		worldMapLocationMax = {x = 747, y = -313, lineWidth = 393},
+		worldMapLocationMaxElvUI = {x = 600, y = -313, lineWidth = 393},
 		bipAnchor = {side = "left", x = 0, y = -1},
 		factionAnchor = {mySide = "right", anchorSide = "left", x = -0, y = 0},
 		squarePoints = {mySide = "topright", anchorSide = "bottomright", y = -1, xDirection = -1},
@@ -4311,6 +4331,7 @@ WorldQuestTracker.mapTables = {
 	[suramar_mapId] = {
 		worldMapLocation = {x = 327, y = -277, lineWidth = 365},
 		worldMapLocationMax = {x = 618, y = -367, lineWidth = 522},
+		worldMapLocationMaxElvUI = {x = 471, y = -367, lineWidth = 522},
 		bipAnchor = {side = "left", x = 0, y = -1},
 		factionAnchor = {mySide = "right", anchorSide = "left", x = -0, y = 0},
 		squarePoints = {mySide = "topright", anchorSide = "bottomright", y = -1, xDirection = -1},
@@ -4648,13 +4669,32 @@ end
 for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 	local mapName = GetMapNameByID (mapId)
 	local line, blip, factionFrame = create_worldmap_line (configTable.worldMapLocation.lineWidth, mapId)
-	if (WorldQuestTracker.InWindowMode) then
-		line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocation.x, configTable.worldMapLocation.y)
-		line:SetWidth (configTable.worldMapLocation.lineWidth)
+	
+	if (ElvUI) then
+		if (not ElvDB.global.general.smallerWorldMap and not WorldMapFrame_InWindowedMode() and not WorldQuestTracker.InFullScreenMode) then
+			--fullscreen
+			line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
+			line:SetWidth (configTable.worldMapLocationMax.lineWidth)
+			
+		elseif (WorldMapFrameSizeUpButton:IsShown()) then
+			--normal size
+			line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocation.x, configTable.worldMapLocation.y)
+			line:SetWidth (configTable.worldMapLocation.lineWidth)
+		elseif (WorldMapFrameSizeDownButton:IsShown()) then
+			--centralized
+			line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMaxElvUI.x, configTable.worldMapLocationMaxElvUI.y)
+			line:SetWidth (configTable.worldMapLocationMaxElvUI.lineWidth)
+		end
 	else
-		line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
-		line:SetWidth (configTable.worldMapLocationMax.lineWidth)
+		if (WorldQuestTracker.InWindowMode) then
+			line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocation.x, configTable.worldMapLocation.y)
+			line:SetWidth (configTable.worldMapLocation.lineWidth)
+		else
+			line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
+			line:SetWidth (configTable.worldMapLocationMax.lineWidth)
+		end
 	end
+	
 	blip:SetPoint ("center", line, configTable.bipAnchor.side, configTable.bipAnchor.x, configTable.bipAnchor.y)
 	factionFrame:SetPoint (configTable.factionAnchor.mySide, blip, configTable.factionAnchor.anchorSide, configTable.factionAnchor.x, configTable.factionAnchor.y)
 	configTable.factionFrame = factionFrame
@@ -4735,7 +4775,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	--do not update more then once per tick
 --	if (WorldQuestTracker.LastUpdate+0.017 > GetTime()) then
 --		return
-	
+
 	if (UnitLevel ("player") < 110) then
 		WorldQuestTracker.HideWorldQuestsOnWorldMap()
 		return
@@ -5134,21 +5174,52 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	
 	C_Timer.After (0.5, WorldQuestTracker.UpdateFactionAlpha)
 	
-	if (WorldMapFrame_InWindowedMode() and not WorldQuestTracker.InWindowMode) then
-		for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-			configTable.line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocation.x, configTable.worldMapLocation.y)
-			configTable.line:SetWidth (configTable.worldMapLocation.lineWidth)
+	if (ElvUI) then
+	
+		if (not ElvDB.global.general.smallerWorldMap and not WorldMapFrame_InWindowedMode() and not WorldQuestTracker.InFullScreenMode) then
+			--fullscreen
+			for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
+				configTable.line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
+				configTable.line:SetWidth (configTable.worldMapLocationMax.lineWidth)
+			end
+			WorldQuestTracker.InFullScreenMode = true
+			WorldQuestTracker.InWindowMode = false
+			
+		elseif (WorldMapFrameSizeUpButton:IsShown() and not WorldQuestTracker.InWindowMode) then
+			--normal size
+			for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
+				configTable.line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocation.x, configTable.worldMapLocation.y)
+				configTable.line:SetWidth (configTable.worldMapLocation.lineWidth)
+			end
+			WorldQuestTracker.InWindowMode = true
+			WorldQuestTracker.InFullScreenMode = false
+			
+		elseif (WorldMapFrameSizeDownButton:IsShown() and WorldQuestTracker.InWindowMode) then
+			--centralized
+			for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
+				configTable.line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMaxElvUI.x, configTable.worldMapLocationMaxElvUI.y)
+				configTable.line:SetWidth (configTable.worldMapLocationMaxElvUI.lineWidth)
+			end
+			WorldQuestTracker.InWindowMode = false
+			WorldQuestTracker.InFullScreenMode = false
 		end
-		
-		WorldQuestTracker.InWindowMode = true
-	elseif (not WorldMapFrame_InWindowedMode() and WorldQuestTracker.InWindowMode) then
-		
-		for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-			configTable.line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
-			configTable.line:SetWidth (configTable.worldMapLocationMax.lineWidth)
+	else
+		if (WorldMapFrame_InWindowedMode() and not WorldQuestTracker.InWindowMode) then
+			for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
+				configTable.line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocation.x, configTable.worldMapLocation.y)
+				configTable.line:SetWidth (configTable.worldMapLocation.lineWidth)
+			end
+			
+			WorldQuestTracker.InWindowMode = true
+		elseif (not WorldMapFrame_InWindowedMode() and WorldQuestTracker.InWindowMode) then
+			
+			for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
+				configTable.line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
+				configTable.line:SetWidth (configTable.worldMapLocationMax.lineWidth)
+			end
+			
+			WorldQuestTracker.InWindowMode = false
 		end
-		
-		WorldQuestTracker.InWindowMode = false
 	end
 	
 	WorldQuestTracker.HideZoneWidgets()
