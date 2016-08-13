@@ -157,8 +157,9 @@ function DF:CreateCoolTip()
 			tinsert (UISpecialFrames, "GameCooltipFrame1")
 			DF:CreateFlashAnimation (frame1)
 			
-			DF:CreateBorder (frame1)
-			
+			if (DF.CreateBorder) then
+				DF:CreateBorder (frame1, .3, .1, .03)
+			end
 		else
 			frame1 = GameCooltipFrame1
 		end
@@ -178,7 +179,9 @@ function DF:CreateCoolTip()
 			DF:CreateFlashAnimation (frame2)
 			frame2:SetClampedToScreen (true)
 			
-			DF:CreateBorder (frame2)
+			if (DF.CreateBorder) then
+				DF:CreateBorder (frame2, .3, .1, .03)
+			end
 		else
 			frame2 = GameCooltipFrame2
 		end

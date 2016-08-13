@@ -1,4 +1,4 @@
- 
+
 --details! framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
@@ -223,6 +223,8 @@ local WQT_QUEST_NAMES_AND_ICONS = {
 	[WQT_QUESTTYPE_TRADE] = {name = "Trade Skill", icon = [[Interface\ICONS\INV_Blood of Sargeras]], coords = {5/64, 59/64, 5/64, 59/64}},
 }
 
+local WQT_QUEST_COMPLETED_STRING = "Quests Completed"
+
 local QUEST_COMMENTS = {
 	[42275] = {help = "'Dimensional Anchors' are green crystals on the second floor of the central build."}, --azsuna - not on my watch
 	[43963] = {help = "Kill and loot mobs around the quest location."},
@@ -330,17 +332,10 @@ local valsharah_widgets = {}
 
 local WORLDMAP_SQUARE_SIZE = 24
 local WORLDMAP_SQUARE_TIMEBLIP_SIZE = 12
-local WORLDMAP_SQUARE_TEXT_SIZE = 9
-
-local LOCK_MAP = true
 
 local WorldWidgetPool = {}
-local POISize = 20
-
 local lastZoneWidgetsUpdate = 0
 local lastMapTap = 0
-
-local ITEMLEVEL_UPGRADE_SYMBOL = "" -- "+"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> initialize the addon
@@ -453,9 +448,9 @@ function WorldQuestTracker:OnInit()
 	-- ~reward ~questcompleted
 	local oneday = 60*60*24
 	local days_amount = {
-		WQT_DATE_1WEEK = 8,
-		WQT_DATE_2WEEK = 15,
-		WQT_DATE_MONTH = 30,
+		[WQT_DATE_1WEEK] = 8,
+		[WQT_DATE_2WEEK] = 15,
+		[WQT_DATE_MONTH] = 30,
 	}
 	
 	function WorldQuestTracker.GetDateString (t)
@@ -522,7 +517,7 @@ function WorldQuestTracker:OnInit()
 						if (arg2) then
 							total = total + (day [arg2] or 0)
 						else
-							tinsert (result, day)
+							tinsert (result, {["day"] = dayTable [i], ["table"] = day})
 						end
 					end
 				end
@@ -1389,7 +1384,7 @@ end
 -- ~zoneicon
 function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	local button = CreateFrame ("button", name .. index, parent)
-	button:SetSize (POISize, POISize)
+	button:SetSize (20, 20)
 	
 	button:SetScript ("OnEnter", TaskPOI_OnEnter)
 	button:SetScript ("OnLeave", TaskPOI_OnLeave)
@@ -1878,7 +1873,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 					if (itemLevel > 600 and itemLevel < 780) then
 						itemLevel = 810
 					end
-					self.flagText:SetText ((isStackable and quantity and quantity >= 1 and quantity or false) or (itemLevel and itemLevel > 5 and itemLevel .. ITEMLEVEL_UPGRADE_SYMBOL) or "")
+					self.flagText:SetText ((isStackable and quantity and quantity >= 1 and quantity or false) or (itemLevel and itemLevel > 5 and itemLevel) or "")
 					
 					self.IconTexture = itemTexture
 					self.IconText = self.flagText:GetText()
@@ -2204,7 +2199,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			SummaryFrameUp.AccountLifeTime_Gold = DF:CreateLabel (SummaryFrameUp, "Gold: %s")
 			SummaryFrameUp.AccountLifeTime_Resources = DF:CreateLabel (SummaryFrameUp, "Resources: %s")
 			SummaryFrameUp.AccountLifeTime_APower = DF:CreateLabel (SummaryFrameUp, "Artifact Power: %s")
-			SummaryFrameUp.AccountLifeTime_QCompleted = DF:CreateLabel (SummaryFrameUp, "Quests Completed: %s")
+			SummaryFrameUp.AccountLifeTime_QCompleted = DF:CreateLabel (SummaryFrameUp, WQT_QUEST_COMPLETED_STRING .. ": %s")
 			SummaryFrameUp.AccountLifeTime_Gold:SetPoint (x, -30)
 			SummaryFrameUp.AccountLifeTime_Resources:SetPoint (x, -40)
 			SummaryFrameUp.AccountLifeTime_APower:SetPoint (x, -50)
@@ -2214,7 +2209,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			SummaryFrameUp.CharacterLifeTime_Gold = DF:CreateLabel (SummaryFrameUp, "Gold: %s")
 			SummaryFrameUp.CharacterLifeTime_Resources = DF:CreateLabel (SummaryFrameUp, "Resources: %s")
 			SummaryFrameUp.CharacterLifeTime_APower = DF:CreateLabel (SummaryFrameUp, "Artifact Power: %s")
-			SummaryFrameUp.CharacterLifeTime_QCompleted = DF:CreateLabel (SummaryFrameUp, "Quests Completed: %s")
+			SummaryFrameUp.CharacterLifeTime_QCompleted = DF:CreateLabel (SummaryFrameUp, WQT_QUEST_COMPLETED_STRING .. ": %s")
 			SummaryFrameUp.CharacterLifeTime_Gold:SetPoint (x, -100)
 			SummaryFrameUp.CharacterLifeTime_Resources:SetPoint (x, -110)
 			SummaryFrameUp.CharacterLifeTime_APower:SetPoint (x, -120)
@@ -2230,7 +2225,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				SummaryFrameUp.AccountLifeTime_Gold.text = format ("Gold: %s", (acctLifeTime.gold or 0) > 0 and GetCoinTextureString (acctLifeTime.gold) or 0)
 				SummaryFrameUp.AccountLifeTime_Resources.text = format ("Resources: %s", acctLifeTime.resource or 0)
 				SummaryFrameUp.AccountLifeTime_APower.text = format ("Artifact Power: %s", acctLifeTime.artifact or 0)
-				SummaryFrameUp.AccountLifeTime_QCompleted.text = format ("Quests Completed: %s", questsLifeTime.total or 0)
+				SummaryFrameUp.AccountLifeTime_QCompleted.text = format (WQT_QUEST_COMPLETED_STRING .. ": %s", questsLifeTime.total or 0)
 				
 				local chrLifeTime = WorldQuestTracker.QueryHistory (WQT_QUERYTYPE_REWARD, WQT_QUERYDB_LOCAL)
 				chrLifeTime = chrLifeTime or {}
@@ -2240,7 +2235,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				SummaryFrameUp.CharacterLifeTime_Gold.text = format ("Gold: %s", (chrLifeTime.gold or 0) > 0 and GetCoinTextureString (chrLifeTime.gold) or 0)
 				SummaryFrameUp.CharacterLifeTime_Resources.text = format ("Resources: %s", chrLifeTime.resource or 0)
 				SummaryFrameUp.CharacterLifeTime_APower.text = format ("Artifact Power: %s", chrLifeTime.artifact or 0)
-				SummaryFrameUp.CharacterLifeTime_QCompleted.text = format ("Quests Completed: %s", questsLifeTime.total or 0)
+				SummaryFrameUp.CharacterLifeTime_QCompleted.text = format (WQT_QUEST_COMPLETED_STRING .. ": %s", questsLifeTime.total or 0)
 				
 			end
 			
@@ -2418,7 +2413,105 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				CharsQuestsScroll:CreateLine (scroll_createline)
 			end
 			SummaryFrameUp.CharsQuestsScroll = CharsQuestsScroll
+			CharsQuestsScroll:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
+			CharsQuestsScroll:SetBackdropColor (0, 0, 0, .4)
 
+			-----------
+			
+			local GF_LineOnEnter = function (self)
+				GameCooltip:Preset (2)
+				GameCooltip:SetOption ("TextSize", 10)
+				GameCooltip:SetOption ("ButtonsYMod", -2)
+				GameCooltip:SetOption ("YSpacingMod", 1)
+				GameCooltip:SetOption ("FixedHeight", 95)
+				
+				local today = self.data.table
+				
+				local t = WQT_QUEST_NAMES_AND_ICONS [WQT_QUESTTYPE_GOLD]
+				GameCooltip:AddLine (t.name .. ":", today.gold and today.gold > 0 and GetCoinTextureString (today.gold) or 0, 1, "white", "orange")
+				GameCooltip:AddIcon (t.icon, 1, 1, 16, 16)
+				
+				local t = WQT_QUEST_NAMES_AND_ICONS [WQT_QUESTTYPE_RESOURCE]
+				GameCooltip:AddLine (t.name .. ":", comma_value (today.resource or 0), 1, "white", "orange")
+				GameCooltip:AddIcon (t.icon, 1, 1, 14, 14)
+				
+				local t = WQT_QUEST_NAMES_AND_ICONS [WQT_QUESTTYPE_APOWER]
+				GameCooltip:AddLine (t.name .. ":", comma_value (today.artifact or 0), 1, "white", "orange")
+				GameCooltip:AddIcon (t.icon, 1, 1, 16, 16)
+				
+				local t = WQT_QUEST_NAMES_AND_ICONS [WQT_QUESTTYPE_TRADE]
+				GameCooltip:AddLine (t.name .. ":", comma_value (today.blood or 0), 1, "white", "orange")
+				GameCooltip:AddIcon (t.icon, 1, 1, 16, 16, unpack (t.coords))
+				
+				GameCooltip:AddLine (WQT_QUEST_COMPLETED_STRING .. ":", today.quest or 0, 1, "white", "orange")
+				GameCooltip:AddIcon ([[Interface\GossipFrame\AvailableQuestIcon]], 1, 1, 16, 16)
+				
+				GameCooltip:ShowCooltip (self)
+			end
+			local GF_LineOnLeave = function (self)
+				GameCooltip:Hide()
+			end
+			
+			local GoldGraphic = DF:CreateGFrame (SummaryFrameUp, 450, 160, 30, GF_LineOnEnter, GF_LineOnLeave, "GoldGraphic", "WorldQuestTrackerGoldGraphic")
+			GoldGraphic:SetPoint ("topleft", 10, -248)
+			GoldGraphic:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
+			GoldGraphic:SetBackdropColor (0, 0, 0, .4)
+			
+			local GoldGraphicTextBg = CreateFrame ("frame", nil, GoldGraphic)
+			GoldGraphicTextBg:SetPoint ("topleft", GoldGraphic, "bottomleft", 0, -2)
+			GoldGraphicTextBg:SetPoint ("topright", GoldGraphic, "bottomright", 0, -2)
+			GoldGraphicTextBg:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
+			GoldGraphicTextBg:SetBackdropColor (0, 0, 0, .4)
+			GoldGraphicTextBg:SetHeight (20)
+			
+			local GoldGraphicTitle = DF:CreateLabel (SummaryFrameUp, "Last 15 Days:", TitleTemplate)
+			GoldGraphicTitle:SetPoint ("bottomleft", GoldGraphic, "topleft", 0, 2)
+			
+			local empty_day = {
+				["artifact"] = 0,
+				["resource"] = 0,
+				["quest"] = 0,
+				["gold"] = 0,
+				["blood"] = 0,
+			}
+	
+			GoldGraphic:SetScript ("OnShow", function (self)
+				GoldGraphic:Reset()
+				
+				local twoWeeks = WorldQuestTracker.QueryHistory (WQT_QUERYTYPE_PERIOD, WQT_QUERYDB_ACCOUNT, WQT_DATE_2WEEK)
+				local dateString = WorldQuestTracker.GetDateString (WQT_DATE_2WEEK)
+				local data = {}
+				for i = 1, #dateString do
+					local hadTable = false
+					for o = 1, #twoWeeks do
+						if (twoWeeks[o].day == dateString[i]) then
+							local gold = (twoWeeks[o].table.gold and twoWeeks[o].table.gold/10000) or 0
+							local resource = twoWeeks[o].table.resource or 0
+							local artifact = twoWeeks[o].table.artifact or 0
+							local blood = (twoWeeks[o].table.blood and twoWeeks[o].table.blood*300) or 0
+							
+							local total = gold + resource + artifact + blood
+
+							data [#data+1] = {value = total or 0, text = dateString[i]:gsub ("^%d%d%d%d", ""), table = twoWeeks[o].table}
+							hadTable = true
+							break
+						end
+					end
+					if (not hadTable) then
+						data [#data+1] = {value = 0, text = dateString[i]:gsub ("^%d%d%d%d", ""), table = empty_day}
+					end
+					
+				end
+				
+				data = DF.table.reverse (data)
+				GoldGraphic:UpdateLines (data)
+				
+				--fix text anchor
+				for _, line in ipairs (GoldGraphic._lines) do
+					line.timeline:SetPoint ("bottomright", line, "bottomright", -2, -18)
+				end
+			end)
+			
 			-----------
 			
 			local buttons_width = 70
@@ -2648,7 +2741,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:AddLine ("Today's Rewards:", _, _, _, _, 12)
 				
 				C_Timer.After (.05, CooltipOnTop_WhenFullScreen)
-				
+
 				--~sumary
 				button_onenter (self)
 				
@@ -2667,7 +2760,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:AddIcon (artifactIcon, 1, 1, 16, 16)
 				
 				local quests_completed = WorldQuestTracker.QueryHistory (WQT_QUERYTYPE_PERIOD, WQT_QUERYDB_LOCAL, WQT_DATE_TODAY, WQT_QUESTS_PERIOD)
-				GameCooltip:AddLine ("Quests Completed:", quests_completed or 0, 1, "white", "orange")
+				GameCooltip:AddLine (WQT_QUEST_COMPLETED_STRING .. ":", quests_completed or 0, 1, "white", "orange")
 				GameCooltip:AddIcon ([[Interface\GossipFrame\AvailableQuestIcon]], 1, 1, 16, 16)
 				--
 				GameCooltip:AddLine (" ")
@@ -2689,7 +2782,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:AddIcon (artifactIcon, 1, 1, 16, 16)
 				
 				local quests_completed = WorldQuestTracker.QueryHistory (WQT_QUERYTYPE_PERIOD, WQT_QUERYDB_ACCOUNT, WQT_DATE_TODAY, WQT_QUESTS_PERIOD)
-				GameCooltip:AddLine ("Quests Completed:", quests_completed or 0, 1, "white", "orange")
+				GameCooltip:AddLine (WQT_QUEST_COMPLETED_STRING .. ":", quests_completed or 0, 1, "white", "orange")
 				GameCooltip:AddIcon ([[Interface\GossipFrame\AvailableQuestIcon]], 1, 1, 16, 16)
 
 				GameCooltip:AddLine (" ", "", 1, "green", _, 10)
@@ -4124,14 +4217,14 @@ local onTaxyWidgetClick = function (self, button)
 end
 local format_for_taxy_zoom_allquests = function (button)
 	button:SetScale (1.3	)
-	button:SetWidth (POISize)
+	button:SetWidth (20)
 	button:SetAlpha (1)
 end
 local format_for_taxy_nozoom_tracked = function (button)
 	button:ClearWidget()
 
 	button:SetScale (WorldQuestTracker.db.profile.taxy_tracked_scale)
-	button:SetWidth (POISize)
+	button:SetWidth (20)
 	button:SetAlpha (1)
 	
 	button.circleBorder:Show()
@@ -4562,7 +4655,7 @@ local create_worldmap_square = function (mapName, index)
 	
 	local amountText = button:CreateFontString (nil, "overlay", "GameFontNormal", 1)
 	amountText:SetPoint ("top", button, "bottom", 1, 0)
-	DF:SetFontSize (amountText, WORLDMAP_SQUARE_TEXT_SIZE)
+	DF:SetFontSize (amountText, 9)
 	
 	local amountBackground = button:CreateTexture (nil, "overlay", 0)
 	amountBackground:SetPoint ("center", amountText, "center")
@@ -5068,7 +5161,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 												itemLevel = 810
 											end
 											
-											widget.amountText:SetText ((isStackable and quantity and quantity >= 1 and quantity or false) or (itemLevel and itemLevel > 5 and itemLevel .. ITEMLEVEL_UPGRADE_SYMBOL) or "")
+											widget.amountText:SetText ((isStackable and quantity and quantity >= 1 and quantity or false) or (itemLevel and itemLevel > 5 and itemLevel) or "")
 
 											if (widget.amountText:GetText() and widget.amountText:GetText() ~= "") then
 												widget.amountBackground:Show()
