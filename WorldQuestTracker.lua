@@ -3566,7 +3566,14 @@ WorldQuestTracker.TrackerHeight = 0
 --da refresh na ancora do screen panel
 function WorldQuestTracker.RefreshAnchor()
 	WorldQuestTrackerFrame:ClearAllPoints()
-	WorldQuestTrackerFrame:SetPoint ("topleft", ObjectiveTrackerFrame, "topleft", -10, -WorldQuestTracker.TrackerHeight - 20)
+	
+	for i = 1, ObjectiveTrackerFrame:GetNumPoints() do
+		local point, relativeTo, relativePoint, xOfs, yOfs = ObjectiveTrackerFrame:GetPoint (i)
+		WorldQuestTrackerFrame:SetPoint (point, relativeTo, relativePoint, -10 + xOfs, -WorldQuestTracker.TrackerHeight - 20)
+	end
+	
+	--WorldQuestTrackerFrame:SetPoint ("topleft", ObjectiveTrackerFrame, "topleft", -10, -WorldQuestTracker.TrackerHeight - 20)
+
 	WorldQuestTrackerHeader:ClearAllPoints()
 	WorldQuestTrackerHeader:SetPoint ("bottom", WorldQuestTrackerFrame, "top", 0, -20)
 end
