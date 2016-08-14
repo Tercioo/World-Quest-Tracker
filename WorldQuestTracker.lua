@@ -27,8 +27,6 @@ do
 	DF:NewColor ("WQT_ORANGE_ON_ENTER", 1, 0.847059, 0, 1)
 	
 	DF:InstallTemplate ("font", "WQT_SUMMARY_TITLE", {color = "orange", size = 12, font = "Friz Quadrata TT"})
-	
-	
 end
 
 local GameCooltip = GameCooltip2
@@ -568,6 +566,10 @@ function WorldQuestTracker:OnInit()
 
 			if (QuestMapFrame_IsQuestWorldQuest (questID)) then --wait, is this inception?
 				local title, questType, texture, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, selected, isSpellTarget, timeLeft, isCriteria, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker:GetQuestFullInfo (questID)
+				
+				--print (title, questType, texture, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex)
+				--Retake the Skyhorn 8 Interface\AddOns\WorldQuestTracker\media\icon_artifactpower_redT_round 1828 109 World Quest 3 1 false nil				
+				
 				--print ("QINFO:", goldFormated, rewardName, numRewardItems, itemName, isArtifact, artifactPower)
 				
 				local questHistory = WorldQuestTracker.db.profile.history
@@ -613,9 +615,28 @@ function WorldQuestTracker:OnInit()
 						--print ("Resource added:", _global ["resource"], _local ["resource"])
 					end
 					
+					--trade skill - blood of sargeras
 					if (itemID == 124124) then
 						_global ["blood"] = (_global ["blood"] or 0) + quantity
 						_local ["blood"] = (_local ["blood"] or 0) + quantity
+					end
+					
+					--professions
+					--print ("itemID:", itemID)
+					if (tradeskillLineIndex) then
+						--print ("eh profissao 1", tradeskillLineIndex)
+						local tradeskillLineID = tradeskillLineIndex and select (7, GetProfessionInfo(tradeskillLineIndex))
+						if (tradeskillLineID) then
+							--print ("eh profissao 2", tradeskillLineID)
+							if (itemID) then
+								--print ("eh profissao 3", itemID)
+								_global ["profession"] = _global ["profession"] or {}
+								_local ["profession"] = _local ["profession"] or {}
+								_global ["profession"] [itemID] = (_global ["profession"] [itemID] or 0) + 1
+								_local ["profession"] [itemID] = (_local ["profession"] [itemID] or 0) + 1
+								--print ("local global 3", _local ["profession"] [itemID], _global ["profession"] [itemID])
+							end
+						end
 					end
 				
 				--quais quest ja foram completadas e quantas vezes
@@ -657,6 +678,22 @@ function WorldQuestTracker:OnInit()
 					if (itemID == 124124) then
 						_globalToday ["blood"] = (_globalToday ["blood"] or 0) + quantity
 						_localToday ["blood"] = (_localToday ["blood"] or 0) + quantity
+					end
+					
+					if (tradeskillLineIndex) then
+						--print ("eh profissao today 4", tradeskillLineIndex)
+						local tradeskillLineID = tradeskillLineIndex and select (7, GetProfessionInfo (tradeskillLineIndex))
+						if (tradeskillLineID) then
+							--print ("eh profissao today 5", tradeskillLineID)
+							if (itemID) then
+								--print ("eh profissao today 6", itemID)
+								_globalToday ["profession"] = _globalToday ["profession"] or {}
+								_localToday ["profession"] = _localToday ["profession"] or {}
+								_globalToday ["profession"] [itemID] = (_globalToday ["profession"] [itemID] or 0) + 1
+								_localToday ["profession"] [itemID] = (_localToday ["profession"] [itemID] or 0) + 1
+								--print ("local global today 6", _localToday ["profession"] [itemID], _globalToday ["profession"] [itemID])
+							end
+						end
 					end
 					
 					if (gold and gold > 0) then
@@ -854,11 +891,12 @@ end
 
 function WorldQuestTracker.GetBorderByQuestType (self, rarity, worldQuestType)
 	if (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
-		return "border_zone_browT"
+		--return "border_zone_browT"
+		return "border_zone_redT"
 	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
 		return "border_zone_greenT"
 	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
-		return ""
+		return "border_zone_browT"
 	elseif (rarity == LE_WORLD_QUEST_QUALITY_COMMON) then
 		return "border_zone_whiteT"
 	elseif (rarity == LE_WORLD_QUEST_QUALITY_RARE) then
@@ -1637,7 +1675,7 @@ function WorldQuestTracker.HideZoneWidgets()
 	end
 end
 
---atualiza as quest do mapa da zona
+--atualiza as quest do mapa da zona ~updatezone ~zoneupdate
 function WorldQuestTracker.UpdateZoneWidgets()
 	
 	local mapID = GetCurrentMapAreaID()
@@ -1712,7 +1750,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 	
 end
 
---atualiza o widget da quest no mapa da zona
+--atualiza o widget da quest no mapa da zona ~setupzone
 function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
 
 	local questID = self.questID
@@ -1787,7 +1825,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 			self.questTypeBlip:SetAlpha (1)
 			
 		elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
-		
+			
 		elseif (worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON) then
 			
 		else
@@ -1878,12 +1916,13 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 					self.QuestType = QUESTTYPE_ARTIFACTPOWER
 				else
 					self.Texture:SetSize (16, 16)
-					self.Texture:SetTexture (itemTexture)
+					self.Texture:SetTexture (itemTexture) -- 1387639 slice of bacon
 					--self.Texture:SetTexCoord (0, 1, 0, 1)
 					if (itemLevel > 600 and itemLevel < 780) then
 						itemLevel = 810
 					end
 					self.flagText:SetText ((isStackable and quantity and quantity >= 1 and quantity or false) or (itemLevel and itemLevel > 5 and itemLevel) or "")
+					-- /run local f=CreateFrame("frame");f:SetPoint("center");f:SetSize(100,100);local t=f:CreateTexture(nil,"overlay");t:SetSize(100,100);t:SetPoint("center");t:SetTexture(1387639)
 					
 					self.IconTexture = itemTexture
 					self.IconText = self.flagText:GetText()
@@ -2091,6 +2130,18 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			SetMapByID (1096)
 			SetMapByID (currentMapId)
 			WorldMapFrame.firstRun = true
+
+			--[[
+			C_Timer.After (1, function()
+				for bountyButton, _ in pairs (WorldMapFrame.UIElementsFrame.BountyBoard.bountyTabPool.activeObjects) do
+					bountyButton:HookScript ("OnClick", function()
+						if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+							WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, false, false, true)
+						end
+					end)
+				end
+			end)
+			--]]
 			
 			local CooltipOnTop_WhenFullScreen = function()
 				if (not WorldMapFrame_InWindowedMode()) then
@@ -4881,11 +4932,7 @@ end
 local quest_bugged = {}
 
 --faz a atualização dos widgets no world map ~world
-function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQuestFlaggedRecheck)
-	
-	--do not update more then once per tick
---	if (WorldQuestTracker.LastUpdate+0.017 > GetTime()) then
---		return
+function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQuestFlaggedRecheck, forceCriteriaAnimation)
 
 	if (UnitLevel ("player") < 110) then
 		WorldQuestTracker.HideWorldQuestsOnWorldMap()
@@ -4936,6 +4983,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 						local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetQuestReward_Item (questID)
 						--type
 						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+						
+						--print (tradeskillLineIndex)
+						--tradeskillLineIndex = usado pra essa função GetProfessionInfo (tradeskillLineIndex)
+						--WORLD_QUEST_ICONS_BY_PROFESSION[tradeskillLineID]
+						--local tradeskillLineID = tradeskillLineIndex and select(7, GetProfessionInfo(tradeskillLineIndex));
 						
 						if ((not gold or gold <= 0) and not rewardName and not itemName) then
 							needAnotherUpdate = true
@@ -5030,7 +5082,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 									end
 									
 									if (isCriteria) then
-										if (not widget.criteriaIndicator:IsShown()) then
+										if (not widget.criteriaIndicator:IsShown() or forceCriteriaAnimation) then
 											widget.CriteriaAnimation:Play()
 										end
 										widget.criteriaIndicator:Show()
@@ -5195,7 +5247,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										WorldQuestTracker.AllCharactersQuests_Add (questID, timeLeft, widget.IconTexture, widget.IconText)
 										
 										okey = true
+									
+									else
+										--unknown quest?
 									end
+									
 									if (not okey) then
 										needAnotherUpdate = true
 									end
@@ -5508,8 +5564,8 @@ end
 
 --quando selecionar uma facção, atualizar todas as quests no world map para que seja atualiza a quiantidade de quests que ha em cada mapa para esta facçao
 hooksecurefunc (WorldMapFrame.UIElementsFrame.BountyBoard, "SetSelectedBountyIndex", function (self)
-	if (WorldMapFrame.mapID == 1007) then
-		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, false)
+	if (WorldMapFrame.mapID == MAPID_BROKENISLES) then
+		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, false, false, true)
 	end
 end)
 
