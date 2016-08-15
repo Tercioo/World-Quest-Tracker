@@ -1,4 +1,4 @@
- 
+  
 --details! framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
