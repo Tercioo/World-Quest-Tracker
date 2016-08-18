@@ -157,6 +157,7 @@ local default_config = {
 		taxy_tracked_scale = 3,
 		map_lock = false,
 		enable_doubletap = false,
+		sound_enabled = true,
 		history = {
 			reward = {
 				global = {},
@@ -317,6 +318,7 @@ WorldQuestTracker.WorldQuestButton_Click = 0
 WorldQuestTracker.Temp_HideZoneWidgets = 0
 WorldQuestTracker.lastZoneWidgetsUpdate = 0
 WorldQuestTracker.lastMapTap = 0
+WorldQuestTracker.SoundPitch = math.random (2)
 
 --debug
 function WorldQuestTracker.DumpTrackingList()
@@ -361,7 +363,10 @@ function WorldQuestTracker.GetTrackedQuestsOnDB()
 		WorldQuestTracker.db.profile.quests_tracked [GUID] = questList
 	end
 	WorldQuestTracker.QuestTrackList = questList
-	WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker()
+	
+	C_Timer.After (6, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load)
+	C_Timer.After (10, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker)
+	
 	WorldQuestTracker.RefreshTrackerWidgets()
 end
 function WorldQuestTracker.GetTrackedQuests()
@@ -763,6 +768,7 @@ end
 
 --ao clicar no botão de uma quest na zona ou no world map, colocar para trackear ela
 local questButton_OnClick = function (self, button)
+
 	WorldQuestTracker.OnQuestClicked (self, button)
 	
 	if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
@@ -770,6 +776,15 @@ local questButton_OnClick = function (self, button)
 			self.onEndTrackAnimation:Stop()
 		end
 		self.onStartTrackAnimation:Play()
+		
+		if (WorldQuestTracker.db.profile.sound_enabled) then
+			if (math.random (2) == 1) then
+				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker1.mp3")
+			else
+				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker2.mp3")	
+			end
+		end
+		
 	else
 		if (self.onStartTrackAnimation) then
 			if (self.onStartTrackAnimation:IsPlaying()) then
@@ -812,6 +827,7 @@ local animFrame, t = CreateFrame ("frame"), 0
 local tickAnimation = function (self, deltaTime)
 	t = t + deltaTime
 	local squareAlphaAmount = Lerp (.7, .95, abs (sin (t*10)))
+	--print (squareAlphaAmount)
 	local roundAlphaAmount = Lerp (.745, .90, abs (sin (t*30)))
 
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
@@ -1523,7 +1539,9 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.Shadow:SetAlpha (1)
 	
 	local onStartTrackAnimation = DF:CreateAnimationHub (button.IsTrackingGlow, onStartClickAnimation)
-	WorldQuestTracker:CreateAnimation (onStartTrackAnimation, "Scale", 1, .12, .9, .9, 1, 1)
+	WorldQuestTracker:CreateAnimation (onStartTrackAnimation, "Scale", 1, .10, .9, .9, 1.1, 1.1)
+	WorldQuestTracker:CreateAnimation (onStartTrackAnimation, "Scale", 2, .10, 1.2, 1.2, 1, 1)
+	
 	local onEndTrackAnimation = DF:CreateAnimationHub (button.IsTrackingGlow, onStartClickAnimation, onEndClickAnimation)
 	WorldQuestTracker:CreateAnimation (onEndTrackAnimation, "Scale", 1, .5, 1, 1, .1, .1)
 	button.onStartTrackAnimation = onStartTrackAnimation
@@ -2401,14 +2419,23 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			
 			SummaryFrame.ShowAnimation = DF:CreateAnimationHub (SummaryFrame, 
 				function() 
-					SummaryFrame:Show(); 
+					SummaryFrame:Show()
+					if (WorldQuestTracker.db.profile.sound_enabled) then
+						if (math.random (2) == 1) then
+							PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\swap_panels1.mp3")
+						else
+							PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\swap_panels2.mp3")	
+						end
+					end
 				end, 
 				function() 
-					SummaryFrameUp.ShowAnimation:Play(); 
+					SummaryFrameUp.ShowAnimation:Play()
 				end)
 			DF:CreateAnimation (SummaryFrame.ShowAnimation, "Scale", 1, .1, .1, 1, 1, 1, "left", 0, 0)
 			
-			SummaryFrame.HideAnimation = DF:CreateAnimationHub (SummaryFrame, _, 
+			SummaryFrame.HideAnimation = DF:CreateAnimationHub (SummaryFrame, function()
+				PlaySound ("igMainMenuOptionCheckBoxOn")
+			end, 
 				function() 
 					SummaryFrame:Hide() 
 				end)
@@ -2541,6 +2568,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 							local questInfo = quest [2]
 							local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (quest [1])
 
+							title = title or L["S_UNKNOWNQUEST"]
+							
 							local rewardAmount = questInfo.rewardAmount
 							if (questInfo.questType == QUESTTYPE_GOLD) then
 								rewardAmount = floor (questInfo.rewardAmount / 10000)
@@ -2564,7 +2593,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 							else
 								color = "FFFF3322"
 							end
-							line.name:SetText ("|cFFFFDD00[" .. rewardAmount .. "]|r |c" .. colorByRarity.. title .. "|r")
+							line.name:SetText ("|cFFFFDD00[" .. rewardAmount .. "]|r |c" .. colorByRarity .. title .. "|r")
 							line.timeleft:SetText (timeLeft > 0 and "|c" .. color .. SecondsToTime (timeLeft * 60) .. "|r" or "|cFFFF5500" .. L["S_SUMMARYPANEL_EXPIRED"] .. "|r")
 							if (type (questInfo.rewardTexture) == "string" and questInfo.rewardTexture:find ("icon_artifactpower")) then
 								--forçando sempre mostrar icone vermelho
@@ -3171,6 +3200,16 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (1, options_on_click, "show_yards_distance", not WorldQuestTracker.db.profile.show_yards_distance)
+				--
+				GameCooltip:AddLine ("Sound Enabled")
+				if (WorldQuestTracker.db.profile.sound_enabled) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (1, options_on_click, "sound_enabled", not WorldQuestTracker.db.profile.sound_enabled)
+				
+				
 				
 				--
 				
@@ -3753,21 +3792,22 @@ function WorldQuestTracker.RemoveQuestFromTracker (questID, noUpdate)
 	end
 end
 
+--o cliente não tem o tempo restante da quest na primeira execução
+function WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load()
+	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
+		local quest = WorldQuestTracker.QuestTrackList [i]
+		local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (quest.questID)
+	end
+end
+
 --verifica o tempo restante de cada quest no tracker e a remove se o tempo estiver terminado
 function WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker()
 	local now = time()
 	local gotRemoval
 	
---	local allQuests, isParcial = WorldQuestTracker.GetAllWorldQuests_Ids()
---	if (isParcial) then
---		return C_Timer.After (10, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker)
---	end
-	
 	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
 		local quest = WorldQuestTracker.QuestTrackList [i]
 		local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (quest.questID)
-		
-		--print (select (1, C_TaskQuest.GetQuestInfoByQuestID(quest.questID)), ":", timeLeft)
 		
 		if (quest.expireAt < now or not timeLeft or timeLeft <= 0) then -- or not allQuests [quest.questID]
 			--print ("removing", quest.expireAt, now, quest.expireAt < now, select (1, C_TaskQuest.GetQuestInfoByQuestID(quest.questID)))
@@ -4296,7 +4336,9 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 	
 	for index, quest in ipairs (WorldQuestTracker.QuestTrackList) do
 		--verifica se a quest esta ativa, ela pode ser desativada se o jogador estiver dentro da area da quest
-		if (not quest.isDisabled) then
+		local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (quest.questID)
+		
+		if (not quest.isDisabled and title) then
 			local widget = WorldQuestTracker.GetOrCreateTrackerWidget (nextWidget)
 			widget:ClearAllPoints()
 			widget:SetPoint ("topleft", WorldQuestTrackerFrame, "topleft", 0, y)
@@ -4305,7 +4347,6 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 			widget.numObjectives = quest.numObjectives
 			--widget.id = quest.questID
 			
-			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (quest.questID)
 			widget.Title:SetText (title)
 			while (widget.Title:GetStringWidth() > TRACKER_TITLE_TEXTWIDTH_MAX) do
 				title = strsub (title, 1, #title-1)
@@ -4414,6 +4455,95 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 	WorldQuestTracker.RefreshAnchor()
 end
 
+local TrackerAnimation_OnAccept = CreateFrame ("frame", nil, UIParent)
+TrackerAnimation_OnAccept:SetSize (235, 30)
+TrackerAnimation_OnAccept.Title = DF:CreateLabel (TrackerAnimation_OnAccept)
+TrackerAnimation_OnAccept.Title.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
+TrackerAnimation_OnAccept.Title:SetPoint ("topleft", TrackerAnimation_OnAccept, "topleft", 10, -1)
+local titleColor = OBJECTIVE_TRACKER_COLOR["Header"]
+TrackerAnimation_OnAccept.Title:SetTextColor (titleColor.r, titleColor.g, titleColor.b)
+TrackerAnimation_OnAccept.Zone = DF:CreateLabel (TrackerAnimation_OnAccept)
+TrackerAnimation_OnAccept.Zone.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
+TrackerAnimation_OnAccept.Zone:SetPoint ("topleft", TrackerAnimation_OnAccept, "topleft", 10, -17)
+TrackerAnimation_OnAccept.Icon = TrackerAnimation_OnAccept:CreateTexture (nil, "artwork")
+TrackerAnimation_OnAccept.Icon:SetPoint ("topleft", TrackerAnimation_OnAccept, "topleft", -13, -2)
+TrackerAnimation_OnAccept.Icon:SetSize (16, 16)
+TrackerAnimation_OnAccept.RewardAmount = TrackerAnimation_OnAccept:CreateFontString (nil, "overlay", "ObjectiveFont")
+TrackerAnimation_OnAccept.RewardAmount:SetTextColor (titleColor.r, titleColor.g, titleColor.b)
+TrackerAnimation_OnAccept.RewardAmount:SetPoint ("top", TrackerAnimation_OnAccept.Icon, "bottom", 0, -2)
+DF:SetFontSize (TrackerAnimation_OnAccept.RewardAmount, 10)
+TrackerAnimation_OnAccept:Hide()
+
+TrackerAnimation_OnAccept.FlashTexture = TrackerAnimation_OnAccept:CreateTexture (nil, "background")
+TrackerAnimation_OnAccept.FlashTexture:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-Achievement-Alert-Glow]])
+TrackerAnimation_OnAccept.FlashTexture:SetTexCoord (0, 400/512, 0, 168/256)
+TrackerAnimation_OnAccept.FlashTexture:SetBlendMode ("ADD")
+TrackerAnimation_OnAccept.FlashTexture:SetPoint ("topleft", -60, 40)
+TrackerAnimation_OnAccept.FlashTexture:SetPoint ("bottomright", 40, -35)
+
+local TrackerAnimation_OnAccept_MoveAnimation = DF:CreateAnimationHub (TrackerAnimation_OnAccept, function (self)
+	-- 3 movement started
+		--seta textos e texturas
+		local quest = self.QuestObject
+		local widget = self.WidgetObject
+		TrackerAnimation_OnAccept.Title.text = widget.Title.text
+		TrackerAnimation_OnAccept.Zone.text = widget.Zone.text
+		if (quest.questType == QUESTTYPE_ARTIFACTPOWER) then
+			TrackerAnimation_OnAccept.Icon:SetMask (nil)
+		else
+			TrackerAnimation_OnAccept.Icon:SetMask ([[Interface\CharacterFrame\TempPortraitAlphaMask]])
+		end
+		TrackerAnimation_OnAccept.Icon:SetTexture (quest.rewardTexture)
+		TrackerAnimation_OnAccept.RewardAmount:SetText (widget.RewardAmount:GetText())	
+	end, 
+	function (self) 
+	-- 4 movement end
+		TrackerAnimation_OnAccept:Hide()
+	end)
+local ScreenWidth = -(floor (GetScreenWidth() / 2) - 200)
+TrackerAnimation_OnAccept_MoveAnimation.Translation = DF:CreateAnimation (TrackerAnimation_OnAccept_MoveAnimation, "translation", 1, 2, ScreenWidth, 270)
+DF:CreateAnimation (TrackerAnimation_OnAccept_MoveAnimation, "alpha", 1, 1.6, 1, 0)
+--DF:CreateAnimation (TrackerAnimation_OnAccept_MoveAnimation, "scale", 1, 1.6, 1, 1, 0, 0)
+
+local TrackerAnimation_OnAccept_FlashAnimation = DF:CreateAnimationHub (TrackerAnimation_OnAccept.FlashTexture, 
+	function (self) 
+		-- 1 Playing Flash
+		TrackerAnimation_OnAccept.Title.text = ""
+		TrackerAnimation_OnAccept.Zone.text = ""
+		TrackerAnimation_OnAccept.Icon:SetTexture (nil)
+		TrackerAnimation_OnAccept.RewardAmount:SetText ("")
+		TrackerAnimation_OnAccept:Show()
+		TrackerAnimation_OnAccept.FlashTexture:Show()
+		TrackerAnimation_OnAccept:SetPoint ("topleft", self.WidgetObject, "topleft", 0, 0)
+	end, 
+	function (self) 
+		-- 2 Flash Finished
+		local quest = self.QuestObject
+		local widget = self.WidgetObject
+		
+		self.QuestObject.isDisabled = true
+		self.QuestObject.enteringZone = nil
+		
+		local top = widget:GetTop()
+		local distance = GetScreenHeight() - top - 150
+		TrackerAnimation_OnAccept_MoveAnimation.Translation:SetOffset (ScreenWidth, distance)
+		TrackerAnimation_OnAccept_MoveAnimation:Play()
+		
+		TrackerAnimation_OnAccept.FlashTexture:Hide()
+		WorldQuestTracker.UpdateQuestsInArea()
+	end)
+DF:CreateAnimation (TrackerAnimation_OnAccept_FlashAnimation, "alpha", 1, 0.15, 0, .68)
+DF:CreateAnimation (TrackerAnimation_OnAccept_FlashAnimation, "scale", 1, 0.1, .1, .1, 1, 1, "center")
+DF:CreateAnimation (TrackerAnimation_OnAccept_FlashAnimation, "alpha", 2, 0.15, .68, 0)
+
+local get_widget_from_questID = function (questID)
+	for i = 1, #TrackerWidgetPool do
+		if (TrackerWidgetPool[i].questID == questID) then
+			return TrackerWidgetPool[i]
+		end
+	end
+end
+
 --quando o tracker da interface atualizar, atualizar tbm o nosso tracker
 --verifica se o jogador esta na area da questa
 function WorldQuestTracker.UpdateQuestsInArea()
@@ -4422,7 +4552,24 @@ function WorldQuestTracker.UpdateQuestsInArea()
 		local isInArea, isOnMap, numObjectives = GetTaskInfo (quest.questID)
 		if ((questIndex and questIndex ~= 0) or isInArea) then
 			--desativa pois o jogo ja deve estar mostrando a quest
-			quest.isDisabled = true
+			if (not quest.isDisabled and not quest.enteringZone) then
+				local widget = get_widget_from_questID (quest.questID)
+				if (not WorldQuestTracker.IsQuestOnObjectiveTracker (widget.Title:GetText())) then
+					--acabou de aceitar a quest
+					quest.enteringZone = true
+					TrackerAnimation_OnAccept:Show()
+					TrackerAnimation_OnAccept_MoveAnimation.QuestObject = quest
+					TrackerAnimation_OnAccept_FlashAnimation.QuestObject = quest
+					
+					TrackerAnimation_OnAccept_MoveAnimation.WidgetObject = widget
+					TrackerAnimation_OnAccept_FlashAnimation.WidgetObject = widget
+					
+					TrackerAnimation_OnAccept_FlashAnimation:Play()
+				else
+					quest.isDisabled = true
+				end
+			end
+			--quest.isDisabled = true
 		else
 			quest.isDisabled = nil
 		end
@@ -4440,6 +4587,36 @@ hooksecurefunc ("BonusObjectiveTracker_OnTaskCompleted", function (questID, xp, 
 		end
 	end
 end)
+
+function WorldQuestTracker.IsQuestOnObjectiveTracker (quest)
+	local tracker = ObjectiveTrackerFrame
+	
+	if (not tracker.initialized) then
+		return
+	end
+	
+	local CheckByType = type (quest)
+	
+	for i = 1, #tracker.MODULES do
+		local module = tracker.MODULES [i]
+		for blockName, usedBlock in pairs (module.usedBlocks) do
+		
+			local questID = usedBlock.id
+			if (questID) then
+				if (CheckByType == "string") then
+					local thisQuestName = GetQuestInfoByQuestID (questID)
+					if (thisQuestName and thisQuestName == quest) then
+						return true
+					end
+				elseif (CheckByType == "number") then
+					if (quest == questID) then
+						return true
+					end
+				end
+			end
+		end
+	end
+end
 
 --dispara quando o tracker da interface é atualizado, precisa dar refresh na nossa ancora
 local On_ObjectiveTracker_Update = function()
@@ -4982,7 +5159,9 @@ local create_worldmap_square = function (mapName, index)
 	trackingGlowBorder:SetDrawLayer ("BACKGROUND", -5)
 	
 	local onStartTrackAnimation = DF:CreateAnimationHub (trackingGlowBorder, onStartClickAnimation)
-	WorldQuestTracker:CreateAnimation (onStartTrackAnimation, "Scale", 1, .12, .9, .9, 1, 1)
+	WorldQuestTracker:CreateAnimation (onStartTrackAnimation, "Scale", 1, .12, .9, .9, 1.1, 1.1)
+	WorldQuestTracker:CreateAnimation (onStartTrackAnimation, "Scale", 2, .12, 1.2, 1.2, 1, 1)
+	
 	local onEndTrackAnimation = DF:CreateAnimationHub (trackingGlowBorder, onStartClickAnimation, onEndClickAnimation)
 	WorldQuestTracker:CreateAnimation (onEndTrackAnimation, "Scale", 1, .5, 1, 1, .6, .6)
 	button.onStartTrackAnimation = onStartTrackAnimation
@@ -5357,7 +5536,9 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 			
 			table.sort (questsAvailable [mapId], function (t1, t2) return t1[2] < t2[2] end)
 		else
-			needAnotherUpdate = true
+			if (not taskInfo) then
+				needAnotherUpdate = true
+			end
 		end
 	end
 	
@@ -5631,7 +5812,9 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 				widgets[i]:Hide()
 			end
 		else
-			needAnotherUpdate = true
+			if (not taskInfo) then
+				needAnotherUpdate = true
+			end
 		end
 		
 		--quantidade de quest para a faccao
