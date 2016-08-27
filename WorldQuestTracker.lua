@@ -17,8 +17,9 @@ end
 if (true) then
 	--return - nah, not today
 end
-
+ 
 do
+	--register things we'll use
 	local color = OBJECTIVE_TRACKER_COLOR ["Header"]
 	DF:NewColor ("WQT_QUESTTITLE_INMAP", color.r, color.g, color.b, .8)
 	DF:NewColor ("WQT_QUESTTITLE_OUTMAP", 1, .8, .2, .7)
@@ -303,6 +304,7 @@ local BROKEN_ISLES_ZONES = {
 	[highmountain_mapId] = true, --highmountain
 	[stormheim_mapId] = true, --stormheim
 	[suramar_mapId] = true, --suramar
+	[eoa_mapId] = true, --eye of azshara
 }
 
 local WorldQuestTracker = DF:CreateAddOn ("WorldQuestTrackerAddon", "WQTrackerDB", default_config)
@@ -783,7 +785,7 @@ local questButton_OnClick = function (self, button)
 		self.onStartTrackAnimation:Play()
 		
 		if (WorldQuestTracker.db.profile.sound_enabled) then
-			if (math.random (2) == 1) then
+			if (math.random (5) == 1) then
 				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker1.mp3")
 			else
 				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker2.mp3")	
@@ -2426,7 +2428,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				function() 
 					SummaryFrame:Show()
 					if (WorldQuestTracker.db.profile.sound_enabled) then
-						if (math.random (2) == 1) then
+						if (math.random (5) == 1) then
 							PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\swap_panels1.mp3")
 						else
 							PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\swap_panels2.mp3")	
@@ -5497,6 +5499,7 @@ local create_world_widgets = function()
 		for i = 1, 20 do
 			local button = create_worldmap_square (mapName, i)
 			button:SetPoint (configTable.squarePoints.mySide, line, configTable.squarePoints.anchorSide, x*configTable.squarePoints.xDirection, configTable.squarePoints.y)
+			button:Hide()
 			x = x + WORLDMAP_SQUARE_SIZE + 1
 			tinsert (configTable.widgets, button)
 		end
@@ -5622,7 +5625,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 					if (isWorldQuest) then
 						local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
 						if (timeLeft and timeLeft > 0) then
-						
+							
 							--gold
 							local gold, goldFormated = WorldQuestTracker.GetQuestReward_Gold (questID)
 							--class hall resource
@@ -5640,7 +5643,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 							if ((not gold or gold <= 0) and not rewardName and not itemName) then
 								needAnotherUpdate = true
 							end
-
+							
 							local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
 							order = order or 1
 							if (filters [filter]) then
@@ -5678,8 +5681,10 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 				needAnotherUpdate = true
 			elseif (#taskInfo == 0) then
 				--hidar os widgets extras mque pertencem a zone sem quests
-				for o = 1, #WorldQuestTracker.WorldMapSupportWidgets [mapId] do
-					WorldQuestTracker.WorldMapSupportWidgets [mapId] [o]:Hide()
+				if (WorldQuestTracker.WorldMapSupportWidgets [mapId]) then
+					for o = 1, #WorldQuestTracker.WorldMapSupportWidgets [mapId] do
+						WorldQuestTracker.WorldMapSupportWidgets [mapId] [o]:Hide()
+					end
 				end
 			end
 		end
@@ -5735,6 +5740,16 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 							end
 						
 							local widget = widgets [taskIconIndex]
+							
+							if (not widget) then
+								--se não tiver o widget, o jogador abriu o mapa muito rapidamente
+								if (WorldMapFrame:IsShown()) then
+									WorldQuestTracker.ScheduleWorldMapUpdate (1.5)
+									WorldQuestTracker.PlayLoadingAnimation()
+								end
+								return
+							end
+							
 							if (widget) then
 							
 								widget.timeBlipRed:Hide()
@@ -5969,6 +5984,10 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		else
 			if (not taskInfo) then
 				needAnotherUpdate = true
+			else
+				for i = taskIconIndex, 20 do
+					widgets[i]:Hide()
+				end
 			end
 		end
 		
