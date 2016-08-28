@@ -234,14 +234,6 @@ local WQT_GENERAL_STRINGS_AND_ICONS = {
 	["criteria"] = {name = "criteria", icon = [[Interface\AdventureMap\AdventureMap]], coords = {901/1024, 924/1024, 251/1024, 288/1024}}
 }
 
-local QUEST_COMMENTS = {
-	[42275] = {help = "'Dimensional Anchors' are green crystals on the second floor of the central build."}, --azsuna - not on my watch
-	[43963] = {help = "Kill and loot mobs around the quest location."},
-	[42108] = {help = "Use the extra button near friendly ghosty npcs."},
-	[42080] = {help = "Select eagles and use the extra button. Click on sheeps outside the town."},
-	[41701] = {help = "Kill fish inside the water. Walk on outlined garbage."},
-}
-
 local calcPerformance = CreateFrame ("frame")
 calcPerformance.timeTable = {}
 local measurePerformance = function (self, deltaTime)
@@ -323,6 +315,39 @@ WorldQuestTracker.Temp_HideZoneWidgets = 0
 WorldQuestTracker.lastZoneWidgetsUpdate = 0
 WorldQuestTracker.lastMapTap = 0
 WorldQuestTracker.SoundPitch = math.random (2)
+
+WorldQuestTracker.QUEST_COMMENTS = {
+	[42275] = {help = "'Dimensional Anchors' are green crystals on the second floor of the central build."}, --azsuna - not on my watch
+	[43963] = {help = "Kill and loot mobs around the quest location."},
+	[42108] = {help = "Use the extra button near friendly ghosty npcs."},
+	[42080] = {help = "Select eagles and use the extra button. Click on sheeps outside the town."},
+	[41701] = {help = "Kill fish inside the water. Walk on outlined garbage."},
+}
+
+WorldQuestTracker.CAVE_QUESTS = {
+	[41145] = true,
+}
+
+function WorldQuestTracker.CanLinkToChat (object, button)
+	if (button == "LeftButton") then
+		if (IsShiftKeyDown()) then
+			
+			local questID = (object.questID) or (object.info and object.info.questID)
+			
+			if (questID) then
+				local questName = GetQuestInfoByQuestID (questID)
+				local link = [=[|cffffff00|Hquest:@QUESTID:110|h[@QUESTNAME]|h|r]=]
+				link = link:gsub ("@QUESTID", questID)
+				link = link:gsub ("@QUESTNAME", questName)
+
+				return ChatEdit_InsertLink (link)
+				--print ("|cffffff00|Hquest:41145:110|h[Water of Life]|h|r")
+				--SendChatMessage("|cffffff00|Hquest:41145:110|h[Water of Life]|h|r", "SAY", "Common")
+				--SendChatMessage("|cffffff00|Hquest:40883:110|h[Fate of the Guard]|h|r", "SAY", "Common");
+			end
+		end
+	end
+end
 
 --debug
 function WorldQuestTracker.DumpTrackingList()
@@ -775,6 +800,10 @@ end
 
 --ao clicar no botão de uma quest na zona ou no world map, colocar para trackear ela
 local questButton_OnClick = function (self, button)
+
+	if (WorldQuestTracker.CanLinkToChat (self, button)) then
+		return
+	end
 
 	WorldQuestTracker.OnQuestClicked (self, button)
 	
@@ -2248,6 +2277,37 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 			end
 			
+			function WorldQuestTracker.OpenSharePanel()
+				if (WorldQuestTrackerSharePanel) then
+					WorldQuestTrackerSharePanel:Show()
+					return
+				end
+				
+				local f = DF:CreateSimplePanel (UIParent, 460, 90, L["S_SHAREPANEL_TITLE"], "WorldQuestTrackerSharePanel")
+				f:SetFrameStrata ("TOOLTIP")
+				f:SetPoint ("center", WorldMapScrollFrame, "center")
+				
+				DF:CreateBorder (f)
+				
+				local text1 = DF:CreateLabel (f, L["S_SHAREPANEL_THANKS"])
+				text1:SetPoint ("center", f, "center", 0, -0)
+				text1:SetJustifyH ("center")
+				
+				local LinkBox = DF:CreateTextEntry (f, function()end, 380, 20, "ExportLinkBox", _, _, DF:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
+				LinkBox:SetPoint ("center", f, "center", 0, -30)
+				
+				f:SetScript ("OnShow", function()
+					LinkBox:SetText ([[https://mods.curse.com/addons/wow/world-quest-tracker]])
+					C_Timer.After (1, function()
+						LinkBox:SetFocus (true)
+						LinkBox:HighlightText()
+					end)
+				end)
+				
+				f:Hide()
+				f:Show()
+			end
+			
 			--go to broken isles button ~worldquestbutton ~worldmapbutton
 			local WorldQuestButton = CreateFrame ("button", "WorldQuestTrackerGoToBIButton", WorldMapFrame.UIElementsFrame)
 			WorldQuestButton:SetSize (64, 32)
@@ -3185,7 +3245,11 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			
 			--build option menu
 			local options_on_click = function (_, _, option, value, _, mouseButton)
-				if (option == "untrack_quests") then
+				if (option == "share_addon") then
+					WorldQuestTracker.OpenSharePanel()
+					GameCooltip:Hide()
+					return
+				elseif (option == "untrack_quests") then
 					WorldQuestTracker.RemoveAllQuestsFromTracker()
 					GameCooltip:Hide()
 					return
@@ -3220,13 +3284,25 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				--
 				GameCooltip:AddLine ("$div")
 				--
-				GameCooltip:AddLine ("Untrack All Quests")
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_UNTRACKQUESTS"])
 				GameCooltip:AddMenu (1, options_on_click, "untrack_quests", true)
 				GameCooltip:AddIcon ([[Interface\BUTTONS\UI-GROUPLOOT-PASS-HIGHLIGHT]], 1, 1, 16, 16)
-				--GameCooltip:AddIcon ([[Interface\BUTTONS\UI-GROUPLOOT-PASS-DOWN]], 1, 1, 16, 16)
+				
+				--
+				
+				--/dump InterfaceOptionsSocialPanelEnableTwitter.Logo:GetSize()
+				
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_SHARE"])
+				GameCooltip:AddIcon ("Interface\\FriendsFrame\\WowshareTextures.BLP", nil, 1, 14, 11, 122/256, 138/256, 167/256, 180/256)
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_SHARE_DESC"], nil, 2)
+				GameCooltip:AddMenu (1, options_on_click, "share_addon", true)
+				--
 				
 				GameCooltip:SetOption ("IconBlendMode", "ADD")
-				
+				GameCooltip:SetOption ("SubMenuIsTooltip", true)
+				GameCooltip:SetOption ("ButtonHeightModSub", 20)
+				GameCooltip:SetOption ("ButtonsYModSub", 8)
+
 				--
 			end
 			
@@ -4072,6 +4148,8 @@ local TrackerFrameOnClick = function (self, button)
 		else
 			WorldQuestTracker.WorldWidgets_NeedFullRefresh = true
 		end
+	else
+		WorldQuestTracker.CanLinkToChat (self, button)
 	end
 end
 
@@ -4207,6 +4285,8 @@ local TrackerFrameOnEnter = function (self)
 	self.RightBackground:SetAlpha (TRACKER_BACKGROUND_ALPHA_MAX)
 	self.Arrow:SetAlpha (TRACKER_ARROW_ALPHA_MAX)
 	buildTooltip (self)
+	
+	self.HasOverHover = true
 end
 
 local TrackerFrameOnLeave = function (self)
@@ -4219,6 +4299,9 @@ local TrackerFrameOnLeave = function (self)
 	self.RightBackground:SetAlpha (TRACKER_BACKGROUND_ALPHA_MIN)
 	self.Arrow:SetAlpha (TRACKER_ARROW_ALPHA_MIN)
 	GameTooltip:Hide()
+	
+	self.HasOverHover = nil
+	self.QuestInfomation.text = ""
 end
 
 --pega um widget já criado ou cria um novo ~trackercreate
@@ -4258,6 +4341,9 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.Zone.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
 	--f.Zone = f:CreateFontString (nil, "overlay", "ObjectiveFont")
 	f.Zone:SetPoint ("topleft", f, "topleft", 10, -17)
+	
+	f.QuestInfomation = DF:CreateLabel (f)
+	f.QuestInfomation:SetPoint ("topleft", f, "topright", 2, 0)
 	
 	f.YardsDistance = f:CreateFontString (nil, "overlay", "GameFontNormal")
 	f.YardsDistance:SetPoint ("left", f.Zone.widget, "right", 2, 0)
@@ -4385,6 +4471,7 @@ function WorldQuestTracker:PLAYER_STOPPED_MOVING()
 	playerIsMoving = false
 end
 
+-- ~trackertick ~trackeronupdate
 local TrackerOnTick = function (self, deltaTime)
 	if (Sort_currentMapID ~= GetCurrentMapAreaID()) then
 		self.Arrow:SetAlpha (.3)
@@ -4429,6 +4516,14 @@ local TrackerOnTick = function (self, deltaTime)
 		
 		self.NextPositionUpdate = .5
 		self.ForceUpdate = nil
+		
+		if (self.HasOverHover) then
+			if (IsAltKeyDown()) then
+				self.QuestInfomation.text = "ID: " .. self.questID .. "\nMapID: " .. self.info.mapID .. "\nTimeLeft: " .. self.info.timeLeft .. "\nType: " .. self.info.questType .. "\nNumObjetives: " .. self.info.numObjectives
+			else
+				self.QuestInfomation.text = ""
+			end
+		end
 	end
 
 end
