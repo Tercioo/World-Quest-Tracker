@@ -3390,6 +3390,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			WorldQuestTracker.WorldMap_ResourceIndicator = resource_ResourcesText
 			WorldQuestTracker.WorldMap_APowerIndicator = resource_APowerText
 			
+			-- ~trackall
 			local TrackAllFromType = function (self)
 				local questType = self.QuestType
 				local questsAvailable = WorldQuestTracker.Cache_ShownQuestOnWorldMap [questType]
@@ -3521,7 +3522,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 				
 				GameCooltip:AddLine ("", "", 1, "green", _, 10)
-				GameCooltip:AddLine (format (L["S_MAPBAR_RESOURCES_TOOLTIP_TRACKALL"], L["S_QUESTTYPE_ARTIFACTPOWER"]), "", 1, "green", _, 10)
+				GameCooltip:AddLine (format (L["S_MAPBAR_RESOURCES_TOOLTIP_TRACKALL"], L["S_QUESTTYPE_ARTIFACTPOWER"]), "", 1, "green", _, 9)
 				
 				GameCooltip:SetOwner (self)
 				GameCooltip:Show(self)
