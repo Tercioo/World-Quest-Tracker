@@ -3522,8 +3522,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 				
 				GameCooltip:AddLine ("", "", 1, "green", _, 10)
-				GameCooltip:AddLine (format (L["S_MAPBAR_RESOURCES_TOOLTIP_TRACKALL"], L["S_QUESTTYPE_ARTIFACTPOWER"]), "", 1, "green", _, 9)
-				
+				GameCooltip:AddLine (format (L["S_MAPBAR_RESOURCES_TOOLTIP_TRACKALL"], L["S_QUESTTYPE_ARTIFACTPOWER"]), "", 1, "green", _, 10)
+				GameCooltip:SetOption ("LeftTextHeight", 22)
 				GameCooltip:SetOwner (self)
 				GameCooltip:Show(self)
 				
