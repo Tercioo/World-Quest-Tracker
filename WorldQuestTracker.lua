@@ -3294,7 +3294,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_SHARE"])
 				GameCooltip:AddIcon ("Interface\\FriendsFrame\\WowshareTextures.BLP", nil, 1, 14, 11, 122/256, 138/256, 167/256, 180/256)
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_SHARE_DESC"], nil, 2)
+				--GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_SHARE_DESC"], nil, 2)
 				GameCooltip:AddMenu (1, options_on_click, "share_addon", true)
 				--
 				
@@ -5563,7 +5563,7 @@ local create_world_widgets = function()
 		local mapName = GetMapNameByID (mapId)
 		local line, blip, factionFrame = create_worldmap_line (configTable.worldMapLocation.lineWidth, mapId)
 		
-		if (ElvUI) then
+		if (ElvUI and ElvDB and IsAddOnLoaded ("ElvUI")) then
 			if (not ElvDB.global.general.smallerWorldMap and not WorldMapFrame_InWindowedMode() and not WorldQuestTracker.InFullScreenMode) then
 				--fullscreen
 				line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
@@ -6161,7 +6161,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	
 	C_Timer.After (0.5, WorldQuestTracker.UpdateFactionAlpha)
 	
-	if (ElvUI) then
+	if (ElvUI and ElvDB and IsAddOnLoaded ("ElvUI")) then
 	
 		if (not ElvDB.global.general.smallerWorldMap and not WorldMapFrame_InWindowedMode() and not WorldQuestTracker.InFullScreenMode) then
 			--fullscreen
