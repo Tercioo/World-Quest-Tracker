@@ -3394,28 +3394,30 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				local questType = self.QuestType
 				local questsAvailable = WorldQuestTracker.Cache_ShownQuestOnWorldMap [questType]
 				
-				for i = 1, #questsAvailable do
-					local questID = questsAvailable [i]
-					--> track this quest
-					local widget = WorldQuestTracker.GetWorldWidgetForQuest (questID)
-					if (widget) then
-						WorldQuestTracker.AddQuestToTracker (widget)
-						if (widget.onEndTrackAnimation:IsPlaying()) then
-							widget.onEndTrackAnimation:Stop()
+				if (questsAvailable) then
+					for i = 1, #questsAvailable do
+						local questID = questsAvailable [i]
+						--> track this quest
+						local widget = WorldQuestTracker.GetWorldWidgetForQuest (questID)
+						if (widget) then
+							WorldQuestTracker.AddQuestToTracker (widget)
+							if (widget.onEndTrackAnimation:IsPlaying()) then
+								widget.onEndTrackAnimation:Stop()
+							end
+							widget.onStartTrackAnimation:Play()
 						end
-						widget.onStartTrackAnimation:Play()
 					end
-				end
-				
-				if (WorldQuestTracker.db.profile.sound_enabled) then
-					if (math.random (2) == 1) then
-						PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker_mass1.mp3")
-					else
-						PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker_mass2.mp3")
+					
+					if (WorldQuestTracker.db.profile.sound_enabled) then
+						if (math.random (2) == 1) then
+							PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker_mass1.mp3")
+						else
+							PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker_mass2.mp3")
+						end
 					end
+					
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, false)
 				end
-				
-				WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, false)
 			end
 			
 			local resource_GoldFrame = CreateFrame ("button", nil, WorldQuestTracker.DoubleTapFrame)
