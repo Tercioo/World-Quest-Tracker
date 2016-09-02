@@ -154,7 +154,7 @@ local default_config = {
 			[1096] = 6, --eye of azshara
 		},
 		taxy_showquests = true,
-		taxy_trackedonly = false,
+		taxy_trackedonly = true,
 		taxy_tracked_scale = 3,
 		map_lock = false,
 		enable_doubletap = false,
@@ -1074,7 +1074,13 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 			self.rareGlow:SetSize (48, 52)
 			self.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragonT]])
 			
-			self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
+			--se estiver sendo trackeada, trocar o banner
+			if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
+				self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag_criteriamatchT]])
+			else
+				self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
+			end
+
 			self.bgFlag:Show()
 			self.flagText:SetPoint ("top", self.bgFlag, "top", 0, -3)
 			--self.glassTransparence:Show()
@@ -1089,7 +1095,13 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 			self.rareGlow:SetSize (48, 52)
 			self.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragonT]])
 			
-			self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
+			--se estiver sendo trackeada, trocar o banner
+			if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
+				self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag_criteriamatchT]])
+			else
+				self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
+			end
+			
 			self.bgFlag:Show()
 			self.flagText:SetPoint ("top", self.bgFlag, "top", 0, -3)
 			--self.glassTransparence:Show()
@@ -1595,7 +1607,7 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 		button.CriteriaMatchGlow:SetAlpha (1)
 		button.flagCriteriaMatchGlow = button:CreateTexture (nil, "background")
 		button.flagCriteriaMatchGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag_criteriamatchT]])
-		button.flagCriteriaMatchGlow:SetPoint ("top", self, "bottom", 0, 3)
+		button.flagCriteriaMatchGlow:SetPoint ("top", button, "bottom", 0, 3)
 		button.flagCriteriaMatchGlow:SetSize (64, 32)
 	
 	button.SpellTargetGlow = button:CreateTexture(button:GetName() .. "SpellTargetGlow", "OVERLAY", 1)
@@ -1884,6 +1896,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 	self.blackBackground:Hide()
 --	self.criteriaIndicator:Hide()
 --	self.criteriaIndicatorGlow:Hide()	
+	self.flagCriteriaMatchGlow:Hide()
 	self.questTypeBlip:Hide()
 	
 	self.isSelected = selected
@@ -1906,7 +1919,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 			if (not self.criteriaIndicator:IsShown()) then
 				self.CriteriaAnimation:Play()
 			end
-			self.flagCriteriaMatchGlow:Show()
+			--self.flagCriteriaMatchGlow:Show()
 			self.criteriaIndicator:Show()
 			self.criteriaIndicatorGlow:Show()
 		else
@@ -4123,10 +4136,9 @@ function WorldQuestTracker.RefreshAnchor()
 	
 	for i = 1, ObjectiveTrackerFrame:GetNumPoints() do
 		local point, relativeTo, relativePoint, xOfs, yOfs = ObjectiveTrackerFrame:GetPoint (i)
-		WorldQuestTrackerFrame:SetPoint (point, relativeTo, relativePoint, -10 + xOfs, -WorldQuestTracker.TrackerHeight - 20)
+		--WorldQuestTrackerFrame:SetPoint ("topleft", ObjectiveTrackerFrame, "topleft", -10, -WorldQuestTracker.TrackerHeight - 20)
+		WorldQuestTrackerFrame:SetPoint (point, relativeTo, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
 	end
-	
-	--WorldQuestTrackerFrame:SetPoint ("topleft", ObjectiveTrackerFrame, "topleft", -10, -WorldQuestTracker.TrackerHeight - 20)
 
 	WorldQuestTrackerHeader:ClearAllPoints()
 	WorldQuestTrackerHeader:SetPoint ("bottom", WorldQuestTrackerFrame, "top", 0, -20)
