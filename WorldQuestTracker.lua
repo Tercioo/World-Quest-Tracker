@@ -1779,6 +1779,13 @@ function WorldQuestTracker.HideZoneWidgets()
 	end
 end
 
+--C_Timer.After (2, function()
+--	function WorldMap_DoesWorldQuestInfoPassFilters (info, ignoreTypeFilters, ignoreTimeRequirement)
+--		print (info, ignoreTypeFilters, ignoreTimeRequirement)
+--		return true
+--	end
+--end)
+
 --atualiza as quest do mapa da zona ~updatezone ~zoneupdate
 function WorldQuestTracker.UpdateZoneWidgets()
 	
@@ -4130,18 +4137,49 @@ local TrackerWidgetPool = {}
 --inicializa a variavel que armazena o tamanho do quest frame
 WorldQuestTracker.TrackerHeight = 0
 
+--move anything
+C_Timer.After (10, function()
+	if (MAOptions) then
+		MAOptions:HookScript ("OnUpdate", function()
+			WorldQuestTracker.RefreshAnchor()
+		end)
+
+		--ObjectiveTrackerFrameMover:CreateTexture("AA", "overlay")
+		--AA:SetAllPoints()
+		--AA:SetColorTexture (1, 1, 1, .3)
+	end
+end)
+
 --da refresh na ancora do screen panel
 function WorldQuestTracker.RefreshAnchor()
-	WorldQuestTrackerFrame:ClearAllPoints()
-	
+
+	WorldQuestTrackerScreenPanel:ClearAllPoints()
+
 	for i = 1, ObjectiveTrackerFrame:GetNumPoints() do
 		local point, relativeTo, relativePoint, xOfs, yOfs = ObjectiveTrackerFrame:GetPoint (i)
-		--WorldQuestTrackerFrame:SetPoint ("topleft", ObjectiveTrackerFrame, "topleft", -10, -WorldQuestTracker.TrackerHeight - 20)
-		WorldQuestTrackerFrame:SetPoint (point, relativeTo, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
+		
+		--note: we're probably missing something here, when the frame anchors to MoveAnything frame 'ObjectiveTrackerFrameMover', 
+		--it automatically anchors to MinimapCluster frame.
+		--so the solution we've found was to get the screen position of the MoveAnything frame and anchor our frame to UIParent.
+		
+		if (relativeTo:GetName() == "ObjectiveTrackerFrameMover") then
+			local top, left = ObjectiveTrackerFrameMover:GetTop(), ObjectiveTrackerFrameMover:GetLeft()
+			WorldQuestTrackerScreenPanel:SetPoint ("top", UIParent, "top", 0, (yOfs - WorldQuestTracker.TrackerHeight - 20) - abs (top-GetScreenHeight()))
+			WorldQuestTrackerScreenPanel:SetPoint ("left", UIParent, "left", -10 + xOfs + left, 0)
+		else
+			WorldQuestTrackerScreenPanel:SetPoint (point, relativeTo, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
+		end
+		
+		--print where the frame is setting its potision
+		--print ("SETTING POS ON:", point, relativeTo:GetName(), relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
 	end
 
+	--print where the frame was anchored, weird thing happens if we set the anchor to a MoveAnything frame
+	--local point, relativeTo, relativePoint, xOfs, yOfs = WorldQuestTrackerScreenPanel:GetPoint (1)
+	--print ("SETTED AT", point, relativeTo:GetName(), relativePoint, xOfs, yOfs)
+
 	WorldQuestTrackerHeader:ClearAllPoints()
-	WorldQuestTrackerHeader:SetPoint ("bottom", WorldQuestTrackerFrame, "top", 0, -20)
+	WorldQuestTrackerHeader:SetPoint ("bottom", WorldQuestTrackerFrame, "top", 0, -20)	
 end
 
 --quando um widget for clicado, mostrar painel com opção para parar de trackear
