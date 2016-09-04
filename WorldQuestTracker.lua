@@ -5191,6 +5191,8 @@ local format_for_taxy_nozoom_allquests = function (button)
 	button.blackBackground:SetAlpha (.45)
 end
 
+WorldQuestTracker.TaxyZoneWidgets = {}
+
 function WorldQuestTracker:TAXIMAP_OPENED()
 	
 	if (not WorldQuestTracker.FlyMapHook and FlightMapFrame) then
@@ -5249,7 +5251,11 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				--override scripts
 				pin._WQT_Twin:SetScript ("OnEnter", pin:GetScript ("OnEnter"))
 				pin._WQT_Twin:SetScript ("OnLeave", pin:GetScript ("OnLeave"))
+				
+				tinsert (WorldQuestTracker.TaxyZoneWidgets, pin._WQT_Twin)
 			end
+			
+			--print (GetTime())
 			
 			local isShowingQuests = WorldQuestTracker.db.profile.taxy_showquests
 			local isShowingOnlyTracked = WorldQuestTracker.db.profile.taxy_trackedonly
@@ -5258,12 +5264,16 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			if (not isShowingQuests and not hasZoom) then
 				pin._WQT_Twin:Hide()
 				WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
+				pin._WQT_Twin.questID = nil
+				pin._WQT_Twin.LastUpdate = nil
 				return
 			end
 			if (isShowingOnlyTracked) then
 				if (not WorldQuestTracker.IsQuestBeingTracked (pin.questID) and not hasZoom) then
 					pin._WQT_Twin:Hide()
 					WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
+					pin._WQT_Twin.questID = nil
+					pin._WQT_Twin.LastUpdate = nil
 					return
 				end
 			end
@@ -5277,7 +5287,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			pin._WQT_Twin.numObjectives = pin.numObjectives
 			local mapID, zoneID = C_TaskQuest.GetQuestZoneID (pin.questID)
 			pin._WQT_Twin.mapID = zoneID
-			
+			--FlightMapFrame:ZoomOut()
 			if (not hasZoom) then
 				--não tem zoom
 				if (isShowingOnlyTracked) then
@@ -5288,8 +5298,11 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				end
 			else
 				--tem zoom
-				WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
-				format_for_taxy_zoom_allquests (pin._WQT_Twin)
+				if (not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
+					WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
+					format_for_taxy_zoom_allquests (pin._WQT_Twin)
+					pin._WQT_Twin.LastUpdate = GetTime()
+				end
 			end
 		end)
 		
@@ -5311,7 +5324,10 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 end
 
 function WorldQuestTracker:TAXIMAP_CLOSED()
-	
+	for _, widget in ipairs (WorldQuestTracker.TaxyZoneWidgets) do
+		widget.LastUpdate = nil
+		widget.questID = nil
+	end
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
