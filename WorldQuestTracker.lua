@@ -17,6 +17,8 @@ end
 if (true) then
 	--return - nah, not today
 end
+
+--TaskPOI_OnClick
  
 do
 	--register things we'll use
@@ -156,6 +158,7 @@ local default_config = {
 		taxy_showquests = true,
 		taxy_trackedonly = true,
 		taxy_tracked_scale = 3,
+		arrow_update_frequence = 0.016,
 		map_lock = false,
 		enable_doubletap = false,
 		sound_enabled = true,
@@ -184,9 +187,6 @@ local stormheim_mapId = 1017
 local suramar_mapId = 1033
 local valsharah_mapId = 1018
 local eoa_mapId = 1096
-
-local MAPID_BROKENISLES = 1007
-local MAPID_DALARAN = 1014
 
 local is_broken_isles_map = {
 	[azsuna_mapId] = true,
@@ -316,6 +316,10 @@ WorldQuestTracker.lastZoneWidgetsUpdate = 0
 WorldQuestTracker.lastMapTap = 0
 WorldQuestTracker.SoundPitch = math.random (2)
 
+WorldQuestTracker.MAPID_DALARAN = 1014
+local MAPID_BROKENISLES = 1007
+local ARROW_UPDATE_FREQUENCE = 0.016
+
 WorldQuestTracker.QUEST_COMMENTS = {
 	[42275] = {help = "'Dimensional Anchors' are green crystals on the second floor of the central build."}, --azsuna - not on my watch
 	[43963] = {help = "Kill and loot mobs around the quest location."},
@@ -427,6 +431,12 @@ function WorldQuestTracker:WaitUntilWorldMapIsClose()
 	end
 	WorldQuestTracker.ScheduledMapFrameShownCheck = C_Timer.NewTicker (1, WorldQuestTracker.UpdateCurrentStandingZone)
 end
+
+function WorldQuestTracker.UpdateArrowFrequence()
+	ARROW_UPDATE_FREQUENCE = WorldQuestTracker.db.profile.arrow_update_frequence
+end
+
+--/run WorldQuestTrackerAddon.db.profile.arrow_update_frequence = .1; WorldQuestTrackerAddon.UpdateArrowFrequence()
 
 function WorldQuestTracker:OnInit()
 	WorldQuestTracker.InitAt = GetTime()
@@ -770,6 +780,9 @@ function WorldQuestTracker:OnInit()
 	WorldQuestTracker:RegisterEvent ("PLAYER_STOPPED_MOVING")
 	
 	C_Timer.After (.5, WorldQuestTracker.ZONE_CHANGED_NEW_AREA)
+	C_Timer.After (.5, WorldQuestTracker.UpdateArrowFrequence)
+	C_Timer.After (5, WorldQuestTracker.UpdateArrowFrequence)
+	C_Timer.After (10, WorldQuestTracker.UpdateArrowFrequence)
 end
 
 local onStartClickAnimation = function (self)
@@ -805,6 +818,11 @@ local questButton_OnClick = function (self, button)
 		return
 	end
 
+	if (ZGV) then
+		print ("zi")
+		ZGV:SuggestWorldQuestGuide (self)
+	end
+	
 	WorldQuestTracker.OnQuestClicked (self, button)
 	
 	if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
@@ -854,7 +872,7 @@ function WorldQuestTracker.CanShowBrokenIsles()
 	elseif (not IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID)) then
 		return
 	end
-	return WorldQuestTracker.db.profile.enable_doubletap and not InCombatLockdown() and GetCurrentMapAreaID() ~= MAPID_BROKENISLES and (C_Garrison.IsPlayerInGarrison (LE_GARRISON_TYPE_7_0) or GetCurrentMapAreaID() == MAPID_DALARAN)
+	return WorldQuestTracker.db.profile.enable_doubletap and not InCombatLockdown() and GetCurrentMapAreaID() ~= MAPID_BROKENISLES and (C_Garrison.IsPlayerInGarrison (LE_GARRISON_TYPE_7_0) or GetCurrentMapAreaID() == WorldQuestTracker.MAPID_DALARAN)
 end
 
 --todo: replace this with real animations
@@ -3269,6 +3287,12 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					WorldQuestTracker.OpenSharePanel()
 					GameCooltip:Hide()
 					return
+				elseif (option == "arrow_update_speed") then
+					WorldQuestTracker.db.profile.arrow_update_frequence = value
+					WorldQuestTracker.UpdateArrowFrequence()
+					GameCooltip:Hide()
+					return
+				
 				elseif (option == "untrack_quests") then
 					WorldQuestTracker.RemoveAllQuestsFromTracker()
 					GameCooltip:Hide()
@@ -3280,7 +3304,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:ExecFunc (optionsButton)
 			end
 			
-			local BuildOptionsMenu = function()
+			local BuildOptionsMenu = function() -- õptions ~options
 				GameCooltip:Preset (2)
 				GameCooltip:SetOption ("TextSize", 10)
 				GameCooltip:SetOption ("FixedWidth", 160)
@@ -3304,6 +3328,45 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				--
 				GameCooltip:AddLine ("$div")
 				--
+				
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED"])
+				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]], 1, 1, 16, 16, .15, .8, .15, .80)
+				
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_REALTIME"], "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.016)
+				if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.017) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_HIGH"], "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.03)
+				if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.032 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.029) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_MEDIUM"], "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.075)
+				if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.076 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.074) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_SLOW"], "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.1)
+				if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.11 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.099) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				
+				--
+				GameCooltip:AddLine ("$div")
+				--
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_UNTRACKQUESTS"])
 				GameCooltip:AddMenu (1, options_on_click, "untrack_quests", true)
 				GameCooltip:AddIcon ([[Interface\BUTTONS\UI-GROUPLOOT-PASS-HIGHLIGHT]], 1, 1, 16, 16)
@@ -3319,9 +3382,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				--
 				
 				GameCooltip:SetOption ("IconBlendMode", "ADD")
-				GameCooltip:SetOption ("SubMenuIsTooltip", true)
-				GameCooltip:SetOption ("ButtonHeightModSub", 20)
-				GameCooltip:SetOption ("ButtonsYModSub", 8)
+				GameCooltip:SetOption ("SubFollowButton", true)
+				
 
 				--
 			end
@@ -4524,7 +4586,7 @@ function WorldQuestTracker:PLAYER_STOPPED_MOVING()
 	playerIsMoving = false
 end
 
--- ~trackertick ~trackeronupdate
+-- ~trackertick ~trackeronupdate ~tick ~onupdate
 local TrackerOnTick = function (self, deltaTime)
 	if (Sort_currentMapID ~= GetCurrentMapAreaID()) then
 		self.Arrow:SetAlpha (.3)
@@ -4540,15 +4602,22 @@ local TrackerOnTick = function (self, deltaTime)
 	end
 	
 	local x, y = GetPlayerMapPosition ("player")
-	local questYaw = (FindLookAtRotation (_, x, y, self.questX, self.questY) + p)%pipi
-	local playerYaw = GetPlayerFacing()
-	local angle = (((questYaw + playerYaw)%pipi)+pi)%pipi
-	local imageIndex = 1+(floor (MapRangeClamped (_, 0, pipi, 1, 144, angle)) + 48)%144 --48º quadro é o que aponta para o norte
-	local line = ceil (imageIndex / 12)
-	local coord = (imageIndex - ((line-1) * 12)) / 12
-	self.Arrow:SetTexCoord (coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line)
-	--self.ArrowDistance:SetTexCoord (coord-0.0905, coord-0.0160, 0.0833 * (line-1), 0.0833 * line) -- 0.0763
-	self.ArrowDistance:SetTexCoord (coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line) -- 0.0763
+	
+	if (self.NextArrowUpdate < 0) then
+		local questYaw = (FindLookAtRotation (_, x, y, self.questX, self.questY) + p)%pipi
+		local playerYaw = GetPlayerFacing()
+		local angle = (((questYaw + playerYaw)%pipi)+pi)%pipi
+		local imageIndex = 1+(floor (MapRangeClamped (_, 0, pipi, 1, 144, angle)) + 48)%144 --48º quadro é o que aponta para o norte
+		local line = ceil (imageIndex / 12)
+		local coord = (imageIndex - ((line-1) * 12)) / 12
+		self.Arrow:SetTexCoord (coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line)
+		--self.ArrowDistance:SetTexCoord (coord-0.0905, coord-0.0160, 0.0833 * (line-1), 0.0833 * line) -- 0.0763
+		self.ArrowDistance:SetTexCoord (coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line) -- 0.0763
+		
+		self.NextArrowUpdate = ARROW_UPDATE_FREQUENCE
+	else
+		self.NextArrowUpdate = self.NextArrowUpdate - deltaTime
+	end
 	
 	self.NextPositionUpdate = self.NextPositionUpdate - deltaTime
 	
@@ -4648,6 +4717,8 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				end
 				
 				widget.NextPositionUpdate = -1
+				widget.NextArrowUpdate = -1
+				
 				widget.ForceUpdate = true
 				
 				widget:SetScript ("OnUpdate", TrackerOnTick)
