@@ -1516,7 +1516,7 @@ end)
 hooksecurefunc ("WorldMap_GetOrCreateTaskPOI", function (index)
 	local button = _G ["WorldMapFrameTaskPOI" .. index]
 	if (button:GetScript ("OnClick") ~= questButton_OnClick) then
-		button:SetScript ("OnClick", questButton_OnClick)
+		--button:SetScript ("OnClick", questButton_OnClick)
 		tinsert (WorldQuestTracker.AllTaskPOIs, button)
 	end
 end)
@@ -1827,6 +1827,8 @@ function WorldQuestTracker.UpdateZoneWidgets()
 		WorldQuestTracker.StopLoadingAnimation()
 	end	
 	
+	local filters = WorldQuestTracker.db.profile.filters
+	
 	if (taskInfo and #taskInfo > 0) then
 		for i, info  in ipairs (taskInfo) do
 			local questID = info.questId
@@ -1834,45 +1836,77 @@ function WorldQuestTracker.UpdateZoneWidgets()
 				local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
 				if (isWorldQuest) then
 					local isSuppressed = WorldMap_IsWorldQuestSuppressed (questID)
-					local passFilters = WorldMap_DoesWorldQuestInfoPassFilters (info, true, true)
+					local passFilters = WorldMap_DoesWorldQuestInfoPassFilters (info, true, true) --blizzard filters
 					local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
 					
 					if (not isSuppressed and passFilters and timeLeft > 3) then
 						C_TaskQuest.RequestPreloadRewardData (questID)
 						
-						local widget = WorldQuestTracker.GetOrCreateZoneWidget (info, index)
-						
 						local tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = GetQuestTagInfo (questID)
-						local selected = questID == GetSuperTrackedQuestID()
-						local isCriteria = WorldMapFrame.UIElementsFrame.BountyBoard:IsWorldQuestCriteriaForSelectedBounty (questID)
-						local isSpellTarget = SpellCanTargetQuest() and IsQuestIDValidSpellTarget (questID)
 						
-						widget.mapID = mapID
-						widget.questID = questID
-						widget.numObjectives = info.numObjectives
-
-						local inProgress
+						------ adicionados para fazer o filtro
+							--gold
+							local gold, goldFormated = WorldQuestTracker.GetQuestReward_Gold (questID)
+							--class hall resource
+							local rewardName, rewardTexture, numRewardItems = WorldQuestTracker.GetQuestReward_Resource (questID)
+							--item
+							local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetQuestReward_Item (questID)
+						------
 						
-						WorldQuestTracker.SetupWorldQuestButton (widget, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
-						WorldMapPOIFrame_AnchorPOI (widget, info.x, info.y, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
-
-						if (WorldQuestTracker.Temp_HideZoneWidgets > GetTime()) then
-							widget:Hide()
-							for _, button in ipairs (WorldQuestTracker.AllTaskPOIs) do
-								if (button.questID == questID) then
-									button:Show()
-								end
-							end
-						else
-							widget:Show()
-							for _, button in ipairs (WorldQuestTracker.AllTaskPOIs) do
-								if (button.questID == questID) then
-									button:Hide()
+						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
+						
+						local passFilter = filters [filter]
+						if (not passFilter) then
+							if (WorldQuestTracker.db.profile.filter_always_show_faction_objectives) then
+								local isCriteria = WorldMapFrame.UIElementsFrame.BountyBoard:IsWorldQuestCriteriaForSelectedBounty (questID)
+								if (isCriteria) then
+									passFilter = true
 								end
 							end
 						end
-					
-						index = index + 1
+
+						if (passFilter) then
+							local widget = WorldQuestTracker.GetOrCreateZoneWidget (info, index)
+
+							local selected = questID == GetSuperTrackedQuestID()
+							local isCriteria = WorldMapFrame.UIElementsFrame.BountyBoard:IsWorldQuestCriteriaForSelectedBounty (questID)
+							local isSpellTarget = SpellCanTargetQuest() and IsQuestIDValidSpellTarget (questID)
+							
+							widget.mapID = mapID
+							widget.questID = questID
+							widget.numObjectives = info.numObjectives
+
+							local inProgress
+							
+							WorldQuestTracker.SetupWorldQuestButton (widget, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
+							WorldMapPOIFrame_AnchorPOI (widget, info.x, info.y, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
+
+							if (WorldQuestTracker.Temp_HideZoneWidgets > GetTime()) then
+								widget:Hide()
+								for _, button in ipairs (WorldQuestTracker.AllTaskPOIs) do
+									if (button.questID == questID) then
+										button:Show()
+									end
+								end
+							else
+								widget:Show()
+								for _, button in ipairs (WorldQuestTracker.AllTaskPOIs) do
+									if (button.questID == questID) then
+										button:Hide()
+									end
+								end
+							end
+							
+							index = index + 1
+						else
+							--precisa hidar o widget da UI default
+							for i = 1, #WorldQuestTracker.AllTaskPOIs do
+								if (WorldQuestTracker.AllTaskPOIs [i].questID == questID) then
+									--print ("achou o botao")
+									WorldQuestTracker.AllTaskPOIs [i]:Hide()
+								end
+							end
+						end
 					end
 				end
 			else
