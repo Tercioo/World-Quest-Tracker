@@ -178,6 +178,11 @@ local default_config = {
 		},
 		show_yards_distance = true,
 		player_names = {},
+		tomtom = {
+			enabled = false,
+			uids = {},
+			persistent = true,
+		},
 	},
 }
 
@@ -1934,7 +1939,7 @@ end)
 
 --atualiza o widget da quest no mapa da zona ~setupzone ~updatezone ~zoneupdate
 function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
-
+	
 	local questID = self.questID
 	if (not questID) then
 		return
@@ -3317,10 +3322,52 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			
 			--build option menu
 			local options_on_click = function (_, _, option, value, _, mouseButton)
+			
+				if (option:find ("tomtom")) then
+					local option = option:gsub ("tomtom%-", "")
+					WorldQuestTracker.db.profile.tomtom [option] = value
+					GameCooltip:Hide()
+					
+					if (option == "enabled") then
+						if (value) then
+							--adiciona todas as quests to tracker no tomtom
+							for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
+								local quest = WorldQuestTracker.QuestTrackList [i]
+								local questID = quest.questID
+								local mapID = quest.mapID
+								WorldQuestTracker.AddQuestTomTom (questID, mapID, true)
+							end
+							WorldQuestTracker.RemoveAllQuestsFromTracker()
+						else
+							--desligou o tracker do tomtom
+							for questID, t in pairs (WorldQuestTracker.db.profile.tomtom.uids) do
+								if (type (questID) == "number" and QuestMapFrame_IsQuestWorldQuest (questID)) then
+									--procura o botão da quest
+									for _, widget in ipairs (all_widgets) do
+										if (widget.questID == questID) then
+											WorldQuestTracker.AddQuestToTracker (widget)
+											TomTom:RemoveWaypoint (t)
+											break
+										end
+									end
+								end
+							end
+							wipe (WorldQuestTracker.db.profile.tomtom.uids)
+							WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, false, false, true)
+						end
+					end
+					
+					return
+				end
+			
 				if (option == "share_addon") then
 					WorldQuestTracker.OpenSharePanel()
 					GameCooltip:Hide()
 					return
+					
+				elseif (option == "clear_quest_cache") then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, true, false, true)
+					
 				elseif (option == "arrow_update_speed") then
 					WorldQuestTracker.db.profile.arrow_update_frequence = value
 					WorldQuestTracker.UpdateArrowFrequence()
@@ -3329,6 +3376,14 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				
 				elseif (option == "untrack_quests") then
 					WorldQuestTracker.RemoveAllQuestsFromTracker()
+					
+					if (TomTom and IsAddOnLoaded ("TomTom")) then
+						for questID, t in pairs (WorldQuestTracker.db.profile.tomtom.uids) do
+							TomTom:RemoveWaypoint (t)
+						end
+						wipe (WorldQuestTracker.db.profile.tomtom.uids)
+					end
+					
 					GameCooltip:Hide()
 					return
 				else
@@ -3399,7 +3454,36 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 				
 				--
+				if (TomTom and IsAddOnLoaded ("TomTom")) then
+					GameCooltip:AddLine ("$div")
+					
+					GameCooltip:AddLine ("TomTom")
+					GameCooltip:AddIcon ([[Interface\AddOns\TomTom\Images\Arrow.blp]], 1, 1, 16, 14, 0, 56/512, 0, 43/512, "lightgreen")
+					
+					GameCooltip:AddLine (L["S_ENABLED"], "", 2)
+					GameCooltip:AddMenu (2, options_on_click, "tomtom-enabled", not WorldQuestTracker.db.profile.tomtom.enabled)
+					if (WorldQuestTracker.db.profile.tomtom.enabled) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					
+					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TOMTOM_WPPERSISTENT"], "", 2)
+					GameCooltip:AddMenu (2, options_on_click, "tomtom-persistent", not WorldQuestTracker.db.profile.tomtom.persistent)
+					if (WorldQuestTracker.db.profile.tomtom.persistent) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+				end
+				--
+				
 				GameCooltip:AddLine ("$div")
+				
+				--
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_REFRESH"])
+				GameCooltip:AddMenu (1, options_on_click, "clear_quest_cache", true)
+				GameCooltip:AddIcon ([[Interface\GLUES\CharacterSelect\CharacterUndelete]], 1, 1, 16, 16, .2, .8, .2, .8)
 				--
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_UNTRACKQUESTS"])
 				GameCooltip:AddMenu (1, options_on_click, "untrack_quests", true)
@@ -3418,7 +3502,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:SetOption ("IconBlendMode", "ADD")
 				GameCooltip:SetOption ("SubFollowButton", true)
 				
-
+				
 				--
 			end
 			
@@ -4021,9 +4105,42 @@ function WorldQuestTracker.IsQuestBeingTracked (questID)
 	return
 end
 
+--tomtom track options
+--persistent
+--minimap
+--world
+--crazy
+--cleardistance
+--arrivaldistance
+
+function WorldQuestTracker.AddQuestTomTom (questID, mapID, noRemove)
+	local x, y = C_TaskQuest.GetQuestLocation (questID, mapID)
+	local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+	local alreadyExists = TomTom:WaypointMFExists (mapID, nil, x, y, title)
+	
+	if (alreadyExists and WorldQuestTracker.db.profile.tomtom.uids [questID]) then
+		if (noRemove) then
+			return
+		end
+		TomTom:RemoveWaypoint (WorldQuestTracker.db.profile.tomtom.uids [questID])
+		WorldQuestTracker.db.profile.tomtom.uids [questID] = nil
+		return
+	end
+	
+	if (not alreadyExists) then
+		local uid = TomTom:AddMFWaypoint (mapID, nil, x, y, {title=title, persistent=WorldQuestTracker.db.profile.tomtom.persistent})
+		WorldQuestTracker.db.profile.tomtom.uids [questID] = uid
+	end
+	return
+end
+
 --adiciona uma quest ao tracker
 function WorldQuestTracker.AddQuestToTracker (self)
 	local questID = self.questID
+	
+	if (WorldQuestTracker.db.profile.tomtom.enabled and TomTom and IsAddOnLoaded ("TomTom")) then
+		return WorldQuestTracker.AddQuestTomTom (self.questID, self.mapID)
+	end
 	
 	if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
 		return
@@ -4622,7 +4739,7 @@ function WorldQuestTracker:PLAYER_STOPPED_MOVING()
 	playerIsMoving = false
 end
 
--- ~trackertick ~trackeronupdate ~tick ~onupdate
+-- ~trackertick ~trackeronupdate ~tick ~onupdate ~ontick õntick õnupdate
 local TrackerOnTick = function (self, deltaTime)
 	if (Sort_currentMapID ~= GetCurrentMapAreaID()) then
 		self.Arrow:SetAlpha (.3)
