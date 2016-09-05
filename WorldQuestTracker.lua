@@ -1187,6 +1187,7 @@ local GameTooltipFrame = CreateFrame ("GameTooltip", "WorldQuestTrackerScanToolt
 local GameTooltipFrameTextLeft1 = _G ["WorldQuestTrackerScanTooltipTextLeft2"]
 local GameTooltipFrameTextLeft2 = _G ["WorldQuestTrackerScanTooltipTextLeft3"]
 local GameTooltipFrameTextLeft3 = _G ["WorldQuestTrackerScanTooltipTextLeft4"]
+local GameTooltipFrameTextLeft4 = _G ["WorldQuestTrackerScanTooltipTextLeft5"]
 
 --GameTooltip_ShowCompareItem(GameTooltip);
 --EmbeddedItemTooltip_SetItemByQuestReward(self, questLogIndex, questID)
@@ -1201,11 +1202,17 @@ end
 function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 	GameTooltipFrame:SetOwner (WorldFrame, "ANCHOR_NONE")
 	GameTooltipFrame:SetHyperlink (itemLink)
+	
 	local text = GameTooltipFrameTextLeft1:GetText()
 	if (text:match ("|cFFE6CC80")) then
-		--local power = GameTooltipFrameTextLeft3:GetText():match ("%d.-%s") or 0 - problemas com pontuação
 		local power = GameTooltipFrameTextLeft3:GetText():gsub ("%p", ""):match ("%d+")
-
+		power = tonumber (power)
+		return true, power or 0
+	end
+	
+	local text2 = GameTooltipFrameTextLeft2:GetText() --thanks @Prejudice182 on curseforge
+	if (text2:match ("|cFFE6CC80")) then
+		local power = GameTooltipFrameTextLeft4:GetText():gsub ("%p", ""):match ("%d+")
 		power = tonumber (power)
 		return true, power or 0
 	end
