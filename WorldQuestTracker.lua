@@ -4247,6 +4247,7 @@ C_Timer.After (10, function()
 end)
 
 --da refresh na ancora do screen panel
+--enUS - refresh the track positioning on the player screen
 function WorldQuestTracker.RefreshAnchor()
 
 	WorldQuestTrackerScreenPanel:ClearAllPoints()
@@ -4258,7 +4259,8 @@ function WorldQuestTracker.RefreshAnchor()
 		--it automatically anchors to MinimapCluster frame.
 		--so the solution we've found was to get the screen position of the MoveAnything frame and anchor our frame to UIParent.
 		
-		if (relativeTo:GetName() == "ObjectiveTrackerFrameMover") then
+		--if (relativeTo:GetName() == "ObjectiveTrackerFrameMover") then
+		if (IsAddOnLoaded("MoveAnything") and (relativeTo:GetName() == "ObjectiveTrackerFrameMover")) then -- (check if MA is lodaded - thanks @liquidbase on WoWUI)
 			local top, left = ObjectiveTrackerFrameMover:GetTop(), ObjectiveTrackerFrameMover:GetLeft()
 			WorldQuestTrackerScreenPanel:SetPoint ("top", UIParent, "top", 0, (yOfs - WorldQuestTracker.TrackerHeight - 20) - abs (top-GetScreenHeight()))
 			WorldQuestTrackerScreenPanel:SetPoint ("left", UIParent, "left", -10 + xOfs + left, 0)
