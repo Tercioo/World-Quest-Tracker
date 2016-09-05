@@ -310,6 +310,8 @@ WorldQuestTracker.AllTaskPOIs = {}
 WorldQuestTracker.JustAddedToTracker = {}
 WorldQuestTracker.Cache_ShownQuestOnWorldMap = {}
 WorldQuestTracker.WorldMapSupportWidgets = {}
+WorldQuestTracker.PartyQuestsPool = {}
+WorldQuestTracker.PartySharedQuests = {}
 WorldQuestTracker.CurrentMapID = 0
 WorldQuestTracker.LastWorldMapClick = 0
 WorldQuestTracker.MapSeason = 0
@@ -443,6 +445,143 @@ end
 
 --/run WorldQuestTrackerAddon.db.profile.arrow_update_frequence = .1; WorldQuestTrackerAddon.UpdateArrowFrequence()
 
+function WorldQuestTracker.IsPartyQuest (questID)
+	return WorldQuestTracker.PartySharedQuests [questID]
+end
+
+-- ~party ~share
+local CreatePartySharer = function()
+
+	local COMM_PREFIX = "WQTC"
+
+	local build_shared_quest_list = function()
+		--> conta quantas pessoes tem a mesma quest no grupo
+		local newList = {}
+		for guid, questList in pairs (WorldQuestTracker.PartyQuestsPool) do
+			for index, questID in ipairs (questList) do
+				newList [questID] = (newList [questID] or 0) + 1
+			end
+		end
+		
+		--> remove as quests que possuem menos gente que o total de pessoas no grupo
+		local groupMembers = GetNumSubgroupMembers() + 1
+		for questID, amountPlayers in ipairs (newList) do
+			if (amountPlayers < groupMembers) then
+				newList [questID] = nil
+			end
+		end
+		
+		--> atualiza o container e os widgets
+		WorldQuestTracker.PartySharedQuests = newList
+		
+		if (WorldMapFrame and WorldMapFrame:IsShown()) then
+			if (WorldMapFrame.mapID == 1007 or GetCurrentMapAreaID() == 1007) then
+				WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, false) --noCache, showFade, isQuestFlaggedRecheck, forceCriteriaAnimation
+			else
+				if (is_broken_isles_map [GetCurrentMapAreaID()]) then
+					WorldQuestTracker.UpdateZoneWidgets()
+				end
+			end
+		end
+	end
+	
+	function WorldQuestTracker:CommReceived (_, data)
+		local QuestList = {LibStub ("AceSerializer-3.0"):Deserialize (data)}
+		QuestList = QuestList [2]
+		
+		local FromWho = QuestList.GUID
+		QuestList.GUID = nil
+		
+		WorldQuestTracker.PartyQuestsPool [FromWho] = QuestList
+		build_shared_quest_list()
+	end
+	WorldQuestTracker:RegisterComm (COMM_PREFIX, "CommReceived")
+
+	WorldQuestTracker.Sharer_LastSentUpdate = 0
+	WorldQuestTracker.Sharer_LastTimer = nil --
+	
+	--> fazendo em uma funcao separada para aplicar um delay antes de envia-las
+	local SendQuests = function()
+		--> pega a lista de quests
+		local ActiveQuests = WorldQuestTracker.SavedQuestList_GetList()
+		local list_to_send = {}
+		
+		--monta a tabela para ser enviada
+		for questID, expireAt in pairs (ActiveQuests) do
+			list_to_send [#list_to_send+1] = questID
+		end
+		
+		list_to_send.GUID = UnitGUID ("player")
+		
+		local data = LibStub ("AceSerializer-3.0"):Serialize (list_to_send)
+		WorldQuestTracker:SendCommMessage (COMM_PREFIX, data, "PARTY")
+	end
+	
+	local CanShareQuests = function()
+		if (UnitLevel ("player") < 110) then
+			return
+		elseif (not IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID)) then
+			return
+		end
+		local inInstance = IsInInstance()
+		if (inInstance) then
+			return
+		end
+		if (IsInRaid() or not IsInGroup (LE_PARTY_CATEGORY_HOME)) then
+			return
+		end
+		if (not LibStub ("AceSerializer-3.0")) then
+			return
+		end
+		
+		return true
+	end
+	
+	local group_changed = function()
+		if (CanShareQuests()) then
+			--> manda as quests que nos temos para os membros da party
+			if (WorldQuestTracker.Sharer_LastSentUpdate+10 < GetTime()) then --ja passou 1 min des do ultimo update
+				--> manda as quests depois de 1 segundo
+				C_Timer.After (1, SendQuests)
+				WorldQuestTracker.Sharer_LastSentUpdate = GetTime()
+			else
+				--> se não passou ainda os 10 segundos, fazer ele agendar o update
+				if (WorldQuestTracker.Sharer_LastTimer) then
+					WorldQuestTracker.Sharer_LastTimer:Cancel()
+				end
+				local nextUpdate = (WorldQuestTracker.Sharer_LastSentUpdate + 10) - GetTime()
+				WorldQuestTracker.Sharer_LastTimer = C_Timer.NewTimer (nextUpdate, SendQuests)
+			end
+		end
+	end
+	
+	function WorldQuestTracker:GROUP_JOINED()
+		WorldQuestTracker.InGroup = true
+		group_changed()
+	end
+	function WorldQuestTracker:GROUP_LEFT()
+		WorldQuestTracker.InGroup = nil
+		wipe (WorldQuestTracker.PartySharedQuests)
+		
+		if (WorldMapFrame and WorldMapFrame:IsShown()) then
+			if (WorldMapFrame.mapID == 1007 or GetCurrentMapAreaID() == 1007) then
+				WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, false) --noCache, showFade, isQuestFlaggedRecheck, forceCriteriaAnimation
+			else
+				if (is_broken_isles_map [GetCurrentMapAreaID()]) then
+					WorldQuestTracker.UpdateZoneWidgets()
+				end
+			end
+		end
+	end	
+	function WorldQuestTracker:GROUP_ROSTER_UPDATE()
+		group_changed()
+	end
+	
+	WorldQuestTracker:RegisterEvent ("GROUP_JOINED")
+	WorldQuestTracker:RegisterEvent ("GROUP_LEFT")
+	WorldQuestTracker:RegisterEvent ("GROUP_ROSTER_UPDATE")
+end
+
 function WorldQuestTracker:OnInit()
 	WorldQuestTracker.InitAt = GetTime()
 	WorldQuestTracker.LastMapID = GetCurrentMapAreaID()
@@ -464,6 +603,10 @@ function WorldQuestTracker:OnInit()
 		WorldQuestTracker.AllCharactersQuests_CleanUp()
 	end
 	WorldQuestTracker.db.RegisterCallback (WorldQuestTracker, "OnDatabaseShutdown", "CleanUpJustBeforeGoodbye") --more info at https://www.youtube.com/watch?v=GXFnT4YJLQo
+	
+	--
+	C_Timer.After (10, CreatePartySharer)
+	--
 	
 	local save_player_name = function()
 		local guid = UnitGUID ("player")
@@ -1347,7 +1490,7 @@ end
 function WorldQuestTracker.SavedQuestList_GetList()
 	return WorldQuestTracker.dbChr.ActiveQuests
 end
--- ~saved ~pool ~data
+-- ~saved ~pool ~data ~allquests ãll
 local map_seasons = {}
 function WorldQuestTracker.SavedQuestList_IsNew (questID)
 	if (WorldQuestTracker.MapSeason == 0) then
@@ -1715,11 +1858,18 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.timeBlipGreen:SetTexture ([[Interface\COMMON\Indicator-Green]])
 	button.timeBlipGreen:SetVertexColor (1, 1, 1)
 	button.timeBlipGreen:SetAlpha (.6)
-
-	--blip do indicador de tipo da quest
+	
+	--blip do indicador de tipo da quest (zone)
 	button.questTypeBlip = button:CreateTexture (nil, "OVERLAY", 2)
 	button.questTypeBlip:SetPoint ("topright", button, "topright", 3, 1)
 	button.questTypeBlip:SetSize (10, 10)
+	button.questTypeBlip:SetAlpha (.8)
+	
+	--blip do indicador de party share
+	button.partySharedBlip = button:CreateTexture (nil, "OVERLAY", 2)
+	button.partySharedBlip:SetPoint ("topleft", button, "topleft", -3, 1)
+	button.partySharedBlip:SetSize (10, 10)
+	button.partySharedBlip:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_party_sharedT]])
 	
 	--faixa com o tempo
 	button.bgFlag = button:CreateTexture (nil, "OVERLAY", 5)
@@ -1780,6 +1930,7 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.timeBlipYellow:SetDrawLayer ("overlay", 7)
 	button.timeBlipGreen:SetDrawLayer ("overlay", 7)
 	button.questTypeBlip:SetDrawLayer ("overlay", 7)
+	button.partySharedBlip:SetDrawLayer ("overlay", 7)
 
 	button.criteriaIndicator = criteriaIndicator
 	button.criteriaIndicatorGlow = criteriaIndicatorGlow
@@ -1969,6 +2120,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 --	self.criteriaIndicatorGlow:Hide()	
 	self.flagCriteriaMatchGlow:Hide()
 	self.questTypeBlip:Hide()
+	self.partySharedBlip:Hide()
 	
 	self.isSelected = selected
 	self.isCriteria = isCriteria
@@ -2025,6 +2177,11 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 			
 		else
 			self.questTypeBlip:Hide()
+		end
+		
+		--shared quest (zone)
+		if (WorldQuestTracker.IsPartyQuest (questID)) then
+			self.partySharedBlip:Show()
 		end
 		
 		-- tempo restante
@@ -5750,6 +5907,13 @@ local create_worldmap_square = function (mapName, index)
 	button.questTypeBlip:SetPoint ("topright", button, "topright", 2, 1)
 	button.questTypeBlip:SetSize (12, 12)
 	
+	--> shared on party (world map)
+	button.partySharedBlip = button:CreateTexture (nil, "OVERLAY", 2)
+	button.partySharedBlip:SetPoint ("topleft", button, "topleft", -4, 4)
+	button.partySharedBlip:SetSize (12, 12)
+	button.partySharedBlip:SetAlpha (.85)
+	button.partySharedBlip:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_party_sharedT]])
+	
 	local amountText = button:CreateFontString (nil, "overlay", "GameFontNormal", 1)
 	amountText:SetPoint ("top", button, "bottom", 1, 0)
 	DF:SetFontSize (amountText, 9)
@@ -5856,7 +6020,22 @@ end
 
 --cria os widgets do world map
 --esta criando logo na leitura do addon
+
+local schedule_blip_creation = function (timerObject)
+	local configTable, line, mapName = timerObject.configTable, timerObject.line, timerObject.mapName
+	
+	local x = 2
+	for i = 1, 20 do
+		local button = create_worldmap_square (mapName, i)
+		button:SetPoint (configTable.squarePoints.mySide, line, configTable.squarePoints.anchorSide, x*configTable.squarePoints.xDirection, configTable.squarePoints.y)
+		button:Hide()
+		x = x + WORLDMAP_SQUARE_SIZE + 1
+		tinsert (configTable.widgets, button)
+	end
+end
+
 local create_world_widgets = function()
+	local n = .1
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		local mapName = GetMapNameByID (mapId)
 		local line, blip, factionFrame = create_worldmap_line (configTable.worldMapLocation.lineWidth, mapId)
@@ -5890,6 +6069,12 @@ local create_world_widgets = function()
 		configTable.factionFrame = factionFrame
 		configTable.line = line
 		
+--		local create_timer = C_Timer.NewTimer (n, schedule_blip_creation)
+--		create_timer.configTable = configTable
+--		create_timer.line = line
+--		create_timer.mapName = mapName
+
+--[	
 		local x = 2
 		for i = 1, 20 do
 			local button = create_worldmap_square (mapName, i)
@@ -5898,9 +6083,46 @@ local create_world_widgets = function()
 			x = x + WORLDMAP_SQUARE_SIZE + 1
 			tinsert (configTable.widgets, button)
 		end
+--]]
+		n = n + .1
 	end
+	
+	--print ("criado!")
 end
-C_Timer.After (1, create_world_widgets)
+--C_Timer.After (1, create_world_widgets)
+create_world_widgets()
+
+if (IsAddOnLoaded ("ElvUI")) then
+	C_Timer.After (1, function()
+		for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
+			local line = configTable.line
+			
+			if (ElvUI and ElvDB and IsAddOnLoaded ("ElvUI")) then
+				if (not ElvDB.global.general.smallerWorldMap and not WorldMapFrame_InWindowedMode() and not WorldQuestTracker.InFullScreenMode) then
+					--fullscreen
+					line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
+					line:SetWidth (configTable.worldMapLocationMax.lineWidth)
+				elseif (WorldMapFrameSizeUpButton:IsShown()) then
+					--normal size
+					line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocation.x, configTable.worldMapLocation.y)
+					line:SetWidth (configTable.worldMapLocation.lineWidth)
+				elseif (WorldMapFrameSizeDownButton:IsShown()) then
+					--centralized
+					line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMaxElvUI.x, configTable.worldMapLocationMaxElvUI.y)
+					line:SetWidth (configTable.worldMapLocationMaxElvUI.lineWidth)
+				end
+			else
+				if (WorldQuestTracker.InWindowMode) then
+					line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocation.x, configTable.worldMapLocation.y)
+					line:SetWidth (configTable.worldMapLocation.lineWidth)
+				else
+					line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
+					line:SetWidth (configTable.worldMapLocationMax.lineWidth)
+				end
+			end
+		end
+	end)
+end
 
 --agenda uma atualização nos widgets do world map caso os dados das quests estejam indisponíveis
 local do_worldmap_update = function()
@@ -5984,6 +6206,9 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 			C_Timer.After (3, re_check_for_questcompleted)
 		end
 		return
+		
+	--elseif () then
+	--	return
 	end
 	
 	WorldQuestTracker.RefreshStatusBar()
@@ -6151,6 +6376,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 								widget.timeBlipOrange:Hide()
 								widget.timeBlipYellow:Hide()
 								widget.timeBlipGreen:Hide()
+								widget.partySharedBlip:Hide()
 							
 								if (widget.lastQuestID == questID and not noCache) then
 									--precisa apenas atualizar o tempo
@@ -6200,6 +6426,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 									elseif (widget.QuestType == QUESTTYPE_RESOURCE) then
 										total_Resources = total_Resources + widget.Amount
 										tinsert (WorldQuestTracker.Cache_ShownQuestOnWorldMap [WQT_QUESTTYPE_RESOURCE], questID)
+									end
+									
+									--party shared (world)
+									if (WorldQuestTracker.IsPartyQuest (questID)) then
+										widget.partySharedBlip:Show()
 									end
 
 								else
@@ -6267,6 +6498,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										widget.questTypeBlip:SetAlpha (.85)
 									else
 										widget.questTypeBlip:Hide()
+									end
+									
+									--party shared (world)
+									if (WorldQuestTracker.IsPartyQuest (questID)) then
+										widget.partySharedBlip:Show()
 									end
 									
 									local okey = false

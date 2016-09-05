@@ -11,6 +11,7 @@
 	<Include file="AceConfig-3.0\AceConfig-3.0.xml"/>
 	<Include file="AceEvent-3.0\AceEvent-3.0.xml"/>
 	<Include file="AceComm-3.0\AceComm-3.0.xml" />
+	<Include file="AceSerializer-3.0\AceSerializer-3.0.xml" />
 	<Include file="LibSharedMedia-3.0\lib.xml" />
 	<Include file="AceConsole-3.0\AceConsole-3.0.xml"/>
 	<Include file="AceSerializer-3.0\AceSerializer-3.0.xml"/>
