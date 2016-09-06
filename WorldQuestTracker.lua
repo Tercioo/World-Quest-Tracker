@@ -18,9 +18,9 @@ if (true) then
 	--return - nah, not today
 end
 
---219978
-
---TaskPOI_OnClick
+-- 219978
+-- /run SetSuperTrackedQuestID(44033);
+-- TaskPOI_OnClick
  
 do
 	--register things we'll use
@@ -165,6 +165,7 @@ local default_config = {
 		map_lock = false,
 		enable_doubletap = false,
 		sound_enabled = true,
+		use_tracker = true,
 		history = {
 			reward = {
 				global = {},
@@ -987,6 +988,7 @@ local questButton_OnLeave = function	(self)
 end
 
 --ao clicar no botão de uma quest na zona ou no world map, colocar para trackear ela
+-- õnclick ~onclick
 local questButton_OnClick = function (self, button)
 
 	if (WorldQuestTracker.CanLinkToChat (self, button)) then
@@ -997,6 +999,17 @@ local questButton_OnClick = function (self, button)
 		--print ("zi")
 	--	ZGV:SuggestWorldQuestGuide (self)
 	--end
+	
+	if (not WorldQuestTracker.db.profile.use_tracker or IsShiftKeyDown()) then
+		TaskPOI_OnClick (self, button)
+		
+		if (self.IsZoneQuestButton) then
+			WorldQuestTracker.UpdateZoneWidgets()
+		else
+			WorldQuestTracker.CanShowWorldMapWidgets (true)
+		end
+		return
+	end
 	
 	WorldQuestTracker.OnQuestClicked (self, button)
 	
@@ -2206,13 +2219,22 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 			self.criteriaIndicatorGlow:Hide()
 		end
 		
-		if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
-			if (rarity == LE_WORLD_QUEST_QUALITY_RARE or rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
-				self.IsTrackingRareGlow:Show()
+		if (not WorldQuestTracker.db.profile.use_tracker) then
+			if (WorldQuestTracker.IsQuestOnObjectiveTracker (questID)) then
+				if (rarity == LE_WORLD_QUEST_QUALITY_RARE or rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
+					self.IsTrackingRareGlow:Show()
+				end
+				self.IsTrackingGlow:Show()
 			end
-			self.IsTrackingGlow:Show()
-		end
-		
+		else
+			if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
+				if (rarity == LE_WORLD_QUEST_QUALITY_RARE or rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
+					self.IsTrackingRareGlow:Show()
+				end
+				self.IsTrackingGlow:Show()
+			end
+		end		
+
 		if (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
 			self.questTypeBlip:Show()
 			self.questTypeBlip:SetTexture ([[Interface\PVPFrame\Icon-Combat]])
@@ -2566,6 +2588,14 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			end)
 			--]]
 			
+			--> some addon is adding these words on the global namespace.
+			--> I trully believe that it's not intended at all, so let's just clear.
+			--> it is messing with the framework.
+			_G ["left"] = nil
+			_G ["right"] = nil
+			_G ["topleft"] = nil
+			_G ["topright"] = nil
+
 			local CooltipOnTop_WhenFullScreen = function()
 				if (not WorldMapFrame_InWindowedMode()) then
 					GameCooltipFrame1:SetParent (WorldMapFrame)
@@ -2721,7 +2751,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			local otherCharacters_Texture = DF:CreateImage (SummaryFrameUp, [[Interface\BUTTONS\AdventureGuideMicrobuttonAlert]], 16, 16, "artwork", {5/32, 27/32, 5/32, 27/32})
 			otherCharacters_Texture:SetPoint ("topleft", SummaryFrameUp, "topright", -220, -10)
 			otherCharacters_Texture:SetAlpha (.7)			
-			
+
 			local accountLifeTime = DF:CreateLabel (SummaryFrameUp, L["S_SUMMARYPANEL_LIFETIMESTATISTICS_ACCOUNT"] .. ":", TitleTemplate)
 			accountLifeTime:SetPoint ("left", accountLifeTime_Texture, "right", 2, 1)
 			SummaryFrameUp.AccountLifeTime_Gold = DF:CreateLabel (SummaryFrameUp, L["S_QUESTTYPE_GOLD"] .. ": %s")
@@ -3668,6 +3698,14 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (1, options_on_click, "sound_enabled", not WorldQuestTracker.db.profile.sound_enabled)
+				--
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_QUESTTRACKER"])
+				if (WorldQuestTracker.db.profile.use_tracker) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (1, options_on_click, "use_tracker", not WorldQuestTracker.db.profile.use_tracker)
 				--
 				GameCooltip:AddLine ("$div")
 				--
@@ -5328,6 +5366,7 @@ hooksecurefunc ("BonusObjectiveTracker_OnTaskCompleted", function (questID, xp, 
 	end
 end)
 
+-- ~blizzard objective tracker
 function WorldQuestTracker.IsQuestOnObjectiveTracker (quest)
 	local tracker = ObjectiveTrackerFrame
 	
@@ -6416,6 +6455,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	local total_Resources = 0
 	local total_APower = 0
 	
+	local isUsingTracker = WorldQuestTracker.db.profile.use_tracker
+	
 	wipe (WorldQuestTracker.Cache_ShownQuestOnWorldMap)
 	WorldQuestTracker.Cache_ShownQuestOnWorldMap [WQT_QUESTTYPE_GOLD] = {}
 	WorldQuestTracker.Cache_ShownQuestOnWorldMap [WQT_QUESTTYPE_RESOURCE] = {}
@@ -6510,11 +6551,19 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										widget.newIndicator:Hide()
 									end
 									
-									if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
-										widget.trackingGlowBorder:Show()
+									if (not isUsingTracker) then
+										if (WorldQuestTracker.IsQuestOnObjectiveTracker (questID)) then
+											widget.trackingGlowBorder:Show()
+										else
+											widget.trackingGlowBorder:Hide()
+										end
 									else
-										--widget.trackingGlowBorder:Hide()
-									end
+										if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
+											widget.trackingGlowBorder:Show()
+										else
+											--widget.trackingGlowBorder:Hide()
+										end
+									end									
 									
 									if (widget.QuestType == QUESTTYPE_ARTIFACTPOWER) then
 										total_APower = total_APower + widget.Amount
@@ -6575,12 +6624,20 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										widget.newIndicator:Hide()
 									end
 									
-									if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
-										widget.trackingGlowBorder:Show()
+									if (not isUsingTracker) then
+										if (WorldQuestTracker.IsQuestOnObjectiveTracker (questID)) then
+											widget.trackingGlowBorder:Show()
+										else
+											widget.trackingGlowBorder:Hide()
+										end
 									else
-										widget.trackingGlowBorder:Hide()
+										if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
+											widget.trackingGlowBorder:Show()
+										else
+											widget.trackingGlowBorder:Hide()
+										end
 									end
-									
+
 									WorldQuestTracker.SetTimeBlipColor (widget, timeLeft)
 									widget.amountBackground:SetWidth (32)
 									
