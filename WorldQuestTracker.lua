@@ -18,6 +18,8 @@ if (true) then
 	--return - nah, not today
 end
 
+--219978
+
 --TaskPOI_OnClick
  
 do
@@ -990,10 +992,10 @@ local questButton_OnClick = function (self, button)
 		return
 	end
 
-	if (ZGV) then
-		print ("zi")
-		ZGV:SuggestWorldQuestGuide (self)
-	end
+	--if (ZGV) then
+		--print ("zi")
+	--	ZGV:SuggestWorldQuestGuide (self)
+	--end
 	
 	WorldQuestTracker.OnQuestClicked (self, button)
 	
@@ -6064,7 +6066,7 @@ local create_world_widgets = function()
 		local mapName = GetMapNameByID (mapId)
 		local line, blip, factionFrame = create_worldmap_line (configTable.worldMapLocation.lineWidth, mapId)
 		
-		if (ElvUI and ElvDB and IsAddOnLoaded ("ElvUI")) then
+		if (ElvUI and ElvDB and IsAddOnLoaded ("ElvUI") and ElvDB.global and ElvDB.global.general) then
 			if (not ElvDB.global.general.smallerWorldMap and not WorldMapFrame_InWindowedMode() and not WorldQuestTracker.InFullScreenMode) then
 				--fullscreen
 				line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
@@ -6117,11 +6119,11 @@ end
 create_world_widgets()
 
 if (IsAddOnLoaded ("ElvUI")) then
-	C_Timer.After (1, function()
+	C_Timer.After (2, function()
 		for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 			local line = configTable.line
 			
-			if (ElvUI and ElvDB and IsAddOnLoaded ("ElvUI")) then
+			if (ElvUI and ElvDB and IsAddOnLoaded ("ElvUI") and ElvDB.global and ElvDB.global.general) then
 				if (not ElvDB.global.general.smallerWorldMap and not WorldMapFrame_InWindowedMode() and not WorldQuestTracker.InFullScreenMode) then
 					--fullscreen
 					line:SetPoint ("topleft", worldFramePOIs, "topleft", configTable.worldMapLocationMax.x, configTable.worldMapLocationMax.y)
