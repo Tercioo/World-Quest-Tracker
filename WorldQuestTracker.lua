@@ -489,33 +489,25 @@ local CreatePartySharer = function()
 		local QuestList = {LibStub ("AceSerializer-3.0"):Deserialize (data)}
 		QuestList = QuestList [2]
 		
-		local FromWho = QuestList.GUID
-		QuestList.GUID = nil
+		if (type (QuestList) == "string") then
+			if (QuestList == "L") then
+				WorldQuestTracker:GROUP_ROSTER_UPDATE()
+				return
+			end
+		end
 		
-		WorldQuestTracker.PartyQuestsPool [FromWho] = QuestList
-		build_shared_quest_list()
+		if (type (QuestList) == "table" and QuestList.GUID) then
+			local FromWho = QuestList.GUID
+			QuestList.GUID = nil
+			
+			WorldQuestTracker.PartyQuestsPool [FromWho] = QuestList
+			build_shared_quest_list()
+		end
 	end
 	WorldQuestTracker:RegisterComm (COMM_PREFIX, "CommReceived")
 
 	WorldQuestTracker.Sharer_LastSentUpdate = 0
 	WorldQuestTracker.Sharer_LastTimer = nil --
-	
-	--> fazendo em uma funcao separada para aplicar um delay antes de envia-las
-	local SendQuests = function()
-		--> pega a lista de quests
-		local ActiveQuests = WorldQuestTracker.SavedQuestList_GetList()
-		local list_to_send = {}
-		
-		--monta a tabela para ser enviada
-		for questID, expireAt in pairs (ActiveQuests) do
-			list_to_send [#list_to_send+1] = questID
-		end
-		
-		list_to_send.GUID = UnitGUID ("player")
-		
-		local data = LibStub ("AceSerializer-3.0"):Serialize (list_to_send)
-		WorldQuestTracker:SendCommMessage (COMM_PREFIX, data, "PARTY")
-	end
 	
 	local CanShareQuests = function()
 		if (UnitLevel ("player") < 110) then
@@ -537,8 +529,37 @@ local CreatePartySharer = function()
 		return true
 	end
 	
-	local group_changed = function()
+	--> fazendo em uma funcao separada para aplicar um delay antes de envia-las
+	local SendQuests = function()
+		if (not CanShareQuests()) then
+			return
+		end
+		
+		--> pega a lista de quests
+		local ActiveQuests = WorldQuestTracker.SavedQuestList_GetList()
+		local list_to_send = {}
+		
+		--monta a tabela para ser enviada
+		for questID, expireAt in pairs (ActiveQuests) do
+			list_to_send [#list_to_send+1] = questID
+		end
+		
+		list_to_send.GUID = UnitGUID ("player")
+		
+		local data = LibStub ("AceSerializer-3.0"):Serialize (list_to_send)
+		WorldQuestTracker:SendCommMessage (COMM_PREFIX, data, "PARTY")
+	end
+
+	local group_changed = function (loggedIn)
 		if (CanShareQuests()) then
+			if (loggedIn) then
+				--> precisa pedir as quests dos demais membros do grupo
+				--> pode dar return pois ele vai enviar para si mesmo
+				local data = LibStub ("AceSerializer-3.0"):Serialize ("L")
+				WorldQuestTracker:SendCommMessage (COMM_PREFIX, data, "PARTY")
+				return
+			end
+			
 			--> manda as quests que nos temos para os membros da party
 			if (WorldQuestTracker.Sharer_LastSentUpdate+10 < GetTime()) then --ja passou 1 min des do ultimo update
 				--> manda as quests depois de 1 segundo
@@ -556,6 +577,7 @@ local CreatePartySharer = function()
 	end
 	
 	function WorldQuestTracker:GROUP_JOINED()
+		--> é só quiando o jogador entra no grupo, nao dispara para os demais
 		WorldQuestTracker.InGroup = true
 		group_changed()
 	end
@@ -581,7 +603,7 @@ local CreatePartySharer = function()
 	WorldQuestTracker:RegisterEvent ("GROUP_LEFT")
 	WorldQuestTracker:RegisterEvent ("GROUP_ROSTER_UPDATE")
 	
-	group_changed()
+	group_changed (true)
 end
 
 function WorldQuestTracker:OnInit()
