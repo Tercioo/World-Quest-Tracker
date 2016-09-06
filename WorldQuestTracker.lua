@@ -465,7 +465,7 @@ local CreatePartySharer = function()
 		
 		--> remove as quests que possuem menos gente que o total de pessoas no grupo
 		local groupMembers = GetNumSubgroupMembers() + 1
-		for questID, amountPlayers in ipairs (newList) do
+		for questID, amountPlayers in pairs (newList) do
 			if (amountPlayers < groupMembers) then
 				newList [questID] = nil
 			end
@@ -580,6 +580,8 @@ local CreatePartySharer = function()
 	WorldQuestTracker:RegisterEvent ("GROUP_JOINED")
 	WorldQuestTracker:RegisterEvent ("GROUP_LEFT")
 	WorldQuestTracker:RegisterEvent ("GROUP_ROSTER_UPDATE")
+	
+	group_changed()
 end
 
 function WorldQuestTracker:OnInit()
