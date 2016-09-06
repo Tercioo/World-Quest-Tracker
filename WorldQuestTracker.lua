@@ -147,6 +147,7 @@ local default_config = {
 			[WQT_QUESTTYPE_PVP] = 2,
 			[WQT_QUESTTYPE_PETBATTLE] = 1,
 		},
+		sort_time_priority = false,
 		quests_tracked = {},
 		quests_all_characters = {},
 		syntheticMapIdList = {
@@ -1324,19 +1325,41 @@ end
 
 --seta a cor do blip do tempo de acordo com o tempo restante da quert
 function WorldQuestTracker.SetTimeBlipColor (self, timeLeft)
-	if (timeLeft < 30) then
+
+	local bracket_low = 30
+	local bracket_medium = 90
+	local bracket_high = 240
+
+	local timePriority = WorldQuestTracker.db.profile.sort_time_priority
+	if (timePriority) then
+		if (timePriority == 4) then
+			bracket_low = 120 --2hrs
+			bracket_medium = 180 --3hrs
+			bracket_high = 240 --4hrs
+		elseif (timePriority == 8) then
+			bracket_low = 180 --3hrs
+			bracket_medium = 360 --6hrs
+			bracket_high = 480 --8hrs
+		elseif (timePriority == 12) then
+			bracket_low = 240 --4hrs
+			bracket_medium = 480 --8hrs
+			bracket_high = 720 --12hrs
+		end
+	end
+
+	if (timeLeft < bracket_low) then
 		self.timeBlipRed:Show()
 		--TQueue:AddToQueue (self.timeBlipRed, false, false, false)
 		--blip:SetTexture ([[Interface\COMMON\Indicator-Red]])
 		--blip:SetVertexColor (1, 1, 1)
 		--blip:SetAlpha (1)
-	elseif (timeLeft < 90) then
+	elseif (timeLeft < bracket_medium) then
 		self.timeBlipOrange:Show()
 		--TQueue:AddToQueue (self.timeBlipOrange, false, false, false)
 		--blip:SetTexture ([[Interface\COMMON\Indicator-Yellow]])
 		--blip:SetVertexColor (1, .7, 0)
 		--blip:SetAlpha (.9)
-	elseif (timeLeft < 240) then
+	elseif (timeLeft < bracket_high) then
 		self.timeBlipYellow:Show()
 		--TQueue:AddToQueue (self.timeBlipYellow, false, false, false)
 		--blip:SetTexture ([[Interface\COMMON\Indicator-Yellow]])
@@ -3208,18 +3231,22 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					WorldQuestTracker.db.profile.sort_order [questType] = WorldQuestTracker.db.profile.sort_order [questType] + 1
 				end
 				
-				--[[
-				WorldQuestTracker.db.profile.sort_order [questType] = WQT_QUESTTYPE_MAX
-				if (currentIndex < WQT_QUESTTYPE_MAX) then
-					for i = 1, currentIndex-1 do
-						if (WorldQuestTracker.db.profile.sort_order [i] > currentIndex) then
-							WorldQuestTracker.db.profile.sort_order [i] = WorldQuestTracker.db.profile.sort_order [i] - 1
-						end
-					end
-				end
-				--]]
-				
 				GameCooltip:ExecFunc (sortButton)
+				
+				--atualiza as quests
+				if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
+				end
+			end
+			
+			local change_sort_timeleft_mode = function (_, _, amount)
+				if (WorldQuestTracker.db.profile.sort_time_priority == amount) then
+					WorldQuestTracker.db.profile.sort_time_priority = false
+				else
+					WorldQuestTracker.db.profile.sort_time_priority = amount
+				end
+				
+				GameCooltip:Hide()
 				
 				--atualiza as quests
 				if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
@@ -3255,6 +3282,37 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					
 					GameCooltip:AddMenu (1, change_sort_mode, type)
 				end
+				
+				--
+				GameCooltip:AddLine ("$div")
+				--
+				
+				GameCooltip:AddLine (L["S_MAPBAR_SORTORDER_TIMELEFTPRIORITY"])
+				GameCooltip:AddIcon ([[Interface\COMMON\mini-hourglass]], 1, 1, 16, 16)
+				
+				GameCooltip:AddLine (format (L["S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_OPTION"], 4), "", 2)
+				GameCooltip:AddMenu (2, change_sort_timeleft_mode, 4)
+				if (WorldQuestTracker.db.profile.sort_time_priority == 4) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				
+				GameCooltip:AddLine (format (L["S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_OPTION"], 8), "", 2)
+				GameCooltip:AddMenu (2, change_sort_timeleft_mode, 8)
+				if (WorldQuestTracker.db.profile.sort_time_priority == 8) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				
+				GameCooltip:AddLine (format (L["S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_OPTION"], 12), "", 2)
+				GameCooltip:AddMenu (2, change_sort_timeleft_mode, 12)
+				if (WorldQuestTracker.db.profile.sort_time_priority == 12) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end				
 			end
 			
 			sortButton.CoolTip = {
@@ -6256,6 +6314,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	local questsAvailable = {}
 	local needAnotherUpdate = false
 	local filters = WorldQuestTracker.db.profile.filters
+	local timePriority = WorldQuestTracker.db.profile.sort_time_priority and WorldQuestTracker.db.profile.sort_time_priority * 60 --4 8 12
 	
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		
@@ -6290,8 +6349,16 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 								needAnotherUpdate = true
 							end
 							
+							--~sort
 							local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
 							order = order or 1
+							
+							if (timePriority) then --timePriority já multiplicado por 60
+								if (timeLeft < timePriority) then
+									order = abs (timeLeft - 1000)
+								end
+							end
+							
 							if (filters [filter]) then
 								tinsert (questsAvailable [mapId], {questID, order, info.numObjectives})
 								shownQuests = shownQuests + 1
