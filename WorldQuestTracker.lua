@@ -1396,17 +1396,23 @@ function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 	GameTooltipFrame:SetHyperlink (itemLink)
 	
 	local text = GameTooltipFrameTextLeft1:GetText()
-	if (text:match ("|cFFE6CC80")) then
-		local power = GameTooltipFrameTextLeft3:GetText():gsub ("%p", ""):match ("%d+")
-		power = tonumber (power)
-		return true, power or 0
+	if (text and text:match ("|cFFE6CC80")) then
+		local power = GameTooltipFrameTextLeft3:GetText()
+		if (power) then
+			power = power:gsub ("%p", ""):match ("%d+")
+			power = tonumber (power)
+			return true, power or 0
+		end
 	end
 	
 	local text2 = GameTooltipFrameTextLeft2:GetText() --thanks @Prejudice182 on curseforge
-	if (text2:match ("|cFFE6CC80")) then
-		local power = GameTooltipFrameTextLeft4:GetText():gsub ("%p", ""):match ("%d+")
-		power = tonumber (power)
-		return true, power or 0
+	if (text2 and text2:match ("|cFFE6CC80")) then
+		local power = GameTooltipFrameTextLeft4:GetText()
+		if (power) then
+			power = power:gsub ("%p", ""):match ("%d+")
+			power = tonumber (power)
+			return true, power or 0
+		end
 	end
 end
 
