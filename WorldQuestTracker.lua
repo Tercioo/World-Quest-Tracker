@@ -4669,7 +4669,7 @@ function WorldQuestTracker.RefreshAnchor()
 		--so the solution we've found was to get the screen position of the MoveAnything frame and anchor our frame to UIParent.
 		
 		--if (relativeTo:GetName() == "ObjectiveTrackerFrameMover") then
-		if (IsAddOnLoaded("MoveAnything") and (relativeTo:GetName() == "ObjectiveTrackerFrameMover")) then -- (check if MA is lodaded - thanks @liquidbase on WoWUI)
+		if (IsAddOnLoaded("MoveAnything") and relativeTo and (relativeTo:GetName() == "ObjectiveTrackerFrameMover")) then -- (check if MA is lodaded - thanks @liquidbase on WoWUI)
 			local top, left = ObjectiveTrackerFrameMover:GetTop(), ObjectiveTrackerFrameMover:GetLeft()
 			WorldQuestTrackerScreenPanel:SetPoint ("top", UIParent, "top", 0, (yOfs - WorldQuestTracker.TrackerHeight - 20) - abs (top-GetScreenHeight()))
 			WorldQuestTrackerScreenPanel:SetPoint ("left", UIParent, "left", -10 + xOfs + left, 0)
@@ -4864,13 +4864,30 @@ local TrackerFrameOnLeave = function (self)
 	self.QuestInfomation.text = ""
 end
 
---pega um widget já criado ou cria um novo ~trackercreate
+local TrackerIconButtonOnEnter = function (self)
+	
+end
+local TrackerIconButtonOnLeave = function (self)
+	
+end
+local TrackerIconButtonOnClick = function (self, button)
+	SetSuperTrackedQuestID (self.questID)
+	WorldQuestTracker.RefreshTrackerWidgets()
+end
+local TrackerIconButtonOnMouseDown = function (self, button)
+	self.Icon:SetPoint ("topleft", self:GetParent(), "topleft", -12, -3)
+end
+local TrackerIconButtonOnMouseUp = function (self, button)
+	self.Icon:SetPoint ("topleft", self:GetParent(), "topleft", -13, -2)
+end
+
+--pega um widget já criado ou cria um novo ~trackercreate ~trackerwidget
 function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	if (TrackerWidgetPool [index]) then
 		return TrackerWidgetPool [index]
 	end
 	
-	local f = CreateFrame ("button", nil, WorldQuestTrackerFrame_QuestHolder)
+	local f = CreateFrame ("button", "WorldQuestTracker_Tracker" .. index, WorldQuestTrackerFrame_QuestHolder)
 	--f:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
 	--f:SetBackdropColor (0, 0, 0, .2)
 	f:SetSize (235, 30)
@@ -4915,20 +4932,56 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.Icon = f:CreateTexture (nil, "artwork")
 	f.Icon:SetPoint ("topleft", f, "topleft", -13, -2)
 	f.Icon:SetSize (16, 16)
-	f.RewardAmount = f:CreateFontString (nil, "overlay", "ObjectiveFont")
-	f.RewardAmount:SetTextColor (titleColor.r, titleColor.g, titleColor.b)
-	f.RewardAmount:SetPoint ("top", f.Icon, "bottom", 0, -2)
-	DF:SetFontSize (f.RewardAmount, 10)
 	
+	local IconButton = CreateFrame ("button", "$parentIconButton", f)
+	IconButton:SetSize (18, 18)
+	IconButton:SetPoint ("center", f.Icon, "center")
+	IconButton:SetScript ("OnEnter", TrackerIconButtonOnEnter)
+	IconButton:SetScript ("OnLeave", TrackerIconButtonOnLeave)
+	IconButton:SetScript ("OnClick", TrackerIconButtonOnClick)
+	IconButton:SetScript ("OnMouseDown", TrackerIconButtonOnMouseDown)
+	IconButton:SetScript ("OnMouseUp", TrackerIconButtonOnMouseUp)
+	IconButton.Icon = f.Icon
+	f.IconButton = IconButton
+--
 	f.Circle = f:CreateTexture (nil, "overlay")
-	--f.Circle:SetTexture ([[Interface\Store\Services]])
-	--f.Circle:SetTexCoord (395/1024, 446/1024, 945/1024, 997/1024)
 	f.Circle:SetTexture ([[Interface\Transmogrify\Transmogrify]])
 	f.Circle:SetTexCoord (381/512, 405/512, 93/512, 117/512)
 	f.Circle:SetSize (18, 18)
-	f.Circle:SetPoint ("center", f.Icon, "center")
+	--f.Circle:SetPoint ("center", f.Icon, "center")
+	f.Circle:SetPoint ("topleft", f, "topleft", -14, -1)
 	f.Circle:SetDesaturated (true)
 	f.Circle:SetAlpha (.7)
+	
+	f.RewardAmount = f:CreateFontString (nil, "overlay", "ObjectiveFont")
+	f.RewardAmount:SetTextColor (titleColor.r, titleColor.g, titleColor.b)
+	f.RewardAmount:SetPoint ("top", f.Circle, "bottom", 0, -2)
+	DF:SetFontSize (f.RewardAmount, 10)	
+	
+	f.Shadow = f:CreateTexture (nil, "BACKGROUND")
+	f.Shadow:SetSize (26, 26)
+	f.Shadow:SetPoint ("center", f.Circle, "center")
+	f.Shadow:SetTexture ([[Interface\PETBATTLES\BattleBar-AbilityBadge-Neutral]])
+	f.Shadow:SetAlpha (.3)
+	f.Shadow:SetDrawLayer ("BACKGROUND", -5)
+	
+	f.SuperTracked = f:CreateTexture (nil, "background")
+	f.SuperTracked:SetPoint ("center", f.Circle, "center")
+	f.SuperTracked:SetAlpha (1)
+	f.SuperTracked:SetTexture ([[Interface\Worldmap\UI-QuestPoi-IconGlow]])
+	f.SuperTracked:SetBlendMode ("ADD")
+	f.SuperTracked:SetSize (42, 42)
+	f.SuperTracked:SetDrawLayer ("BACKGROUND", -6)
+	f.SuperTracked:Hide()
+	
+	local highlight = IconButton:CreateTexture (nil, "highlight")
+	highlight:SetPoint ("center", f.Circle, "center")
+	highlight:SetAlpha (1)
+	highlight:SetTexture ([[Interface\Worldmap\UI-QuestPoi-NumberIcons]])
+	--highlight:SetTexCoord (167/256, 185/256, 103/256, 121/256) --low light
+	highlight:SetTexCoord (167/256, 185/256, 231/256, 249/256)
+	highlight:SetBlendMode ("ADD")
+	highlight:SetSize (14, 14)
 	
 	f.Arrow = f:CreateTexture (nil, "overlay")
 	f.Arrow:SetPoint ("right", f, "right", 0, 0)
@@ -5142,6 +5195,15 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				widget.Icon:SetMask ([[Interface\CharacterFrame\TempPortraitAlphaMask]])
 			end
 			widget.Icon:SetTexture (quest.rewardTexture)
+			widget.IconButton.questID = quest.questID
+			
+			if (GetSuperTrackedQuestID() == quest.questID) then
+				widget.SuperTracked:Show()
+				widget.Circle:SetDesaturated (false)
+			else
+				widget.SuperTracked:Hide()
+				widget.Circle:SetDesaturated (true)
+			end
 			
 			widget.RewardAmount:SetText (quest.rewardAmount)
 			
