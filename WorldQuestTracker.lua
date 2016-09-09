@@ -460,6 +460,26 @@ local CreatePartySharer = function()
 
 	local COMM_PREFIX = "WQTC"
 
+	local CanShareQuests = function()
+		if (UnitLevel ("player") < 110) then
+			return
+		elseif (not IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID)) then
+			return
+		end
+		local inInstance = IsInInstance()
+		if (inInstance) then
+			return
+		end
+		if (IsInRaid() or not IsInGroup (LE_PARTY_CATEGORY_HOME)) then
+			return
+		end
+		if (not LibStub ("AceSerializer-3.0")) then
+			return
+		end
+		
+		return true
+	end
+	
 	local build_shared_quest_list = function (noMapUpdate)
 		--> conta quantas pessoes tem a mesma quest no grupo
 		local newList = {}
@@ -496,16 +516,22 @@ local CreatePartySharer = function()
 		
 		if (WorldQuestTracker.PartyStarIcon) then
 			--> compara a quantidade de jogadores que já recebemos os dados com a quantidade de jogadores no grupo
-			if (playersAmount == groupMembers) then
-				WorldQuestTracker.PartyStarIcon:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_party_sharedT]])
-				WorldQuestTracker.PartyAmountText:SetText (playersAmount .. "/" .. groupMembers)
-				WorldQuestTracker.PartyAmountText:SetTextColor ("orange")
+			if (CanShareQuests()) then
+				if (playersAmount == groupMembers) then
+					WorldQuestTracker.PartyStarIcon:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_party_sharedT]])
+					WorldQuestTracker.PartyAmountText:SetText (playersAmount .. "/" .. groupMembers)
+					WorldQuestTracker.PartyAmountText:SetTextColor ("orange")
+				else
+					WorldQuestTracker.PartyStarIcon:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_party_shared_badT]])
+					WorldQuestTracker.PartyAmountText:SetText (playersAmount .. "/" .. groupMembers)
+					WorldQuestTracker.PartyAmountText:SetTextColor ("orangered")
+				end
+				WorldQuestTracker.PartyStarIcon:SetDesaturated (false)
 			else
-				WorldQuestTracker.PartyStarIcon:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_party_shared_badT]])
-				WorldQuestTracker.PartyAmountText:SetText (playersAmount .. "/" .. groupMembers)
-				WorldQuestTracker.PartyAmountText:SetTextColor ("orangered")
+				WorldQuestTracker.PartyStarIcon:SetDesaturated (true)
+				WorldQuestTracker.PartyAmountText:SetText (0)
+				WorldQuestTracker.PartyAmountText:SetTextColor (1, .7, .2, .85)
 			end
-			WorldQuestTracker.PartyStarIcon:SetDesaturated (false)
 		end
 
 	end
@@ -536,25 +562,7 @@ local CreatePartySharer = function()
 	WorldQuestTracker.Sharer_LastSentUpdate = 0
 	WorldQuestTracker.Sharer_LastTimer = nil --
 	
-	local CanShareQuests = function()
-		if (UnitLevel ("player") < 110) then
-			return
-		elseif (not IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID)) then
-			return
-		end
-		local inInstance = IsInInstance()
-		if (inInstance) then
-			return
-		end
-		if (IsInRaid() or not IsInGroup (LE_PARTY_CATEGORY_HOME)) then
-			return
-		end
-		if (not LibStub ("AceSerializer-3.0")) then
-			return
-		end
-		
-		return true
-	end
+
 	
 	--> fazendo em uma funcao separada para aplicar um delay antes de envia-las
 	local SendQuests = function()
@@ -625,6 +633,7 @@ local CreatePartySharer = function()
 		if (WorldQuestTracker.PartyStarIcon) then
 			WorldQuestTracker.PartyStarIcon:SetDesaturated (true)
 			WorldQuestTracker.PartyAmountText:SetText (0)
+			WorldQuestTracker.PartyAmountText:SetTextColor (1, .7, .2, .85)
 		end
 	end	
 	function WorldQuestTracker:GROUP_ROSTER_UPDATE()
@@ -3785,6 +3794,15 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 				GameCooltip:AddMenu (1, options_on_click, "use_tracker", not WorldQuestTracker.db.profile.use_tracker)
 				--
+				GameCooltip:AddLine (L["S_MAPBAR_AUTOWORLDMAP"])
+				if (WorldQuestTracker.db.profile.enable_doubletap) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (1, options_on_click, "enable_doubletap", not WorldQuestTracker.db.profile.enable_doubletap)
+				--
+
 				GameCooltip:AddLine ("$div")
 				--
 				
@@ -4012,7 +4030,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			
 			local partyText = DF:CreateLabel (partyFrame, L["S_PARTY"] .. ":", ResourceFontTemplate)
 			partyText:SetPoint ("left", partyStarIcon, "right", 2, 0)
-
+			
 			local partyTextAmount = DF:CreateLabel (partyFrame, "0", ResourceFontTemplate)
 			partyTextAmount:SetPoint ("left", partyText, "right", 2, 0)
 			WorldQuestTracker.PartyAmountText = partyTextAmount
