@@ -1838,6 +1838,8 @@ local clear_widget = function (self)
 	self.criteriaIndicator:Hide()
 	self.criteriaIndicatorGlow:Hide()
 	self.questTypeBlip:Hide()
+	self.partySharedBlip:Hide()
+	self.flagCriteriaMatchGlow:Hide()
 end
 
 -- ~zoneicon
@@ -5991,6 +5993,20 @@ local format_for_taxy_nozoom_tracked = function (button)
 	button.IsTrackingGlow:Show()
 	button.IsTrackingGlow:SetAlpha (.4)
 end
+local format_for_taxy_nozoom_all = function (button)
+	button:ClearWidget()
+
+	button:SetScale (WorldQuestTracker.db.profile.taxy_tracked_scale + 0.5)
+	button:SetWidth (20)
+	button:SetAlpha (.85)
+	
+	button.circleBorder:Show()
+	
+	if (WorldQuestTracker.IsQuestBeingTracked (button.questID)) then
+		button.IsTrackingGlow:Show()
+		button.IsTrackingGlow:SetAlpha (.4)
+	end
+end
 local format_for_taxy_nozoom_allquests = function (button)
 	button:ClearWidget()
 
@@ -6047,6 +6063,17 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 		checkboxShowTrackedOnly:SetPoint ("left", checkboxShowAllQuestsString, "right", 4, 0)
 		local checkboxShowTrackedOnlyString = DF:CreateLabel (checkboxShowTrackedOnly, L["S_FLYMAP_SHOWTRACKEDONLY"], 12, "orange", nil, "checkboxShowTrackedOnlyLabel", nil, "overlay")
 		checkboxShowTrackedOnlyString:SetPoint ("left", checkboxShowTrackedOnly, "right", 2, 0)
+		
+		if (not WorldQuestTracker.db.profile.TutorialTaxyMap) then
+			local alert = CreateFrame ("frame", "WorldQuestTrackerTaxyTutorial", checkboxShowTrackedOnly.widget, "MicroButtonAlertTemplate")
+			alert:SetFrameLevel (302)
+			alert.label = "Options are here, show all quests or only those being tracked"
+			alert.Text:SetSpacing (4)
+			MicroButtonAlert_SetText (alert, alert.label)
+			alert:SetPoint ("bottom", checkboxShowTrackedOnly.widget, "top", 0, 30)
+			alert:Show()
+			WorldQuestTracker.db.profile.TutorialTaxyMap = true
+		end
 	
 		hooksecurefunc (FlightMapFrame, "SetPinPosition", function (self, pin, normalizedX, normalizedY, insetIndex)
 			if (not pin.questID) then
@@ -6087,7 +6114,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				return
 			end
 			if (isShowingOnlyTracked) then
-				if (not WorldQuestTracker.IsQuestBeingTracked (pin.questID) and not hasZoom) then
+				if ((not WorldQuestTracker.IsQuestBeingTracked (pin.questID) and not WorldQuestTracker.IsQuestOnObjectiveTracker (pin.questID)) and not hasZoom) then
 					pin._WQT_Twin:Hide()
 					WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
 					pin._WQT_Twin.questID = nil
@@ -6112,14 +6139,19 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 					WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
 					format_for_taxy_nozoom_tracked (pin._WQT_Twin)
 				else
-					format_for_taxy_nozoom_allquests (pin._WQT_Twin)
+					--format_for_taxy_nozoom_allquests (pin._WQT_Twin)
+					WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
+					--format_for_taxy_nozoom_tracked (pin._WQT_Twin)
+					format_for_taxy_nozoom_all (pin._WQT_Twin)
 				end
+				pin._WQT_Twin.zoomState = nil
 			else
 				--tem zoom
-				if (not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
+				if (not pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
 					WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
 					format_for_taxy_zoom_allquests (pin._WQT_Twin)
 					pin._WQT_Twin.LastUpdate = GetTime()
+					pin._WQT_Twin.zoomState = true
 				end
 			end
 		end)
