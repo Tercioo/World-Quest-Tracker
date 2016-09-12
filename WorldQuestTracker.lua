@@ -332,6 +332,9 @@ WorldQuestTracker.lastMapTap = 0
 WorldQuestTracker.SoundPitch = math.random (2)
 
 local LibWindow = LibStub ("LibWindow-1.1")
+if (not LibWindow) then
+	print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
+end
 
 WorldQuestTracker.MAPID_DALARAN = 1014
 local MAPID_BROKENISLES = 1007
@@ -3803,6 +3806,11 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 				
 				if (option == "tracker_is_movable") then
+				
+					if (not LibWindow) then
+						print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
+					end
+				
 					if (value) then
 						--> o tracker agora é móvel
 						--verificar a opção se esta locked
@@ -5032,6 +5040,8 @@ function WorldQuestTracker.RefreshAnchor()
 			WorldQuestTrackerScreenPanel:EnableMouse (false)
 		end
 	
+		WorldQuestTrackerHeader:ClearAllPoints()
+		WorldQuestTrackerHeader:SetPoint ("bottom", WorldQuestTrackerFrame, "top", 0, -20)
 	end
 end
 
