@@ -59,9 +59,9 @@ local GetQuestLogIndexByID = GetQuestLogIndexByID
 local GetQuestTagInfo = GetQuestTagInfo
 local GetNumQuestLogRewards = GetNumQuestLogRewards
 local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
-local LE_WORLD_QUEST_QUALITY_COMMON = LE_WORLD_QUEST_QUALITY_COMMON
-local LE_WORLD_QUEST_QUALITY_RARE = LE_WORLD_QUEST_QUALITY_RARE
-local LE_WORLD_QUEST_QUALITY_EPIC = LE_WORLD_QUEST_QUALITY_EPIC
+--local LE_WORLD_QUEST_QUALITY_COMMON = LE_WORLD_QUEST_QUALITY_COMMON
+--local LE_WORLD_QUEST_QUALITY_RARE = LE_WORLD_QUEST_QUALITY_RARE
+--local LE_WORLD_QUEST_QUALITY_EPIC = LE_WORLD_QUEST_QUALITY_EPIC
 local GetQuestTimeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes
 
 local MapRangeClamped = DF.MapRangeClamped
@@ -166,6 +166,8 @@ local default_config = {
 		enable_doubletap = false,
 		sound_enabled = true,
 		use_tracker = true,
+		tracker_is_movable = false,
+		tracker_is_locked = false,
 		history = {
 			reward = {
 				global = {},
@@ -328,6 +330,8 @@ WorldQuestTracker.Temp_HideZoneWidgets = 0
 WorldQuestTracker.lastZoneWidgetsUpdate = 0
 WorldQuestTracker.lastMapTap = 0
 WorldQuestTracker.SoundPitch = math.random (2)
+
+local LibWindow = LibStub ("LibWindow-1.1")
 
 WorldQuestTracker.MAPID_DALARAN = 1014
 local MAPID_BROKENISLES = 1007
@@ -661,8 +665,27 @@ function WorldQuestTracker:OnInit()
 	C_Timer.After (2, function()
 		if (WorldQuestTracker.db:GetCurrentProfile() ~= "Default") then
 			WorldQuestTracker.db:SetProfile ("Default")
+			if (LibWindow) then
+				if (WorldQuestTracker.db:GetCurrentProfile() == "Default") then
+					LibWindow.RegisterConfig (WorldQuestTrackerScreenPanel, WorldQuestTracker.db.profile)
+					if (WorldQuestTracker.db.profile.tracker_is_movable) then
+						LibWindow.RestorePosition (WorldQuestTrackerScreenPanel)
+						WorldQuestTrackerScreenPanel.RegisteredForLibWindow = true
+					end
+				end
+			end
 		end
 	end)
+
+	if (LibWindow) then
+		if (WorldQuestTracker.db:GetCurrentProfile() == "Default") then
+			LibWindow.RegisterConfig (WorldQuestTrackerScreenPanel, WorldQuestTracker.db.profile)
+			if (WorldQuestTracker.db.profile.tracker_is_movable) then
+				LibWindow.RestorePosition (WorldQuestTrackerScreenPanel)
+				WorldQuestTrackerScreenPanel.RegisteredForLibWindow = true
+			end
+		end
+	end
 	
 	function WorldQuestTracker:CleanUpJustBeforeGoodbye()
 		WorldQuestTracker.AllCharactersQuests_CleanUp()
@@ -2516,7 +2539,7 @@ function WorldQuestTracker.ShowTutorialAlert()
 	
 	WorldQuestTracker.db.profile.AlertTutorialStep = WorldQuestTracker.db.profile.AlertTutorialStep or 1
 	
-	--WorldQuestTracker.db.profile.AlertTutorialStep = 4
+	--WorldQuestTracker.db.profile.AlertTutorialStep = 2
 	
 	if (WorldQuestTracker.db.profile.AlertTutorialStep == 1) then
 	
@@ -2546,10 +2569,10 @@ function WorldQuestTracker.ShowTutorialAlert()
 	elseif (WorldQuestTracker.db.profile.AlertTutorialStep == 2) then
 		local alert = CreateFrame ("frame", "WorldQuestTrackerTutorialAlert2", worldFramePOIs, "MicroButtonAlertTemplate")
 		alert:SetFrameLevel (302)
-		alert.label = L["S_TUTORIAL_AUTOWORLDMAP"]
+		alert.label = L["S_TUTORIAL_PARTY"]
 		alert.Text:SetSpacing (4)
 		MicroButtonAlert_SetText (alert, alert.label)
-		alert:SetPoint ("topleft", worldFramePOIs, "topleft", 263, -383)
+		alert:SetPoint ("topleft", worldFramePOIs, "topleft", 269, -397)
 		alert.CloseButton:HookScript ("OnClick", hook_AlertCloseButton)
 		alert.Arrow:ClearAllPoints()
 		alert.Arrow:SetPoint ("topleft", alert, "bottomleft", 10, 0)
@@ -2739,7 +2762,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			WorldQuestTracker.DoubleTapFrame = CreateFrame ("frame", "WorldQuestTrackerDoubleTapFrame", worldFramePOIs)
 			WorldQuestTracker.DoubleTapFrame:SetSize (1, 1)
 			--WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", worldFramePOIs, "bottomleft", 3, 3)
-			WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", WorldMapPOIFrame, "bottomleft", 0, 0)
+			--WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", WorldMapPOIFrame, "bottomleft", 0, 0) --zoom problems
+			WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", WorldMapFrame, "bottomleft", 0, 0) --thanks @InKahootz on curse forge
 			
 			---------------------------------------------------------
 			
@@ -3761,6 +3785,42 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					WorldQuestTracker.db.profile [option] = value
 				end
 			
+				if (option == "tracker_is_locked") then
+					--> só aparece esta opção quando o tracker esta móvel
+					if (WorldQuestTracker.db.profile.tracker_is_movable) then
+						if (value) then
+							--> o tracker agora esta trancado - desliga o mouse
+							WorldQuestTrackerScreenPanel:EnableMouse (false)
+							--LibWindow.MakeDraggable (WorldQuestTrackerScreenPanel)
+						else
+							--> o tracker agora está movel - liga o mouse
+							WorldQuestTrackerScreenPanel:EnableMouse (true)
+							LibWindow.MakeDraggable (WorldQuestTrackerScreenPanel)
+						end
+					end
+				end
+				
+				if (option == "tracker_is_movable") then
+					if (value) then
+						--> o tracker agora é móvel
+						--verificar a opção se esta locked
+						if (LibWindow and not WorldQuestTrackerScreenPanel.RegisteredForLibWindow) then
+							LibWindow.RestorePosition (WorldQuestTrackerScreenPanel)
+							WorldQuestTrackerScreenPanel.RegisteredForLibWindow = true
+						end
+						
+						WorldQuestTracker.RefreshAnchor()
+						if (not WorldQuestTracker.db.profile.tracker_is_locked) then
+							WorldQuestTrackerScreenPanel:EnableMouse (true)
+							LibWindow.MakeDraggable (WorldQuestTrackerScreenPanel)
+						end
+					else
+						--> o tracker agora auto alinha com o objective tracker
+						WorldQuestTracker.RefreshAnchor()
+						WorldQuestTrackerScreenPanel:EnableMouse (false)
+					end
+				end
+			
 				GameCooltip:ExecFunc (optionsButton)
 			end
 			
@@ -3801,6 +3861,41 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (1, options_on_click, "enable_doubletap", not WorldQuestTracker.db.profile.enable_doubletap)
+				--
+				GameCooltip:AddLine ("$div")
+				-- tracker movable
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_TITLE"])
+				GameCooltip:AddIcon ([[Interface\COMMON\UI-ModelControlPanel]], 1, 1, 16, 16, 20/64, 34/64, 38/128, 52/128)
+				--automatic
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_AUTO"], "", 2)
+				if (not WorldQuestTracker.db.profile.tracker_is_movable) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (2, options_on_click, "tracker_is_movable", false)
+				--manual
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_CUSTOM"], "", 2)
+				if (WorldQuestTracker.db.profile.tracker_is_movable) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (2, options_on_click, "tracker_is_movable", true)
+				
+				GameCooltip:AddLine ("$div", "", 2)
+				
+				if (WorldQuestTracker.db.profile.tracker_is_movable) then
+					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED"], "", 2)
+				else
+					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED"], "", 2, "gray")
+				end
+				if (WorldQuestTracker.db.profile.tracker_is_locked) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (2, options_on_click, "tracker_is_locked", not WorldQuestTracker.db.profile.tracker_is_locked)
 				--
 
 				GameCooltip:AddLine ("$div")
@@ -3883,7 +3978,6 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_SHARE"])
 				GameCooltip:AddIcon ("Interface\\FriendsFrame\\WowshareTextures.BLP", nil, 1, 14, 11, 122/256, 138/256, 167/256, 180/256)
-				--GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_SHARE_DESC"], nil, 2)
 				GameCooltip:AddMenu (1, options_on_click, "share_addon", true)
 				--
 				
@@ -4591,23 +4685,6 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				partyStar2:SetPoint ("left", partyStar, "right", 6, 0)
 				DF:SetFontSize (partyStar2, 12)
 				partyStar2:SetText ("A blue star indicates all party members have this quest as well (if they have world quest tracker installed).")
-				
-				--disable auto world map
-				--[[
-				local checkboxDoubleTap = DF:CreateSwitch (tutorialFrame, function()end, WorldQuestTracker.db.profile.enable_doubletap, nil, nil, nil, nil, "checkboxDoubleTap1")
-				checkboxDoubleTap:SetTemplate (DF:GetTemplate ("switch", "OPTIONS_CHECKBOX_TEMPLATE"))
-				checkboxDoubleTap:SetAsCheckBox()
-				checkboxDoubleTap:SetSize (24, 24)
-				checkboxDoubleTap.tooltip = L["S_MAPBAR_AUTOWORLDMAP_DESC"]
-				checkboxDoubleTap:SetPoint ("topright", texture, "topright", 51, -272)
-				local doubleTapText = DF:CreateLabel (checkboxDoubleTap, "Auto World Map", 14, "orange", nil, "checkboxDoubleTapLabel", nil, "overlay")
-				doubleTapText:SetPoint ("left", checkboxDoubleTap, "right", 2, 0)
-				
-				local checkboxDoubleTapLabel = tutorialFrame:CreateFontString (nil, "overlay", "GameFontNormal")
-				checkboxDoubleTapLabel:SetPoint ("left", doubleTapText.widget, "right", 6, 0)
-				DF:SetFontSize (checkboxDoubleTapLabel, 12)
-				checkboxDoubleTapLabel:SetText (L["S_TUTORIAL_AUTOWORLDMAP2"])
-				--]]
 			end
 			
 			WorldQuestTracker.ShowTutorialPanel()
@@ -4699,7 +4776,7 @@ function WorldQuestTracker.AddQuestToTracker (self)
 			tinsert (WorldQuestTracker.QuestTrackList, {
 				questID = questID, 
 				mapID = mapID, 
-				mapIDSynthetic = WorldQuestTracker.db.profile.syntheticMapIdList [mapID], 
+				mapIDSynthetic = WorldQuestTracker.db.profile.syntheticMapIdList [mapID] or 0,
 				timeAdded = time(), 
 				timeFraction = GetTime(), 
 				timeLeft = timeLeft, 
@@ -4846,10 +4923,12 @@ function WorldQuestTracker.ReorderQuestsOnTracker()
 	table.sort (WorldQuestTracker.QuestTrackList, Sort_QuestsOnTracker)
 end
 
---parent frame na UIParent
+--parent frame na UIParent ~trackerframe
 --esse frame é quem vai ser anexado ao tracker da blizzard
 local WorldQuestTrackerFrame = CreateFrame ("frame", "WorldQuestTrackerScreenPanel", UIParent)
 WorldQuestTrackerFrame:SetSize (235, 500)
+--WorldQuestTrackerFrame:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
+
 
 local WorldQuestTrackerFrame_QuestHolder = CreateFrame ("frame", "WorldQuestTrackerScreenPanel_QuestHolder", WorldQuestTrackerFrame)
 WorldQuestTrackerFrame_QuestHolder:SetAllPoints()
@@ -4913,34 +4992,45 @@ end)
 --enUS - refresh the track positioning on the player screen
 function WorldQuestTracker.RefreshAnchor()
 
-	WorldQuestTrackerScreenPanel:ClearAllPoints()
+	if (not WorldQuestTracker.db.profile.tracker_is_movable) then
+		WorldQuestTrackerScreenPanel:ClearAllPoints()
 
-	for i = 1, ObjectiveTrackerFrame:GetNumPoints() do
-		local point, relativeTo, relativePoint, xOfs, yOfs = ObjectiveTrackerFrame:GetPoint (i)
-		
-		--note: we're probably missing something here, when the frame anchors to MoveAnything frame 'ObjectiveTrackerFrameMover', 
-		--it automatically anchors to MinimapCluster frame.
-		--so the solution we've found was to get the screen position of the MoveAnything frame and anchor our frame to UIParent.
-		
-		--if (relativeTo:GetName() == "ObjectiveTrackerFrameMover") then
-		if (IsAddOnLoaded("MoveAnything") and relativeTo and (relativeTo:GetName() == "ObjectiveTrackerFrameMover")) then -- (check if MA is lodaded - thanks @liquidbase on WoWUI)
-			local top, left = ObjectiveTrackerFrameMover:GetTop(), ObjectiveTrackerFrameMover:GetLeft()
-			WorldQuestTrackerScreenPanel:SetPoint ("top", UIParent, "top", 0, (yOfs - WorldQuestTracker.TrackerHeight - 20) - abs (top-GetScreenHeight()))
-			WorldQuestTrackerScreenPanel:SetPoint ("left", UIParent, "left", -10 + xOfs + left, 0)
-		else
-			WorldQuestTrackerScreenPanel:SetPoint (point, relativeTo, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
+		for i = 1, ObjectiveTrackerFrame:GetNumPoints() do
+			local point, relativeTo, relativePoint, xOfs, yOfs = ObjectiveTrackerFrame:GetPoint (i)
+			
+			--note: we're probably missing something here, when the frame anchors to MoveAnything frame 'ObjectiveTrackerFrameMover', 
+			--it automatically anchors to MinimapCluster frame.
+			--so the solution we've found was to get the screen position of the MoveAnything frame and anchor our frame to UIParent.
+			
+			--if (relativeTo:GetName() == "ObjectiveTrackerFrameMover") then
+			if (IsAddOnLoaded("MoveAnything") and relativeTo and (relativeTo:GetName() == "ObjectiveTrackerFrameMover")) then -- (check if MA is lodaded - thanks @liquidbase on WoWUI)
+				local top, left = ObjectiveTrackerFrameMover:GetTop(), ObjectiveTrackerFrameMover:GetLeft()
+				WorldQuestTrackerScreenPanel:SetPoint ("top", UIParent, "top", 0, (yOfs - WorldQuestTracker.TrackerHeight - 20) - abs (top-GetScreenHeight()))
+				WorldQuestTrackerScreenPanel:SetPoint ("left", UIParent, "left", -10 + xOfs + left, 0)
+			else
+				WorldQuestTrackerScreenPanel:SetPoint (point, relativeTo, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
+			end
+			
+			--print where the frame is setting its potision
+			--print ("SETTING POS ON:", point, relativeTo:GetName(), relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
 		end
-		
-		--print where the frame is setting its potision
-		--print ("SETTING POS ON:", point, relativeTo:GetName(), relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
+
+		--print where the frame was anchored, weird thing happens if we set the anchor to a MoveAnything frame
+		--local point, relativeTo, relativePoint, xOfs, yOfs = WorldQuestTrackerScreenPanel:GetPoint (1)
+		--print ("SETTED AT", point, relativeTo:GetName(), relativePoint, xOfs, yOfs)
+
+		WorldQuestTrackerHeader:ClearAllPoints()
+		WorldQuestTrackerHeader:SetPoint ("bottom", WorldQuestTrackerFrame, "top", 0, -20)
+	else
+		--> se estiver destrancado, ativar o mouse
+		if (not WorldQuestTracker.db.profile.tracker_is_locked and WorldQuestTrackerScreenPanel.RegisteredForLibWindow) then
+			WorldQuestTrackerScreenPanel:EnableMouse (true)
+			LibWindow.MakeDraggable (WorldQuestTrackerScreenPanel)
+		else
+			WorldQuestTrackerScreenPanel:EnableMouse (false)
+		end
+	
 	end
-
-	--print where the frame was anchored, weird thing happens if we set the anchor to a MoveAnything frame
-	--local point, relativeTo, relativePoint, xOfs, yOfs = WorldQuestTrackerScreenPanel:GetPoint (1)
-	--print ("SETTED AT", point, relativeTo:GetName(), relativePoint, xOfs, yOfs)
-
-	WorldQuestTrackerHeader:ClearAllPoints()
-	WorldQuestTrackerHeader:SetPoint ("bottom", WorldQuestTrackerFrame, "top", 0, -20)	
 end
 
 --quando um widget for clicado, mostrar painel com opção para parar de trackear
