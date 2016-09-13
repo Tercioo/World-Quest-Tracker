@@ -2763,12 +2763,19 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			WorldQuestButton:HookScript ("PreClick", deny_auto_switch)
 			WorldQuestButton:HookScript ("PostClick", allow_map_change)
 			
-			--avisar sobre duplo tap
+			--avisar sobre duplo tap 
+			-- ~bar ~statusbar
 			WorldQuestTracker.DoubleTapFrame = CreateFrame ("frame", "WorldQuestTrackerDoubleTapFrame", worldFramePOIs)
 			WorldQuestTracker.DoubleTapFrame:SetSize (1, 1)
-			--WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", worldFramePOIs, "bottomleft", 3, 3)
-			--WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", WorldMapPOIFrame, "bottomleft", 0, 0) --zoom problems
-			WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", WorldMapFrame, "bottomleft", 0, 0) --thanks @InKahootz on curse forge
+			
+			--if (ElvUI and IsAddOnLoaded ("ElvUI")) then
+			--	WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", WorldMapScrollFrame, "bottomleft", 0, 0) --thanks @q3fuba on curse forge
+			--else
+			--	WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", WorldMapFrame, "bottomleft", 0, 0) --thanks @InKahootz on curse forge
+			--end
+			
+			--> looks like this one fix on elvui and without elvui
+			WorldQuestTracker.DoubleTapFrame:SetPoint ("bottomleft", WorldMapScrollFrame, "bottomleft", 0, 0) --thanks @q3fuba on curse forge
 			
 			---------------------------------------------------------
 			
@@ -5039,7 +5046,7 @@ function WorldQuestTracker.RefreshAnchor()
 		else
 			WorldQuestTrackerScreenPanel:EnableMouse (false)
 		end
-	
+		
 		WorldQuestTrackerHeader:ClearAllPoints()
 		WorldQuestTrackerHeader:SetPoint ("bottom", WorldQuestTrackerFrame, "top", 0, -20)
 	end
