@@ -5978,17 +5978,19 @@ end
 
 -- ~trackertick ~trackeronupdate ~tick ~onupdate ~ontick õntick õnupdate
 local TrackerOnTick = function (self, deltaTime)
-	if (Sort_currentMapID ~= GetCurrentMapAreaID()) then
-		self.Arrow:SetAlpha (.3)
-		self.Arrow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]])
-		self.Arrow:SetTexCoord (0, 1, 0, 1)
-		self.ArrowDistance:Hide()
-		self.Arrow.Frozen = true
-		return
-	elseif (self.Arrow.Frozen) then
-		self.Arrow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]])
-		self.ArrowDistance:Show()
-		self.Arrow.Frozen = nil
+	if (self.NextPositionUpdate < 0) then
+		if (Sort_currentMapID ~= GetCurrentMapAreaID()) then
+			self.Arrow:SetAlpha (.3)
+			self.Arrow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]])
+			self.Arrow:SetTexCoord (0, 1, 0, 1)
+			self.ArrowDistance:Hide()
+			self.Arrow.Frozen = true
+			return
+		elseif (self.Arrow.Frozen) then
+			self.Arrow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]])
+			self.ArrowDistance:Show()
+			self.Arrow.Frozen = nil
+		end
 	end
 	
 	local x, y = GetPlayerMapPosition ("player")
@@ -7617,20 +7619,20 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 			
 			if (shownQuests == 0) then
 				--hidar os widgets extras mque pertencem a zone sem quests
-				for o = 1, #WorldQuestTracker.WorldMapSupportWidgets [mapId] do
-					WorldQuestTracker.WorldMapSupportWidgets [mapId] [o]:Hide()
-				end
+				--for o = 1, #WorldQuestTracker.WorldMapSupportWidgets [mapId] do
+				--	WorldQuestTracker.WorldMapSupportWidgets [mapId] [o]:Hide()
+				--end
 			end
 		else
 			if (not taskInfo) then
 				needAnotherUpdate = true
 			elseif (#taskInfo == 0) then
 				--hidar os widgets extras mque pertencem a zone sem quests
-				if (WorldQuestTracker.WorldMapSupportWidgets [mapId]) then
-					for o = 1, #WorldQuestTracker.WorldMapSupportWidgets [mapId] do
-						WorldQuestTracker.WorldMapSupportWidgets [mapId] [o]:Hide()
-					end
-				end
+				--if (WorldQuestTracker.WorldMapSupportWidgets [mapId]) then
+				--	for o = 1, #WorldQuestTracker.WorldMapSupportWidgets [mapId] do
+				--		WorldQuestTracker.WorldMapSupportWidgets [mapId] [o]:Hide()
+				--	end
+				--end
 			end
 		end
 	end
