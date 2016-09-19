@@ -7406,7 +7406,7 @@ end
 --C_Timer.After (1, create_world_widgets)
 create_world_widgets()
 
-if (IsAddOnLoaded ("ElvUI")) then
+if (false and IsAddOnLoaded ("ElvUI")) then
 	C_Timer.After (2, function()
 		for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 			local line = configTable.line
