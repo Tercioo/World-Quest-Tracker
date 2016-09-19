@@ -5471,8 +5471,13 @@ end
 
 --parent frame na UIParent ~trackerframe
 --esse frame é quem vai ser anexado ao tracker da blizzard
+--this is the main frame for the quest tracker, every thing on the tracker is parent of this frame
+-- ~trackerframe
 local WorldQuestTrackerFrame = CreateFrame ("frame", "WorldQuestTrackerScreenPanel", UIParent)
 WorldQuestTrackerFrame:SetSize (235, 500)
+WorldQuestTrackerFrame:SetFrameStrata ("LOW") --thanks @p3lim on curseforge
+
+--debug tracker size
 --WorldQuestTrackerFrame:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
 
 
@@ -6692,25 +6697,29 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				pin._WQT_Twin.LastUpdate = nil
 				return
 			end
-			
-			
+
 			local inProgress
 			pin._WQT_Twin.questID = pin.questID
 			pin._WQT_Twin.numObjectives = pin.numObjectives
 			local mapID, zoneID = C_TaskQuest.GetQuestZoneID (pin.questID)
 			pin._WQT_Twin.mapID = zoneID
+			
 			--FlightMapFrame:ZoomOut()
 			if (not hasZoom) then
 				--não tem zoom
 				if (isShowingOnlyTracked) then
-					WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
-					format_for_taxy_nozoom_tracked (pin._WQT_Twin)
+					if (pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
+						WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
+						format_for_taxy_nozoom_tracked (pin._WQT_Twin)
+					end
 				else
-					--format_for_taxy_nozoom_allquests (pin._WQT_Twin)
-					WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
-					--format_for_taxy_nozoom_tracked (pin._WQT_Twin)
-					format_for_taxy_nozoom_all (pin._WQT_Twin)
+					if (pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
+						WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
+						format_for_taxy_nozoom_all (pin._WQT_Twin)
+					end
 				end
+				
+				pin._WQT_Twin.LastUpdate = GetTime()
 				pin._WQT_Twin.zoomState = nil
 			else
 				--tem zoom
