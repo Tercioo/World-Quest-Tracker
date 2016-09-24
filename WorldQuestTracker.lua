@@ -1124,15 +1124,12 @@ end
 -- õnclick ~onclick
 local questButton_OnClick = function (self, button)
 
+--chat link
 	if (WorldQuestTracker.CanLinkToChat (self, button)) then
 		return
 	end
 
-	--if (ZGV) then
-		--print ("zi")
-	--	ZGV:SuggestWorldQuestGuide (self)
-	--end
-	
+--isn't using the tracker
 	if (not WorldQuestTracker.db.profile.use_tracker or IsShiftKeyDown()) then
 		TaskPOI_OnClick (self, button)
 		
@@ -1143,9 +1140,20 @@ local questButton_OnClick = function (self, button)
 		end
 		return
 	end
-	
+
+--> add the quest to the tracker	
 	WorldQuestTracker.OnQuestClicked (self, button)
 	
+--animations and sounds
+	if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
+		self.trackingGlowBorder:Show()
+	else
+		self.trackingGlowBorder:Hide()
+	end
+
+--shutdown animation and sound for now
+if (true) then return end
+
 	if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
 		if (self.onEndTrackAnimation:IsPlaying()) then
 			self.onEndTrackAnimation:Stop()
@@ -1159,7 +1167,6 @@ local questButton_OnClick = function (self, button)
 				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker2.mp3")	
 			end
 		end
-		
 	else
 		if (self.onStartTrackAnimation) then
 			if (self.onStartTrackAnimation:IsPlaying()) then
@@ -1173,6 +1180,7 @@ local questButton_OnClick = function (self, button)
 		WorldQuestTracker.WorldWidgets_NeedFullRefresh = true
 	end
 end
+
 --/dump WorldQuestTrackerAddon.GetCurrentZoneType()
 function WorldQuestTracker.GetCurrentZoneType()
 	if (is_broken_isles_map [GetCurrentMapAreaID()]) then
@@ -5545,7 +5553,6 @@ function WorldQuestTracker.OnQuestClicked (self, button)
 	local mapID = self.mapID
 	
 	--verifica se a quest ja esta sendo monitorada
-	local myQuests = WorldQuestTracker.GetTrackedQuests()
 	if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
 		--remover a quest do track
 		WorldQuestTracker.RemoveQuestFromTracker (questID)
