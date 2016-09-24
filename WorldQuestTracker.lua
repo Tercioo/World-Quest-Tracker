@@ -365,6 +365,7 @@ WorldQuestTracker.RarityColors = {
 	[3] = "|cff2292FF",
 	[4] = "|cffc557FF",
 }
+WorldQuestTracker.GameLocale = GetLocale()
 
 local LibWindow = LibStub ("LibWindow-1.1")
 if (not LibWindow) then
@@ -1552,25 +1553,34 @@ function WorldQuestTracker.RewardRealItemLevel (questID)
 	return itemLevel or 1
 end
 
+-- ãrtifact ~artifact
 function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 	GameTooltipFrame:SetOwner (WorldFrame, "ANCHOR_NONE")
 	GameTooltipFrame:SetHyperlink (itemLink)
-	
+
 	local text = GameTooltipFrameTextLeft1:GetText()
 	if (text and text:match ("|cFFE6CC80")) then
 		local power = GameTooltipFrameTextLeft3:GetText()
 		if (power) then
-			power = power:gsub ("%p", ""):match ("%d+")
+			if (WorldQuestTracker.GameLocale == "frFR") then
+				power = power:gsub ("%s", ""):gsub ("%p", ""):match ("%d+")
+			else
+				power = power:gsub ("%p", ""):match ("%d+")
+			end
 			power = tonumber (power)
 			return true, power or 0
 		end
 	end
-	
+
 	local text2 = GameTooltipFrameTextLeft2:GetText() --thanks @Prejudice182 on curseforge
 	if (text2 and text2:match ("|cFFE6CC80")) then
 		local power = GameTooltipFrameTextLeft4:GetText()
 		if (power) then
-			power = power:gsub ("%p", ""):match ("%d+")
+			if (WorldQuestTracker.GameLocale == "frFR") then
+				power = power:gsub ("%s", ""):gsub ("%p", ""):match ("%d+")
+			else
+				power = power:gsub ("%p", ""):match ("%d+")
+			end
 			power = tonumber (power)
 			return true, power or 0
 		end
@@ -6408,7 +6418,7 @@ function WorldQuestTracker.UpdateQuestsInArea()
 			--desativa pois o jogo ja deve estar mostrando a quest
 			if (not quest.isDisabled and not quest.enteringZone) then
 				local widget = get_widget_from_questID (quest.questID)
-				if (not WorldQuestTracker.IsQuestOnObjectiveTracker (widget.Title:GetText())) then
+				if (widget and not WorldQuestTracker.IsQuestOnObjectiveTracker (widget.Title:GetText())) then
 					--acabou de aceitar a quest
 					quest.enteringZone = true
 					TrackerAnimation_OnAccept:Show()
