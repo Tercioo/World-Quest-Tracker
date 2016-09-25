@@ -1146,9 +1146,13 @@ local questButton_OnClick = function (self, button)
 	
 --animations and sounds
 	if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
-		self.trackingGlowBorder:Show()
+		if (self.trackingGlowBorder) then
+			self.trackingGlowBorder:Show()
+		end
 	else
-		self.trackingGlowBorder:Hide()
+		if (self.trackingGlowBorder) then
+			self.trackingGlowBorder:Hide()
+		end
 	end
 
 --shutdown animation and sound for now
