@@ -198,6 +198,7 @@ local default_config = {
 		tracker_is_movable = false,
 		tracker_is_locked = false,
 		tracker_only_currentmap = false,
+		tracker_scale = 1,
 		use_quest_summary = true,
 		bar_anchor = "bottom",
 		history = {
@@ -3050,6 +3051,10 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:Hide()
 					return
 					
+				elseif (option == "tracker_scale") then
+					WorldQuestTracker.db.profile [option] = value
+					WorldQuestTracker.UpdateTrackerScale()
+				
 				elseif (option == "clear_quest_cache") then
 					if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
 						WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, true, false, true)
@@ -4217,6 +4222,19 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (2, options_on_click, "use_tracker", not WorldQuestTracker.db.profile.use_tracker)
+				--
+				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
+				--
+				
+				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.0"), "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1)
+				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.1"), "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1.1)
+				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.2"), "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1.2)
+				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.3"), "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1.3)
+				
 				--
 				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
 				--
@@ -5704,6 +5722,12 @@ WorldQuestTrackerFrame:SetFrameStrata ("LOW") --thanks @p3lim on curseforge
 local WorldQuestTrackerFrame_QuestHolder = CreateFrame ("frame", "WorldQuestTrackerScreenPanel_QuestHolder", WorldQuestTrackerFrame)
 WorldQuestTrackerFrame_QuestHolder:SetAllPoints()
 
+function WorldQuestTracker.UpdateTrackerScale()
+	WorldQuestTrackerFrame:SetScale (WorldQuestTracker.db.profile.tracker_scale)
+	--WorldQuestTrackerFrame_QuestHolder:SetScale (WorldQuestTracker.db.profile.tracker_scale)
+	
+end
+
 --cria o header
 local WorldQuestTrackerHeader = CreateFrame ("frame", "WorldQuestTrackerQuestsHeader", WorldQuestTrackerFrame, "ObjectiveTrackerHeaderTemplate") -- "ObjectiveTrackerHeaderTemplate"
 WorldQuestTrackerHeader.Text:SetText ("World Quest Tracker")
@@ -6427,6 +6451,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 			WorldQuestTrackerHeader:Show()
 		end
 		minimizeButton:Show()
+		WorldQuestTracker.UpdateTrackerScale()
 	end
 	
 	if (WorldQuestTracker.SortingQuestByDistance) then
