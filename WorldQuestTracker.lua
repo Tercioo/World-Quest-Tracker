@@ -161,7 +161,6 @@ local default_config = {
 		zonemap_widgets = {
 			scale = 1,
 		},
-		
 		filter_always_show_faction_objectives = true,
 		sort_order = {
 			[WQT_QUESTTYPE_TRADE] = 9,
@@ -199,6 +198,7 @@ local default_config = {
 		tracker_is_locked = false,
 		tracker_only_currentmap = false,
 		tracker_scale = 1,
+		tracker_show_time = false,
 		use_quest_summary = true,
 		bar_anchor = "bottom",
 		history = {
@@ -4289,7 +4289,16 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				else
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 				end
-				GameCooltip:AddMenu (2, options_on_click, "tracker_only_currentmap", not WorldQuestTracker.db.profile.tracker_only_currentmap)				
+				GameCooltip:AddMenu (2, options_on_click, "tracker_only_currentmap", not WorldQuestTracker.db.profile.tracker_only_currentmap)
+
+				GameCooltip:AddLine (L["S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_TITLE"], "", 2)
+				if (WorldQuestTracker.db.profile.tracker_show_time) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (2, options_on_click, "tracker_show_time", not WorldQuestTracker.db.profile.tracker_show_time)
+
 				--
 
 				--World Map Config
@@ -5724,8 +5733,7 @@ WorldQuestTrackerFrame_QuestHolder:SetAllPoints()
 
 function WorldQuestTracker.UpdateTrackerScale()
 	WorldQuestTrackerFrame:SetScale (WorldQuestTracker.db.profile.tracker_scale)
-	--WorldQuestTrackerFrame_QuestHolder:SetScale (WorldQuestTracker.db.profile.tracker_scale)
-	
+	--WorldQuestTrackerFrame_QuestHolder:SetScale (WorldQuestTracker.db.profile.tracker_scale) --aumenta só as quests sem mexer no cabeçalho
 end
 
 --cria o header
@@ -6097,6 +6105,13 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	DF:SetFontSize (f.YardsDistance, 12)
 	f.YardsDistance:SetAlpha (.5)
 	
+	f.TimeLeft = f:CreateFontString (nil, "overlay", "GameFontNormal")
+	f.TimeLeft:SetPoint ("left", f.YardsDistance, "right", 2, 0)
+	f.TimeLeft:SetJustifyH ("left")
+	DF:SetFontColor (f.TimeLeft, "white")
+	DF:SetFontSize (f.TimeLeft, 12)
+	f.TimeLeft:SetAlpha (.5)
+	
 	f.Icon = f:CreateTexture (nil, "artwork")
 	f.Icon:SetPoint ("topleft", f, "topleft", -13, -2)
 	f.Icon:SetSize (16, 16)
@@ -6315,6 +6330,26 @@ local TrackerOnTick = function (self, deltaTime)
 			end
 		end
 	end
+	
+	self.NextTimeUpdate = self.NextTimeUpdate - deltaTime
+	
+	if (self.NextTimeUpdate < 0) then
+		local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (self.questID)
+		if (timeLeft and timeLeft > 0) then
+			local timeLeft2 =  WorldQuestTracker.GetQuest_TimeLeft (self.questID, true)
+			--local str = timeLeft > 1440 and floor (timeLeft/1440) .. "d" or timeLeft > 60 and floor (timeLeft/60) .. "h" or timeLeft .. "m"
+			local color = "FFFFFFFF"
+			if (timeLeft < 30) then
+				color = "FFFF2200"
+			elseif (timeLeft < 60) then
+				color = "FFFF9900"
+			end
+			self.TimeLeft:SetText ("[|c" .. color .. timeLeft2 .. "|r]")
+		else
+			self.TimeLeft:SetText ("[0m]")
+		end
+		self.NextTimeUpdate = 60
+	end
 
 end
 
@@ -6400,6 +6435,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				
 				widget.NextPositionUpdate = -1
 				widget.NextArrowUpdate = -1
+				widget.NextTimeUpdate = -1
 				
 				widget.ForceUpdate = true
 				
@@ -6416,6 +6452,12 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 					widget.YardsDistance:Show()
 				else
 					widget.YardsDistance:Hide()
+				end
+				
+				if (WorldQuestTracker.db.profile.tracker_show_time) then
+					widget.TimeLeft:Show()
+				else
+					widget.TimeLeft:Hide()
 				end
 				
 				--widget.Title.textcolor = "WQT_QUESTTITLE_INMAP"
