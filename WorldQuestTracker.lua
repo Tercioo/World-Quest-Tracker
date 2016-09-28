@@ -5988,9 +5988,36 @@ local TrackerIconButtonOnLeave = function (self)
 	
 end
 local TrackerIconButtonOnClick = function (self, button)
+	if (self.questID == GetSuperTrackedQuestID()) then
+		WorldQuestTracker.SuperTracked = nil
+		QuestSuperTracking_ChooseClosestQuest()
+		return
+	end
+	
 	SetSuperTrackedQuestID (self.questID)
 	WorldQuestTracker.RefreshTrackerWidgets()
+	WorldQuestTracker.SuperTracked = self.questID
 end
+
+local UpdateSuperQuestTracker = function()
+	if (WorldQuestTracker.SuperTracked) then
+		--verifica se a quest esta sendo mostrada no tracker
+		for i = 1, #TrackerWidgetPool do
+			if (TrackerWidgetPool[i]:IsShown() and TrackerWidgetPool[i].questID == WorldQuestTracker.SuperTracked) then
+				SetSuperTrackedQuestID (WorldQuestTracker.SuperTracked)
+				return
+			end
+		end
+		WorldQuestTracker.SuperTracked = nil
+	end
+end
+
+hooksecurefunc ("QuestSuperTracking_ChooseClosestQuest", function()
+	if (WorldQuestTracker.SuperTracked) then
+		C_Timer.After (.02, UpdateSuperQuestTracker)
+	end
+end)
+
 local TrackerIconButtonOnMouseDown = function (self, button)
 	self.Icon:SetPoint ("topleft", self:GetParent(), "topleft", -12, -3)
 end
@@ -6325,7 +6352,11 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				widget.Circle:SetDesaturated (true)
 			end
 			
-			widget.RewardAmount:SetText (quest.rewardAmount)
+			if (quest.rewardAmount >= 1000) then
+				widget.RewardAmount:SetText (WorldQuestTracker.ToK (quest.rewardAmount))
+			else
+				widget.RewardAmount:SetText (quest.rewardAmount)
+			end
 			
 			widget:Show()
 			
