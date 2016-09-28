@@ -5573,7 +5573,12 @@ function WorldQuestTracker.AddQuestToTracker (self)
 		local iconText = self.IconText
 		local questType = self.QuestType
 		local numObjectives = self.numObjectives
-		--local x, y = 
+		
+		if (type (iconText) == "string") then --no good
+			iconText = iconText:gsub ("|c%x?%x?%x?%x?%x?%x?%x?%x?", "")
+			iconText = iconText:gsub ("|r", "")
+			iconText = tonumber (iconText)
+		end
 		
 		if (iconTexture) then
 			tinsert (WorldQuestTracker.QuestTrackList, {
@@ -6420,7 +6425,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				widget.Circle:SetDesaturated (true)
 			end
 			
-			if (quest.rewardAmount >= 1000) then
+			if (quest.rewardAmount >= 1000) then --erro compare number witrh string
 				widget.RewardAmount:SetText (WorldQuestTracker.ToK (quest.rewardAmount))
 			else
 				widget.RewardAmount:SetText (quest.rewardAmount)
