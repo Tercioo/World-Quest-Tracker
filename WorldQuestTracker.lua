@@ -174,6 +174,7 @@ local default_config = {
 			[WQT_QUESTTYPE_PETBATTLE] = 1,
 		},
 		sort_time_priority = false,
+		force_sort_by_timeleft = false,
 		alpha_time_priority = true,
 		show_timeleft = false,
 		quests_tracked = {},
@@ -3128,7 +3129,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 				end
 			
-				if (option ~= "show_timeleft" and option ~= "alpha_time_priority") then
+				if (option ~= "show_timeleft" and option ~= "alpha_time_priority" and option ~= "force_sort_by_timeleft") then
 					GameCooltip:ExecFunc (WorldQuestTrackerOptionsButton)
 				else
 					--> se for do painel de tempo, dar refresh no world map
@@ -3138,8 +3139,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:Close()
 				end
 			end			
-			
-			
+
 			--avisar sobre duplo tap 
 			-- ~bar ~statusbar
 			WorldQuestTracker.DoubleTapFrame = CreateFrame ("frame", "WorldQuestTrackerDoubleTapFrame", worldFramePOIs)
@@ -4043,6 +4043,15 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				else
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
 				end
+				
+				GameCooltip:AddLine (L["S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_SORTBYTIME"], "", 1)
+				GameCooltip:AddMenu (1, options_on_click, "force_sort_by_timeleft", not WorldQuestTracker.db.profile.force_sort_by_timeleft)
+				if (WorldQuestTracker.db.profile.force_sort_by_timeleft) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+				end
+				
 			end
 			
 			timeLeftButton.CoolTip = {
@@ -7913,6 +7922,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	local timePriority = WorldQuestTracker.db.profile.sort_time_priority and WorldQuestTracker.db.profile.sort_time_priority * 60 --4 8 12 16 24
 	local showTimeLeftText = WorldQuestTracker.db.profile.show_timeleft
 	
+	local sortByTimeLeft = WorldQuestTracker.db.profile.force_sort_by_timeleft
+	
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		
 		questsAvailable [mapId] = {}
@@ -7950,7 +7961,9 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 							local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
 							order = order or 1
 							
-							if (timePriority) then --timePriority já multiplicado por 60
+							if (sortByTimeLeft) then
+								order = abs (timeLeft - 10000)
+							elseif (timePriority) then --timePriority já multiplicado por 60
 								if (timeLeft < timePriority) then
 									order = abs (timeLeft - 1000)
 								end
