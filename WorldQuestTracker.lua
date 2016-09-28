@@ -7750,6 +7750,13 @@ function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rew
 		end
 	end
 	
+	--> if dungeons are disabled, override the quest type to dungeon
+	if (worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON) then
+		if (not WorldQuestTracker.db.profile.filters [FILTER_TYPE_DUNGEON]) then
+			filter = FILTER_TYPE_DUNGEON
+		end
+	end
+	
 	return filter, order
 end
 
@@ -8134,6 +8141,13 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										widget.questTypeBlip:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
 										widget.questTypeBlip:SetTexCoord (172/512, 201/512, 273/512, 301/512)
 										widget.questTypeBlip:SetAlpha (.85)
+										
+									elseif (worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON) then
+										widget.questTypeBlip:Show()
+										widget.questTypeBlip:SetTexture ([[Interface\Scenarios\ScenarioIcon-Boss]])
+										widget.questTypeBlip:SetTexCoord (0, 1, 0, 1)
+										widget.questTypeBlip:SetAlpha (.80)
+										
 									else
 										widget.questTypeBlip:Hide()
 									end
