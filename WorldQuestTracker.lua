@@ -1652,7 +1652,9 @@ WorldQuestTracker.EquipIcons = {
 	["INVTYPE_TRINKET"] = "Interface\\ICONS\\" .. "INV_Jewelry_Talisman_07", --"INV_Trinket_HonorHold",
 	--["INVTYPE_TRINKET"] = [[Interface\AddOns\WorldQuestTracker\media\icon_trinketT]],
 	["INVTYPE_CLOAK"] = "Interface\\ICONS\\" .. "INV_Misc_Cape_19", --INVTYPE_BACK
-	["Relic"] = "Interface\\ICONS\\" .. "INV_Artifact_XP05",
+	--["Relic"] = "Interface\\ICONS\\" .. "INV_Artifact_XP05",
+	--["Relic"] = "Interface\\ICONS\\" .. "INV_Enchant_VoidSphere",
+	["Relic"] = "Interface\\ICONS\\" .. "inv_misc_enchantedpearlE",
 }
 
 --[[
@@ -4596,12 +4598,12 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				WorldQuestTracker.UpdatePartySharedQuests (true)
 			end
 			
-
+			
 			
 			-----------
 			--recursos disponíveis
 			local xOffset = 35
-
+			
 			-- ~resources ~recursos
 			local resource_GoldIcon = DF:CreateImage (WorldQuestTracker.DoubleTapFrame, [[Interface\AddOns\WorldQuestTracker\media\icons_resourcesT]], 16, 16, "overlay", {64/128, 96/128, 0, .25})
 			resource_GoldIcon:SetDrawLayer ("overlay", 7)
@@ -4619,7 +4621,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			resource_APowerIcon:SetDrawLayer ("overlay", 7)
 			resource_APowerIcon:SetAlpha (.78)
 			local resource_APowerText = DF:CreateLabel (WorldQuestTracker.DoubleTapFrame, "", ResourceFontTemplate)
-				
+			
 			
 			--ordem das anchors - cada widget ocupa 55 pixels: 0 55 110
 			--[=[
@@ -4784,6 +4786,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				
 				GameCooltip:SetOwner (self)
 				GameCooltip:Show(self)
+				CooltipOnTop_WhenFullScreen()
 			end)
 			
 			resource_ResourcesFrame:SetScript ("OnEnter", function (self)
@@ -4802,6 +4805,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				
 				GameCooltip:SetOwner (self)
 				GameCooltip:Show(self)
+				CooltipOnTop_WhenFullScreen()
 			end)
 			
 			resource_APowerFrame:SetScript ("OnEnter", function (self)
@@ -4837,6 +4841,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:SetOption ("LeftTextHeight", 22)
 				GameCooltip:SetOwner (self)
 				GameCooltip:Show(self)
+				
+				CooltipOnTop_WhenFullScreen()
 				
 --WQT_QUEST_NAMES_AND_ICONS [WQT_QUESTTYPE_GOLD].icon
 --WQT_QUEST_NAMES_AND_ICONS [WQT_QUESTTYPE_RESOURCE].icon
@@ -5574,11 +5580,12 @@ function WorldQuestTracker.AddQuestToTracker (self)
 		local questType = self.QuestType
 		local numObjectives = self.numObjectives
 		
-		if (type (iconText) == "string") then --no good
-			iconText = iconText:gsub ("|c%x?%x?%x?%x?%x?%x?%x?%x?", "")
-			iconText = iconText:gsub ("|r", "")
-			iconText = tonumber (iconText)
-		end
+--		if (type (iconText) == "string") then --no good
+--			iconText = iconText:gsub ("|c%x?%x?%x?%x?%x?%x?%x?%x?", "")
+--			iconText = iconText:gsub ("|r", "")
+--			iconText = tonumber (iconText)
+--		end
+--removing this, the reward amount can now be a number or a string, we cannot check for amount without checking first if is a number (on tracker only)
 		
 		if (iconTexture) then
 			tinsert (WorldQuestTracker.QuestTrackList, {
@@ -6323,7 +6330,7 @@ local TrackerOnTick = function (self, deltaTime)
 		local x = zoneXLength * distance
 		local y = zoneYLength * distance
 		local yards = (x*x + y*y) ^ 0.5
-		self.YardsDistance:SetText ("[" .. floor (yards) .. "]")
+		self.YardsDistance:SetText ("[|cFFC0C0C0" .. floor (yards) .. "|r]")
 
 		distance = abs (distance - 1)
 		self.info.LastDistance = distance
@@ -6352,7 +6359,7 @@ local TrackerOnTick = function (self, deltaTime)
 		if (timeLeft and timeLeft > 0) then
 			local timeLeft2 =  WorldQuestTracker.GetQuest_TimeLeft (self.questID, true)
 			--local str = timeLeft > 1440 and floor (timeLeft/1440) .. "d" or timeLeft > 60 and floor (timeLeft/60) .. "h" or timeLeft .. "m"
-			local color = "FFFFFFFF"
+			local color = "FFC0C0C0"
 			if (timeLeft < 30) then
 				color = "FFFF2200"
 			elseif (timeLeft < 60) then
@@ -6365,6 +6372,28 @@ local TrackerOnTick = function (self, deltaTime)
 		self.NextTimeUpdate = 60
 	end
 
+end
+
+local TrackerOnTick_TimeLeft = function (self, deltaTime)
+	self.NextTimeUpdate = self.NextTimeUpdate - deltaTime
+	
+	if (self.NextTimeUpdate < 0) then
+		local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (self.questID)
+		if (timeLeft and timeLeft > 0) then
+			local timeLeft2 =  WorldQuestTracker.GetQuest_TimeLeft (self.questID, true)
+			--local str = timeLeft > 1440 and floor (timeLeft/1440) .. "d" or timeLeft > 60 and floor (timeLeft/60) .. "h" or timeLeft .. "m"
+			local color = "FFC0C0C0"
+			if (timeLeft < 30) then
+				color = "FFFF2200"
+			elseif (timeLeft < 60) then
+				color = "FFFF9900"
+			end
+			self.TimeLeft:SetText ("[|c" .. color .. timeLeft2 .. "|r]")
+		else
+			self.TimeLeft:SetText ("[0m]")
+		end
+		self.NextTimeUpdate = 60
+	end
 end
 
 
@@ -6425,7 +6454,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				widget.Circle:SetDesaturated (true)
 			end
 			
-			if (quest.rewardAmount >= 1000) then --erro compare number witrh string
+			if (type (quest.rewardAmount) == "number" and quest.rewardAmount >= 1000) then --erro compare number witrh string
 				widget.RewardAmount:SetText (WorldQuestTracker.ToK (quest.rewardAmount))
 			else
 				widget.RewardAmount:SetText (quest.rewardAmount)
@@ -6463,6 +6492,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				needSortByDistance = needSortByDistance + 1
 				
 				if (WorldQuestTracker.db.profile.show_yards_distance) then
+					DF:SetFontSize (widget.TimeLeft, TRACKER_TITLE_TEXT_SIZE_INMAP)
 					widget.YardsDistance:Show()
 				else
 					widget.YardsDistance:Hide()
@@ -6485,8 +6515,18 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				widget.Zone.textsize = TRACKER_TITLE_TEXT_SIZE_OUTMAP
 				widget.YardsDistance:SetText ("")
 				widget:SetScript ("OnUpdate", nil)
+				
 				--widget.Title.textcolor = "WQT_QUESTTITLE_OUTMAP"
 				--widget.Zone.textcolor = "WQT_QUESTZONE_OUTMAP"
+				
+				if (WorldQuestTracker.db.profile.tracker_show_time) then
+					widget.TimeLeft:Show()
+					DF:SetFontSize (widget.TimeLeft, TRACKER_TITLE_TEXT_SIZE_OUTMAP)
+					widget.NextTimeUpdate = -1
+					widget:SetScript ("OnUpdate", TrackerOnTick_TimeLeft)
+				else
+					widget.TimeLeft:Hide()
+				end
 			end
 			
 			y = y - 35
@@ -6884,7 +6924,7 @@ local format_for_taxy_nozoom_all = function (button)
 
 	button:SetScale (WorldQuestTracker.db.profile.taxy_tracked_scale + 0.5)
 	button:SetWidth (20)
-	button:SetAlpha (.85)
+	button:SetAlpha (.75)
 	
 	button.circleBorder:Show()
 	
@@ -6993,12 +7033,11 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				tinsert (WorldQuestTracker.TaxyZoneWidgets, pin._WQT_Twin)
 			end
 			
-			--print (GetTime())
-			
 			local isShowingQuests = WorldQuestTracker.db.profile.taxy_showquests
 			local isShowingOnlyTracked = WorldQuestTracker.db.profile.taxy_trackedonly
 			local hasZoom = WorldQuestTracker.TaxyFrameHasZoom()
 			
+			--não esta mostrando as quests e o mapa não tem zoom
 			if (not isShowingQuests and not hasZoom) then
 				pin._WQT_Twin:Hide()
 				WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
@@ -7006,6 +7045,8 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				pin._WQT_Twin.LastUpdate = nil
 				return
 			end
+			
+			--esta mostrando apenas quests que estão sendo trackeadas
 			if (isShowingOnlyTracked) then
 				if ((not WorldQuestTracker.IsQuestBeingTracked (pin.questID) and not WorldQuestTracker.IsQuestOnObjectiveTracker (pin.questID)) and not hasZoom) then
 					pin._WQT_Twin:Hide()
@@ -7021,6 +7062,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			
 			local title, questType, texture, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, selected, isSpellTarget, timeLeft, isCriteria, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker:GetQuestFullInfo (pin.questID)
 			
+			--não mostrar quests que foram filtradas
 			local filter = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, quantity)
 			if (not filters [filter]) then
 				pin._WQT_Twin:Hide()
@@ -7030,7 +7072,11 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				return
 			end
 
-			local inProgress
+			local inProgress, questIDChanged
+			
+			if (pin._WQT_Twin.questID ~= pin.questID) then
+				questIDChanged = true
+			end
 			pin._WQT_Twin.questID = pin.questID
 			pin._WQT_Twin.numObjectives = pin.numObjectives
 			local mapID, zoneID = C_TaskQuest.GetQuestZoneID (pin.questID)
@@ -7040,26 +7086,30 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			if (not hasZoom) then
 				--não tem zoom
 				if (isShowingOnlyTracked) then
-					if (pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
+					if (questIDChanged or pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
 						WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
 						format_for_taxy_nozoom_tracked (pin._WQT_Twin)
+						pin._WQT_Twin.LastUpdate = GetTime()
+						pin._WQT_Twin.zoomState = nil
+						--print ("UPDATED")
 					end
 				else
-					if (pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
+					if (questIDChanged or pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
 						WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
 						format_for_taxy_nozoom_all (pin._WQT_Twin)
+						pin._WQT_Twin.LastUpdate = GetTime()
+						pin._WQT_Twin.zoomState = nil
+						--print ("atualizando", GetTime())
 					end
 				end
-				
-				pin._WQT_Twin.LastUpdate = GetTime()
-				pin._WQT_Twin.zoomState = nil
 			else
 				--tem zoom
-				if (not pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
+				if (questIDChanged or not pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
 					WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
 					format_for_taxy_zoom_allquests (pin._WQT_Twin)
 					pin._WQT_Twin.LastUpdate = GetTime()
 					pin._WQT_Twin.zoomState = true
+					--print ("UPDATED")
 				end
 			end
 		end)
@@ -7463,12 +7513,13 @@ local create_worldmap_square = function (mapName, index)
 	timeLeftText:SetPoint ("top", amountText, "bottom", 0, -2)
 	DF:SetFontSize (timeLeftText, 10)
 	DF:SetFontColor (timeLeftText, {.9, .8, .2})
+	DF:SetFontColor (timeLeftText, {.9, .9, .9})
 	--
 	local timeLeftBackground = button:CreateTexture (nil, "background", 0)
 	timeLeftBackground:SetPoint ("center", timeLeftText, "center")
 	timeLeftBackground:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT]])
 	timeLeftBackground:SetSize (32, 10)
-	timeLeftBackground:SetAlpha (.8)
+	timeLeftBackground:SetAlpha (.60)
 	
 	local amountBackground = button:CreateTexture (nil, "overlay", 0)
 	amountBackground:SetPoint ("center", amountText, "center")
