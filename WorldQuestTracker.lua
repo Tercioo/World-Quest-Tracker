@@ -200,7 +200,7 @@ local default_config = {
 		tracker_only_currentmap = false,
 		tracker_scale = 1,
 		tracker_show_time = false,
-		use_quest_summary = true,
+		use_quest_summary = false,
 		bar_anchor = "bottom",
 		history = {
 			reward = {
@@ -3083,6 +3083,12 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					
 					GameCooltip:Hide()
 					return
+				
+				elseif (option == "use_quest_summary") then
+					WorldQuestTracker.db.profile [option] = value
+					if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+						WorldQuestTracker.UpdateZoneWidgets()
+					end
 				else
 					WorldQuestTracker.db.profile [option] = value
 					if (option == "bar_anchor") then
@@ -4222,8 +4228,11 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:SetOption ("TextSize", 10)
 				GameCooltip:SetOption ("FixedWidth", 160)
 				
+				local IconSize = 14
+				
 				--all tracker options
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERCONFIG"])
+				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]], 1, 1, IconSize, IconSize, 944/1024, 993/1024, 272/1024, 324/1024)
 				
 				--use quest tracker
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_QUESTTRACKER"], "", 2)
@@ -4314,6 +4323,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 
 				--World Map Config
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_WORLDMAPCONFIG"])
+				GameCooltip:AddIcon ([[Interface\Worldmap\UI-World-Icon]], 1, 1, IconSize, IconSize)
+				
 				GameCooltip:AddLine ("Small Text Size", "", 2)
 				GameCooltip:AddMenu (2, options_on_click, "world_map_config", "textsize", 9)
 				GameCooltip:AddLine ("Medium Text Size", "", 2)
@@ -4333,7 +4344,19 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:AddMenu (2, options_on_click, "world_map_config", "scale",  1.6)
 				
 				--Zone Map Config
-				GameCooltip:AddLine ("Zone Map Config")
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ZONEMAPCONFIG"])
+				GameCooltip:AddIcon ([[Interface\Worldmap\WorldMap-Icon]], 1, 1, IconSize, IconSize)
+				
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ZONE_QUESTSUMMARY"], "", 2)
+				if (WorldQuestTracker.db.profile.use_quest_summary) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (2, options_on_click, "use_quest_summary", not WorldQuestTracker.db.profile.use_quest_summary)
+				
+				GameCooltip:AddLine ("$div", nil, 2, nil, -7, -14)
+				
 				GameCooltip:AddLine ("Small Quest Icons", "", 2)
 				GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "scale", 1)
 				GameCooltip:AddLine ("Medium Quest Icons", "", 2)
@@ -4375,7 +4398,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				--
 				
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED"])
-				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]], 1, 1, 16, 16, .15, .8, .15, .80)
+				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]], 1, 1, IconSize, IconSize, .15, .8, .15, .80)
 				
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_REALTIME"], "", 2)
 				GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.016)
@@ -4439,11 +4462,11 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				--
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_REFRESH"])
 				GameCooltip:AddMenu (1, options_on_click, "clear_quest_cache", true)
-				GameCooltip:AddIcon ([[Interface\GLUES\CharacterSelect\CharacterUndelete]], 1, 1, 16, 16, .2, .8, .2, .8)
+				GameCooltip:AddIcon ([[Interface\GLUES\CharacterSelect\CharacterUndelete]], 1, 1, IconSize, IconSize, .2, .8, .2, .8)
 				--
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_UNTRACKQUESTS"])
 				GameCooltip:AddMenu (1, options_on_click, "untrack_quests", true)
-				GameCooltip:AddIcon ([[Interface\BUTTONS\UI-GROUPLOOT-PASS-HIGHLIGHT]], 1, 1, 16, 16)
+				GameCooltip:AddIcon ([[Interface\BUTTONS\UI-GROUPLOOT-PASS-HIGHLIGHT]], 1, 1, IconSize, IconSize)
 				
 				--
 				
@@ -5438,6 +5461,8 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 	Icon.criteriaIndicatorGlow:Hide()
 	
 	Icon.Texture:SetSize (ZoneSumaryFrame.IconTextureSize, ZoneSumaryFrame.IconTextureSize)
+	Icon.Texture:SetAlpha (.75)
+	Icon.circleBorder:SetAlpha (.75)
 	
 	if (zoneWidget.rarity == LE_WORLD_QUEST_QUALITY_COMMON) then
 		summaryWidget.LineUp:SetAlpha (.3)
@@ -6929,8 +6954,9 @@ local format_for_taxy_nozoom_all = function (button)
 	button.circleBorder:Show()
 	
 	if (WorldQuestTracker.IsQuestBeingTracked (button.questID)) then
+		button:SetAlpha (1)
 		button.IsTrackingGlow:Show()
-		button.IsTrackingGlow:SetAlpha (.4)
+		button.IsTrackingGlow:SetAlpha (.5)
 	end
 end
 local format_for_taxy_nozoom_allquests = function (button)
