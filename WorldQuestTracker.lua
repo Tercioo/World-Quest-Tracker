@@ -2683,6 +2683,17 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 					self.Texture:SetSize (16, 16)
 					self.Texture:SetMask (nil)
 					self.Texture:SetTexture (texture)
+
+					local research_nameLoc, research_timeleftString, research_timeLeft, research_elapsedTime = WorldQuestTracker:GetNextResearchNoteTime()
+					if (research_timeLeft and research_timeLeft > 60) then
+						research_timeLeft = research_timeLeft / 60 --convert in minutes
+					end
+					
+					if (research_timeLeft and research_timeLeft < timeLeft) then
+						self.Texture:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_artifactpower_blue_roundT]])
+					else
+						self.Texture:SetTexture (texture)
+					end
 					
 					if (artifactPower >= 1000) then
 						self.flagText:SetText (format ("%.1fK", artifactPower/1000))
