@@ -721,13 +721,13 @@ function WorldQuestTracker:GetNextResearchNoteTime()
 	local looseShipments = C_Garrison.GetLooseShipments (LE_GARRISON_TYPE_7_0)
 	if (looseShipments and #looseShipments > 0) then
 		for i = 1, #looseShipments do
-			local name, texture, _, _, _, creationTime, duration, timeleftString = C_Garrison.GetLandingPageShipmentInfoByContainerID (looseShipments [i])
+			local name, texture, _, ready, _, creationTime, duration, timeleftString = C_Garrison.GetLandingPageShipmentInfoByContainerID (looseShipments [i])
 			--print (looseShipments [i], name)
 			if (name and creationTime and creationTime > 0 and texture == 237446) then
 				local elapsedTime = time() - creationTime
 				local timeLeft = duration - elapsedTime
 				--print ("timeleft: ", timeLeft / 60 / 60)
-				return name, timeleftString, timeLeft, elapsedTime
+				return name, timeleftString, timeLeft, elapsedTime, ready
 				--print (name, texture, shipmentCapacity, shipmentsReady, shipmentsTotal, creationTime, duration, timeleftString)
 			end
 		end
@@ -3234,6 +3234,65 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			end
 			
 			WorldQuestTracker:SetStatusBarAnchor()
+			
+			---------------------------------------------------------
+			
+			-- ~shipment ready
+			
+			--WorldQuestTracker:GetNextResearchNoteTime()
+			--local nameLoc, timeleftString, timeLeft, elapsedTime, shipmentsReady = WorldQuestTracker:GetNextResearchNoteTime()
+			local shipmentsReadyFrame = CreateFrame ("frame", "WorldQuestTrackerShipmentsReadyFrame", WorldMapFrame.UIElementsFrame)
+			shipmentsReadyFrame:SetPoint ("center", WorldQuestTracker.DoubleTapFrame, "center", 0, 0)
+			shipmentsReadyFrame:SetPoint ("bottom", WorldQuestTracker.DoubleTapFrame, "top", 0, 10)
+			shipmentsReadyFrame:SetSize (280, 20)
+			shipmentsReadyFrame.LastAnimation = 0
+			
+			local shipmentsReadyBackground = shipmentsReadyFrame:CreateTexture (nil, "border")
+			shipmentsReadyBackground:SetPoint ("left", shipmentsReadyFrame, "left", -20, 0)
+			shipmentsReadyBackground:SetPoint ("right", shipmentsReadyFrame, "right", 20, 0)
+			shipmentsReadyBackground:SetHeight (40)
+			shipmentsReadyBackground:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-Achievement-Alert-Background-Mini]])
+			
+			local shipmentsReadyTexture = shipmentsReadyFrame:CreateTexture (nil, "artwork")
+			shipmentsReadyTexture:SetPoint ("left", shipmentsReadyFrame, "left")
+			shipmentsReadyTexture:SetTexture (237446)
+			shipmentsReadyTexture:SetSize (20, 20)
+			shipmentsReadyTexture:SetMask ([[Interface\CharacterFrame\TempPortraitAlphaMask]])
+			local shipmentsReadyText = shipmentsReadyFrame:CreateFontString (nil, "artwork", "GameFontNormal")
+			shipmentsReadyText:SetPoint ("left", shipmentsReadyTexture, "right", 2, 0)
+			shipmentsReadyFrame.Texture = shipmentsReadyTexture
+			shipmentsReadyFrame.Text = shipmentsReadyText
+			shipmentsReadyFrame:Hide()
+			
+			local smallFlash = shipmentsReadyFrame:CreateTexture (nil, "overlay")
+			smallFlash:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-Achievement-Alert-Glow]])
+			smallFlash:SetTexCoord (400/512, 470/512, 0, 70/256)
+			smallFlash:SetSize (50, 34)
+			smallFlash:SetBlendMode ("ADD")
+			smallFlash:SetAlpha (.3)
+			smallFlash:SetPoint ("left", shipmentsReadyFrame, "left", -30, 0)
+			
+			local shipmentAnimation = DF:CreateAnimationHub (smallFlash, function() smallFlash:Show() end, function() smallFlash:Hide() end)
+			local shipmentAnim1 = DF:CreateAnimation (shipmentAnimation, "translation", 1, .33, 30, 0)
+			
+			local shipmentAnimation2 = DF:CreateAnimationHub (shipmentsReadyFrame)
+			local shipmentAnim1 = DF:CreateAnimation (shipmentAnimation2, "scale", 1, .1, 1, 1, 1.1, 1.1)
+			local shipmentAnim2 = DF:CreateAnimation (shipmentAnimation2, "scale", 2, .1, 1.1, 1.1, 1, 1)
+			
+			function WorldQuestTracker.ShowResearchNoteReady (name)
+				shipmentsReadyFrame:Show()
+				name = name or "Artifact Research Notes"
+				shipmentsReadyFrame.Text:SetText (name .. " " .. (READY or "") .. "!")
+				shipmentsReadyFrame:SetWidth (shipmentsReadyFrame.Text:GetStringWidth() + 20)
+				if (not shipmentAnimation:IsPlaying() and shipmentsReadyFrame.LastAnimation+30 < GetTime()) then
+					shipmentAnimation2:Play()
+					shipmentAnimation:Play()
+					shipmentsReadyFrame.LastAnimation = GetTime()
+				end
+			end
+			function WorldQuestTracker.HideResearchNoteReady()
+				shipmentsReadyFrame:Hide()
+			end
 			
 			---------------------------------------------------------
 			
@@ -8194,11 +8253,21 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	WorldQuestTracker.Cache_ShownQuestOnWorldMap [WQT_QUESTTYPE_RESOURCE] = {}
 	WorldQuestTracker.Cache_ShownQuestOnWorldMap [WQT_QUESTTYPE_APOWER] = {}
 	
-	local research_nameLoc, research_timeleftString, research_timeLeft, research_elapsedTime = WorldQuestTracker:GetNextResearchNoteTime()
+	local research_nameLoc, research_timeleftString, research_timeLeft, research_elapsedTime, shipmentsReady = WorldQuestTracker:GetNextResearchNoteTime()
 	if (research_timeLeft and research_timeLeft > 60) then
 		research_timeLeft = research_timeLeft / 60 --convert in minutes
 	end
 	local hasArtifactUnderpower
+	if (shipmentsReady and shipmentsReady > 0) then
+		--> already loaded?
+		if (WorldQuestTracker.ShowResearchNoteReady) then
+			WorldQuestTracker.ShowResearchNoteReady (research_nameLoc)
+		end
+	else
+		if (WorldQuestTracker.HideResearchNoteReady) then
+			WorldQuestTracker.HideResearchNoteReady()
+		end
+	end
 	
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		local taskInfo = GetQuestsForPlayerByMapID (mapId)
