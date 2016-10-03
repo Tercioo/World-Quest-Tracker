@@ -74,7 +74,7 @@ local GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
 local GetQuestLogRewardInfo = GetQuestLogRewardInfo
 local GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
 local GetQuestLogRewardMoney = GetQuestLogRewardMoney
-local GetQuestLogIndexByID = GetQuestLogIndexByID
+--local GetQuestLogIndexByID = GetQuestLogIndexByID
 local GetQuestTagInfo = GetQuestTagInfo
 local GetNumQuestLogRewards = GetNumQuestLogRewards
 local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
@@ -1951,7 +1951,7 @@ WorldMapFrame:HookScript ("OnEvent", function (self, event)
 			WorldQuestTracker.ClearZoneSummaryButtons()
 		end
 		
-		if (WorldQuestTracker.CanShowZoneSummaryFrame()) then
+		if (WorldQuestTracker.CanShowZoneSummaryFrame()) then -- and not InCombatLockdown()
 			WorldMapFrame.UIElementsFrame.BountyBoard:ClearAllPoints()
 			WorldMapFrame.UIElementsFrame.BountyBoard:SetPoint ("bottomright", WorldMapFrame.UIElementsFrame, "bottomright", -18, 15)
 		end
@@ -1963,11 +1963,33 @@ end)
 
 --OnTick
 local OnUpdateDelay = .5
+local ActionButton = WorldMapFrame.UIElementsFrame.ActionButton
+
 WorldMapFrame:HookScript ("OnUpdate", function (self, deltaTime)
+	
+	if (ActionButton and ActionButton:IsShown()) then
+		if (ActionButton.SpellButton.Cooldown:GetCooldownDuration() and ActionButton.SpellButton.Cooldown:GetCooldownDuration() > 0) then
+			ActionButton:SetAlpha (.2)
+		else
+			ActionButton:SetAlpha (1)
+		end
+	end
 
 	if (WorldQuestTracker.CanShowZoneSummaryFrame()) then
 		WorldMapFrame.UIElementsFrame.BountyBoard:ClearAllPoints()
 		WorldMapFrame.UIElementsFrame.BountyBoard:SetPoint ("bottomright", WorldMapFrame.UIElementsFrame, "bottomright", -18, 15)
+		
+		if (ActionButton:IsShown()) then
+			if (not InCombatLockdown()) then
+				WorldMapFrame.UIElementsFrame.ActionButton:ClearAllPoints()
+				--WorldMapFrame.UIElementsFrame.ActionButton:SetPoint ("bottomleft", WorldQuestTrackerSummaryHeader, "topleft")
+				--WorldMapFrame.UIElementsFrame.ActionButton:SetPoint ("right", WorldMapFrame.UIElementsFrame.BountyBoard, "left", 0, -12) --problemas com protected
+				WorldMapFrame.UIElementsFrame.ActionButton:SetPoint ("bottomright", WorldMapFrame.UIElementsFrame, "bottomright", -268, 15)
+			else
+				ActionButton:SetAlpha (0)
+			end
+		end
+
 	end
 	if (WorldQuestTracker.HaveZoneSummaryHover) then
 		WorldMapTooltip:ClearAllPoints()
