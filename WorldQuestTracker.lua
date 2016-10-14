@@ -1382,7 +1382,7 @@ function WorldQuestTracker.GetBorderByQuestType (self, rarity, worldQuestType)
 end
 
 --atualiza a borda nas squares do world map e no mapa da zona ~border
-function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
+function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 	if (self.isWorldMapWidget) then
 		self.commonBorder:Hide()
 		self.rareBorder:Hide()
@@ -1453,25 +1453,29 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
 			self.flagText:SetPoint ("top", self.bgFlag, "top", 0, -2)
 
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_RARE) then
-			self.rareSerpent:Show()
-			self.rareSerpent:SetSize (48, 52)
-			--self.rareSerpent:SetAtlas ("worldquest-questmarker-dragon")
-			self.rareSerpent:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragon_curveT]])
-			self.rareGlow:Show()
-			self.rareGlow:SetVertexColor (0, 0.36863, 0.74902)
-			self.rareGlow:SetSize (48, 52)
-			self.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragonT]])
-			
-			--se estiver sendo trackeada, trocar o banner
-			if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
-				self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag_criteriamatchT]])
-			else
-				self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
-			end
+		
+			if (mapID ~= suramar_mapId) then
+		
+				self.rareSerpent:Show()
+				self.rareSerpent:SetSize (48, 52)
+				--self.rareSerpent:SetAtlas ("worldquest-questmarker-dragon")
+				self.rareSerpent:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragon_curveT]])
+				self.rareGlow:Show()
+				self.rareGlow:SetVertexColor (0, 0.36863, 0.74902)
+				self.rareGlow:SetSize (48, 52)
+				self.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragonT]])
+				
+				--se estiver sendo trackeada, trocar o banner
+				if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
+					self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flag_criteriamatchT]])
+				else
+					self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
+				end
 
-			self.bgFlag:Show()
-			self.flagText:SetPoint ("top", self.bgFlag, "top", 0, -3)
-			--self.glassTransparence:Show()
+				self.bgFlag:Show()
+				self.flagText:SetPoint ("top", self.bgFlag, "top", 0, -3)
+				--self.glassTransparence:Show()
+			end
 			
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
 			self.rareSerpent:Show()
@@ -2442,7 +2446,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 							widget.Order = order or 1
 
 							local inProgress
-							WorldQuestTracker.SetupWorldQuestButton (widget, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
+							WorldQuestTracker.SetupWorldQuestButton (widget, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget, mapID)
 							WorldMapPOIFrame_AnchorPOI (widget, info.x, info.y, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
 							
 							tinsert (WorldQuestTracker.Cache_ShownQuestOnZoneMap, questID)
@@ -2530,7 +2534,7 @@ hooksecurefunc ("ClickWorldMapActionButton", function()
 end)
 
 --atualiza o widget da quest no mapa da zona ~setupzone ~updatezone ~zoneupdate
-function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
+function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget, mapID)
 	local questID = self.questID
 	if (not questID) then
 		return
@@ -2656,7 +2660,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 				self.circleBorder:Show()
 				self.QuestType = QUESTTYPE_GOLD
 				
-				WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
+				WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 				okay = true
 			end
 			
@@ -2687,7 +2691,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 						self.flagText:SetText (numRewardItems)
 					end
 
-					WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
+					WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 					
 					if (self:GetHighlightTexture()) then
 						self:GetHighlightTexture():SetTexture ([[Interface\Store\store-item-highlight]])
@@ -2757,7 +2761,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 				--self.squareBorder:Show()
 				self.circleBorder:Show()
 				
-				WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType)
+				WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 				okay = true
 			end
 			
@@ -5406,10 +5410,8 @@ local GetOrCreateZoneSummaryWidget = function (index)
 	button:SetPoint ("bottomleft", ZoneSumaryFrame, "bottomleft", 0, ((index-1)* (ZoneSumaryFrame.WidgetHeight + 1)) -2)
 	button:SetSize (ZoneSumaryFrame.WidgetWidth, ZoneSumaryFrame.WidgetHeight)
 	button:SetFrameLevel (worldFramePOIs:GetFrameLevel()+1)
-	button:SetBackdrop (ZoneSumaryFrame.WidgetBackdrop)
-	button:SetBackdropColor (unpack (ZoneSumaryFrame.WidgetBackdropColor))
-	
-	--DF:CreateBorder (button, 0.1, 0.05, 0.03)
+	--button:SetBackdrop (ZoneSumaryFrame.WidgetBackdrop)
+	--button:SetBackdropColor (unpack (ZoneSumaryFrame.WidgetBackdropColor))
 	
 	local buttonIcon = WorldQuestTracker.CreateZoneWidget (index, "WorldQuestTrackerZoneSummaryFrame_WidgetIcon", button)
 	buttonIcon:SetPoint ("left", button, "left", 2, 0)
@@ -5417,13 +5419,6 @@ local GetOrCreateZoneSummaryWidget = function (index)
 	--buttonIcon:SetFrameStrata ("DIALOG")
 	buttonIcon:SetFrameLevel (worldFramePOIs:GetFrameLevel()+2)
 	button.Icon = buttonIcon
-	
-	--
-	local background = button:CreateTexture (nil, "background")
-	background:SetAllPoints()
-	background:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-ACHIEVEMENT-ACHIEVEMENTBACKGROUND]])
-	background:SetTexCoord (0, 1, 240/1024, 260/1024)
-	background:SetAlpha (0)
 	
 	local art = button:CreateTexture (nil, "border")
 	art:SetAllPoints()
@@ -5435,11 +5430,13 @@ local GetOrCreateZoneSummaryWidget = function (index)
 	art2:SetAllPoints()
 	art2:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\background_summaryzoneT]])
 	art2:SetAlpha (.4)
+	button.BlackBackground = art2
 	
 	local highlight = button:CreateTexture (nil, "highlight")
 	highlight:SetAllPoints()
 	highlight:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_pixel_whiteT.blp]])
 	highlight:SetAlpha (.2)
+	button.Highlight = highlight
 	
 	--border lines
 	local lineUp = button:CreateTexture (nil, "overlay")
@@ -5579,7 +5576,7 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 	
 	WorldQuestTracker.SetupWorldQuestButton (Icon, zoneWidget.worldQuestType, zoneWidget.rarity, zoneWidget.isElite, zoneWidget.tradeskillLineIndex, zoneWidget.inProgress, zoneWidget.selected, zoneWidget.isCriteria, zoneWidget.isSpellTarget)
 	
-	Icon.Shadow:Hide()
+	--Icon.Shadow:Hide()
 	Icon.blackGradient:Hide()
 	Icon.rareSerpent:Hide()
 	Icon.rareGlow:Hide()
@@ -5618,6 +5615,9 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 	Icon.flagText:SetText (zoneWidget.IconText)
 	summaryWidget.Text:SetText (zoneWidget.IconText)
 
+	summaryWidget.BlackBackground:SetAlpha (.4)
+	summaryWidget.Highlight:SetAlpha (.2)
+	
 	summaryWidget:Show()
 end
 
