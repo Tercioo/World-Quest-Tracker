@@ -7079,7 +7079,7 @@ local onTaxyWidgetClick = function (self, button)
 	end
 end
 local format_for_taxy_zoom_allquests = function (button)
-	button:SetScale (1.3	)
+	button:SetScale (1.3)
 	button:SetWidth (20)
 	button:SetAlpha (1)
 end
@@ -7109,23 +7109,6 @@ local format_for_taxy_nozoom_all = function (button)
 		button.IsTrackingGlow:Show()
 		button.IsTrackingGlow:SetAlpha (.5)
 	end
-end
-local format_for_taxy_nozoom_allquests = function (button)
-	button:ClearWidget()
-
-	button.Texture:SetMask (nil)
-	button.Texture:SetTexture ([[Interface\GossipFrame\AvailableQuestIcon]])
-	button.Texture:Show()
-	button:SetScale (4)
-	button:SetWidth (8)
-	button:SetAlpha (.80)
-	
-	button.blackBackground:Show()
-	button.blackBackground:SetSize (28, 42)
-	button.blackBackground:SetTexture ([[Interface\PETBATTLES\PETBATTLEHUD]])
-	button.blackBackground:SetTexCoord (795/1024, 900/1024, 347/512, 447/512)
-	button.blackBackground:SetDesaturated (true)
-	button.blackBackground:SetAlpha (.45)
 end
 
 WorldQuestTracker.TaxyZoneWidgets = {}
@@ -7204,9 +7187,14 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 					end
 				end
 				--override scripts
-				pin._WQT_Twin:SetScript ("OnEnter", pin:GetScript ("OnEnter"))
-				pin._WQT_Twin:SetScript ("OnLeave", pin:GetScript ("OnLeave"))
+				--pin._WQT_Twin:SetScript ("OnEnter", pin:GetScript ("OnEnter"))
+				pin._WQT_Twin:SetScript ("OnEnter", function (self)
+					--> the tooltip should get the scale from the taxi map pin
+					pin:GetScript ("OnEnter")(pin)
+				end)
 				
+				pin._WQT_Twin:SetScript ("OnLeave", pin:GetScript ("OnLeave"))
+
 				tinsert (WorldQuestTracker.TaxyZoneWidgets, pin._WQT_Twin)
 			end
 			
