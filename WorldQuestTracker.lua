@@ -1505,6 +1505,9 @@ end
 
 --pega o nome da zona
 function WorldQuestTracker.GetZoneName (mapID)
+	if (not mapID) then
+		return ""
+	end
 	return GetMapNameByID (mapID)
 end
 
@@ -2425,7 +2428,9 @@ function WorldQuestTracker.UpdateZoneWidgets()
 						
 						local passFilter = filters [filter]
 						if (not passFilter) then
-							if (WorldQuestTracker.db.profile.filter_always_show_faction_objectives) then
+							if (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
+								passFilter = true
+							elseif (WorldQuestTracker.db.profile.filter_always_show_faction_objectives) then
 								local isCriteria = WorldMapFrame.UIElementsFrame.BountyBoard:IsWorldQuestCriteriaForSelectedBounty (questID)
 								if (isCriteria) then
 									passFilter = true
@@ -2607,7 +2612,9 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 		else
 			if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
 				if (rarity == LE_WORLD_QUEST_QUALITY_RARE or rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
-					self.IsTrackingRareGlow:Show()
+					if (mapID ~= suramar_mapId) then
+						self.IsTrackingRareGlow:Show()
+					end
 				end
 				self.IsTrackingGlow:Show()
 			end
@@ -7229,7 +7236,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			
 			--não mostrar quests que foram filtradas
 			local filter = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, quantity)
-			if (not filters [filter]) then
+			if (not filters [filter] and rarity ~= LE_WORLD_QUEST_QUALITY_EPIC) then
 				pin._WQT_Twin:Hide()
 				WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
 				pin._WQT_Twin.questID = nil
@@ -8190,7 +8197,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 								end
 							end
 							
-							if (filters [filter]) then
+							if (filters [filter] or rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
 								tinsert (questsAvailable [mapId], {questID, order, info.numObjectives})
 								shownQuests = shownQuests + 1
 							else
