@@ -68,6 +68,13 @@ local MapRangeClamped = DF.MapRangeClamped
 local FindLookAtRotation = DF.FindLookAtRotation
 local GetDistance_Point = DF.GetDistance_Point
 
+--importing FindLookAtRotation
+if (not FindLookAtRotation) then
+	FindLookAtRotation = function (_, x1, y1, x2, y2)
+		return atan2 (y2 - y1, x2 - x1) + pi
+	end
+end
+
 local WQT_QUESTTYPE_MAX = 9
 local WQT_QUESTTYPE_GOLD = "gold"
 local WQT_QUESTTYPE_RESOURCE = "resource"
