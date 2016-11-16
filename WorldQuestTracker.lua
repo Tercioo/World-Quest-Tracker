@@ -190,6 +190,7 @@ local default_config = {
 		tracker_show_time = false,
 		use_quest_summary = false,
 		bar_anchor = "bottom",
+		use_old_icons = false,
 		history = {
 			reward = {
 				global = {},
@@ -1710,7 +1711,7 @@ function WorldQuestTracker.GetQuestReward_Item (questID)
 					icon = WorldQuestTracker.EquipIcons ["Relic"]
 				end
 				
-				if (icon) then
+				if (icon and not WorldQuestTracker.db.profile.use_old_icons) then
 					itemTexture = icon
 				end
 			
@@ -3157,6 +3158,13 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					WorldQuestTracker.db.profile [option] = value
 					if (option == "bar_anchor") then
 						WorldQuestTracker:SetStatusBarAnchor()
+					
+					elseif (option == "use_old_icons") then
+						if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+							WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, true, false, true)
+						else
+							WorldQuestTracker.UpdateZoneWidgets()
+						end
 					end
 				end
 			
@@ -4499,6 +4507,14 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (1, options_on_click, "sound_enabled", not WorldQuestTracker.db.profile.sound_enabled)
+				--
+				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_EQUIPMENTICONS"])
+				if (WorldQuestTracker.db.profile.use_old_icons) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (1, options_on_click, "use_old_icons", not WorldQuestTracker.db.profile.use_old_icons)
 				--
 				GameCooltip:AddLine (L["S_MAPBAR_AUTOWORLDMAP"])
 				if (WorldQuestTracker.db.profile.enable_doubletap) then
