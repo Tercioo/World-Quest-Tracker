@@ -7431,7 +7431,7 @@ WorldQuestTracker.mapTables = {
 		GrowRight = true,
 	}
 }
-
+ 
 --esconde todos os widgets do world map
 function WorldQuestTracker.HideWorldQuestsOnWorldMap()
 	for _, widget in ipairs (all_widgets) do --quadrados das quests
