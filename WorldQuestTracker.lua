@@ -6652,7 +6652,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				
 				if (Sort_currentMapID == quest.mapID) then
 					local x, y = C_TaskQuest.GetQuestLocation (quest.questID, quest.mapID)
-					widget.questX, widget.questY = x, y
+					widget.questX, widget.questY = x or 0, y or 0
 					
 					local curZone, zoneLeft, zoneTop, zoneRight, zoneBottom = GetCurrentMapZone()
 					if (zoneLeft) then
