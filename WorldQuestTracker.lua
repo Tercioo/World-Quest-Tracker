@@ -6230,6 +6230,7 @@ local TrackerIconButtonOnClick = function (self, button)
 	end
 end
 
+-- ãrrow ~arrow
 local UpdateSuperQuestTracker = function()
 	if (WorldQuestTracker.SuperTracked and HaveQuestData (WorldQuestTracker.SuperTracked)) then
 		--verifica se a quest esta sendo mostrada no tracker
@@ -6242,6 +6243,38 @@ local UpdateSuperQuestTracker = function()
 		WorldQuestTracker.SuperTracked = nil
 	end
 end
+
+--rewrite QuestSuperTracking_IsSuperTrackedQuestValid to avoid conflict with World Quest Tracker
+function QuestSuperTracking_IsSuperTrackedQuestValid()
+	local trackedQuestID = GetSuperTrackedQuestID();
+	if trackedQuestID == 0 then
+		return false;
+	end
+
+	if GetQuestLogIndexByID(trackedQuestID) == 0 then
+		-- Might be a tracked world quest that isn't in our log yet (blizzard)
+		-- adding here if the quest is tracked by World Quest Tracker (tercio)
+		if (QuestUtils_IsQuestWorldQuest(trackedQuestID) and WorldQuestTracker.SuperTracked == trackedQuestID) then
+			return true
+		end
+		if QuestUtils_IsQuestWorldQuest(trackedQuestID) and IsWorldQuestWatched(trackedQuestID) then
+			return C_TaskQuest.IsActive(trackedQuestID);
+		end
+		return false;
+	end
+
+	return true;
+end
+
+--hooksecurefunc ("QuestSuperTracking_CheckSelection", function()
+--	print ("QuestSuperTracking_CheckSelection")
+--end)
+--hooksecurefunc ("QuestSuperTracking_ChooseClosestQuest", function()
+	--print ("QuestSuperTracking_ChooseClosestQuest")
+--end)
+--hooksecurefunc ("QuestSuperTracking_OnQuestUntracked", function()
+--	print ("quest untrackerd")
+--end)
 
 hooksecurefunc ("QuestSuperTracking_ChooseClosestQuest", function()
 	if (WorldQuestTracker.SuperTracked) then
