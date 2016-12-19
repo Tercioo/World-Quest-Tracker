@@ -4377,6 +4377,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
 				--
 				
+				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "0.8"), "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 0.8)				
 				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.0"), "", 2)
 				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1)
 				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.1"), "", 2)
@@ -8616,7 +8618,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 											--WorldQuestTracker.SetIconTexture (widget.texture, artifactIcon, false, false)
 											widget.isArtifact = true
 											if (artifactPower >= 1000) then
-												widget.amountText:SetText (format ("%.1fK", artifactPower/1000))
+												if (artifactPower > 9999) then
+													widget.amountText:SetText (format ("%.0fK", artifactPower/1000))
+												else
+													widget.amountText:SetText (format ("%.1fK", artifactPower/1000))
+												end
 												widget.amountBackground:SetWidth (36)
 											else
 												widget.amountText:SetText (artifactPower)
