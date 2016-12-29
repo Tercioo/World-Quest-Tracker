@@ -1127,7 +1127,7 @@ local questButton_OnLeave = function	(self)
 end
 
 --ao clicar no botão de uma quest na zona ou no world map, colocar para trackear ela
--- õnclick ~onclick
+-- õnclick ~onclick ~click
 local questButton_OnClick = function (self, button)
 
 	if (not self.questID) then
@@ -1147,6 +1147,12 @@ local questButton_OnClick = function (self, button)
 		return
 	end
 
+--was middle button and have WQGF installed
+	if (WorldQuestGroupFinderAddon and button == "MiddleButton") then
+		WorldQuestGroupFinder.HandleBlockClick (self.questID)
+		return
+	end
+	
 --isn't using the tracker
 	if (not WorldQuestTracker.db.profile.use_tracker or IsShiftKeyDown()) then
 		TaskPOI_OnClick (self, button)
@@ -2103,6 +2109,8 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button:SetScript ("OnEnter", TaskPOI_OnEnter)
 	button:SetScript ("OnLeave", TaskPOI_OnLeave)
 	button:SetScript ("OnClick", questButton_OnClick)
+	
+	button:RegisterForClicks ("LeftButtonDown", "MiddleButtonDown", "RightButtonDown")
 	
 	local supportFrame = CreateFrame ("frame", nil, button)
 	supportFrame:SetPoint ("center")
@@ -6057,6 +6065,11 @@ local TrackerFrameOnClick = function (self, button)
 			WorldQuestTracker.WorldWidgets_NeedFullRefresh = true
 		end
 	else
+		--WQGF integration
+		if (WorldQuestGroupFinderAddon and button == "MiddleButton") then
+			WorldQuestGroupFinder.HandleBlockClick (self.questID)
+			return
+		end
 		WorldQuestTracker.CanLinkToChat (self, button)
 	end
 end
@@ -6304,7 +6317,7 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f:SetScript ("OnClick", TrackerFrameOnClick)
 	f:SetScript ("OnEnter", TrackerFrameOnEnter)
 	f:SetScript ("OnLeave", TrackerFrameOnLeave)
-	f:RegisterForClicks ("LeftButtonUp", "RightButtonUp")
+	f:RegisterForClicks ("LeftButtonDown", "MiddleButtonDown", "RightButtonDown")
 	
 	f.RightBackground = f:CreateTexture (nil, "background")
 	f.RightBackground:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-Achievement-HorizontalShadow]])
@@ -7582,6 +7595,8 @@ local create_worldmap_square = function (mapName, index)
 	button:SetScript ("OnEnter", questButton_OnEnter)
 	button:SetScript ("OnLeave", questButton_OnLeave)
 	button:SetScript ("OnClick", questButton_OnClick)
+	
+	button:RegisterForClicks ("LeftButtonDown", "MiddleButtonDown", "RightButtonDown")
 	
 	local fadeInAnimation = button:CreateAnimationGroup()
 	local step1 = fadeInAnimation:CreateAnimation ("Alpha")
