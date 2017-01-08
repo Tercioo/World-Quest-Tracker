@@ -1433,6 +1433,12 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 			--self.squareBorder:SetTexCoord (unpack (coords))
 			--self.squareBorder:SetVertexColor (1, 1, 1)
 			self.epicBorder:Show()
+
+			self.shineAnimation:Show()
+			--self.borderAnimation:Show()
+			--AutoCastShine_AutoCastStart (self.borderAnimation, .3, .3, 1)
+			AnimatedShine_Start (self, 1, 1, 1);
+			
 		end
 
 	else
@@ -7585,7 +7591,7 @@ local create_worldmap_line = function (lineWidth, mapId)
 	return line, blip, factionFrame
 end
 
---cria uma square widget no world map ~world ~createworld
+--cria uma square widget no world map ~world ~createworld ~createworldwidget
 local create_worldmap_square = function (mapName, index)
 	local button = CreateFrame ("button", "WorldQuestTrackerWorldMapPOI" .. mapName .. "POI" .. index, worldFramePOIs)
 	button:SetSize (WORLDMAP_SQUARE_SIZE, WORLDMAP_SQUARE_SIZE)
@@ -7642,7 +7648,9 @@ local create_worldmap_square = function (mapName, index)
 	
 	local shineAnimation = CreateFrame ("frame", "$parentShine", button, "AnimatedShineTemplate")
 	shineAnimation:SetFrameLevel (303)
-	shineAnimation:SetAllPoints()
+	--shineAnimation:SetAllPoints()
+	shineAnimation:SetPoint ("topleft", 4, -2)
+	shineAnimation:SetPoint ("bottomright", 0, 1)
 	shineAnimation:Hide()
 	button.shineAnimation = shineAnimation
 	
