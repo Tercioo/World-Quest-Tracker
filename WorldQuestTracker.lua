@@ -1392,6 +1392,9 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 			self.trackingBorder:Hide()
 		end
 		
+		self.shineAnimation:Hide()
+		AnimatedShine_Stop (self)
+		
 		local coords = WorldQuestTracker.GetBorderCoords (rarity)
 		if (rarity == LE_WORLD_QUEST_QUALITY_COMMON) then
 			if (self.isArtifact) then
