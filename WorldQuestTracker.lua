@@ -2919,8 +2919,11 @@ function WorldQuestTracker.ShowTutorialAlert()
 	end
 end
 
---ao abrir ou fechar o mapa
+--ao abrir ou fechar o mapa ~toggle
 hooksecurefunc ("ToggleWorldMap", function (self)
+	if (true) then
+		--return
+	end
 	
 	WorldMapFrame.currentStandingZone = GetCurrentMapAreaID()
 	
@@ -5712,13 +5715,6 @@ function WorldQuestTracker.IsQuestBeingTracked (questID)
 	return
 end
 
---tomtom track options
---persistent
---minimap
---world
---crazy
---cleardistance
---arrivaldistance
 
 function WorldQuestTracker.AddQuestTomTom (questID, mapID, noRemove)
 	local x, y = C_TaskQuest.GetQuestLocation (questID, mapID)
@@ -6261,6 +6257,7 @@ local UpdateSuperQuestTracker = function()
 	end
 end
 
+--[[
 --rewrite QuestSuperTracking_IsSuperTrackedQuestValid to avoid conflict with World Quest Tracker
 function QuestSuperTracking_IsSuperTrackedQuestValid()
 	local trackedQuestID = GetSuperTrackedQuestID();
@@ -6282,16 +6279,7 @@ function QuestSuperTracking_IsSuperTrackedQuestValid()
 
 	return true;
 end
-
---hooksecurefunc ("QuestSuperTracking_CheckSelection", function()
---	print ("QuestSuperTracking_CheckSelection")
---end)
---hooksecurefunc ("QuestSuperTracking_ChooseClosestQuest", function()
-	--print ("QuestSuperTracking_ChooseClosestQuest")
---end)
---hooksecurefunc ("QuestSuperTracking_OnQuestUntracked", function()
---	print ("quest untrackerd")
---end)
+--]]
 
 hooksecurefunc ("QuestSuperTracking_ChooseClosestQuest", function()
 	if (WorldQuestTracker.SuperTracked) then
@@ -6978,7 +6966,7 @@ local On_ObjectiveTracker_Update = function()
 	end
 
 	WorldQuestTracker.UpdateQuestsInArea()
-	
+
 	--pega a altura do tracker de quests
 	local y = 0
 	for i = 1, #tracker.MODULES do
