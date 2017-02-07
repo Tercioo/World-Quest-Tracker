@@ -189,6 +189,7 @@ local default_config = {
 		tracker_scale = 1,
 		tracker_show_time = false,
 		use_quest_summary = false,
+		zone_only_tracked = false,
 		bar_anchor = "bottom",
 		use_old_icons = false,
 		history = {
@@ -2413,6 +2414,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 			if (HaveQuestData (questID)) then
 				local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
 				if (isWorldQuest) then
+				
 					local isSuppressed = WorldMap_IsWorldQuestSuppressed (questID)
 					local passFilters = WorldMap_DoesWorldQuestInfoPassFilters (info, true, true) --blizzard filters
 					local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
@@ -2442,6 +2444,10 @@ function WorldQuestTracker.UpdateZoneWidgets()
 								if (isCriteria) then
 									passFilter = true
 								end
+							end
+						elseif (WorldQuestTracker.db.profile.zone_only_tracked) then
+							if (not WorldQuestTracker.IsQuestBeingTracked (questID)) then
+								passFilter = false
 							end
 						end
 
@@ -3185,6 +3191,12 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 						else
 							WorldQuestTracker.UpdateZoneWidgets()
 						end
+					end
+				end
+				
+				if (option == "zone_only_tracked") then
+					if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+						WorldQuestTracker.UpdateZoneWidgets()
 					end
 				end
 			
@@ -4511,9 +4523,20 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "scale",  1.23)
 				GameCooltip:AddLine ("Very Large Quest Icons", "", 2)
 				GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "scale",  1.35)
-
+				
+				GameCooltip:AddLine ("$div", nil, 2, nil, -7, -14)
+				
+				GameCooltip:AddLine ("Only Tracked", "", 2)
+				if (WorldQuestTracker.db.profile.zone_only_tracked) then
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+				else
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+				end
+				GameCooltip:AddMenu (2, options_on_click, "zone_only_tracked", not WorldQuestTracker.db.profile.zone_only_tracked)
+				
+				
+				
 				GameCooltip:AddLine ("$div")
-
 				--
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_SOUNDENABLED"])
 				if (WorldQuestTracker.db.profile.sound_enabled) then
