@@ -1270,7 +1270,7 @@ end
 function WorldQuestTracker.GetAllWorldQuests_Ids()
 	local allQuests, dataUnavaliable = {}, false
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-		local taskInfo = GetQuestsForPlayerByMapID (mapId)
+		local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
 		if (taskInfo and #taskInfo > 0) then
 			for i, info  in ipairs (taskInfo) do
 				local questID = info.questId
@@ -2393,7 +2393,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 	
 	WorldQuestTracker.lastZoneWidgetsUpdate = GetTime()
 	
-	local taskInfo = GetQuestsForPlayerByMapID (mapID)
+	local taskInfo = GetQuestsForPlayerByMapID (mapID, 1007)
 	local index = 1
 	
 	--parar a animação de loading
@@ -7085,7 +7085,7 @@ function WorldQuestTracker:GetAllWorldQuests_Info()
 	SetMapByID (MAPID_BROKENISLES)
 	local total = 0
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-		local taskInfo = GetQuestsForPlayerByMapID (mapId)
+		local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
 		if (taskInfo and #taskInfo > 0) then
 			for i, info  in ipairs (taskInfo) do
 				local questID = info.questId
@@ -8136,11 +8136,27 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	local sortByTimeLeft = WorldQuestTracker.db.profile.force_sort_by_timeleft
 	
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-		
+	
 		questsAvailable [mapId] = {}
-		local taskInfo = GetQuestsForPlayerByMapID (mapId)
-		local shownQuests = 0
+		--print (GetMapNameByID (1014), #GetQuestsForPlayerByMapID (1014, 1007))
+		--print (GetMapNameByID (1021), #GetQuestsForPlayerByMapID (1021, 1007))
 		
+--local azsuna_mapId = 1015
+--local highmountain_mapId = 1024
+--local stormheim_mapId = 1017
+--local suramar_mapId = 1033
+--local valsharah_mapId = 1018
+--local eoa_mapId = 1096	
+	
+-- 1014, 1021
+		
+		local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
+		
+		--print (mapId, #taskInfo)
+		
+		local shownQuests = 0
+--		/dump #GetQuestsForPlayerByMapID (1015)
+
 		if (taskInfo and #taskInfo > 0) then
 			for i, info in ipairs (taskInfo) do
 				local questID = info.questId
@@ -8270,7 +8286,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	end
 	
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-		local taskInfo = GetQuestsForPlayerByMapID (mapId)
+		local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
 		local taskIconIndex = 1
 		local widgets = configTable.widgets
 		
