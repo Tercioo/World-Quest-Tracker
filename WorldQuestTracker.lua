@@ -230,6 +230,8 @@ local is_broken_isles_map = {
 	[suramar_mapId] = true,
 	[valsharah_mapId] = true,
 	[eoa_mapId] = true,
+	[1014] = true, --dalaran
+	[1021] = true, --broken shore
 }
 
 local WORLDMAP_SQUARE_SIZE = 24
@@ -332,6 +334,9 @@ local BROKEN_ISLES_ZONES = {
 	[stormheim_mapId] = true, --stormheim
 	[suramar_mapId] = true, --suramar
 	[eoa_mapId] = true, --eye of azshara
+	
+	[1014] = true, --dalaran
+	[1021] = true, --broken shore	
 }
 
 local WorldQuestTracker = DF:CreateAddOn ("WorldQuestTrackerAddon", "WQTrackerDB", default_config)
@@ -2395,9 +2400,15 @@ function WorldQuestTracker.UpdateZoneWidgets()
 	WorldQuestTracker.lastZoneWidgetsUpdate = GetTime()
 	
 	--local taskInfo = GetQuestsForPlayerByMapID (mapID, 1007)
-	local taskInfo = GetQuestsForPlayerByMapID (mapID)
-	local index = 1
+	local taskInfo
+	if (mapID == 1014) then
+		taskInfo = GetQuestsForPlayerByMapID (mapID, 1007)
+	else
+		taskInfo = GetQuestsForPlayerByMapID (mapID, mapID)
+	end
 	
+	local index = 1
+
 	--parar a animação de loading
 	if (WorldQuestTracker.IsPlayingLoadAnimation()) then
 		WorldQuestTracker.StopLoadingAnimation()
@@ -8172,6 +8183,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		--local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
 		local taskInfo = GetQuestsForPlayerByMapID (mapId, worldMapID)
 
+		--print (mapId, #GetQuestsForPlayerByMapID (mapId, worldMapID))
+
 		--print (mapId, #taskInfo)
 		
 		local shownQuests = 0
@@ -8305,9 +8318,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		end
 	end
 	
+	local worldMapID = GetCurrentMapAreaID()
+	
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		--local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
-		local taskInfo = GetQuestsForPlayerByMapID (mapId)
+		local taskInfo = GetQuestsForPlayerByMapID (mapId, worldMapID)
 		local taskIconIndex = 1
 		local widgets = configTable.widgets
 		
