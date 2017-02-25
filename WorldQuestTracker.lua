@@ -8120,13 +8120,12 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	
 	--limpa todos os widgets no world map
 	WorldQuestTracker.ClearWorldMapWidgets()
-	
 --	
 	if (WorldQuestTracker.WorldWidgets_NeedFullRefresh) then
 		WorldQuestTracker.WorldWidgets_NeedFullRefresh = nil
 		noCache = true
 	end
-	
+	 
 	local questsAvailable = {}
 	local needAnotherUpdate = false
 	local filters = WorldQuestTracker.db.profile.filters
@@ -8138,17 +8137,17 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 	
 		questsAvailable [mapId] = {}
-		--print (GetMapNameByID (1014), #GetQuestsForPlayerByMapID (1014, 1007))
+		--print (GetMapNameByID (1021), #GetQuestsForPlayerByMapID (1014, 1007))
 		--print (GetMapNameByID (1021), #GetQuestsForPlayerByMapID (1021, 1007))
 		
---local azsuna_mapId = 1015
---local highmountain_mapId = 1024
---local stormheim_mapId = 1017
---local suramar_mapId = 1033
---local valsharah_mapId = 1018
---local eoa_mapId = 1096	
-	
--- 1014, 1021
+		--local azsuna_mapId = 1015
+		--local highmountain_mapId = 1024
+		--local stormheim_mapId = 1017
+		--local suramar_mapId = 1033
+		--local valsharah_mapId = 1018
+		--local eoa_mapId = 1096	
+		
+		-- 1014, 1021
 		
 		local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
 		
