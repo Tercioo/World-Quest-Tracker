@@ -1270,7 +1270,8 @@ end
 function WorldQuestTracker.GetAllWorldQuests_Ids()
 	local allQuests, dataUnavaliable = {}, false
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-		local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
+		--local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
+		local taskInfo = GetQuestsForPlayerByMapID (mapId)
 		if (taskInfo and #taskInfo > 0) then
 			for i, info  in ipairs (taskInfo) do
 				local questID = info.questId
@@ -2393,7 +2394,8 @@ function WorldQuestTracker.UpdateZoneWidgets()
 	
 	WorldQuestTracker.lastZoneWidgetsUpdate = GetTime()
 	
-	local taskInfo = GetQuestsForPlayerByMapID (mapID, 1007)
+	--local taskInfo = GetQuestsForPlayerByMapID (mapID, 1007)
+	local taskInfo = GetQuestsForPlayerByMapID (mapID)
 	local index = 1
 	
 	--parar a animação de loading
@@ -7085,7 +7087,10 @@ function WorldQuestTracker:GetAllWorldQuests_Info()
 	SetMapByID (MAPID_BROKENISLES)
 	local total = 0
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-		local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
+	
+		--local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
+		local taskInfo = GetQuestsForPlayerByMapID (mapId)
+		
 		if (taskInfo and #taskInfo > 0) then
 			for i, info  in ipairs (taskInfo) do
 				local questID = info.questId
@@ -7480,10 +7485,23 @@ WorldQuestTracker.mapTables = {
 		squarePoints = {mySide = "topright", anchorSide = "bottomright", y = -1, xDirection = -1},
 		widgets = eoa_widgets,
 		
-		Anchor_X = 0.48,
+		Anchor_X = 0.47,
 		Anchor_Y = 0.62,
 		GrowRight = true,
-	}
+	},
+	
+	[1021] = {
+		worldMapLocation = {x = 425, y = -480, lineWidth = 50},
+		worldMapLocationMax = {x = 614, y = -633, lineWidth = 50},
+		bipAnchor = {side = "left", x = 0, y = -1},
+		factionAnchor = {mySide = "right", anchorSide = "left", x = -0, y = 0},
+		squarePoints = {mySide = "topright", anchorSide = "bottomright", y = -1, xDirection = -1},
+		widgets = eoa_widgets,
+		
+		Anchor_X = 0.64,
+		Anchor_Y = 0.67,
+		GrowRight = true,
+	},
 }
  
 --esconde todos os widgets do world map
@@ -8125,7 +8143,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		WorldQuestTracker.WorldWidgets_NeedFullRefresh = nil
 		noCache = true
 	end
-	 
+	
 	local questsAvailable = {}
 	local needAnotherUpdate = false
 	local filters = WorldQuestTracker.db.profile.filters
@@ -8133,9 +8151,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	local showTimeLeftText = WorldQuestTracker.db.profile.show_timeleft
 	
 	local sortByTimeLeft = WorldQuestTracker.db.profile.force_sort_by_timeleft
+	local worldMapID = GetCurrentMapAreaID()
 	
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 	
+		--PTR
 		questsAvailable [mapId] = {}
 		--print (GetMapNameByID (1021), #GetQuestsForPlayerByMapID (1014, 1007))
 		--print (GetMapNameByID (1021), #GetQuestsForPlayerByMapID (1021, 1007))
@@ -8149,8 +8169,9 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		
 		-- 1014, 1021
 		
-		local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
-		
+		--local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
+		local taskInfo = GetQuestsForPlayerByMapID (mapId, worldMapID)
+
 		--print (mapId, #taskInfo)
 		
 		local shownQuests = 0
@@ -8285,7 +8306,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	end
 	
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-		local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
+		--local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
+		local taskInfo = GetQuestsForPlayerByMapID (mapId)
 		local taskIconIndex = 1
 		local widgets = configTable.widgets
 		
