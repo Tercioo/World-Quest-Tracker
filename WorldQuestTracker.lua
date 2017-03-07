@@ -2427,15 +2427,15 @@ function WorldQuestTracker.UpdateZoneWidgets()
 			if (HaveQuestData (questID)) then
 				local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
 				if (isWorldQuest) then
-				
+
 					local isSuppressed = WorldMap_IsWorldQuestSuppressed (questID)
 					local passFilters = WorldMap_DoesWorldQuestInfoPassFilters (info, true, true) --blizzard filters
 					local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
 					
 					if (not isSuppressed and passFilters and timeLeft > 3) then
 						C_TaskQuest.RequestPreloadRewardData (questID)
-						
-						local tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = GetQuestTagInfo (questID)
+
+						local tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical = GetQuestTagInfo (questID) -- allowDisplayPastCritical 7.2
 						
 						------ adicionados para fazer o filtro
 							--gold
@@ -2447,6 +2447,11 @@ function WorldQuestTracker.UpdateZoneWidgets()
 						------
 						
 						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
+						
+						-- ~legion
+						-- worldQuestType == LE_QUEST_TAG_TYPE_INVASION
+						-- LE_QUEST_TAG_TYPE_RAID
+						-- 
 						
 						local passFilter = filters [filter]
 						if (not passFilter) then
@@ -5035,7 +5040,10 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				
 				local itemID, altItemID, name, icon, totalXP, pointsSpent, quality, artifactAppearanceID, appearanceModID, itemAppearanceID, altItemAppearanceID, altOnTop = C_ArtifactUI.GetEquippedArtifactInfo()
 				if (itemID and WorldQuestTracker.WorldMap_APowerIndicator.Amount) then
+				
+					--C_ArtifactUI.GetCostForPointAtRank(rank, tier)
 					local numPointsAvailableToSpend, xp, xpForNextPoint = MainMenuBar_GetNumArtifactTraitsPurchasableFromXP (pointsSpent, totalXP)
+					
 					local Available_APower = WorldQuestTracker.WorldMap_APowerIndicator.Amount / xpForNextPoint * 100
 					local diff = xpForNextPoint - xp
 					local Diff_APower = WorldQuestTracker.WorldMap_APowerIndicator.Amount / diff * 100
@@ -7501,7 +7509,7 @@ WorldQuestTracker.mapTables = {
 		GrowRight = true,
 	},
 	
-	[1021] = {
+	[1021] = { --broken shore
 		worldMapLocation = {x = 425, y = -480, lineWidth = 50},
 		worldMapLocationMax = {x = 614, y = -633, lineWidth = 50},
 		bipAnchor = {side = "left", x = 0, y = -1},
@@ -7509,7 +7517,7 @@ WorldQuestTracker.mapTables = {
 		squarePoints = {mySide = "topright", anchorSide = "bottomright", y = -1, xDirection = -1},
 		widgets = eoa_widgets,
 		
-		Anchor_X = 0.64,
+		Anchor_X = 0.62,
 		Anchor_Y = 0.67,
 		GrowRight = true,
 	},
