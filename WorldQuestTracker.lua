@@ -7435,7 +7435,7 @@ WorldQuestTracker.mapTables = {
 		widgets = azsuna_widgets,
 		
 		Anchor_X = 0.01,
-		Anchor_Y = 0.59,
+		Anchor_Y = 0.52,
 		GrowRight = true,
 	},
 	[valsharah_mapId] = {
