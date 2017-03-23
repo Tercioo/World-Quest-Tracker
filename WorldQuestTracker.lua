@@ -2402,7 +2402,8 @@ function WorldQuestTracker.UpdateZoneWidgets()
 	--local taskInfo = GetQuestsForPlayerByMapID (mapID, 1007)
 	local taskInfo
 	if (mapID == 1014) then
-		taskInfo = GetQuestsForPlayerByMapID (mapID, 1007)
+		--taskInfo = GetQuestsForPlayerByMapID (mapID, 1007)
+		taskInfo = GetQuestsForPlayerByMapID (mapID) --fix from @legowxelab2z8 from curse
 	else
 		taskInfo = GetQuestsForPlayerByMapID (mapID, mapID)
 	end
