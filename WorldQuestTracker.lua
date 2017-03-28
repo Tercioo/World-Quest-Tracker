@@ -1375,7 +1375,11 @@ function WorldQuestTracker.GetBorderByQuestType (self, rarity, worldQuestType)
 	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
 		return "border_zone_browT"
 	elseif (rarity == LE_WORLD_QUEST_QUALITY_COMMON) then
-		return "border_zone_whiteT"
+		if (worldQuestType == LE_QUEST_TAG_TYPE_INVASION) then
+			return "border_zone_legionT"
+		else
+			return "border_zone_whiteT"
+		end
 	elseif (rarity == LE_WORLD_QUEST_QUALITY_RARE) then
 		return "border_zone_blueT"
 	elseif (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
@@ -1389,6 +1393,7 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 		self.commonBorder:Hide()
 		self.rareBorder:Hide()
 		self.epicBorder:Hide()
+		self.invasionBorder:Hide()
 		
 		if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
 			self.borderAnimation:Show()
@@ -1403,7 +1408,7 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 		AnimatedShine_Stop (self)
 		
 		local coords = WorldQuestTracker.GetBorderCoords (rarity)
-		if (rarity == LE_WORLD_QUEST_QUALITY_COMMON) then
+		if (rarity == LE_WORLD_QUEST_QUALITY_COMMON and worldQuestType ~= LE_QUEST_TAG_TYPE_INVASION) then
 			if (self.isArtifact) then
 				self.commonBorder:Show()
 				--self.squareBorder:SetTexCoord (unpack (coords))
@@ -1448,6 +1453,9 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 			--self.borderAnimation:Show()
 			--AutoCastShine_AutoCastStart (self.borderAnimation, .3, .3, 1)
 			AnimatedShine_Start (self, 1, 1, 1);
+			
+		elseif (worldQuestType == LE_QUEST_TAG_TYPE_INVASION) then
+			self.invasionBorder:Show()
 			
 		end
 
@@ -1663,9 +1671,21 @@ end
 --pega a quantidade de recursos para a order hall
 function WorldQuestTracker.GetQuestReward_Resource (questID)
 	local numQuestCurrencies = GetNumQuestLogRewardCurrencies (questID)
-	for i = 1, numQuestCurrencies do
-		local name, texture, numItems = GetQuestLogRewardCurrencyInfo (i, questID)
-		return name, texture, numItems
+	if (numQuestCurrencies == 2) then
+		for i = 1, numQuestCurrencies do
+			local name, texture, numItems = GetQuestLogRewardCurrencyInfo (i, questID)
+			--legion invasion quest
+			if (texture and texture:find ("inv_datacrystal01")) then -- [[Interface\Icons\inv_datacrystal01]]
+			
+			else
+				return name, texture, numItems
+			end
+		end
+	else
+		for i = 1, numQuestCurrencies do
+			local name, texture, numItems = GetQuestLogRewardCurrencyInfo (i, questID)
+			return name, texture, numItems
+		end
 	end
 end
 
@@ -2712,7 +2732,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 			
 			-- class hall resource
 			local name, texture, numRewardItems = WorldQuestTracker.GetQuestReward_Resource (questID)
-			if (name) then
+			if (name and not okay) then
 				if (texture) then
 					self.Texture:SetTexture (texture)
 					--self.Texture:SetTexCoord (0, 1, 0, 1)
@@ -3858,6 +3878,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				local data = {}
 				for i = 1, #dateString do
 					local hadTable = false
+					twoWeeks = twoWeeks or {}
 					for o = 1, #twoWeeks do
 						if (twoWeeks[o].day == dateString[i]) then
 							if (GraphicDataToUse == 1) then
@@ -5042,9 +5063,11 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				local itemID, altItemID, name, icon, totalXP, pointsSpent, quality, artifactAppearanceID, appearanceModID, itemAppearanceID, altItemAppearanceID, altOnTop = C_ArtifactUI.GetEquippedArtifactInfo()
 				if (itemID and WorldQuestTracker.WorldMap_APowerIndicator.Amount) then
 				
-					--C_ArtifactUI.GetCostForPointAtRank(rank, tier)
-					local numPointsAvailableToSpend, xp, xpForNextPoint = MainMenuBar_GetNumArtifactTraitsPurchasableFromXP (pointsSpent, totalXP)
-					
+					--7.2 need to get the artifact tier
+					local artifactItemID, _, _, _, artifactTotalXP, artifactPointsSpent, _, _, _, _, _, _, artifactTier = C_ArtifactUI.GetEquippedArtifactInfo()
+					--then request the xp details
+					local numPointsAvailableToSpend, xp, xpForNextPoint = MainMenuBar_GetNumArtifactTraitsPurchasableFromXP (pointsSpent, totalXP, artifactTier)
+
 					local Available_APower = WorldQuestTracker.WorldMap_APowerIndicator.Amount / xpForNextPoint * 100
 					local diff = xpForNextPoint - xp
 					local Diff_APower = WorldQuestTracker.WorldMap_APowerIndicator.Amount / diff * 100
@@ -7670,6 +7693,12 @@ local create_worldmap_square = function (mapName, index)
 	epicBorder:SetPoint ("topleft", button, "topleft")
 	epicBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_pinkT]])
 	epicBorder:SetSize (WORLDMAP_SQUARE_SIZE, WORLDMAP_SQUARE_SIZE)
+	
+	local invasionBorder = button:CreateTexture (nil, "artwork", 1)
+	invasionBorder:SetPoint ("topleft", button, "topleft")
+	invasionBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_legionT]])
+	invasionBorder:SetSize (WORLDMAP_SQUARE_SIZE, WORLDMAP_SQUARE_SIZE)
+	
 	local trackingBorder = button:CreateTexture (nil, "artwork", 1)
 	trackingBorder:SetPoint ("topleft", button, "topleft")
 	trackingBorder:SetTexture ([[Interface\Artifacts\Artifacts]])
@@ -7896,6 +7925,7 @@ local create_worldmap_square = function (mapName, index)
 	button.commonBorder = commonBorder
 	button.rareBorder = rareBorder
 	button.epicBorder = epicBorder
+	button.invasionBorder = invasionBorder
 	button.trackingBorder = trackingBorder
 	button.trackingGlowBorder = trackingGlowBorder
 	
@@ -8574,7 +8604,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										tinsert (WorldQuestTracker.Cache_ShownQuestOnWorldMap [WQT_QUESTTYPE_GOLD], questID)
 										okey = true
 									end
-									if (rewardName) then
+									
+									if (rewardName and not okey) then
 										widget.texture:SetTexture (rewardTexture)
 										--WorldQuestTracker.SetIconTexture (widget.texture, rewardTexture, false, false)
 										--widget.texture:SetTexCoord (0, 1, 0, 1)
@@ -8593,8 +8624,9 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										total_Resources = total_Resources + numRewardItems
 										tinsert (WorldQuestTracker.Cache_ShownQuestOnWorldMap [WQT_QUESTTYPE_RESOURCE], questID)
 										okey = true
+									end
 									
-									elseif (itemName) then
+									if (itemName) then
 										if (isArtifact) then
 											local artifactIcon = WorldQuestTracker.GetArtifactPowerIcon (artifactPower)
 											
