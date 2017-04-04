@@ -150,6 +150,7 @@ local default_config = {
 			scale = 1,
 		},
 		filter_always_show_faction_objectives = true,
+		filter_force_show_brokenshore = true,
 		sort_order = {
 			[WQT_QUESTTYPE_TRADE] = 9,
 			[WQT_QUESTTYPE_APOWER] = 8,
@@ -2436,6 +2437,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 	end	
 	
 	local filters = WorldQuestTracker.db.profile.filters
+	local forceShowBrokenShore = WorldQuestTracker.db.profile.filter_force_show_brokenshore
 	
 	wipe (WorldQuestTracker.Cache_ShownQuestOnZoneMap)
 	wipe (WorldQuestTracker.Cache_ShownWidgetsOnZoneMap)
@@ -2490,7 +2492,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 							end
 						end
 
-						if (passFilter) then
+						if (passFilter or (forceShowBrokenShore and mapID == 1021)) then
 							local widget = WorldQuestTracker.GetOrCreateZoneWidget (info, index)
 
 							local selected = questID == GetSuperTrackedQuestID()
@@ -4106,6 +4108,17 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end	
 			end
 			
+			local toggle_brokenshore_bypass = function()
+				WorldQuestTracker.db.profile.filter_force_show_brokenshore = not WorldQuestTracker.db.profile.filter_force_show_brokenshore
+				GameCooltip:ExecFunc (filterButton)
+				--atualiza as quests
+				if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
+				elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+					WorldQuestTracker.UpdateZoneWidgets()
+				end
+			end
+			
 			local BuildFilterMenu = function()
 				GameCooltip:Preset (2)
 				GameCooltip:SetOption ("TextSize", 10)
@@ -4138,6 +4151,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 				
 				GameCooltip:AddLine ("$div")
+				
 				local l, r, t, b = unpack (WQT_GENERAL_STRINGS_AND_ICONS.criteria.coords)
 				l = 0.8731118125
 				
@@ -4152,6 +4166,19 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddIcon (WQT_GENERAL_STRINGS_AND_ICONS.criteria.icon, 1, 1, 23*.54, 37*.40, l, r, t, b, nil, nil, true)
 				end
 				GameCooltip:AddMenu (1, toggle_faction_objectives)
+				GameCooltip:AddLine ("$div")
+				
+				if (WorldQuestTracker.db.profile.filter_force_show_brokenshore) then
+					GameCooltip:AddLine ("Ignore Broken Shore")
+					GameCooltip:AddLine ("World quets on Broken Shore map will always be shown.", "", 2)
+					GameCooltip:AddIcon ([[Interface\ICONS\70_inscription_vantus_rune_tomb]], 1, 1, 23*.54, 37*.40, 0, 1, 0, 1)
+					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 2, 16, 16, 0, 1, 0, 1, overlayColor, nil, true)
+				else
+					GameCooltip:AddLine ("Ignore Broken Shore", "", 1, "silver")
+					GameCooltip:AddLine ("World quets on Broken Shore map will always be shown.", "", 2)
+					GameCooltip:AddIcon (WQT_GENERAL_STRINGS_AND_ICONS.criteria.icon, 1, 1, 23*.54, 37*.40, l, r, t, b, nil, nil, true)
+				end
+				GameCooltip:AddMenu (1, toggle_brokenshore_bypass)
 			end
 			
 			filterButton.CoolTip = {
@@ -8199,7 +8226,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	local filters = WorldQuestTracker.db.profile.filters
 	local timePriority = WorldQuestTracker.db.profile.sort_time_priority and WorldQuestTracker.db.profile.sort_time_priority * 60 --4 8 12 16 24
 	local showTimeLeftText = WorldQuestTracker.db.profile.show_timeleft
-	
+	local forceShowBrokenShore = WorldQuestTracker.db.profile.filter_force_show_brokenshore
+
 	local sortByTimeLeft = WorldQuestTracker.db.profile.force_sort_by_timeleft
 	local worldMapID = GetCurrentMapAreaID()
 	
@@ -8268,7 +8296,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 								end
 							end
 							
-							if (filters [filter] or rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
+							if (filters [filter] or rarity == LE_WORLD_QUEST_QUALITY_EPIC or (forceShowBrokenShore and mapId == 1021)) then --force show broken shore quests
 								tinsert (questsAvailable [mapId], {questID, order, info.numObjectives})
 								shownQuests = shownQuests + 1
 							else
