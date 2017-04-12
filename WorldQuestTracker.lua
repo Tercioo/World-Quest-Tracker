@@ -1676,8 +1676,7 @@ function WorldQuestTracker.GetQuestReward_Resource (questID)
 		for i = 1, numQuestCurrencies do
 			local name, texture, numItems = GetQuestLogRewardCurrencyInfo (i, questID)
 			--legion invasion quest
-			if (texture and texture:find ("inv_datacrystal01")) then -- [[Interface\Icons\inv_datacrystal01]]
-			
+			if (texture and (texture:find ("inv_datacrystal01") or texture:find ("inv_misc_summonable_boss_token"))) then -- [[Interface\Icons\inv_datacrystal01]]
 			else
 				return name, texture, numItems
 			end
@@ -2469,7 +2468,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 							local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetQuestReward_Item (questID)
 						------
 						
-						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
+						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount, numRewardItems, rewardTexture)
 						
 						-- ~legion
 						-- worldQuestType == LE_QUEST_TAG_TYPE_INVASION
@@ -7510,7 +7509,7 @@ WorldQuestTracker.mapTables = {
 		widgets = highmountain_widgets,
 
 		Anchor_X = 0.01,
-		Anchor_Y = 0.22,
+		Anchor_Y = 0.20,
 		GrowRight = true,
 	},
 	[stormheim_mapId] = {
@@ -7522,7 +7521,7 @@ WorldQuestTracker.mapTables = {
 		widgets = stormheim_widgets,
 		
 		Anchor_X = 0.99,
-		Anchor_Y = 0.32,
+		Anchor_Y = 0.20,
 	},
 	[suramar_mapId] = {
 		worldMapLocation = {x = 327, y = -277, lineWidth = 365},
@@ -7533,7 +7532,7 @@ WorldQuestTracker.mapTables = {
 		widgets = suramar_widgets,
 		
 		Anchor_X = 0.99,
-		Anchor_Y = 0.45,
+		Anchor_Y = 0.438,
 	},
 	[eoa_mapId] = {
 		worldMapLocation = {x = 325, y = -460, lineWidth = 50},
@@ -8028,7 +8027,7 @@ function WorldQuestTracker.UpdateWorldMapAnchors (x, y, frame)
 	frame:SetPoint ("TOPLEFT", WorldMapPOIFrame, "TOPLEFT", posX, -posY)
 end
 
-function WorldQuestTracker.GetWorldMapWidget (configTable)
+function WorldQuestTracker.GetWorldMapWidget (configTable, showTimeLeftText)
 	local widget = WorldQuestTracker.WorldMapSquares [WorldQuestTracker.NextWorldMapWidget]
 	widget:Show()
 	widget:ClearAllPoints()
@@ -8043,13 +8042,23 @@ function WorldQuestTracker.GetWorldMapWidget (configTable)
 		end
 	else
 		if (configTable.LastWidget) then
-			widget:SetPoint ("topright", configTable.LastWidget, "topleft", -1, 0)
+			if (configTable.WidgetNumber == 11) then
+				if (showTimeLeftText) then
+					widget:SetPoint ("topright", configTable.MapAnchor, "topleft", 0, -50)
+				else
+					widget:SetPoint ("topright", configTable.MapAnchor, "topleft", 0, -40)
+				end
+			else
+				widget:SetPoint ("topright", configTable.LastWidget, "topleft", -1, 0)
+			end
 		else
 			widget:SetPoint ("topright", configTable.MapAnchor, "topleft", 0, 0)
 		end
 	end
 	
 	configTable.LastWidget = widget
+	configTable.WidgetNumber = configTable.WidgetNumber + 1
+	
 	WorldQuestTracker.NextWorldMapWidget = WorldQuestTracker.NextWorldMapWidget + 1
 	
 	widget:SetScale (WorldQuestTracker.db.profile.worldmap_widgets.scale)
@@ -8067,6 +8076,7 @@ function WorldQuestTracker.ClearWorldMapWidgets()
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		table.wipe (configTable.widgets)
 		configTable.LastWidget = nil
+		configTable.WidgetNumber = 1
 	end
 	
 	WorldQuestTracker.NextWorldMapWidget = 1
@@ -8130,7 +8140,7 @@ local re_check_for_questcompleted = function()
 end
 
 -- ~filter
-function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
+function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount, numRewardItems, rewardTexture)
 	local filter, order
 	
 	if (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
@@ -8147,10 +8157,22 @@ function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rew
 	if (gold and gold > 0) then
 		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_GOLD]
 		filter = FILTER_TYPE_GOLD
-	elseif (rewardName) then
+	end	
+	
+	if (rewardName and (rewardTexture and rewardTexture:find ("inv_orderhall_orderresources"))) then
+		--if (numRewardItems and numRewardItems > 1) then
+			--can be an invasion quest
+		--	if (rewardTexture and rewardTexture:find ("inv_misc_summonable_boss_token")) then
+				--> is an invasion quest, need to see which are the real reward
+				
+		--	end
+			--
+		--end
 		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_RESOURCE]
 		filter = FILTER_TYPE_GARRISON_RESOURCE
-	elseif (isArtifact) then
+	end	
+	
+	if (isArtifact) then
 		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_APOWER]
 		filter = FILTER_TYPE_ARTIFACT_POWER
 	elseif (itemName) then
@@ -8285,7 +8307,11 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 							end
 							
 							--~sort
-							local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount)
+							--if (numRewardItems and numRewardItems > 1) then
+							--	print (rewardName, rewardTexture, numRewardItems)
+							--end
+							
+							local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount, numRewardItems, rewardTexture)
 							order = order or 1
 							
 							if (sortByTimeLeft) then
@@ -8426,7 +8452,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 							end
 						
 							--local widget = widgets [taskIconIndex]
-							local widget = WorldQuestTracker.GetWorldMapWidget (configTable)
+							local widget = WorldQuestTracker.GetWorldMapWidget (configTable, showTimeLeftText)
 							
 							if (not widget) then
 								--se não tiver o widget, o jogador abriu o mapa muito rapidamente
@@ -8668,7 +8694,9 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 											--WorldQuestTracker.SetIconTexture (widget.texture, artifactIcon, false, false)
 											widget.isArtifact = true
 											if (artifactPower >= 1000) then
-												if (artifactPower > 9999) then
+												if (artifactPower > 999999) then
+													widget.amountText:SetText (format ("%.1fM", artifactPower/1000000))
+												elseif (artifactPower > 9999) then
 													widget.amountText:SetText (format ("%.0fK", artifactPower/1000))
 												else
 													widget.amountText:SetText (format ("%.1fK", artifactPower/1000))
