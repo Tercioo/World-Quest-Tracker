@@ -2711,7 +2711,8 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 		elseif (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
 			self.questTypeBlip:Show()
 			self.questTypeBlip:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
-			self.questTypeBlip:SetTexCoord (172/512, 201/512, 273/512, 301/512)
+			--self.questTypeBlip:SetTexCoord (172/512, 201/512, 273/512, 301/512)
+			self.questTypeBlip:SetTexCoord (376/512, 403/512, 239/512, 265/512) -- left right    top botton
 			self.questTypeBlip:SetAlpha (1)
 			
 		elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
@@ -6380,6 +6381,8 @@ local UpdateSuperQuestTracker = function()
 end
 
 --[[
+-- overwriting this was causing taint issues
+
 --rewrite QuestSuperTracking_IsSuperTrackedQuestValid to avoid conflict with World Quest Tracker
 function QuestSuperTracking_IsSuperTrackedQuestValid()
 	local trackedQuestID = GetSuperTrackedQuestID();
@@ -6405,7 +6408,8 @@ end
 
 hooksecurefunc ("QuestSuperTracking_ChooseClosestQuest", function()
 	if (WorldQuestTracker.SuperTracked) then
-		C_Timer.After (.02, UpdateSuperQuestTracker)
+		--delay increased from 20ms to 200ms to avoid lag spikes
+		C_Timer.After (.2, UpdateSuperQuestTracker)
 	end
 end)
 
@@ -7417,7 +7421,8 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			local title, questType, texture, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, selected, isSpellTarget, timeLeft, isCriteria, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker:GetQuestFullInfo (pin.questID)
 			
 			--não mostrar quests que foram filtradas
-			local filter = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, quantity)
+			local filter = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, quantity, numRewardItems, rewardTexture)
+			
 			if (not filters [filter] and rarity ~= LE_WORLD_QUEST_QUALITY_EPIC) then
 				pin._WQT_Twin:Hide()
 				WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
@@ -8187,7 +8192,14 @@ function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rew
 		filter = FILTER_TYPE_GOLD
 	end	
 	
-	if (rewardName and (rewardTexture and rewardTexture:find ("inv_orderhall_orderresources"))) then
+--	if (type (rewardTexture) == "number") then
+--		print (rewardName, rewardTexture)
+--	end
+--	Legionfall War Supplies 1017868
+	
+	-- check if this is a order hall resource
+	-- = to string since legionfall resource icons is number
+	if (rewardName and (type (rewardTexture) == "string" and rewardTexture:find ("inv_orderhall_orderresources"))) then
 		--if (numRewardItems and numRewardItems > 1) then
 			--can be an invasion quest
 		--	if (rewardTexture and rewardTexture:find ("inv_misc_summonable_boss_token")) then
@@ -8650,7 +8662,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 									elseif (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
 										widget.questTypeBlip:Show()
 										widget.questTypeBlip:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
-										widget.questTypeBlip:SetTexCoord (172/512, 201/512, 273/512, 301/512)
+										--widget.questTypeBlip:SetTexCoord (172/512, 201/512, 273/512, 301/512)
+										widget.questTypeBlip:SetTexCoord (376/512, 403/512, 239/512, 265/512) -- left right    top botton
 										widget.questTypeBlip:SetAlpha (.85)
 										
 									elseif (worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON) then
