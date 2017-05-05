@@ -1322,9 +1322,11 @@ end
 if (symbol_1K) then
 	function WorldQuestTracker.ToK (numero)
 		if (numero > 99999999) then
+			--return format ("%.2f", numero/100000000) .. symbol_1B
 			return format ("%.2f", numero/100000000) .. symbol_1B
 		elseif (numero > 999999) then
-			return format ("%.2f", numero/10000) .. symbol_10K
+			--print ("--", numero, format ("%d", numero/10000))
+			return format ("%d", numero/10000) .. symbol_10K
 		elseif (numero > 99999) then
 			return floor (numero/10000) .. symbol_10K
 		elseif (numero > 9999) then
@@ -1622,7 +1624,98 @@ function WorldQuestTracker.RewardRealItemLevel (questID)
 end
 
 -- ãrtifact ~artifact
+
+function WorldQuestTracker.RewardIsArtifactPowerGerman (itemLink) -- thanks @Superanuki on curseforge
+
+	local w1, w2, w3, w4 = "Millionen", "Million", "%d,%d", "([^,]+),([^,]+)" --works for German
+
+	if (WorldQuestTracker.GameLocale == "ptBR") then
+		w1, w2, w3, w4 = "milh", "milh", "%d.%d", "([^,]+).([^,]+)"
+	elseif (WorldQuestTracker.GameLocale == "frFR") then
+		w1, w2, w3, w4 = "million", "million", "%d,%d", "([^,]+),([^,]+)"
+	end
+
+	GameTooltipFrame:SetOwner (WorldFrame, "ANCHOR_NONE")
+	GameTooltipFrame:SetHyperlink (itemLink)
+	local text = GameTooltipFrameTextLeft1:GetText()
+	
+	if (text and text:match ("|cFFE6CC80")) then
+		local power = GameTooltipFrameTextLeft3:GetText()
+		if (power) then
+			if (power:find (w1) or power:find (w2)) then
+
+				local n=power:match(w3)
+				if n then 
+					local one,two=n:match(w4) n=one.."."..two 
+				end
+				n = tonumber (n)
+				if (not n) then
+					n = power:match (" %d ")
+					n = tonumber (n)
+					n=n..".0"
+					n = tonumber (n)
+				end
+				
+				if (n) then
+					n = n * 1000000
+					return true, n or 0
+				end
+			end
+			
+			if (WorldQuestTracker.GameLocale == "frFR") then
+				power = power:gsub ("%s", ""):gsub ("%p", ""):match ("%d+")
+			else
+				power = power:gsub ("%p", ""):match ("%d+")
+			end
+			
+			power = tonumber (power)
+			return true, power or 0
+		end
+	end
+	
+	local text2 = GameTooltipFrameTextLeft2:GetText()
+	if (text2 and text2:match ("|cFFE6CC80")) then
+		local power = GameTooltipFrameTextLeft4:GetText()
+		if (power) then
+		
+			if (power:find (w1) or power:find (w2)) then
+				local n=power:match(w3)
+				
+				if n then 
+					local one,two=n:match(w4) n=one.."."..two 
+				end
+				n = tonumber (n)
+				if (not n) then
+					n = power:match (" %d ")
+					n = tonumber (n)
+					n=n..".0"
+					n = tonumber (n)
+				end
+				
+				if (n) then
+					n = n * 1000000
+					return true, n or 0
+				end
+			end
+			
+			if (WorldQuestTracker.GameLocale == "frFR") then
+				power = power:gsub ("%s", ""):gsub ("%p", ""):match ("%d+")
+			else
+				power = power:gsub ("%p", ""):match ("%d+")
+			end
+			
+			power = tonumber (power)
+			return true, power or 0
+		end
+	end
+end
+
 function WorldQuestTracker.RewardIsArtifactPower (itemLink)
+
+	if (WorldQuestTracker.GameLocale == "deDE" or WorldQuestTracker.GameLocale == "ptBR" or WorldQuestTracker.GameLocale == "frFR") then
+		return WorldQuestTracker.RewardIsArtifactPowerGerman (itemLink)
+	end
+
 	GameTooltipFrame:SetOwner (WorldFrame, "ANCHOR_NONE")
 	GameTooltipFrame:SetHyperlink (itemLink)
 
@@ -1649,6 +1742,7 @@ function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 			else
 				power = power:gsub ("%p", ""):match ("%d+")
 			end
+			
 			power = tonumber (power)
 			return true, power or 0
 		end
@@ -2810,12 +2904,24 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 						self.Texture:SetTexture (texture)
 					end
 					
-					if (artifactPower >= 1000) then
-						self.flagText:SetText (format ("%.1fK", artifactPower/1000))
+					--if (artifactPower >= 1000) then
+					--	self.flagText:SetText (format ("%.1fK", artifactPower/1000))
 						--self.flagText:SetText (comma_value (artifactPower))
+					--else
+					--	self.flagText:SetText (artifactPower)
+					--end
+					
+					if (artifactPower >= 1000) then
+						if (artifactPower > 999999) then -- 1M
+							self.flagText:SetText (WorldQuestTracker.ToK (artifactPower))
+						elseif (artifactPower > 9999) then
+							self.flagText:SetText (WorldQuestTracker.ToK (artifactPower))
+						else
+							self.flagText:SetText (format ("%.1fK", artifactPower/1000))
+						end
 					else
 						self.flagText:SetText (artifactPower)
-					end
+					end					
 
 					self.isArtifact = true
 					self.IconTexture = texture
