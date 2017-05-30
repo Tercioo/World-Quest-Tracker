@@ -1666,12 +1666,12 @@ end
 
 function WorldQuestTracker.RewardIsArtifactPowerGerman (itemLink) -- thanks @Superanuki on curseforge
 
-	local w1, w2, w3, w4 = "Millionen", "Million", "%d,%d", "([^,]+),([^,]+)" --works for German
+	local w1, w2, w3, w4 = "Millionen", "Million", "%d+,%d+", "([^,]+),([^,]+)" --works for German
 
 	if (WorldQuestTracker.GameLocale == "ptBR") then
-		w1, w2, w3, w4 = "milh", "milh", "%d.%d", "([^,]+).([^,]+)"
+		w1, w2, w3, w4 = "milh", "milh", "%d+.%d+", "([^,]+).([^,]+)"
 	elseif (WorldQuestTracker.GameLocale == "frFR") then
-		w1, w2, w3, w4 = "million", "million", "%d,%d", "([^,]+),([^,]+)"
+		w1, w2, w3, w4 = "million", "million", "%d+,%d+", "([^,]+),([^,]+)"
 	end
 
 	GameTooltipFrame:SetOwner (WorldFrame, "ANCHOR_NONE")
@@ -1689,7 +1689,7 @@ function WorldQuestTracker.RewardIsArtifactPowerGerman (itemLink) -- thanks @Sup
 				end
 				n = tonumber (n)
 				if (not n) then
-					n = power:match (" %d ")
+					n = power:match (" %d+ ") --thanks @Arwarld_ on curseforge - ticket #427
 					n = tonumber (n)
 					n=n..".0"
 					n = tonumber (n)
@@ -1725,7 +1725,7 @@ function WorldQuestTracker.RewardIsArtifactPowerGerman (itemLink) -- thanks @Sup
 				end
 				n = tonumber (n)
 				if (not n) then
-					n = power:match (" %d ")
+					n = power:match (" %d+ ")
 					n = tonumber (n)
 					n=n..".0"
 					n = tonumber (n)
@@ -1767,10 +1767,10 @@ function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 		if (power) then
 		
 			if (power:find (SECOND_NUMBER)) then
-				local n = power:match (" %d%.%d ")
+				local n = power:match (" %d+%.%d+ ")
 				n = tonumber (n)
 				if (not n) then
-					n = power:match (" %d ")
+					n = power:match (" %d+ ")
 					n = tonumber (n)
 				end
 				if (n) then
@@ -1796,10 +1796,10 @@ function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 		if (power) then
 		
 			if (power:find (SECOND_NUMBER)) then
-				local n = power:match (" %d%.%d ")
+				local n = power:match (" %d+%.%d+ ")
 				n = tonumber (n)
 				if (not n) then
-					n = power:match (" %d ")
+					n = power:match (" %d+ ")
 					n = tonumber (n)
 				end
 				if (n) then
