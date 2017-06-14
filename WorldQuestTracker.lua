@@ -1159,6 +1159,49 @@ local questButton_OnClick = function (self, button)
 	if (WorldQuestGroupFinderAddon and button == "MiddleButton") then
 		WorldQuestGroupFinder.HandleBlockClick (self.questID)
 		return
+		
+	elseif (button == "MiddleButton") then
+	
+		--PVEFrame_ShowFrame("GroupFinderFrame", LFGListPVEStub);
+		
+		local activityID, categoryID, filters, questName = LFGListUtil_GetQuestCategoryData (self.questID)
+		--LFGListCategorySelection_SelectCategory (LFGListFrame.CategorySelection, categoryID, filters)
+		
+		--LFGListFrame.CategorySelection.FindGroupButton:Click()
+		
+		--LFGListCategorySelection_StartFindGroup (LFGListFrame.CategorySelection, questName, self.questID)
+		
+		--[[
+		local f = CreateFrame ("button", "testebutton", UIParent, "UIPanelButtonTemplate")
+		f:SetSize (100, 100)
+		f:SetPoint ("center", 0, 0)
+		f:Show()
+		f:SetScript ("OnClick", function()
+			PVEFrame_ShowFrame ("GroupFinderFrame", LFGListPVEStub);
+			local activityID, categoryID, filters, questName = LFGListUtil_GetQuestCategoryData (self.questID)
+			--LFGListCategorySelection_SelectCategory (LFGListFrame.CategorySelection, categoryID, filters)
+			--LFGListFrame.CategorySelection.FindGroupButton:Click()
+			
+			--local baseFilters = LFGListFrame.CategorySelection:GetParent().baseFilters;
+			--local searchPanel = LFGListFrame.CategorySelection:GetParent().SearchPanel;
+			
+			--print (baseFilters, searchPanel)
+
+			--LFGListSearchPanel_SetCategory (searchPanel, 1, LFGListFrame.selectedFilters, baseFilters);
+			
+			C_LFGList.Search (1, questName, 0, 4, {})
+			
+			--LFGListSearchPanel_UpdateResultList (LFGListFrame);
+			--LFGListSearchPanel_UpdateResults (LFGListFrame);
+			
+		end)
+		--]]
+		
+		--print (activityID, categoryID, filters, questName)
+		
+		--LFGListFrame_BeginFindQuestGroup (LFGListFrame, self.questID);
+		--LFGListUtil_FindQuestGroup (self.questID)
+	
 	end
 	
 --isn't using the tracker
@@ -1840,7 +1883,8 @@ function WorldQuestTracker.GetQuestReward_Resource (questID)
 		for i = 1, numQuestCurrencies do
 			local name, texture, numItems = GetQuestLogRewardCurrencyInfo (i, questID)
 			--legion invasion quest
-			if (texture and (texture:find ("inv_datacrystal01") or texture:find ("inv_misc_summonable_boss_token"))) then -- [[Interface\Icons\inv_datacrystal01]]
+			
+			if (texture and (   (type (texture) == "number" and texture == 132775) or (type (texture) == "string" and (texture:find ("inv_datacrystal01") or texture:find ("inv_misc_summonable_boss_token")))    )   ) then -- [[Interface\Icons\inv_datacrystal01]]
 			else
 				return name, texture, numItems
 			end
@@ -7877,6 +7921,13 @@ local create_worldmap_line = function (lineWidth, mapId)
 	return line, blip, factionFrame
 end
 
+hooksecurefunc ("LFGListUtil_FindQuestGroup", function (a, b) 
+	print ("--> ", a, b)
+end)
+hooksecurefunc ("LFGListFrame_BeginFindQuestGroup", function (a, b) 
+	print ("result> ", a, b)
+end)
+
 --cria uma square widget no world map ~world ~createworld ~createworldwidget
 local create_worldmap_square = function (mapName, index)
 	local button = CreateFrame ("button", "WorldQuestTrackerWorldMapPOI" .. mapName .. "POI" .. index, worldFramePOIs)
@@ -7889,6 +7940,11 @@ local create_worldmap_square = function (mapName, index)
 	button:SetScript ("OnClick", questButton_OnClick)
 	
 	button:RegisterForClicks ("LeftButtonDown", "MiddleButtonDown", "RightButtonDown")
+	
+--	local groupButton = CreateFrame ("button", "WorldQuestTrackerWorldMapPOI" .. mapName .. "POI" .. index .. "LFG", button, "QuestObjectiveFindGroupButtonTemplate")
+--	groupButton:SetPoint ("bottomright", button, "bottomright")
+--	groupButton:SetSize (10, 10)
+--	button.GroupButton = groupButton
 	
 	local fadeInAnimation = button:CreateAnimationGroup()
 	local step1 = fadeInAnimation:CreateAnimation ("Alpha")
@@ -8165,22 +8221,6 @@ local create_worldmap_square = function (mapName, index)
 	button.isWorldMapWidget = true
 	
 	return button
-end
-
---cria os widgets do world map
---esta criando logo na leitura do addon
-
-local schedule_blip_creation = function (timerObject)
-	local configTable, line, mapName = timerObject.configTable, timerObject.line, timerObject.mapName
-	
-	local x = 2
-	for i = 1, 20 do
-		local button = create_worldmap_square (mapName, i)
-		button:SetPoint (configTable.squarePoints.mySide, line, configTable.squarePoints.anchorSide, x*configTable.squarePoints.xDirection, configTable.squarePoints.y)
-		button:Hide()
-		x = x + WORLDMAP_SQUARE_SIZE + 1
-		tinsert (configTable.widgets, button)
-	end
 end
 
 WorldQuestTracker.QUEST_POI_FRAME_WIDTH = 1
