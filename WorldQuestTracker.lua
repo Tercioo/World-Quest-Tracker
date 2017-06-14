@@ -1157,14 +1157,16 @@ local questButton_OnClick = function (self, button)
 
 --was middle button and have WQGF installed
 	if (WorldQuestGroupFinderAddon and button == "MiddleButton") then
+	
 		WorldQuestGroupFinder.HandleBlockClick (self.questID)
+		
 		return
 		
 	elseif (button == "MiddleButton") then
 	
 		--PVEFrame_ShowFrame("GroupFinderFrame", LFGListPVEStub);
 		
-		local activityID, categoryID, filters, questName = LFGListUtil_GetQuestCategoryData (self.questID)
+		--local activityID, categoryID, filters, questName = LFGListUtil_GetQuestCategoryData (self.questID)
 		--LFGListCategorySelection_SelectCategory (LFGListFrame.CategorySelection, categoryID, filters)
 		
 		--LFGListFrame.CategorySelection.FindGroupButton:Click()
@@ -7921,12 +7923,12 @@ local create_worldmap_line = function (lineWidth, mapId)
 	return line, blip, factionFrame
 end
 
-hooksecurefunc ("LFGListUtil_FindQuestGroup", function (a, b) 
-	print ("--> ", a, b)
-end)
-hooksecurefunc ("LFGListFrame_BeginFindQuestGroup", function (a, b) 
-	print ("result> ", a, b)
-end)
+--hooksecurefunc ("LFGListUtil_FindQuestGroup", function (a, b) 
+--	print ("--> ", a, b)
+--end)
+--hooksecurefunc ("LFGListFrame_BeginFindQuestGroup", function (a, b) 
+--	print ("result> ", a, b)
+--end)
 
 --cria uma square widget no world map ~world ~createworld ~createworldwidget
 local create_worldmap_square = function (mapName, index)
