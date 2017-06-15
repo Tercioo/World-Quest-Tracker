@@ -1885,8 +1885,12 @@ function WorldQuestTracker.GetQuestReward_Resource (questID)
 		for i = 1, numQuestCurrencies do
 			local name, texture, numItems = GetQuestLogRewardCurrencyInfo (i, questID)
 			--legion invasion quest
-			
-			if (texture and (   (type (texture) == "number" and texture == 132775) or (type (texture) == "string" and (texture:find ("inv_datacrystal01") or texture:find ("inv_misc_summonable_boss_token")))    )   ) then -- [[Interface\Icons\inv_datacrystal01]]
+			if (texture and 
+				(
+					(type (texture) == "number" and texture == 132775) or
+					(type (texture) == "string" and (texture:find ("inv_datacrystal01") or texture:find ("inv_misc_summonable_boss_token")))
+				)   
+			) then -- [[Interface\Icons\inv_datacrystal01]]
 			else
 				return name, texture, numItems
 			end
@@ -8407,7 +8411,9 @@ function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rew
 	
 	-- check if this is a order hall resource
 	-- = to string since legionfall resource icons is number
-	if (rewardName and (type (rewardTexture) == "string" and rewardTexture:find ("inv_orderhall_orderresources"))) then
+	--if (rewardName and (type (rewardTexture) == "string" and rewardTexture:find ("inv_orderhall_orderresources"))) then
+	--1397630 = order hall resource icon - since 7.2.5 is a number
+	if (rewardName and ((type(rewardTexture) == "string" and rewardTexture:find("inv_orderhall_orderresources")) or (type(rewardTexture) == "number" and rewardTexture == 1397630))) then --thanks @TOM_RUS on curseforge
 		--if (numRewardItems and numRewardItems > 1) then
 			--can be an invasion quest
 		--	if (rewardTexture and rewardTexture:find ("inv_misc_summonable_boss_token")) then
@@ -8506,30 +8512,16 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	
 		--PTR
 		questsAvailable [mapId] = {}
-		--print (GetMapNameByID (1021), #GetQuestsForPlayerByMapID (1014, 1007))
-		--print (GetMapNameByID (1021), #GetQuestsForPlayerByMapID (1021, 1007))
-		
-		--local azsuna_mapId = 1015
-		--local highmountain_mapId = 1024
-		--local stormheim_mapId = 1017
-		--local suramar_mapId = 1033
-		--local valsharah_mapId = 1018
-		--local eoa_mapId = 1096	
-		
-		-- 1014, 1021
-		
+
 		--local taskInfo = GetQuestsForPlayerByMapID (mapId, 1007)
 		local taskInfo = GetQuestsForPlayerByMapID (mapId, worldMapID)
-
-		--print (mapId, #GetQuestsForPlayerByMapID (mapId, worldMapID))
-
-		--print (mapId, #taskInfo)
 		
 		local shownQuests = 0
 --		/dump #GetQuestsForPlayerByMapID (1015)
 
 		if (taskInfo and #taskInfo > 0) then
 			for i, info in ipairs (taskInfo) do
+			
 				local questID = info.questId
 				if (HaveQuestData (questID)) then
 					local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
@@ -8545,7 +8537,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 							local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetQuestReward_Item (questID)
 							--type
 							local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
-							
+
 							--print (tradeskillLineIndex)
 							--tradeskillLineIndex = usado pra essa função GetProfessionInfo (tradeskillLineIndex)
 							--WORLD_QUEST_ICONS_BY_PROFESSION[tradeskillLineID]
@@ -8570,18 +8562,22 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 									order = abs (timeLeft - 1000)
 								end
 							end
-							
+
 							if (filters [filter] or rarity == LE_WORLD_QUEST_QUALITY_EPIC or (forceShowBrokenShore and mapId == 1021)) then --force show broken shore quests
 								tinsert (questsAvailable [mapId], {questID, order, info.numObjectives})
 								shownQuests = shownQuests + 1
-							else
-								if (WorldQuestTracker.db.profile.filter_always_show_faction_objectives) then
+								
+							elseif (WorldQuestTracker.db.profile.filter_always_show_faction_objectives) then
 									local isCriteria = WorldMapFrame.UIElementsFrame.BountyBoard:IsWorldQuestCriteriaForSelectedBounty (questID)
 									if (isCriteria) then
 										tinsert (questsAvailable [mapId], {questID, order, info.numObjectives})
 										shownQuests = shownQuests + 1
 									end
-								end
+								--end
+							else
+								--if (mapId == 1033) then
+								--	print ("DENIED:", i, title, filter)
+								--end
 							end
 						end
 					end
