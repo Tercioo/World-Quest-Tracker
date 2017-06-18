@@ -1385,7 +1385,7 @@ if (symbol_1K) then
 else
 	function WorldQuestTracker.ToK (numero)
 		if (numero > 999999) then
-			return format ("%.1f", numero/1000000) .. "M"
+			return format ("%.0f", numero/1000000) .. "M"
 		elseif (numero > 99999) then
 			return floor (numero/1000) .. "K"
 		elseif (numero > 999) then
