@@ -1665,13 +1665,16 @@ function WorldQuestTracker.RewardRealItemLevel (questID)
 	GameTooltipFrame:SetOwner (WorldFrame, "ANCHOR_NONE")
 	--GameTooltipFrame:SetHyperlink (itemLink)
 	GameTooltipFrame:SetQuestLogItem ("reward", 1, questID)
-	local itemLevel = tonumber (GameTooltipFrameTextLeft1:GetText():match ("%d+"))
+	
+	local Text = GameTooltipFrameTextLeft1:GetText() or GameTooltipFrameTextLeft2:GetText() or ""
+	local itemLevel = tonumber (Text:match ("%d+"))
+	
 	return itemLevel or 1
 end
 
 -- ãrtifact ~artifact
 
-function WorldQuestTracker.RewardIsArtifactPowerKorean (itemLink) -- thanks @yuk6196 on curseforge
+function WorldQuestTracker.RewardIsArtifactPowerAsian (itemLink) -- thanks @yuk6196 on curseforge
 
 	GameTooltipFrame:SetOwner (WorldFrame, "ANCHOR_NONE")
 	GameTooltipFrame:SetHyperlink (itemLink)
@@ -1796,8 +1799,9 @@ end
 
 function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 
-	if (WorldQuestTracker.GameLocale == "koKR") then
-		return WorldQuestTracker.RewardIsArtifactPowerKorean (itemLink)
+	--if (WorldQuestTracker.GameLocale == "koKR") then
+	if (WorldQuestTracker.GameLocale == "koKR" or WorldQuestTracker.GameLocale == "zhTW" or WorldQuestTracker.GameLocale == "zhCN") then
+		return WorldQuestTracker.RewardIsArtifactPowerAsian (itemLink)
 	
 	elseif (WorldQuestTracker.GameLocale == "deDE" or WorldQuestTracker.GameLocale == "ptBR" or WorldQuestTracker.GameLocale == "frFR") then
 		return WorldQuestTracker.RewardIsArtifactPowerGerman (itemLink)
