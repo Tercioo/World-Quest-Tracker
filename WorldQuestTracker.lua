@@ -34,6 +34,8 @@ do
 	
 	DF:InstallTemplate ("font", "WQT_SUMMARY_TITLE", {color = "orange", size = 12, font = "Friz Quadrata TT"})
 	DF:InstallTemplate ("font", "WQT_RESOURCES_AVAILABLE", {color = {1, .7, .2, .85}, size = 10, font = "Friz Quadrata TT"})
+	DF:InstallTemplate ("font", "WQT_GROUPFINDER_BIG", {color = {1, .7, .2, .85}, size = 12, font = "Friz Quadrata TT"})
+	DF:InstallTemplate ("font", "WQT_GROUPFINDER_SMALL", {color = {1, .9, .1, .85}, size = 10, font = "Friz Quadrata TT"})
 end
 
 local GameCooltip = GameCooltip2
@@ -142,6 +144,13 @@ local default_config = {
 			equipment = true,
 			trade_skill = true,
 		},
+		
+		groupfinder = {
+			enabled = true,
+			autoleave = true,
+			frame = {},
+		},
+		
 		disable_world_map_widgets = false,
 		worldmap_widgets = {
 			textsize = 9,
@@ -1134,6 +1143,624 @@ local questButton_OnLeave = function	(self)
 	WorldQuestTracker.CurrentHoverQuest = nil
 end
 
+
+
+
+
+--[=
+	--~group
+	--> the main frame
+	local ff = CreateFrame ("frame", nil, UIParent)
+	ff:SetSize (240, 80)
+	ff:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
+	ff:SetBackdropColor (0, 0, 0, 1)
+	ff:SetBackdropBorderColor (0, 0, 0, 1)
+	ff:SetPoint ("center")
+	ff:EnableMouse (true)
+	ff:SetMovable (true)
+	ff:Hide()
+	
+	--> titlebar
+	ff.TitleBar = CreateFrame ("frame", "$parentTitleBar", ff)
+	ff.TitleBar:SetPoint ("topleft", ff, "topleft", 2, -3)
+	ff.TitleBar:SetPoint ("topright", ff, "topright", -2, -3)
+	ff.TitleBar:SetHeight (20)
+	ff.TitleBar:EnableMouse (false)
+	ff.TitleBar:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
+	ff.TitleBar:SetBackdropColor (.2, .2, .2, 1)
+	ff.TitleBar:SetBackdropBorderColor (0, 0, 0, 1)
+	
+	--close button
+	ff.Close = CreateFrame ("button", "$parentCloseButton", ff)
+	ff.Close:SetPoint ("right", ff.TitleBar, "right", -2, 0)
+	ff.Close:SetSize (16, 16)
+	ff.Close:SetNormalTexture (DF.folder .. "icons")
+	ff.Close:SetHighlightTexture (DF.folder .. "icons")
+	ff.Close:SetPushedTexture (DF.folder .. "icons")
+	ff.Close:GetNormalTexture():SetTexCoord (0, 16/128, 0, 1)
+	ff.Close:GetHighlightTexture():SetTexCoord (0, 16/128, 0, 1)
+	ff.Close:GetPushedTexture():SetTexCoord (0, 16/128, 0, 1)
+	ff.Close:SetAlpha (0.7)
+	ff.Close:SetScript ("OnClick", function() ff.HideMainFrame() end)
+	
+	--title
+	ff.Title = ff.TitleBar:CreateFontString ("$parentTitle", "overlay", "GameFontNormal")
+	ff.Title:SetPoint ("center", ff.TitleBar, "center")
+	ff.Title:SetTextColor (.8, .8, .8, 1)
+	ff.Title:SetText ("World Quest Tracker")	
+	
+	--> label 1
+	ff.Label1 = DF:CreateLabel (ff, " ", DF:GetTemplate ("font", "WQT_GROUPFINDER_BIG"))
+	ff.Label1:SetPoint (10, -30)
+	
+	--> label 2
+	ff.Label2 = DF:CreateLabel (ff, " ", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
+	ff.Label2:SetPoint (10, -47)
+	
+	--> progress bar
+	ff.ProgressBar = DF:CreateBar (ff, nil, 220, 16, 50)
+	ff.ProgressBar:SetPoint (10, -60)
+	ff.ProgressBar.fontsize = 11
+	ff.ProgressBar.fontface = "Accidental Presidency"
+	ff.ProgressBar.fontcolor = "darkorange"
+	ff.ProgressBar.color = "gray"
+
+	--> interaction button
+	local interactionButton = CreateFrame ("button", nil, ff)
+	interactionButton:SetPoint ("topleft", ff, "topleft", 0, -20)
+	interactionButton:SetPoint ("bottomright", ff, "bottomright", 0, 0)
+	interactionButton:SetFrameLevel (ff:GetFrameLevel()+1)
+	interactionButton:RegisterForClicks ("RightButtonDown", "LeftButtonDown")
+	
+	--> feedback
+	--[=
+		ff.FeedbackFrame = CreateFrame ("button", nil, ff)
+		ff.FeedbackFrame:SetPoint ("topleft", ff, "bottomleft", 0, -2)
+		ff.FeedbackFrame:SetPoint ("topright", ff, "bottomright", 0, -2)
+		ff.FeedbackFrame:SetHeight (16)
+		ff.FeedbackFrame:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
+		ff.FeedbackFrame:SetBackdropColor (.2, .2, .2, 1)
+		ff.FeedbackFrame:SetBackdropBorderColor (.1, .10, .10, 1)
+		
+		ff.FeedbackEntry = DF:CreateTextEntry (ff.FeedbackFrame, function()end, 120, 20, nil, _, nil, nil)
+		ff.FeedbackEntry:SetAllPoints()
+		ff.FeedbackEntry:SetText ([[https://wow.curseforge.com/projects/world-quest-tracker/issues/464]])
+		ff.FeedbackEntry:Hide()
+		
+		ff.FeedbackFrame:SetScript ("OnClick", function()
+			ff.FeedbackEntry:Show()
+			ff.FeedbackEntry:SetFocus (true)
+			ff.FeedbackEntry:HighlightText()
+			
+			C_Timer.After (1, function()
+				ff.FeedbackEntry:SetFocus (true)
+				ff.FeedbackEntry:HighlightText()
+			end)
+			
+			C_Timer.After (20, function()
+				ff.FeedbackFrame:Hide()
+			end)
+		end)
+		
+		DF:InstallTemplate ("font", "WQT_GROUPFINDER_FEEDBACK", {color = {1, .9, .4, .85}, size = 9, font = "Friz Quadrata TT"})
+		ff.FeedbackFrame.Text = DF:CreateLabel (ff.FeedbackFrame, "Under Development - Send Feedback", DF:GetTemplate ("font", "WQT_GROUPFINDER_FEEDBACK"))
+		ff.FeedbackFrame.Text:SetPoint ("center", ff.FeedbackFrame, "center")
+	--]=]
+	-- end of the feedback code
+	
+	
+	ff.actions = {
+		ACTIONTYPE_GROUP_SEARCH = 1,
+		ACTIONTYPE_GROUP_CREATE = 2,
+		ACTIONTYPE_GROUP_RELIST = 3,
+		ACTIONTYPE_GROUP_APPLY = 4,
+		ACTIONTYPE_GROUP_WAIT = 5,
+		ACTIONTYPE_GROUP_SEARCHING = 6,
+	}
+	
+	--http://www.wowhead.com/quest=43179/the-kirin-tor-of-dalaran#comments:id=2429524
+	--http://www.wowhead.com/search?q=Supplies+Needed
+	ff.IgnoreList = {
+		[43325] = true,--race
+		[43753] = true,--race
+		[43764] = true,--race
+		[43769] = true,--race
+		[43774] = true,--race
+		[45047] = true,--wind
+		[45046] = true,--wind
+		[45048] = true,--wind
+		[45047] = true,--wind
+		[45049] = true,--wind
+		[45071] = true,--barrel
+		[45068] = true,--barrel
+		[45069] = true,--barrel
+		[45070] = true,--barrel
+		[45072] = true,--barrel
+		[43327] = true,--fly
+		[43777] = true,--fly
+		[43771] = true,--fly
+		[43766] = true,--fly
+		[43755] = true,--fly
+		[43756] = true, --enigmatic
+		[43772] = true, --enigmatic
+		[43767] = true, --enigmatic
+		[43778] = true, --enigmatic
+		[43328] = true, --enigmatic
+		[41327] = true, --supplies-needed-stormscales
+		[41224] = true, --supplies-needed-foxflower
+		[41293] = true, --supplies-needed-dreamleaf
+		[41288] = true, --supplies-needed-aethril
+		[41339] = true, --supplies-needed-stonehide-leather
+		[41318] = true, --supplies-needed-felslate
+		[41351] = true, --supplies-needed-stonehide-leather
+		[41345] = true, --supplies-needed-stormscales
+		[41207] = true, --supplies-needed-leystone
+		[41303] = true, --supplies-needed-starlight-roses
+		[41237] = true, --supplies-needed-stonehide-leather
+		[41298] = true, --supplies-needed-fjarnskaggl
+		[41317] = true, --supplies-needed-leystone
+		[41315] = true, --supplies-needed-leystone
+		[41316] = true, --supplies-needed-leystone
+		
+		--other quests
+		[45988] = true, --ancient bones broken shore
+		[45379] = true, --tresure master rope broken shore
+		[43943] = true, --army training suramar
+	}
+	
+	function WorldQuestTracker.RegisterGroupFinderFrameOnLibWindow()
+		LibWindow.RegisterConfig  (ff, WorldQuestTracker.db.profile.groupfinder.frame)
+		LibWindow.MakeDraggable (ff)
+		LibWindow.RestorePosition (ff)
+		ff.IsRegistered = true
+	end
+	
+	--> register needed events
+	ff:RegisterEvent ("QUEST_ACCEPTED")
+	ff:RegisterEvent ("QUEST_TURNED_IN")
+	ff:RegisterEvent ("GROUP_ROSTER_UPDATE")
+	ff:RegisterEvent ("LFG_LIST_ENTRY_EXPIRED_TOO_MANY_PLAYERS")
+	
+	--> members
+	ff.IsInWQGroup = false
+	ff.GroupMembers = 0
+
+	function ff.ShowMainFrame()
+		ff.SetCheckIfIsInArea (true)
+		ff:Show()
+	end
+	function ff.HideMainFrame()
+		ff.SetCheckIfIsInArea (false)
+		ff:Hide()
+	end
+	
+	function ff.SetApplyTimeout (timeout)
+		--> cancel previous timer if exists
+		if (ff.TimeoutTimer) then
+			ff.TimeoutTimer:Cancel()
+		end
+		
+		--> create a new timer
+		ff.TimeoutTimer = C_Timer.NewTimer (timeout, ff.GroupApplyTimeout)
+		
+		--> and set the time on the statusbar
+		ff.ProgressBar:SetTimer (timeout)
+	end
+	
+	function ff.GroupApplyTimeout()
+		--> clear the timer
+		ff.TimeoutTimer = nil
+		
+		--> found a group? if not need to create a new one
+		if (not IsInGroup() and not LFGListInviteDialog:IsShown()) then
+			--> request an action
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_CREATE)
+			
+			--> and shutdown the group checker
+			--ff.SetCheckIfIsInGroup (false)
+		else
+			--> found group, good to go
+			ff.IsInWQGroup = true
+			ff.GroupMembers = GetNumGroupMembers (LE_PARTY_CATEGORY_HOME) + 1
+			
+			--> hide the main frame
+			ff.HideMainFrame()
+		end
+	end
+	
+	function ff.SetAction (actionID, message)
+	
+		--> show the frame
+		ff.ShowMainFrame()
+		
+		--> deal with each request action
+		if (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCH) then
+			interactionButton.ToSearch = true
+			ff.SetCurrentActionText ("search for a group?")
+			ff.ProgressBar:Hide()
+			
+		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHING) then
+			C_LFGList.Search (1, LFGListSearchPanel_ParseSearchTerms (interactionButton.questName)) --ignora os filtros
+			ff.SetCurrentActionText ("searching...")
+
+			C_Timer.After (2, ff.after_search)
+			interactionButton.ToSearch = nil
+			
+			ff.ProgressBar:SetTimer (2)
+			ff.ProgressBar:Show()
+			
+		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_CREATE) then
+			interactionButton.ToCreate = true
+			ff.SetCurrentActionText ("no group found?, click to start one")
+			ff.ProgressBar:Hide()
+			
+		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_RELIST) then
+			interactionButton.ToCreate = true
+			ff.SetCurrentActionText ("search for more group members?")
+			ff.ProgressBar:Hide()
+			
+		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_APPLY) then
+			interactionButton.ToApply = true
+			ff.SetCurrentActionText (message)
+			ff.ProgressBar:Show()
+		
+		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_WAIT) then
+			ff.SetCurrentActionText ("waiting answers...")
+			interactionButton.ToApply = nil
+			ff.ProgressBar:Show()
+		end
+	end
+	
+	function ff.NewWorldQuestEngaged (questName, questID)
+		--> reset the gump
+		ff.ShutdownOnTickScript (true)
+		ff.ResetInteractionButton()
+		ff.ResetMembers()
+		
+		--> update the interactive button to current quest
+		interactionButton.questName = questName
+		interactionButton.questID = questID
+		ff.SetQuestTitle (questName .. " (" .. questID .. ")")
+		ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCH)
+		
+		--> show the main frame
+		if (not ff.IsRegistered) then
+			WorldQuestTracker.RegisterGroupFinderFrameOnLibWindow()
+		end
+	end
+	
+	function ff.WorldQuestFinished (questID)
+		if (interactionButton.questID == questID) then
+			--> hide the frame
+			ff.HideMainFrame()
+			
+			--> leave the group
+			if (WorldQuestTracker.db.profile.groupfinder.autoleave) then
+				LeaveParty()
+			end
+			
+			--> shutdown ontick script
+			ff.ShutdownOnTickScript (true)
+		end
+	end
+	
+	function ff.SetQuestTitle (questName)
+		ff.Label1.text = questName
+	end
+	
+	function ff.SetCurrentActionText (actionText)
+		ff.Label2.text = actionText
+	end
+	
+	function ff.ResetMembers()
+		ff.IsInWQGroup = false
+		ff.GroupMembers = 0
+	end
+	
+	function ff.ResetInteractionButton()
+		interactionButton.ToApply = nil
+		interactionButton.ToCreate = nil
+		interactionButton.ToSearch = nil
+		interactionButton.questName = ""
+		interactionButton.questID = 0
+	end
+	
+	function ff.OnTick (self, deltaTime)
+		if (self.CheckIfInGroup) then
+			if (IsInGroup()) then
+				self:Hide()
+				ff.SetCheckIfIsInGroup (false)
+			end
+		end
+		
+		if (self.CheckCurrentQuestArea) then
+			self.CheckCurrentQuestArea_Timer = self.CheckCurrentQuestArea_Timer + deltaTime
+			
+			if (self.CheckCurrentQuestArea_Timer > 2) then
+				local isInArea, isOnMap, numObjectives = GetTaskInfo (interactionButton.questID)
+				if (not isInArea) then
+					ff.SetCheckIfIsInArea (false)
+					ff.HideMainFrame()
+				end
+				self.CheckCurrentQuestArea_Timer = 0
+			end
+		end
+	end
+	
+	function ff.ShutdownOnTickScript (force)
+		if (force) then
+			ff.CheckIfInGroup = nil
+			ff.CheckCurrentQuestArea = nil
+			ff:SetScript ("OnUpdate", nil)
+			return
+		end
+		if (not ff.CheckIfInGroup and not ff.CheckCurrentQuestArea) then
+			ff:SetScript ("OnUpdate", nil)
+		end
+	end
+	
+	function ff.SetCheckIfIsInGroup (state)
+		if (state) then
+			ff.CheckIfInGroup = true
+			ff:SetScript ("OnUpdate", ff.OnTick)
+		else
+			ff.CheckIfInGroup = nil
+			ff.ShutdownOnTickScript()
+		end
+	end
+	
+	function ff.SetCheckIfIsInArea (state)
+		if (state) then
+			ff.CheckCurrentQuestArea = true
+			ff:SetScript ("OnUpdate", ff.OnTick)
+			ff.CheckCurrentQuestArea_Timer = 0
+		else
+			ff.CheckCurrentQuestArea = nil
+			ff.ShutdownOnTickScript()
+		end
+	end
+	
+	function ff.after_search()
+		--C_LFGList.GetSearchResultInfo (applicationID)
+		
+		interactionButton.ToApply = nil
+		interactionButton.ToCreate = nil
+		interactionButton.ToSearch = nil
+		
+		local numResults, resultIDTable = C_LFGList.GetSearchResults()
+		interactionButton.GroupsToApply = interactionButton.GroupsToApply or {}
+		wipe (interactionButton.GroupsToApply)
+		interactionButton.GroupsToApply.n = 1
+		
+		local t = {}
+		
+		for index, resultID in pairs (resultIDTable) do
+			
+			--no filters but, pve players shouldn't queue on pvp servers?
+			
+			local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (resultID)
+			
+			--print (members) --is always an int?
+			
+			if (isAuto and not isDelisted) then
+				tinsert (t, {resultID, (numBNetFriends or 0) + (numCharFriends or 0) + (numGuildMates or 0), members or 0})
+			end
+			
+			--ApplyToGroup(resultID, comment, tankOK, healerOK, damageOK)
+			--print (index, resultID)
+			--C_LFGList.ApplyToGroup (resultID, "WorldQuestTrackerInvite-" .. self.questName, UnitGetAvailableRoles ("player"))
+		end
+		
+		table.sort (t,  function(t1, t2) return t1[3] > t2[3] end) --more people first
+		table.sort (t,  function(t1, t2) return t1[2] > t2[2] end) --more friends first
+		
+		for i = 1, #t do
+			tinsert (interactionButton.GroupsToApply, t[i][1])
+		end
+		
+		if (#interactionButton.GroupsToApply > 0) then
+			local amt = #interactionButton.GroupsToApply
+			if (amt > 1) then
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "found " .. #interactionButton.GroupsToApply .. " groups\nclick to start joining")
+			else
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "found 1 group\nclick to start joining")
+			end
+			
+			interactionButton.ApplyLeft = #interactionButton.GroupsToApply
+		else
+			--> no group found
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_CREATE)			
+		end
+	end
+	
+	interactionButton:SetScript ("OnClick", function (self, button)
+	
+		if (button == "RightButton") then
+			ff.HideMainFrame()
+			return
+		end
+	
+		if (GetLFGMode (1) or GetLFGMode (3)) then --dungeon and raid finder
+			print ("nop, you are in queue...")
+			ff.HideMainFrame()
+			return
+		end
+		
+		for i = 1, 5 do --bg / wont work with ashran
+			local status, mapName, teamSize, registeredMatch, suspendedQueue, queueType, gameType, role = GetBattlefieldStatus (i)
+			if (queueType and status ~= "none") then
+				print ("nop, you are in queue...")
+				ff.HideMainFrame()
+				return
+			end
+		end
+		
+		---C_LFGList.GetLanguageSearchFilter()
+		--print (self.questName)
+		--Message: Usage: C_LFGList.Search(categoryID, searchTerms [, filter, preferredFilters, languageFilter])
+		--LFGListSearchPanel_ParseSearchTerms = coloca dentro de uma tabela
+		
+		if (self.ToSearch) then
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHING)
+
+		elseif (self.ToCreate) then
+			--C_LFGList.CreateListing(activityID, name, itemLevel, honorLevel, voiceChatInfo, description, autoAccept, privateGroup, questID)
+			
+			local questName = self.questName
+			local questID = self.questID
+			local groupDesc = "Group created with World Quest Tracker for quest " .. questName .. " (ID: " .. questID .. ")"
+			local itemLevelRequired = 0
+			local honorLevelRequired = 0
+			local isAutoAccept = true
+			local isPrivate = false
+			
+			local groupName = "" .. self.questID .. self.questID .. self.questID
+			--print ("groupName:", groupName)
+			--print ("ActivityID:", C_LFGList.GetActivityIDForQuestID (self.questID))
+			
+			--can't use my own group name
+			--looks like it's because quest name localization
+			--if dont pass a quest name, can use the group name field
+			
+			--C_LFGList.GetActivityIDForQuestID (self.questID)
+			-- 107 = stratholme
+			--469 = broken shore
+			--activityID looks like is something related to mapID
+			
+			--print ("activityID:", C_LFGList.GetActivityIDForQuestID (self.questID))
+			--print ("questName:", groupName)
+			
+			--create without the quest ID
+			--C_LFGList.CreateListing (C_LFGList.GetActivityIDForQuestID (self.questID) or 469, groupName, itemLevelRequired, honorLevelRequired, "", groupDesc, isAutoAccept, isPrivate) --, self.questID
+			
+			--create with the questID
+			C_LFGList.CreateListing (C_LFGList.GetActivityIDForQuestID (self.questID) or 469, "", itemLevelRequired, honorLevelRequired, "", groupDesc, isAutoAccept, isPrivate, self.questID)
+			
+			self.ToCreate = nil
+			
+			ff.IsInWQGroup = true
+			ff.GroupMembers = 1
+			
+			ff.HideMainFrame()
+
+		elseif (self.ToApply) then
+		
+			--LFGListSearchPanelScrollFrameButton1:Click()
+			--LFGListFrame.SearchPanel.SignUpButton:Click()
+			--LFGListSearchPanelScrollFrameButton2:Click()
+			--LFGListFrame.SearchPanel.SignUpButton:Click()
+			--LFGListSearchPanelScrollFrameButton3:Click()
+			--LFGListFrame.SearchPanel.SignUpButton:Click()
+			--C_Timer.After (1, function()
+			--	LFGListApplicationDialog.SignUpButton:Click()
+			--end)
+			
+			--local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (resultID)
+			
+			local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n])
+			
+			if (not isDelisted) then
+				--print ("Applying:", interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, UnitGetAvailableRoles ("player"))
+				C_LFGList.ApplyToGroup (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, UnitGetAvailableRoles ("player"))
+				
+				--> set the timeout
+				ff.SetApplyTimeout (4)
+				
+				interactionButton.ApplyLeft = interactionButton.ApplyLeft - 1
+				if (interactionButton.ApplyLeft > 0) then
+					if (interactionButton.ApplyLeft > 1) then
+						ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "There's " .. interactionButton.ApplyLeft .. " remaining groups to join")
+					else
+						ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "There's 1 remaining group to join")
+					end
+				else
+					ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT)
+				end
+				
+				ff.SetCheckIfIsInGroup (true)
+				
+			end
+			interactionButton.GroupsToApply.n = interactionButton.GroupsToApply.n + 1
+			
+			if (interactionButton.GroupsToApply.n > #interactionButton.GroupsToApply) then
+				ff.SetApplyTimeout (4)
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT)
+				return
+			end
+		end
+	end)
+	
+	ff.cannot_group_quest = {
+		[LE_QUEST_TAG_TYPE_PET_BATTLE] = true,
+	}
+	
+	ff:SetScript ("OnEvent", function (self, event, arg1, questID, arg3)
+	
+		if (event == "QUEST_ACCEPTED") then
+			--> get quest data
+			local isInArea, isOnMap, numObjectives = GetTaskInfo (questID)
+			local title, factionID, capped = C_TaskQuest.GetQuestInfoByQuestID (questID)
+			
+			-->  do the regular checks
+			if (isInArea and HaveQuestData (questID)) then
+				local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
+				if (isWorldQuest) then
+					if (not IsInGroup() and not IsInRaid()) then --> causou problemas de ? - precisa de um aviso case esteja em grupo
+						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+						if (not ff.cannot_group_quest [worldQuestType] and not ff.IgnoreList [questID]) then
+							ff.NewWorldQuestEngaged (title, questID)
+						end
+					end
+				end
+			end
+		
+		elseif (event == "QUEST_TURNED_IN") then
+			questID = arg1
+			print ("quest finished", questID)
+			local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
+			if (isWorldQuest) then
+				ff.WorldQuestFinished (questID)
+			end
+		
+		elseif (event == "LFG_LIST_ENTRY_EXPIRED_TOO_MANY_PLAYERS") then
+			--> hide annoying alert about group being full
+			StaticPopup_Hide ("LFG_LIST_ENTRY_EXPIRED_TOO_MANY_PLAYERS")
+		
+		elseif (event == "GROUP_ROSTER_UPDATE") then
+			--> is in a world quest group
+			if (ff.IsInWQGroup) then
+				--> player left the group
+				if (not IsInGroup()) then
+					ff.IsInWQGroup = false
+				else
+					--> check if lost a member
+					if (ff.GroupMembers > GetNumGroupMembers (LE_PARTY_CATEGORY_HOME) + 1) then
+						--> is the leader?
+						if (UnitIsGroupLeader ("player")) then
+							--> is the player still doing this quest?
+							local isInArea, isOnMap, numObjectives = GetTaskInfo (interactionButton.questID)
+							if (isInArea) then
+								--> is the quest not completed?
+								if (not IsQuestFlaggedCompleted (interactionButton.questID)) then
+									--> is the group not listed?
+									local active, activityID, iLevel, name, comment, voiceChat, expiration, autoAccept = C_LFGList.GetActiveEntryInfo()
+									if (not active) then
+										ff.SetAction (ff.actions.ACTIONTYPE_GROUP_RELIST)
+									end
+								end
+							end
+						end
+					end
+					
+					ff.GroupMembers = GetNumGroupMembers (LE_PARTY_CATEGORY_HOME) + 1
+				end
+			end
+		end
+	end)
+--]=]
+
+
+
 --ao clicar no botão de uma quest na zona ou no world map, colocar para trackear ela
 -- õnclick ~onclick ~click
 local questButton_OnClick = function (self, button)
@@ -1164,6 +1791,14 @@ local questButton_OnClick = function (self, button)
 		
 	elseif (button == "MiddleButton") then
 	
+		
+		--o jogador entrou em uma world quest? - já tenho isso pois ele faz a animação do tracker quando entra na zona da quest
+		--o jogador não esta em grupo?
+		--registrar os eventos de que chegou resultados da busca
+		--ler as buscas e dar apply em um grupo
+		--se nao tiver grupos, criar um
+		
+		
 		--PVEFrame_ShowFrame("GroupFinderFrame", LFGListPVEStub);
 		
 		--local activityID, categoryID, filters, questName = LFGListUtil_GetQuestCategoryData (self.questID)
@@ -1414,6 +2049,8 @@ local anime_square = function (self, deltaTime)
 		self.nextTick =  self.nextTick - deltaTime
 	end
 end
+
+
 
 function WorldQuestTracker.GetBorderByQuestType (self, rarity, worldQuestType)
 	if (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
@@ -2223,6 +2860,7 @@ local ActionButton = WorldMapFrame.UIElementsFrame.ActionButton
 
 WorldMapFrame:HookScript ("OnUpdate", function (self, deltaTime)
 	
+	--[[
 	if (ActionButton and ActionButton:IsShown()) then
 		if (ActionButton.SpellButton.Cooldown:GetCooldownDuration() and ActionButton.SpellButton.Cooldown:GetCooldownDuration() > 0) then
 			ActionButton:SetAlpha (.2)
@@ -2230,11 +2868,13 @@ WorldMapFrame:HookScript ("OnUpdate", function (self, deltaTime)
 			ActionButton:SetAlpha (1)
 		end
 	end
+	--]]
 
 	if (WorldQuestTracker.CanShowZoneSummaryFrame()) then
 		WorldMapFrame.UIElementsFrame.BountyBoard:ClearAllPoints()
 		WorldMapFrame.UIElementsFrame.BountyBoard:SetPoint ("bottomright", WorldMapFrame.UIElementsFrame, "bottomright", -18, 15)
 		
+		--[[ --only in fullscreen
 		if (ActionButton:IsShown()) then
 			if (not InCombatLockdown()) then
 				WorldMapFrame.UIElementsFrame.ActionButton:ClearAllPoints()
@@ -2245,6 +2885,7 @@ WorldMapFrame:HookScript ("OnUpdate", function (self, deltaTime)
 				ActionButton:SetAlpha (0)
 			end
 		end
+		--]]
 
 	end
 	if (WorldQuestTracker.HaveZoneSummaryHover) then
