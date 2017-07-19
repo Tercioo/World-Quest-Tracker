@@ -148,7 +148,9 @@ local default_config = {
 		groupfinder = {
 			enabled = true,
 			autoleave = false,
-			leavetimer = 20,
+			autoleave_delayed = false,
+			askleave_delayed = true,
+			leavetimer = 30,
 			frame = {},
 		},
 		
@@ -1210,8 +1212,13 @@ end
 		end
 	end
 	
-	ff.Options.SetAutoGroupLeaveFunc = function (_, _, value)
-		WorldQuestTracker.db.profile.groupfinder.autoleave = value
+	ff.Options.SetAutoGroupLeaveFunc = function (_, _, value, key)
+		WorldQuestTracker.db.profile.groupfinder.autoleave = false
+		WorldQuestTracker.db.profile.groupfinder.autoleave_delayed = false
+		WorldQuestTracker.db.profile.groupfinder.askleave_delayed = false
+		
+		WorldQuestTracker.db.profile.groupfinder [key] = true
+		
 		GameCooltip:Hide()
 	end
 	ff.Options.SetGroupLeaveTimeoutFunc = function (_, _, value)
@@ -1242,13 +1249,30 @@ end
 		GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]], 1, 1, IconSize, IconSize, 944/1024, 993/1024, 272/1024, 324/1024)
 		
 		--leave group
-		GameCooltip:AddLine ("Auto Leave", "", 2)
+		GameCooltip:AddLine ("Leave Immediately", "", 2)
 		if (WorldQuestTracker.db.profile.groupfinder.autoleave) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 		else
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 		end
-		GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave)
+		GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave, "autoleave")
+		
+		GameCooltip:AddLine ("Leave After X Seconds", "", 2)
+		if (WorldQuestTracker.db.profile.groupfinder.autoleave_delayed) then
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+		else
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+		end
+		GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave_delayed, "autoleave_delayed")
+		
+		GameCooltip:AddLine ("Ask to Leave for X Seconds", "", 2)
+		if (WorldQuestTracker.db.profile.groupfinder.askleave_delayed) then
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+		else
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+		end
+		GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.askleave_delayed, "askleave_delayed")
+		
 		--
 		GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
 		--ask to leave with timeout
@@ -1363,27 +1387,19 @@ end
 	--]=]
 	--[[
 	quotes:
-	fixed - Canceled dungeon finder queue when complete WQ. May be raid finder has same problem.
+	-middle clicking the tracked quest will start a search for that quest
+	-If finding a group fails, there's no easy way to trigger WQT to try again.
 	
-	It seems to be automatically leaving the group when you complete the quest. 
+	-"No group found?  Click to start one"  ->  This always fails, with an Blizzard error "You can't do that while using Premade Groups."
+		-the player has an applycation ongoing - need to cancel the apply before create a new group.
+		-couldn't test if the fix is working
 		
-	Would be great if you could disable this from coming up especially if you are geared enough that you do not need a group for all the world quests other than the world bosses.
-		This MUST have a way to be disabled, I have other addons that do this much better already and this buggy implementation is just breaking things.
-	Disable for a single quest - a button to ignore this quest
-	Any toon that can tank is queue for tank. Not all people use all available specs.
+	-fixed WQT is listing us with incorrect role/spec somehow.
+	-fixed Currently, if "auto leave" is checked, then the 10/20/30 choice is ignored and then player instantly leaves the group.  
+	If "auto leave" is NOT checked, THEN the 10/20/30 choice is active (and there is a visible countdown bar).  
+	This is confusing; "auto leave" to me suggests control over whether I leave the group automatically, not when.  
+	Maybe rename it to "leave instantly" or something.
 	
-	todo:
-	-gear icon for menu:
-		--is this feature enabled?
-		--group leaving timeout [30s] [15s] [10s] [5s] - instantly
-		--afk kick timeout [15s] [20s] [25s] [30s]
-		--search time [1s] [1.5s] [2s] [2.5s] [3s]
-	
-	-improve the auto leaving:
-		--what's going on with the removing from queue thingy
-		--read config to know if is auto leave; delayed; or query
-	
-	-a button to ignore using the group finder for the current quest
 	
 	
 	--]]
@@ -1398,6 +1414,7 @@ end
 		ACTIONTYPE_GROUP_SEARCHING = 6,
 		ACTIONTYPE_GROUP_LEAVE = 7,
 		ACTIONTYPE_GROUP_UNLIST = 8,
+		ACTIONTYPE_GROUP_UNAPPLY = 9,
 	}
 	
 	--http://www.wowhead.com/quest=43179/the-kirin-tor-of-dalaran#comments:id=2429524
@@ -1485,6 +1502,12 @@ end
 	end
 	function ff.HideMainFrame()
 		ff.SetCheckIfIsInArea (false)
+		
+		if (interactionButton.LeaveTimer) then
+			interactionButton.LeaveTimer:Cancel()
+			interactionButton.LeaveTimer = nil
+		end
+		
 		ff:Hide()
 	end
 	
@@ -1507,9 +1530,19 @@ end
 		
 		--> found a group? if not need to create a new one
 		if (not IsInGroup() and not LFGListInviteDialog:IsShown()) then
-			--> request an action
-			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_CREATE)
+		
+			--> need to check if there is applycations
+			local activeApplications = C_LFGList.GetNumApplications()
+			print ("has applying ongoing:", C_LFGList.GetNumApplications())
 			
+			if (activeApplies and activeApplies > 0) then
+				--> need to undo applications apply before create a new group
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_UNAPPLY)
+			else
+				--> request an action
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_CREATE)
+			end
+
 			--> and shutdown the group checker
 			--ff.SetCheckIfIsInGroup (false)
 		else
@@ -1530,9 +1563,21 @@ end
 		--> clear the timer
 		interactionButton.LeaveTimer = nil
 		
+		--> if is leave after time
+		if (WorldQuestTracker.db.profile.groupfinder.autoleave_delayed) then
+			if (IsInGroup()) then
+				LeaveParty()
+			end
+		end
+		
 		--> hide the main frame
 		ff.HideMainFrame()
 	end
+	
+	--
+		--quando a lideranã passa para o jogador vindo de um player que estava offline
+		--muitas vezes nao esta acontecendo nadad ao tentar crita um grupo
+	--
 	
 	function ff.SetAction (actionID, message, ...)
 	
@@ -1555,6 +1600,10 @@ end
 			ff.ProgressBar:SetTimer (2)
 			ff.ProgressBar:Show()
 			
+		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_UNAPPLY) then
+			interactionButton.ToUnapply = true
+			ff.SetCurrentActionText ("click to remove the apply so we can create a new group")
+		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_CREATE) then
 			interactionButton.ToCreate = true
 			ff.SetCurrentActionText ("no group found?, click to start one")
@@ -1574,13 +1623,21 @@ end
 		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_LEAVE) then
 			interactionButton.ToLeave = true
-			ff.SetCurrentActionText ("Leave the group?")
+			
+			if (WorldQuestTracker.db.profile.groupfinder.autoleave_delayed) then
+				ff.SetCurrentActionText ("Leaving the group in (click to leave now):")
+				
+			elseif (WorldQuestTracker.db.profile.groupfinder.askleave_delayed) then
+				ff.SetCurrentActionText ("Leave the group?")
+			end
+			
 			ff.ProgressBar:SetTimer (WorldQuestTracker.db.profile.groupfinder.leavetimer)
 			if (interactionButton.LeaveTimer) then
 				interactionButton.LeaveTimer:Cancel()
 			end
 			interactionButton.LeaveTimer = C_Timer.NewTimer (WorldQuestTracker.db.profile.groupfinder.leavetimer, ff.LeaveTimerTimeout)
 			ff.ProgressBar:Show()
+			ff.SetCheckIfIsInGroup (true)
 		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_WAIT) then
 			ff.SetCurrentActionText ("waiting answers...")
@@ -1655,6 +1712,7 @@ end
 		interactionButton.ToSearch = nil
 		interactionButton.ToLeave = nil
 		interactionButton.ToUnlist = nil
+		interactionButton.ToUnapply = nil
 		
 		interactionButton.questName = ""
 		interactionButton.questID = 0
@@ -1719,7 +1777,7 @@ end
 		end
 	end
 	
-	function ff.SearchCompleted()
+	function ff.SearchCompleted() --~searchfinished
 		--C_LFGList.GetSearchResultInfo (applicationID)
 		
 		local active, activityID, iLevel, name, comment, voiceChat, expiration, autoAccept = C_LFGList.GetActiveEntryInfo()
@@ -1735,6 +1793,7 @@ end
 		interactionButton.ToSearch = nil
 		interactionButton.ToLeave = nil
 		interactionButton.ToUnlist = nil
+		interactionButton.ToUnapply = nil
 		
 		local numResults, resultIDTable = C_LFGList.GetSearchResults()
 		interactionButton.GroupsToApply = interactionButton.GroupsToApply or {}
@@ -1744,14 +1803,12 @@ end
 		local t = {}
 		
 		for index, resultID in pairs (resultIDTable) do
-			
 			--no filters but, pve players shouldn't queue on pvp servers?
 			
 			local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (resultID)
 			
 			--print (members) --is always an int?
-			
-			if (isAuto and not isDelisted) then
+			if (isAuto and not isDelisted and name == interactionButton.questName and ilvl <= GetAverageItemLevel()) then -- and members < 5
 				tinsert (t, {resultID, (numBNetFriends or 0) + (numCharFriends or 0) + (numGuildMates or 0), members or 0})
 			end
 			
@@ -1804,10 +1861,17 @@ end
 			end
 		end
 		
+		if (not self.ToSearch and not self.ToUnlist and not self.ToLeave and not self.ToCreate and not self.ToApply) then
+			print ("No actions scheduled!")
+			return
+		end
+		
 		---C_LFGList.GetLanguageSearchFilter()
 		--print (self.questName)
 		--Message: Usage: C_LFGList.Search(categoryID, searchTerms [, filter, preferredFilters, languageFilter])
 		--LFGListSearchPanel_ParseSearchTerms = coloca dentro de uma tabela
+		
+		print ("Search", self.ToSearch, "Unlist", self.ToUnlist, "Leave", self.ToLeave, "Create", self.ToCreate, "Apply", self.ToApply)
 		
 		if (self.ToSearch) then
 			self.HadInteraction = true
@@ -1824,7 +1888,27 @@ end
 			LeaveParty()
 			ff.HideMainFrame()
 			ff.ResetInteractionButton()
+			ff.ShutdownOnTickScript (true)
 			return
+		
+		elseif (self.ToUnapply) then
+			
+			local numApplications = C_LFGList.GetNumApplications() --Returns the number of groups the player has applied for.
+			local applications = C_LFGList.GetApplications() --Returns a table with the groups the player has applied for
+			--groupID, status, unknown, timeRemaining, role = C_LFGList.GetApplicationInfo(groupID)
+			
+			if (activeApplications > 0) then
+				for i = 1, #numApplications do
+					C_LFGList.DeclineInvite (applications [i])
+					C_LFGList.CancelApplication (applications [i])
+					print ("Apply cancelled:", i, applications [i])
+				end
+			end
+			
+			self.ToUnapply = nil
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT, 1, ff.GroupApplyTimeout)
+			
+			self.HadInteraction = true
 		
 		elseif (self.ToCreate) then
 			--C_LFGList.CreateListing(activityID, name, itemLevel, honorLevel, voiceChatInfo, description, autoAccept, privateGroup, questID)
@@ -1857,8 +1941,15 @@ end
 			--C_LFGList.CreateListing (C_LFGList.GetActivityIDForQuestID (self.questID) or 469, groupName, itemLevelRequired, honorLevelRequired, "", groupDesc, isAutoAccept, isPrivate) --, self.questID
 			
 			--create with the questID
+			--C_LFGList.CreateListing(lfgID, "groupName", itemLevel, honorLevel, "voiceChat", "comment", autoAccept, privateGroup[, questID])
 			C_LFGList.CreateListing (C_LFGList.GetActivityIDForQuestID (self.questID) or 469, "", itemLevelRequired, honorLevelRequired, "", groupDesc, isAutoAccept, isPrivate, self.questID)
 			
+			--> if is an epic quest, converto to raid
+			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (self.questID)
+			if (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
+				C_Timer.After (2, function() ConvertToRaid(); print ("party converted") end)
+			end
+
 			self.ToCreate = nil
 			
 			ff.IsInWQGroup = true
@@ -1867,29 +1958,23 @@ end
 			ff.HideMainFrame()
 			
 			self.HadInteraction = true
+			
+			print ("-creating group for:", self.questName, select (1, C_TaskQuest.GetQuestInfoByQuestID (self.questID)))
 
 		elseif (self.ToApply) then	
-		
-			--LFGListSearchPanelScrollFrameButton1:Click()
-			--LFGListFrame.SearchPanel.SignUpButton:Click()
-			--LFGListSearchPanelScrollFrameButton2:Click()
-			--LFGListFrame.SearchPanel.SignUpButton:Click()
-			--LFGListSearchPanelScrollFrameButton3:Click()
-			--LFGListFrame.SearchPanel.SignUpButton:Click()
-			--C_Timer.After (1, function()
-			--	LFGListApplicationDialog.SignUpButton:Click()
-			--end)
-			
-			--local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (resultID)
-			
 			self.HadInteraction = true
 			
 			local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n])
+			print ("applying!", isAuto, not isDelisted, name == interactionButton.questName, ilvl <= GetAverageItemLevel()) --, members < 5
 			
-			if (not isDelisted) then
-
+			if (isAuto and not isDelisted and name == interactionButton.questName and ilvl <= GetAverageItemLevel()) then -- and members < 5
 				--print ("Applying:", interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, UnitGetAvailableRoles ("player"))
-				C_LFGList.ApplyToGroup (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, UnitGetAvailableRoles ("player"))
+				
+				--Usage: ApplyToGroup(resultID, comment, tankOK, healerOK, damageOK)
+				local id, name, description, icon, role, primaryStat = GetSpecializationInfo (GetSpecialization())
+				--UnitGetAvailableRoles ("player")
+
+				C_LFGList.ApplyToGroup (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, role == "TANK", role == "HEALER", role == "DAMAGER")
 				
 				--> set the timeout
 				ff.SetApplyTimeout (4)
@@ -1922,6 +2007,19 @@ end
 		[LE_QUEST_TAG_TYPE_PET_BATTLE] = true,
 	}
 	
+	function WorldQuestTracker.FindGroupForQuest (questID)
+		ff.FindGroupForQuest (questID)
+	end
+	
+	function ff.FindGroupForQuest (questID)
+		if ((not IsInGroup() and not IsInRaid()) or (IsInGroup() and GetNumGroupMembers() == 1)) then --> causou problemas de ? - precisa de um aviso case esteja em grupo
+			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+			if (not ff.cannot_group_quest [worldQuestType] and not ff.IgnoreList [questID]) then
+				ff.NewWorldQuestEngaged (title, questID)
+			end
+		end
+	end
+	
 	ff:SetScript ("OnEvent", function (self, event, arg1, questID, arg3)
 	
 		--is this feature enable?
@@ -1938,12 +2036,7 @@ end
 			if (isInArea and HaveQuestData (questID)) then
 				local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
 				if (isWorldQuest) then
-					if ((not IsInGroup() and not IsInRaid()) or (IsInGroup() and GetNumGroupMembers() == 1)) then --> causou problemas de ? - precisa de um aviso case esteja em grupo
-						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
-						if (not ff.cannot_group_quest [worldQuestType] and not ff.IgnoreList [questID]) then
-							ff.NewWorldQuestEngaged (title, questID)
-						end
-					end
+					ff.FindGroupForQuest (questID)
 				end
 			end
 		
@@ -2046,14 +2139,13 @@ local questButton_OnClick = function (self, button)
 	end
 
 --was middle button and have WQGF installed
-	if (WorldQuestGroupFinderAddon and button == "MiddleButton") then
-	
-		WorldQuestGroupFinder.HandleBlockClick (self.questID)
+--	if (WorldQuestGroupFinderAddon and button == "MiddleButton") then
+--		WorldQuestGroupFinder.HandleBlockClick (self.questID)
+--		return
 		
-		return
-		
-	elseif (button == "MiddleButton") then
-	
+	--elseif (button == "MiddleButton") then
+	if (button == "MiddleButton") then
+		WorldQuestTracker.FindGroupForQuest (self.questID)
 		
 		--o jogador entrou em uma world quest? - já tenho isso pois ele faz a animação do tracker quando entra na zona da quest
 		--o jogador não esta em grupo?
