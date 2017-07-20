@@ -36,13 +36,25 @@ do
 	DF:InstallTemplate ("font", "WQT_RESOURCES_AVAILABLE", {color = {1, .7, .2, .85}, size = 10, font = "Friz Quadrata TT"})
 	DF:InstallTemplate ("font", "WQT_GROUPFINDER_BIG", {color = {1, .7, .2, .85}, size = 12, font = "Friz Quadrata TT"})
 	DF:InstallTemplate ("font", "WQT_GROUPFINDER_SMALL", {color = {1, .9, .1, .85}, size = 10, font = "Friz Quadrata TT"})
+	
+	DF:InstallTemplate ("button", "WQT_GROUPFINDER_BUTTON", {
+		backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
+		backdropcolor = {.2, .2, .2, 1},
+		backdropbordercolor = {0, 0, 0, 1},
+		width = 20,
+		height = 20,
+		enabled_backdropcolor = {.2, .2, .2, 1},
+		disabled_backdropcolor = {.2, .2, .2, 1},
+		onenterbordercolor = {0, 0, 0, 1},
+	})
+	
 end
 
 local GameCooltip = GameCooltip2
-local Saturate = Saturate
+--local Saturate = Saturate
 local floor = floor
-local ceil = ceil
-local ipairs = ipairs
+--local ceil = ceil
+--local ipairs = ipairs
 local GetItemInfo = GetItemInfo
 local p = math.pi/2
 local pi = math.pi
@@ -151,6 +163,8 @@ local default_config = {
 			autoleave_delayed = false,
 			askleave_delayed = true,
 			leavetimer = 30,
+			noafk = true,
+			noafk_ticks = 5,
 			frame = {},
 		},
 		
@@ -1154,7 +1168,7 @@ end
 	--~group
 	--> the main frame
 	local ff = CreateFrame ("frame", nil, UIParent)
-	ff:SetSize (240, 80)
+	ff:SetSize (240, 100)
 	ff:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
 	ff:SetBackdropColor (0, 0, 0, 1)
 	ff:SetBackdropBorderColor (0, 0, 0, 1)
@@ -1162,6 +1176,8 @@ end
 	ff:EnableMouse (true)
 	ff:SetMovable (true)
 	ff:Hide()
+	
+	ff.TickFrame = CreateFrame ("frame", nil, UIParent)
 	
 	--> titlebar
 	ff.TitleBar = CreateFrame ("frame", "$parentTitleBar", ff)
@@ -1330,11 +1346,11 @@ end
 	
 	--> label 1
 	ff.Label1 = DF:CreateLabel (ff, " ", DF:GetTemplate ("font", "WQT_GROUPFINDER_BIG"))
-	ff.Label1:SetPoint (10, -30)
+	ff.Label1:SetPoint (5, -30)
 	
 	--> label 2
 	ff.Label2 = DF:CreateLabel (ff, " ", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
-	ff.Label2:SetPoint (10, -47)
+	ff.Label2:SetPoint (5, -47)
 	
 	--> progress bar
 	ff.ProgressBar = DF:CreateBar (ff, nil, 220, 16, 50)
@@ -1350,6 +1366,63 @@ end
 	interactionButton:SetPoint ("bottomright", ff, "bottomright", 0, 0)
 	interactionButton:SetFrameLevel (ff:GetFrameLevel()+1)
 	interactionButton:RegisterForClicks ("RightButtonDown", "LeftButtonDown")
+	
+	local secondaryInteractionButton = CreateFrame ("button", nil, ff)
+	--secondaryInteractionButton:SetPoint ("bottomleft", ff, "bottomleft", 4, 4)
+	secondaryInteractionButton:SetPoint ("bottomright", ff, "bottomright", -5, 4)
+	secondaryInteractionButton:SetWidth (100)
+	secondaryInteractionButton:SetHeight (20)
+	secondaryInteractionButton:SetFrameLevel (ff:GetFrameLevel()+2)
+	secondaryInteractionButton:RegisterForClicks ("RightButtonDown", "LeftButtonDown")
+	secondaryInteractionButton:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
+	secondaryInteractionButton:SetBackdropColor (.2, .2, .2, 1)
+	secondaryInteractionButton:SetBackdropBorderColor (0, 0, 0, 1)
+	secondaryInteractionButton.ButtonText = DF:CreateLabel (secondaryInteractionButton, "anti afk", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
+	secondaryInteractionButton.ButtonText:SetPoint ("CENTER", secondaryInteractionButton, "CENTER", 0, 0)
+	secondaryInteractionButton:Hide()
+	
+	function ff.ChangeNoAFKState (_, _, value)
+		WorldQuestTracker.db.profile.groupfinder.noafk = value
+	end
+	ff.AntiAFKCheckbox = DF:CreateSwitch (ff, ff.ChangeNoAFKState, true)
+	ff.AntiAFKCheckbox:SetTemplate (DF:GetTemplate ("button", "WQT_GROUPFINDER_BUTTON"))
+	ff.AntiAFKCheckbox:SetAsCheckBox()
+	ff.AntiAFKCheckbox:SetSize (20, 20)
+	ff.AntiAFKCheckbox:SetFrameLevel (ff:GetFrameLevel()+2)
+	ff.AntiAFKCheckbox.tooltip = "Remove other players which aren't doing anything towards the quest goal."
+	ff.AntiAFKCheckbox:SetPoint ("bottomleft", ff, "bottomleft", 5, 4)
+	ff.AntiAFKCheckbox.TextLabel = DF:CreateLabel (ff.AntiAFKCheckbox, "anti afk", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
+	ff.AntiAFKCheckbox.TextLabel:SetPoint ("left", ff.AntiAFKCheckbox, "right", 2, 0)
+	ff.AntiAFKCheckbox:Hide()
+	
+	function ff.ShowAntiAfkCheckbox()
+		ff.AntiAFKCheckbox:Show()
+		ff.AntiAFKCheckbox:SetValue (WorldQuestTracker.db.profile.groupfinder.noafk)
+	end
+	
+	function ff.HideAntiAfkCheckbox()
+		ff.AntiAFKCheckbox:Hide()
+	end
+	
+	function ff.ShowSecondaryInteractionButton (actionID, text)
+		--> reset the button
+		secondaryInteractionButton.ToSearch = nil
+		
+		--> setup new variables
+		secondaryInteractionButton.ButtonText:SetText (text)
+		
+		if (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCH) then
+			secondaryInteractionButton.ToSearch = true
+			--print ("action:", secondaryInteractionButton.ToSearch)
+		end
+		
+		--> show it
+		secondaryInteractionButton:Show()
+	end
+	
+	function ff.HideSecondaryInteractionButton()
+		secondaryInteractionButton:Hide()
+	end
 	
 	--> feedback
 	--[=
@@ -1393,14 +1466,16 @@ end
 	-"No group found?  Click to start one"  ->  This always fails, with an Blizzard error "You can't do that while using Premade Groups."
 		-the player has an applycation ongoing - need to cancel the apply before create a new group.
 		-couldn't test if the fix is working
-		
+	
 	-fixed WQT is listing us with incorrect role/spec somehow.
 	-fixed Currently, if "auto leave" is checked, then the 10/20/30 choice is ignored and then player instantly leaves the group.  
 	If "auto leave" is NOT checked, THEN the 10/20/30 choice is active (and there is a visible countdown bar).  
 	This is confusing; "auto leave" to me suggests control over whether I leave the group automatically, not when.  
 	Maybe rename it to "leave instantly" or something.
 	
-	
+	/dump LFGListInviteDialog
+	resultID=4,
+	informational=true,
 	
 	--]]
 	-- end of the feedback code
@@ -1415,6 +1490,7 @@ end
 		ACTIONTYPE_GROUP_LEAVE = 7,
 		ACTIONTYPE_GROUP_UNLIST = 8,
 		ACTIONTYPE_GROUP_UNAPPLY = 9,
+		ACTIONTYPE_GROUP_KICK = 10,
 	}
 	
 	--http://www.wowhead.com/quest=43179/the-kirin-tor-of-dalaran#comments:id=2429524
@@ -1537,7 +1613,7 @@ end
 			
 			if (activeApplies and activeApplies > 0) then
 				--> need to undo applications apply before create a new group
-				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_UNAPPLY)
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_UNAPPLY, "click to cancel applications...")
 			else
 				--> request an action
 				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_CREATE)
@@ -1584,6 +1660,11 @@ end
 		--> show the frame
 		ff.ShowMainFrame()
 		ff.ProgressBar:Hide()
+		ff.HideSecondaryInteractionButton()
+		ff.HideAntiAfkCheckbox()
+		
+		--> kick doesn't have a timeout, so lets just clear
+		interactionButton.ToKick = nil
 		
 		--> deal with each request action
 		if (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCH) then
@@ -1591,22 +1672,20 @@ end
 			ff.SetCurrentActionText ("search for a group?")
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHING) then
-			C_LFGList.Search (1, LFGListSearchPanel_ParseSearchTerms (interactionButton.questName)) --ignora os filtros
 			ff.SetCurrentActionText ("searching...")
-
-			C_Timer.After (2, ff.SearchCompleted)
-			interactionButton.ToSearch = nil
-			
 			ff.ProgressBar:SetTimer (2)
 			ff.ProgressBar:Show()
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_UNAPPLY) then
 			interactionButton.ToUnapply = true
-			ff.SetCurrentActionText ("click to remove the apply so we can create a new group")
+			ff.SetCurrentActionText (message or "click to remove the apply so we can create a new group")
+			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_SEARCH, "retry serach")
 		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_CREATE) then
 			interactionButton.ToCreate = true
 			ff.SetCurrentActionText ("no group found?, click to start one")
+			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_SEARCH, "retry serach")
+			ff.ShowAntiAfkCheckbox()
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_UNLIST) then
 			interactionButton.ToUnlist = true
@@ -1639,8 +1718,16 @@ end
 			ff.ProgressBar:Show()
 			ff.SetCheckIfIsInGroup (true)
 		
+		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_KICK) then
+			ff.SetCurrentActionText (message)
+			interactionButton.ToKick = true
+			local UnitID, GUID = ...
+			ff.KickTargetUnitID = UnitID
+			ff.KickTargetGUID = GUID
+			interactionButton.ToKick = true
+		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_WAIT) then
-			ff.SetCurrentActionText ("waiting answers...")
+			ff.SetCurrentActionText (message or "waiting...")
 			interactionButton.ToApply = nil
 			local waitTime, callBack = ...
 			if (waitTime) then
@@ -1664,8 +1751,13 @@ end
 		interactionButton.questID = questID
 		interactionButton.HadInteraction = nil
 		
+		ff.AFKCheckList = ff.AFKCheckList or {}
+		wipe (ff.AFKCheckList)
+		
 		ff.SetQuestTitle (questName .. " (" .. questID .. ")")
 		ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCH)
+		
+		ff.HasLeadership = false
 		
 		--> show the main frame
 		if (not ff.IsRegistered) then
@@ -1707,12 +1799,7 @@ end
 	end
 	
 	function ff.ResetInteractionButton()
-		interactionButton.ToApply = nil
-		interactionButton.ToCreate = nil
-		interactionButton.ToSearch = nil
-		interactionButton.ToLeave = nil
-		interactionButton.ToUnlist = nil
-		interactionButton.ToUnapply = nil
+		ff.ClearInteractionButtonActions()
 		
 		interactionButton.questName = ""
 		interactionButton.questID = 0
@@ -1720,26 +1807,73 @@ end
 		if (interactionButton.LeaveTimer) then
 			interactionButton.LeaveTimer:Cancel()
 		end
+		
+		ff.HideSecondaryInteractionButton()
 	end
 	
 	function ff.OnTick (self, deltaTime)
-		if (self.CheckIfInGroup) then
+		if (ff.CheckIfInGroup) then
 			if (IsInGroup()) then
-				self:Hide()
+				ff.HideMainFrame()
 				ff.SetCheckIfIsInGroup (false)
 			end
 		end
 		
-		if (self.CheckCurrentQuestArea) then
-			self.CheckCurrentQuestArea_Timer = self.CheckCurrentQuestArea_Timer + deltaTime
+		if (ff.CheckCurrentQuestArea) then
+			ff.CheckCurrentQuestArea_Timer = ff.CheckCurrentQuestArea_Timer + deltaTime
 			
-			if (self.CheckCurrentQuestArea_Timer > 2) then
+			if (ff.CheckCurrentQuestArea_Timer > 2) then
 				local isInArea, isOnMap, numObjectives = GetTaskInfo (interactionButton.questID)
 				if (not isInArea) then
 					ff.SetCheckIfIsInArea (false)
 					ff.HideMainFrame()
 				end
-				self.CheckCurrentQuestArea_Timer = 0
+				ff.CheckCurrentQuestArea_Timer = 0
+			end
+		end
+
+		if (ff.CheckForAFKs) then
+			ff.CheckForAFKs_Timer = ff.CheckForAFKs_Timer + deltaTime
+			
+			if (ff.CheckForAFKs_Timer > 5) then
+				--> check if we are in the quest and not in raid, just to make sure
+				local isInArea, isOnMap, numObjectives = GetTaskInfo (interactionButton.questID)
+				if (isInArea and not IsInRaid()) then
+					--> do the check
+					local mySelf = UnitGUID ("player")
+					
+					for i = 1, GetNumGroupMembers() do
+						local GUID = UnitGUID ("party" .. i)
+						if (GUID and GUID ~= mySelf) then
+							local unitTable = ff.AFKCheckList [GUID]
+							if (not unitTable) then
+								ff.AFKCheckList [GUID] = {
+									tick = 0,
+									name = UnitName ("party" .. i),
+									x = 0,
+									y = 0,
+								}
+								unitTable = ff.AFKCheckList [GUID]
+							end
+							
+							local x, y = GetPlayerMapPosition ("party" .. i)
+							if (x ~= unitTable.x or y ~= unitTable.y) then
+								unitTable.tick = 0
+								unitTable.x = x
+								unitTable.y = y
+							else
+								unitTable.tick = unitTable.tick + 1
+								if (unitTable.tick > WorldQuestTracker.db.profile.groupfinder.noafk_ticks) then
+									ff.SetAction (ff.actions.ACTIONTYPE_GROUP_KICK, "click to kick an AFK player", "party" .. i, GUID)
+									break
+								end
+							end
+							
+						end
+					end
+				end
+				
+				ff.CheckForAFKs_Timer = 0
 			end
 		end
 	end
@@ -1748,18 +1882,22 @@ end
 		if (force) then
 			ff.CheckIfInGroup = nil
 			ff.CheckCurrentQuestArea = nil
-			ff:SetScript ("OnUpdate", nil)
+			ff.CheckForAFKs = nil
+			ff.TickFrame:SetScript ("OnUpdate", nil)
 			return
 		end
-		if (not ff.CheckIfInGroup and not ff.CheckCurrentQuestArea) then
-			ff:SetScript ("OnUpdate", nil)
+		if (	not ff.CheckIfInGroup and 
+			not ff.CheckCurrentQuestArea and 
+			not ff.CheckForAFKs
+		) then
+			ff.TickFrame:SetScript ("OnUpdate", nil)
 		end
 	end
 	
 	function ff.SetCheckIfIsInGroup (state)
 		if (state) then
 			ff.CheckIfInGroup = true
-			ff:SetScript ("OnUpdate", ff.OnTick)
+			ff.TickFrame:SetScript ("OnUpdate", ff.OnTick)
 		else
 			ff.CheckIfInGroup = nil
 			ff.ShutdownOnTickScript()
@@ -1769,12 +1907,33 @@ end
 	function ff.SetCheckIfIsInArea (state)
 		if (state) then
 			ff.CheckCurrentQuestArea = true
-			ff:SetScript ("OnUpdate", ff.OnTick)
+			ff.TickFrame:SetScript ("OnUpdate", ff.OnTick)
 			ff.CheckCurrentQuestArea_Timer = 0
 		else
 			ff.CheckCurrentQuestArea = nil
 			ff.ShutdownOnTickScript()
 		end
+	end
+	
+	function ff.SetCheckIfTrackingAFKs (state)
+		if (state) then
+			ff.CheckForAFKs = true
+			ff.CheckForAFKs_Timer = 0
+			ff.TickFrame:SetScript ("OnUpdate", ff.OnTick)
+		else
+			ff.CheckForAFKs = nil
+			ff.ShutdownOnTickScript()
+		end
+	end
+	
+	function ff.ClearInteractionButtonActions()
+		interactionButton.ToApply = nil
+		interactionButton.ToCreate = nil
+		interactionButton.ToSearch = nil
+		interactionButton.ToLeave = nil
+		interactionButton.ToUnlist = nil
+		interactionButton.ToUnapply = nil
+		interactionButton.ToKick = nil
 	end
 	
 	function ff.SearchCompleted() --~searchfinished
@@ -1788,12 +1947,7 @@ end
 			return
 		end
 		
-		interactionButton.ToApply = nil
-		interactionButton.ToCreate = nil
-		interactionButton.ToSearch = nil
-		interactionButton.ToLeave = nil
-		interactionButton.ToUnlist = nil
-		interactionButton.ToUnapply = nil
+		ff.ClearInteractionButtonActions()
 		
 		local numResults, resultIDTable = C_LFGList.GetSearchResults()
 		interactionButton.GroupsToApply = interactionButton.GroupsToApply or {}
@@ -1839,13 +1993,12 @@ end
 		end
 	end
 	
-	interactionButton:SetScript ("OnClick", function (self, button)
-	
+	function ff.CheckValidClick (self, button)
 		if (button == "RightButton") then
 			ff.HideMainFrame()
 			return
 		end
-	
+		
 		if (GetLFGMode (1) or GetLFGMode (3)) then --dungeon and raid finder
 			print ("nop, you are in queue...")
 			ff.HideMainFrame()
@@ -1861,8 +2014,43 @@ end
 			end
 		end
 		
-		if (not self.ToSearch and not self.ToUnlist and not self.ToLeave and not self.ToCreate and not self.ToApply) then
+		if (not self.ToSearch and not self.ToUnlist and not self.ToLeave and not self.ToCreate and not self.ToApply and not self.ToKick and not self.ToUnapply) then
 			print ("No actions scheduled!")
+			return
+		end
+		
+		return true
+	end
+	
+	function ff.StartSearch()
+		C_LFGList.Search (1, LFGListSearchPanel_ParseSearchTerms (interactionButton.questName)) --ignora os filtros
+		C_Timer.After (2, ff.SearchCompleted)
+	end
+	
+	secondaryInteractionButton:SetScript ("OnClick", function (self, button)
+		--> is a valid click?
+		if (not ff.CheckValidClick (self, button)) then
+			--print (self.ToSearch)
+			return
+		end
+		
+		--> disable the main interaction button, the actions below should set the new state
+		ff.ClearInteractionButtonActions()
+		
+		--> hide the secondary button
+		ff.HideSecondaryInteractionButton()
+		
+		--> parse the action
+		if (self.ToSearch) then
+			ff.StartSearch()
+			self.ToSearch = nil
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHING)
+		end
+	end)
+	
+	interactionButton:SetScript ("OnClick", function (self, button)
+	
+		if (not ff.CheckValidClick (self, button)) then
 			return
 		end
 		
@@ -1871,18 +2059,27 @@ end
 		--Message: Usage: C_LFGList.Search(categoryID, searchTerms [, filter, preferredFilters, languageFilter])
 		--LFGListSearchPanel_ParseSearchTerms = coloca dentro de uma tabela
 		
-		print ("Search", self.ToSearch, "Unlist", self.ToUnlist, "Leave", self.ToLeave, "Create", self.ToCreate, "Apply", self.ToApply)
+--		print ("Search", self.ToSearch, "Unlist", self.ToUnlist, "Leave", self.ToLeave, "Create", self.ToCreate, "Apply", self.ToApply, "Kick", self.ToKick, "UnApply", self.ToUnapply)
 		
 		if (self.ToSearch) then
+			ff.StartSearch()
+			interactionButton.ToSearch = nil
 			self.HadInteraction = true
 			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHING)
 
 		elseif (self.ToUnlist) then
 			C_LFGList.RemoveListing()
 			--> call search completed once it can only enter on Unlist state from there
-			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT, nil, 1.2, ff.SearchCompleted)
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT, "Unlisting...", 1.2, ff.SearchCompleted)
 			self.ToUnlist = nil
-			return
+		
+		elseif (self.ToKick) then
+			local GUID = UnitGUID (ff.KickTargetUnitID)
+			if (GUID and ff.KickTargetGUID == GUID) then
+				UninviteUnit (ff.KickTargetUnitID)
+			end
+			ff.HideMainFrame()
+			self.ToKick = nil
 		
 		elseif (self.ToLeave) then
 			LeaveParty()
@@ -1896,20 +2093,27 @@ end
 			local numApplications = C_LFGList.GetNumApplications() --Returns the number of groups the player has applied for.
 			local applications = C_LFGList.GetApplications() --Returns a table with the groups the player has applied for
 			--groupID, status, unknown, timeRemaining, role = C_LFGList.GetApplicationInfo(groupID)
-			
-			if (activeApplications > 0) then
-				for i = 1, #numApplications do
-					C_LFGList.DeclineInvite (applications [i])
-					C_LFGList.CancelApplication (applications [i])
-					print ("Apply cancelled:", i, applications [i])
+
+			if (numApplications > 0) then
+				local groupID, status, unknown, timeRemaining, role = C_LFGList.GetApplicationInfo (applications [numApplications])
+				if (status == "invited") then
+					C_LFGList.DeclineInvite (applications [numApplications])
+				else
+					C_LFGList.CancelApplication (applications [numApplications])
 				end
+				
+				print ("Apply Cancelled:", i, applications [numApplications])
 			end
 			
-			self.ToUnapply = nil
-			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT, 1, ff.GroupApplyTimeout)
+			if (numApplications == 1) then
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT, "canceling...", 1, ff.GroupApplyTimeout)
+				self.ToUnapply = nil
+			else
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_UNAPPLY, (numApplications-1) .. " applications remaining...")
+			end
 			
 			self.HadInteraction = true
-		
+			
 		elseif (self.ToCreate) then
 			--C_LFGList.CreateListing(activityID, name, itemLevel, honorLevel, voiceChatInfo, description, autoAccept, privateGroup, questID)
 			
@@ -1959,13 +2163,13 @@ end
 			
 			self.HadInteraction = true
 			
-			print ("-creating group for:", self.questName, select (1, C_TaskQuest.GetQuestInfoByQuestID (self.questID)))
+--			print ("-creating group for:", self.questName, select (1, C_TaskQuest.GetQuestInfoByQuestID (self.questID)))
 
 		elseif (self.ToApply) then	
 			self.HadInteraction = true
 			
 			local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n])
-			print ("applying!", isAuto, not isDelisted, name == interactionButton.questName, ilvl <= GetAverageItemLevel()) --, members < 5
+--			print ("applying!", isAuto, not isDelisted, name == interactionButton.questName, ilvl <= GetAverageItemLevel()) --, members < 5
 			
 			if (isAuto and not isDelisted and name == interactionButton.questName and ilvl <= GetAverageItemLevel()) then -- and members < 5
 				--print ("Applying:", interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, UnitGetAvailableRoles ("player"))
@@ -1975,7 +2179,7 @@ end
 				--UnitGetAvailableRoles ("player")
 
 				C_LFGList.ApplyToGroup (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, role == "TANK", role == "HEALER", role == "DAMAGER")
-				
+
 				--> set the timeout
 				ff.SetApplyTimeout (4)
 				
@@ -1996,6 +2200,13 @@ end
 			interactionButton.GroupsToApply.n = interactionButton.GroupsToApply.n + 1
 			
 			if (interactionButton.GroupsToApply.n > #interactionButton.GroupsToApply) then
+			
+				if (true) then --debug
+--					self.ToApply = nil
+--					ff.SetAction (ff.actions.ACTIONTYPE_GROUP_UNAPPLY, "click to cancel applications...")
+--					return
+				end
+			
 				ff.SetApplyTimeout (4)
 				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT)
 				return
@@ -2016,6 +2227,23 @@ end
 			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 			if (not ff.cannot_group_quest [worldQuestType] and not ff.IgnoreList [questID]) then
 				ff.NewWorldQuestEngaged (title, questID)
+			end
+		end
+	end
+	
+	function ff.DelayedCheckForDisband()
+		--> everyone from player group could be gone, check if the quest is valid and if still  doing it
+		if (interactionButton.questID) then
+			local isInArea, isOnMap, numObjectives = GetTaskInfo (interactionButton.questID)
+			if (isInArea and not IsQuestFlaggedCompleted (interactionButton.questID)) then
+				--> just to make sure there's no group listed on the group finder
+				--> it should be false since the player isn't in group
+				local active, activityID, iLevel, name, comment, voiceChat, expiration, autoAccept = C_LFGList.GetActiveEntryInfo()
+				if (not active) then
+					--> everything at this point should be already set
+					--> just query the player if want another group
+					ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCH)
+				end
 			end
 		end
 	end
@@ -2064,21 +2292,8 @@ end
 				--> player left the group
 				if (not IsInGroup()) then
 					ff.IsInWQGroup = false
-					
-					--> everyone from player group could be gone, check if the quest is valid and if still  doing it
-					if (interactionButton.questID) then
-						local isInArea, isOnMap, numObjectives = GetTaskInfo (interactionButton.questID)
-						if (isInArea and not IsQuestFlaggedCompleted (interactionButton.questID)) then
-							--> just to make sure there's no group listed on the group finder
-							--> it should be false since the player isn't in group
-							local active, activityID, iLevel, name, comment, voiceChat, expiration, autoAccept = C_LFGList.GetActiveEntryInfo()
-							if (not active) then
-								--> everything at this point should be already set
-								--> just query the player if want another group
-								ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCH)
-							end
-						end
-					end
+					print ("the group has been disbanded...")
+					C_Timer.After (2, ff.DelayedCheckForDisband)
 				else
 					--> check if lost a member
 					if (ff.GroupMembers > GetNumGroupMembers (LE_PARTY_CATEGORY_HOME) + 1) then
@@ -2097,6 +2312,17 @@ end
 								end
 							end
 						end
+					end
+					
+					if (UnitIsGroupLeader ("player") and not ff.HasLeadership) then
+						ff.HasLeadership = true
+						if (WorldQuestTracker.db.profile.groupfinder.noafk) then
+							ff.SetCheckIfTrackingAFKs (true)
+						end
+						
+					elseif (ff.HasLeadership and not UnitIsGroupLeader ("player")) then
+						ff.HasLeadership = false
+						ff.SetCheckIfTrackingAFKs (false)
 					end
 					
 					ff.GroupMembers = GetNumGroupMembers (LE_PARTY_CATEGORY_HOME) + 1
