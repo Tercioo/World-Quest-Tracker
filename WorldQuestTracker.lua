@@ -36,6 +36,7 @@ do
 	DF:InstallTemplate ("font", "WQT_RESOURCES_AVAILABLE", {color = {1, .7, .2, .85}, size = 10, font = "Friz Quadrata TT"})
 	DF:InstallTemplate ("font", "WQT_GROUPFINDER_BIG", {color = {1, .7, .2, .85}, size = 12, font = "Friz Quadrata TT"})
 	DF:InstallTemplate ("font", "WQT_GROUPFINDER_SMALL", {color = {1, .9, .1, .85}, size = 10, font = "Friz Quadrata TT"})
+	DF:InstallTemplate ("font", "WQT_GROUPFINDER_TRANSPARENT", {color = {1, 1, 1, .2}, size = 10, font = "Friz Quadrata TT"})
 	
 	DF:InstallTemplate ("button", "WQT_GROUPFINDER_BUTTON", {
 		backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
@@ -159,11 +160,12 @@ local default_config = {
 		
 		groupfinder = {
 			enabled = true,
+			tracker_buttons = true,
 			autoleave = false,
 			autoleave_delayed = false,
 			askleave_delayed = true,
 			leavetimer = 30,
-			noafk = true,
+			noafk = false,
 			noafk_ticks = 5,
 			frame = {},
 		},
@@ -1226,6 +1228,22 @@ end
 			ff.ResetInteractionButton()
 			ff.HideMainFrame()
 		end
+		
+		GameCooltip:Hide()
+	end
+	
+	ff.Options.SetOTButtonsFunc = function (_, _, value)
+		WorldQuestTracker.db.profile.groupfinder.tracker_buttons = value
+		if (value) then
+			--enabled
+			WorldQuestTracker:FullTrackerUpdate()
+		else
+			--disabled
+			for _, block in pairs (ff.BQuestTrackerUsedWidgets) do
+				block:Hide()
+			end
+		end
+		GameCooltip:Hide()
 	end
 	
 	ff.Options.SetAutoGroupLeaveFunc = function (_, _, value, key)
@@ -1249,7 +1267,7 @@ end
 		GameCooltip:SetOption ("FixedWidth", 180)
 		
 		--enabled
-		GameCooltip:AddLine ("Use Group Finder")
+		GameCooltip:AddLine ("Auto Open On New Quest")
 		if (WorldQuestTracker.db.profile.groupfinder.enabled) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
 		else
@@ -1257,6 +1275,15 @@ end
 		end
 		GameCooltip:AddMenu (1, ff.Options.SetEnabledFunc, not WorldQuestTracker.db.profile.groupfinder.enabled)
 		
+		--uses buttons on the quest tracker
+		GameCooltip:AddLine ("Show Buttons on the Objective Tracker")
+		if (WorldQuestTracker.db.profile.groupfinder.tracker_buttons) then
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+		else
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+		end
+		GameCooltip:AddMenu (1, ff.Options.SetOTButtonsFunc, not WorldQuestTracker.db.profile.groupfinder.tracker_buttons)
+
 		--
 		GameCooltip:AddLine ("$div", nil, 1, nil, -5, -11)
 		--
@@ -1352,6 +1379,10 @@ end
 	ff.Label2 = DF:CreateLabel (ff, " ", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
 	ff.Label2:SetPoint (5, -47)
 	
+	--> label 3
+	ff.Label3 = DF:CreateLabel (ff, "right click to close this panel", DF:GetTemplate ("font", "WQT_GROUPFINDER_TRANSPARENT"))
+	ff.Label3:SetPoint ("bottom", ff, "bottom", 0, 2)
+	
 	--> progress bar
 	ff.ProgressBar = DF:CreateBar (ff, nil, 220, 16, 50)
 	ff.ProgressBar:SetPoint (10, -60)
@@ -1389,7 +1420,7 @@ end
 	ff.AntiAFKCheckbox:SetAsCheckBox()
 	ff.AntiAFKCheckbox:SetSize (20, 20)
 	ff.AntiAFKCheckbox:SetFrameLevel (ff:GetFrameLevel()+2)
-	ff.AntiAFKCheckbox.tooltip = "Remove other players which aren't doing anything towards the quest goal."
+	ff.AntiAFKCheckbox.tooltip = "When you are the group leaver, the addon may ask to kick afk players."
 	ff.AntiAFKCheckbox:SetPoint ("bottomleft", ff, "bottomleft", 5, 4)
 	ff.AntiAFKCheckbox.TextLabel = DF:CreateLabel (ff.AntiAFKCheckbox, "anti afk", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
 	ff.AntiAFKCheckbox.TextLabel:SetPoint ("left", ff.AntiAFKCheckbox, "right", 2, 0)
@@ -1461,17 +1492,6 @@ end
 	--[[
 	quotes:
 	-middle clicking the tracked quest will start a search for that quest
-	-If finding a group fails, there's no easy way to trigger WQT to try again.
-	
-	-"No group found?  Click to start one"  ->  This always fails, with an Blizzard error "You can't do that while using Premade Groups."
-		-the player has an applycation ongoing - need to cancel the apply before create a new group.
-		-couldn't test if the fix is working
-	
-	-fixed WQT is listing us with incorrect role/spec somehow.
-	-fixed Currently, if "auto leave" is checked, then the 10/20/30 choice is ignored and then player instantly leaves the group.  
-	If "auto leave" is NOT checked, THEN the 10/20/30 choice is active (and there is a visible countdown bar).  
-	This is confusing; "auto leave" to me suggests control over whether I leave the group automatically, not when.  
-	Maybe rename it to "leave instantly" or something.
 	
 	/dump LFGListInviteDialog
 	resultID=4,
@@ -1479,6 +1499,9 @@ end
 	
 	--]]
 	-- end of the feedback code
+	
+	ff.BQuestTrackerFreeWidgets = {}
+	ff.BQuestTrackerUsedWidgets = {}
 	
 	ff.actions = {
 		ACTIONTYPE_GROUP_SEARCH = 1,
@@ -1541,6 +1564,10 @@ end
 		[45988] = true, --ancient bones broken shore
 		[45379] = true, --tresure master rope broken shore
 		[43943] = true, --army training suramar
+	}
+	
+	ff.cannot_group_quest = {
+		[LE_QUEST_TAG_TYPE_PET_BATTLE] = true,
 	}
 	
 	function WorldQuestTracker.RegisterGroupFinderFrameOnLibWindow()
@@ -1663,6 +1690,8 @@ end
 		ff.HideSecondaryInteractionButton()
 		ff.HideAntiAfkCheckbox()
 		
+		ff.Label3:Show()
+		
 		--> kick doesn't have a timeout, so lets just clear
 		interactionButton.ToKick = nil
 		
@@ -1686,6 +1715,7 @@ end
 			ff.SetCurrentActionText ("no group found?, click to start one")
 			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_SEARCH, "retry serach")
 			ff.ShowAntiAfkCheckbox()
+			ff.Label3:Hide()
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_UNLIST) then
 			interactionButton.ToUnlist = true
@@ -1739,6 +1769,84 @@ end
 			ff.ProgressBar:Show()
 		end
 	end
+	
+	function ff.OnBBlockButtonPress (self, button)
+		if (self.questID) then
+			ff.FindGroupForQuest (self.questID)
+		end
+	end
+	
+	function ff.OnBBlockButtonEnter (self)
+		GameTooltip:SetOwner (self, "ANCHOR_LEFT")
+		GameTooltip:AddLine ("Join a group doing this quest")
+		GameTooltip:Show()
+	end
+	
+	function ff.OnBBlockButtonLeave (self)
+		GameTooltip:Hide()
+	end
+	
+	--> need to place a button somewhere to search for a group in case the player closes the panel
+	function ff.AddButtonToBBlock (block, questID)
+		local button = tremove (ff.BQuestTrackerFreeWidgets)
+		if (not button) then
+			button = CreateFrame ("button", nil, UIParent)
+			button:SetFrameStrata ("FULLSCREEN")
+			button:SetSize (24, 24)
+			
+			button:SetNormalTexture ([[Interface\BUTTONS\UI-SquareButton-Up]])
+			button:SetPushedTexture ([[Interface\BUTTONS\UI-SquareButton-Down]])
+			button:SetHighlightTexture ([[Interface\BUTTONS\UI-Common-MouseHilight]])
+			
+			local icon = button:CreateTexture (nil, "OVERLAY")
+			icon:SetSize (20, 20)
+			icon:SetTexture ([[Interface\FriendsFrame\PlusManz-PlusManz]])
+			icon:SetPoint ("center", button, "center")
+			
+			button:SetScript ("OnClick", ff.OnBBlockButtonPress)
+			button:SetScript ("OnEnter", ff.OnBBlockButtonEnter)
+			button:SetScript ("OnLeave", ff.OnBBlockButtonLeave)
+		end
+		
+		--> detect other addons to avoid placing our icons over other addons icons
+		if (WorldQuestGroupFinderAddon) then --todo: add the world quest assistant addon here too
+			button:SetPoint ("right", block.TrackedQuest, "left", -2, 0)
+		else
+			button:SetPoint ("topright", block, "topright", -2, 0)
+		end
+		
+		ff.BQuestTrackerUsedWidgets [block] = button
+		button.questID = questID
+		
+		button:SetParent (block)
+		button:Show()
+	end
+	
+	function ff.RemoveButtonFromBBlock (block)
+		tinsert (ff.BQuestTrackerFreeWidgets, ff.BQuestTrackerUsedWidgets [block])
+		ff.BQuestTrackerUsedWidgets [block]:ClearAllPoints()
+		ff.BQuestTrackerUsedWidgets [block]:Hide()
+		ff.BQuestTrackerUsedWidgets [block] = nil
+	end
+	
+	function ff.HandleBTrackerBlock (questID, block)
+		if (not ff.BQuestTrackerUsedWidgets [block]) then
+			if (type (questID) == "number" and HaveQuestData (questID) and QuestMapFrame_IsQuestWorldQuest (questID)) then
+				local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+				if (not ff.cannot_group_quest [worldQuestType] and not ff.IgnoreList [questID]) then			
+					--> give a button for this block
+					ff.AddButtonToBBlock (block, questID)
+				end
+			end
+		else
+			local isInArea, isOnMap, numObjectives = GetTaskInfo (questID) -- or not isInArea
+			if (type (questID) ~= "number" or not HaveQuestData (questID) or not QuestMapFrame_IsQuestWorldQuest (questID)) then
+				--> remove the button from this block
+				ff.RemoveButtonFromBBlock (block)
+			end
+		end
+	end
+	
 	
 	function ff.NewWorldQuestEngaged (questName, questID)
 		--> reset the gump
@@ -2213,11 +2321,7 @@ end
 			end
 		end
 	end)
-	
-	ff.cannot_group_quest = {
-		[LE_QUEST_TAG_TYPE_PET_BATTLE] = true,
-	}
-	
+
 	function WorldQuestTracker.FindGroupForQuest (questID)
 		ff.FindGroupForQuest (questID)
 	end
@@ -2266,7 +2370,7 @@ end
 				if (isWorldQuest) then
 					ff.FindGroupForQuest (questID)
 				end
-			end
+			end 
 		
 		elseif (event == "QUEST_TURNED_IN") then
 			questID = arg1
@@ -6071,6 +6175,96 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 				GameCooltip:AddMenu (2, options_on_click, "zone_only_tracked", not WorldQuestTracker.db.profile.zone_only_tracked)
 				
+				do
+					--group finder config
+					GameCooltip:AddLine ("Group Finder")
+					GameCooltip:AddIcon ([[Interface\LFGFRAME\BattlenetWorking1]], 1, 1, IconSize, IconSize, .22, .78, .22, .78)
+					
+					--enabled
+					GameCooltip:AddLine ("Auto Open On New Quest", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.enabled) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetEnabledFunc, not WorldQuestTracker.db.profile.groupfinder.enabled)
+					
+					--uses buttons on the quest tracker
+					GameCooltip:AddLine ("Show Buttons on the Objective Tracker", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.tracker_buttons) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetOTButtonsFunc, not WorldQuestTracker.db.profile.groupfinder.tracker_buttons)					
+					
+					--
+					--GameCooltip:AddLine ("$div", nil, 1, nil, -5, -11)
+					--
+					GameCooltip:AddLine ("$div", nil, 2, nil, -7, -14)
+					--GameCooltip:AddLine ("Leave Group")
+					--GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]], 1, 1, IconSize, IconSize, 944/1024, 993/1024, 272/1024, 324/1024)
+					
+					--leave group
+					GameCooltip:AddLine ("Leave Immediately", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.autoleave) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave, "autoleave")
+					
+					GameCooltip:AddLine ("Leave After X Seconds", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.autoleave_delayed) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave_delayed, "autoleave_delayed")
+					
+					GameCooltip:AddLine ("Ask to Leave for X Seconds", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.askleave_delayed) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.askleave_delayed, "askleave_delayed")
+					
+					--
+					GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
+					--ask to leave with timeout
+					GameCooltip:AddLine ("10 Seconds", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 10) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 10)
+					
+					GameCooltip:AddLine ("15 Seconds", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 15) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 15)
+					
+					GameCooltip:AddLine ("20 Seconds", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 20) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 20)
+					
+					GameCooltip:AddLine ("30 Seconds", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 30) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 30)
+				end
 				
 				
 				GameCooltip:AddLine ("$div")
@@ -7628,9 +7822,8 @@ local TrackerFrameOnClick = function (self, button)
 			WorldQuestTracker.WorldWidgets_NeedFullRefresh = true
 		end
 	else
-		--WQGF integration
-		if (WorldQuestGroupFinderAddon and button == "MiddleButton") then
-			WorldQuestGroupFinder.HandleBlockClick (self.questID)
+		if (button == "MiddleButton") then
+			WorldQuestTracker.FindGroupForQuest (self.questID)
 			return
 		end
 		WorldQuestTracker.CanLinkToChat (self, button)
@@ -7795,6 +7988,11 @@ local TrackerIconButtonOnLeave = function (self)
 	
 end
 local TrackerIconButtonOnClick = function (self, button)
+	if (button == "MiddleButton") then
+		WorldQuestTracker.FindGroupForQuest (self.questID)
+		return
+	end
+
 	if (self.questID == GetSuperTrackedQuestID()) then
 		WorldQuestTracker.SuperTracked = nil
 		QuestSuperTracking_ChooseClosestQuest()
@@ -7949,6 +8147,7 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	IconButton:SetScript ("OnClick", TrackerIconButtonOnClick)
 	IconButton:SetScript ("OnMouseDown", TrackerIconButtonOnMouseDown)
 	IconButton:SetScript ("OnMouseUp", TrackerIconButtonOnMouseUp)
+	IconButton:RegisterForClicks ("LeftButtonDown", "MiddleButtonDown")
 	IconButton.Icon = f.Icon
 	f.IconButton = IconButton
 --
@@ -8561,6 +8760,22 @@ local On_ObjectiveTracker_Update = function()
 		local module = tracker.MODULES [i]
 		if (module.Header:IsShown()) then
 			y = y + module.contentsHeight
+			
+			if (WorldQuestTracker.db.profile.groupfinder.tracker_buttons) then
+				for questID, block in pairs (module.usedBlocks) do
+					ff.HandleBTrackerBlock (questID, block)
+				end
+			end
+			
+			--> is a module for world quests?
+			--if (module.DefaultHeaderText == TRACKER_HEADER_WORLD_QUESTS) then
+				--> which blocks are active showing a world quest
+			--		if (type (questID) == "number" and HaveQuestData (questID) and QuestMapFrame_IsQuestWorldQuest (questID)) then
+			
+			--		end
+			--	end
+			--end
+
 		end
 	end
 	
