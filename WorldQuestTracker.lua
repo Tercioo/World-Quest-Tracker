@@ -34,7 +34,7 @@ do
 	
 	DF:InstallTemplate ("font", "WQT_SUMMARY_TITLE", {color = "orange", size = 12, font = "Friz Quadrata TT"})
 	DF:InstallTemplate ("font", "WQT_RESOURCES_AVAILABLE", {color = {1, .7, .2, .85}, size = 10, font = "Friz Quadrata TT"})
-	DF:InstallTemplate ("font", "WQT_GROUPFINDER_BIG", {color = {1, .7, .2, .85}, size = 12, font = "Friz Quadrata TT"})
+	DF:InstallTemplate ("font", "WQT_GROUPFINDER_BIG", {color = {1, .7, .2, .85}, size = 11, font = "Friz Quadrata TT"})
 	DF:InstallTemplate ("font", "WQT_GROUPFINDER_SMALL", {color = {1, .9, .1, .85}, size = 10, font = "Friz Quadrata TT"})
 	DF:InstallTemplate ("font", "WQT_GROUPFINDER_TRANSPARENT", {color = {1, 1, 1, .2}, size = 10, font = "Friz Quadrata TT"})
 	
@@ -770,6 +770,9 @@ function WorldQuestTracker:OnInit()
 	WorldQuestTracker.dbChr = WQTrackerDBChr
 	WorldQuestTracker.dbChr.ActiveQuests = WorldQuestTracker.dbChr.ActiveQuests or {}
 	
+	local SharedMedia = LibStub:GetLibrary ("LibSharedMedia-3.0")
+	SharedMedia:Register ("statusbar", "Iskar Serenity", [[Interface\AddOns\WorldQuestTracker\media\bar_serenity]])
+	
 	C_Timer.After (2, function()
 		if (WorldQuestTracker.db:GetCurrentProfile() ~= "Default") then
 			WorldQuestTracker.db:SetProfile ("Default")
@@ -1239,8 +1242,8 @@ end
 			WorldQuestTracker:FullTrackerUpdate()
 		else
 			--disabled
-			for _, block in pairs (ff.BQuestTrackerUsedWidgets) do
-				block:Hide()
+			for block, button in pairs (ff.BQuestTrackerUsedWidgets) do
+				ff.RemoveButtonFromBBlock (block)
 			end
 		end
 		GameCooltip:Hide()
@@ -1289,7 +1292,7 @@ end
 		--
 		
 		GameCooltip:AddLine ("Leave Group")
-		GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]], 1, 1, IconSize, IconSize, 944/1024, 993/1024, 272/1024, 324/1024)
+		GameCooltip:AddIcon ([[Interface\BUTTONS\UI-GROUPLOOT-PASS-DOWN]], 1, 1, IconSize, IconSize)
 		
 		--leave group
 		GameCooltip:AddLine ("Leave Immediately", "", 2)
@@ -1384,8 +1387,8 @@ end
 	ff.Label3:SetPoint ("bottom", ff, "bottom", 0, 2)
 	
 	--> progress bar
-	ff.ProgressBar = DF:CreateBar (ff, nil, 220, 16, 50)
-	ff.ProgressBar:SetPoint (10, -60)
+	ff.ProgressBar = DF:CreateBar (ff, nil, 230, 16, 50)
+	ff.ProgressBar:SetPoint (5, -60)
 	ff.ProgressBar.fontsize = 11
 	ff.ProgressBar.fontface = "Accidental Presidency"
 	ff.ProgressBar.fontcolor = "darkorange"
@@ -1514,6 +1517,7 @@ end
 		ACTIONTYPE_GROUP_UNLIST = 8,
 		ACTIONTYPE_GROUP_UNAPPLY = 9,
 		ACTIONTYPE_GROUP_KICK = 10,
+		ACTIONTYPE_GROUP_SEARCHANOTHER = 11,
 	}
 	
 	--http://www.wowhead.com/quest=43179/the-kirin-tor-of-dalaran#comments:id=2429524
@@ -1575,6 +1579,10 @@ end
 		LibWindow.MakeDraggable (ff)
 		LibWindow.RestorePosition (ff)
 		ff.IsRegistered = true
+
+		local texture = LibStub:GetLibrary ("LibSharedMedia-3.0"):Fetch ("statusbar", "Iskar Serenity")
+		ff.ProgressBar.timer_texture:SetTexture (texture)
+		ff.ProgressBar.background:SetTexture (texture)
 	end
 	
 	--> register needed events
@@ -1692,13 +1700,13 @@ end
 		
 		ff.Label3:Show()
 		
-		--> kick doesn't have a timeout, so lets just clear
-		interactionButton.ToKick = nil
-		
+		--> reset the button state
+		ff.ClearInteractionButtonActions()
+
 		--> deal with each request action
 		if (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCH) then
 			interactionButton.ToSearch = true
-			ff.SetCurrentActionText ("search for a group?")
+			ff.SetCurrentActionText ("click to start searching for groups")
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHING) then
 			ff.SetCurrentActionText ("searching...")
@@ -1767,12 +1775,17 @@ end
 				end
 			end
 			ff.ProgressBar:Show()
+		
+		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHANOTHER) then
+			ff.SetCurrentActionText (message or "Leave and Search a different group?")
+			interactionButton.ToSearchAnother = true
+
 		end
 	end
 	
 	function ff.OnBBlockButtonPress (self, button)
 		if (self.questID) then
-			ff.FindGroupForQuest (self.questID)
+			ff.FindGroupForQuest (self.questID, true)
 		end
 	end
 	
@@ -1792,27 +1805,39 @@ end
 		if (not button) then
 			button = CreateFrame ("button", nil, UIParent)
 			button:SetFrameStrata ("FULLSCREEN")
-			button:SetSize (24, 24)
+			button:SetSize (30, 30)
 			
 			button:SetNormalTexture ([[Interface\BUTTONS\UI-SquareButton-Up]])
 			button:SetPushedTexture ([[Interface\BUTTONS\UI-SquareButton-Down]])
 			button:SetHighlightTexture ([[Interface\BUTTONS\UI-Common-MouseHilight]])
 			
 			local icon = button:CreateTexture (nil, "OVERLAY")
-			icon:SetSize (20, 20)
-			icon:SetTexture ([[Interface\FriendsFrame\PlusManz-PlusManz]])
-			icon:SetPoint ("center", button, "center")
+			icon:SetAtlas ("socialqueuing-icon-eye")
+			icon:SetSize (13, 13)
+			
+			--icon:SetSize (22, 22)
+			--icon:SetTexture ([[Interface\FriendsFrame\PlusManz-PlusManz]])
+			--icon:SetPoint ("center", button, "center")
+			
+			icon:SetPoint ("center", button, "center", -1, 0)
 			
 			button:SetScript ("OnClick", ff.OnBBlockButtonPress)
 			button:SetScript ("OnEnter", ff.OnBBlockButtonEnter)
 			button:SetScript ("OnLeave", ff.OnBBlockButtonLeave)
 		end
 		
+		button:ClearAllPoints()
+		
 		--> detect other addons to avoid placing our icons over other addons icons
 		if (WorldQuestGroupFinderAddon) then --todo: add the world quest assistant addon here too
 			button:SetPoint ("right", block.TrackedQuest, "left", -2, 0)
 		else
-			button:SetPoint ("topright", block, "topright", -2, 0)
+			--check if there's a quest button
+			if (block.rightButton and block.rightButton:IsShown()) then
+				button:SetPoint ("right", block.rightButton, "left", -2, 0)
+			else
+				button:SetPoint ("topright", block, "topright", 10, 0)
+			end
 		end
 		
 		ff.BQuestTrackerUsedWidgets [block] = button
@@ -1843,6 +1868,9 @@ end
 			if (type (questID) ~= "number" or not HaveQuestData (questID) or not QuestMapFrame_IsQuestWorldQuest (questID)) then
 				--> remove the button from this block
 				ff.RemoveButtonFromBBlock (block)
+			else
+				--just update the questID
+				ff.BQuestTrackerUsedWidgets [block].questID = questID
 			end
 		end
 	end
@@ -2042,6 +2070,8 @@ end
 		interactionButton.ToUnlist = nil
 		interactionButton.ToUnapply = nil
 		interactionButton.ToKick = nil
+		interactionButton.ToSearchAnother = nil
+		
 	end
 	
 	function ff.SearchCompleted() --~searchfinished
@@ -2122,7 +2152,7 @@ end
 			end
 		end
 		
-		if (not self.ToSearch and not self.ToUnlist and not self.ToLeave and not self.ToCreate and not self.ToApply and not self.ToKick and not self.ToUnapply) then
+		if (not self.ToSearch and not self.ToUnlist and not self.ToLeave and not self.ToCreate and not self.ToApply and not self.ToKick and not self.ToUnapply and not self.ToSearchAnother) then
 			print ("No actions scheduled!")
 			return
 		end
@@ -2175,6 +2205,14 @@ end
 			self.HadInteraction = true
 			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHING)
 
+		elseif (self.ToSearchAnother) then
+			ff.IsInWQGroup = false
+			LeaveParty()
+			ff.StartSearch()
+			self.ToSearchAnother = nil
+			self.HadInteraction = true
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHING)
+			
 		elseif (self.ToUnlist) then
 			C_LFGList.RemoveListing()
 			--> call search completed once it can only enter on Unlist state from there
@@ -2326,7 +2364,13 @@ end
 		ff.FindGroupForQuest (questID)
 	end
 	
-	function ff.FindGroupForQuest (questID)
+	function ff.FindGroupForQuest (questID, fromOTButton)
+		if (fromOTButton and IsInGroup() and ff.IsInWQGroup) then
+			--> player already doing the quest
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHANOTHER)
+			return
+		end
+		
 		if ((not IsInGroup() and not IsInRaid()) or (IsInGroup() and GetNumGroupMembers() == 1)) then --> causou problemas de ? - precisa de um aviso case esteja em grupo
 			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 			if (not ff.cannot_group_quest [worldQuestType] and not ff.IgnoreList [questID]) then
