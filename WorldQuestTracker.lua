@@ -168,6 +168,7 @@ local default_config = {
 			leavetimer = 30,
 			noafk = false,
 			noafk_ticks = 5,
+			nopvp = false,
 			frame = {},
 		},
 		
@@ -1228,11 +1229,16 @@ end
 			
 		else
 			--hide the current doing world quest
-			ff.ResetMembers()
-			ff.ResetInteractionButton()
-			ff.HideMainFrame()
+			--ff.ResetMembers()
+			--ff.ResetInteractionButton()
+			--ff.HideMainFrame()
 		end
 		
+		GameCooltip:Hide()
+	end
+	
+	ff.Options.SetAvoidPVPFunc = function (_, _, value)
+		WorldQuestTracker.db.profile.groupfinder.nopvp = value
 		GameCooltip:Hide()
 	end
 	
@@ -1296,7 +1302,7 @@ end
 		GameCooltip:AddLine ("$div", nil, 1, nil, -5, -11)
 		--
 		
-		GameCooltip:AddLine ("Leave Group")
+		GameCooltip:AddLine ("Leave Group Options")
 		GameCooltip:AddIcon ([[Interface\BUTTONS\UI-GROUPLOOT-PASS-DOWN]], 1, 1, IconSize, IconSize)
 		
 		--leave group
@@ -1373,7 +1379,17 @@ end
 		else
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 		end
-		GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 60)		
+		GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 60)
+		
+		GameCooltip:AddLine ("$div", nil, 1, nil, -5, -11)
+		GameCooltip:AddLine ("Avoid PVP Servers")
+		if (WorldQuestTracker.db.profile.groupfinder.nopvp) then
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+		else
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+		end
+		GameCooltip:AddMenu (1, ff.Options.SetAvoidPVPFunc, not WorldQuestTracker.db.profile.groupfinder.nopvp)
+		
 	end
 	
 	ff.Options.CoolTip = {
@@ -1393,6 +1409,7 @@ end
 	--title
 	ff.Title = ff.TitleBar:CreateFontString ("$parentTitle", "overlay", "GameFontNormal")
 	ff.Title:SetPoint ("center", ff.TitleBar, "center")
+	--ff.Title:SetPoint ("left", ff.TitleBar, "left", 4, 0)
 	ff.Title:SetTextColor (.8, .8, .8, 1)
 	ff.Title:SetText ("World Quest Tracker")	
 	
@@ -1445,7 +1462,7 @@ end
 	ff.AntiAFKCheckbox:SetAsCheckBox()
 	ff.AntiAFKCheckbox:SetSize (20, 20)
 	ff.AntiAFKCheckbox:SetFrameLevel (ff:GetFrameLevel()+2)
-	ff.AntiAFKCheckbox.tooltip = "When you are the group leaver, the addon may ask to kick afk players."
+	ff.AntiAFKCheckbox.tooltip = "When you are the group leader, the addon may ask to kick afk players and player that are too far away from the quest location."
 	ff.AntiAFKCheckbox:SetPoint ("bottomleft", ff, "bottomleft", 5, 4)
 	ff.AntiAFKCheckbox.TextLabel = DF:CreateLabel (ff.AntiAFKCheckbox, "anti afk", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
 	ff.AntiAFKCheckbox.TextLabel:SetPoint ("left", ff.AntiAFKCheckbox, "right", 2, 0)
@@ -2007,6 +2024,7 @@ end
 				if (isInArea and not IsInRaid()) then
 					--> do the check
 					local mySelf = UnitGUID ("player")
+					local selfX, selfY = UnitPosition ("player")
 					
 					for i = 1, GetNumGroupMembers() do
 						local GUID = UnitGUID ("party" .. i)
@@ -2022,7 +2040,12 @@ end
 								unitTable = ff.AFKCheckList [GUID]
 							end
 							
-							local x, y = GetPlayerMapPosition ("party" .. i)
+							--local x, y = GetPlayerMapPosition ("party" .. i)
+							local x, y, posZ, instanceID = UnitPosition ("party" .. i)
+							x = x or 0
+							y = y or 0
+							
+							--> check location for afk
 							if (x ~= unitTable.x or y ~= unitTable.y) then
 								unitTable.tick = 0
 								unitTable.x = x
@@ -2035,6 +2058,17 @@ end
 								end
 							end
 							
+							--> check location for distance
+							if (selfX and selfX ~= 0 and DF.GetDistance_Point) then
+								local distance = DF:GetDistance_Point (selfX, selfY, x, y)
+								if (distance > 500) then
+									print ("found a player too far away, sqrt > 500 yards:", distance)
+									ff.SetAction (ff.actions.ACTIONTYPE_GROUP_KICK, "click to kick an AFK player", "party" .. i, GUID)
+									break
+								else
+									--print ("checking distance", UnitName ("party" .. i), distance)
+								end
+							end
 						end
 					end
 				end
@@ -2104,6 +2138,12 @@ end
 		
 	end
 	
+	function ff.IsPVPRealm (desc)
+		if (desc:find ("@PVP") or desc:find ("#PVP")) then
+			return true
+		end
+	end
+	
 	function ff.SearchCompleted() --~searchfinished
 		--C_LFGList.GetSearchResultInfo (applicationID)
 		
@@ -2131,7 +2171,14 @@ end
 			
 			--print (members) --is always an int?
 			if (isAuto and not isDelisted and name == interactionButton.questName and ilvl <= GetAverageItemLevel()) then -- and members < 5
-				tinsert (t, {resultID, (numBNetFriends or 0) + (numCharFriends or 0) + (numGuildMates or 0), members or 0})
+				local isPVP = ff.IsPVPRealm (desc)
+				if (not WorldQuestTracker.db.profile.groupfinder.nopvp) then
+					tinsert (t, {resultID, (numBNetFriends or 0) + (numCharFriends or 0) + (numGuildMates or 0), members or 0, isPVP and 0 or 1})
+				else
+					if (not isPVP) then
+						tinsert (t, {resultID, (numBNetFriends or 0) + (numCharFriends or 0) + (numGuildMates or 0), members or 0, isPVP and 0 or 1})
+					end
+				end
 			end
 			
 			--ApplyToGroup(resultID, comment, tankOK, healerOK, damageOK)
@@ -2141,6 +2188,7 @@ end
 		
 		table.sort (t,  function(t1, t2) return t1[3] > t2[3] end) --more people first
 		table.sort (t,  function(t1, t2) return t1[2] > t2[2] end) --more friends first
+		table.sort (t,  function(t1, t2) return t1[4] > t2[4] end) --pvp status first
 		
 		for i = 1, #t do
 			tinsert (interactionButton.GroupsToApply, t[i][1])
@@ -2295,7 +2343,17 @@ end
 			
 			local questName = self.questName
 			local questID = self.questID
-			local groupDesc = "Group created with World Quest Tracker for quest " .. questName .. " (ID: " .. questID .. ")"
+			
+			local pvpType = GetZonePVPInfo()
+			local pvpTag
+			if (pvpType == "contested") then
+				pvpTag = "@PVP"
+			else
+				pvpTag = ""
+			end
+			
+			local groupDesc = "Doing world quest " .. questName .. ". Group created with World Quest Tracker. @ID" .. questID .. pvpTag
+			
 			local itemLevelRequired = 0
 			local honorLevelRequired = 0
 			local isAutoAccept = true
@@ -2362,9 +2420,9 @@ end
 				interactionButton.ApplyLeft = interactionButton.ApplyLeft - 1
 				if (interactionButton.ApplyLeft > 0) then
 					if (interactionButton.ApplyLeft > 1) then
-						ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "There's " .. interactionButton.ApplyLeft .. " remaining groups to join")
+						ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "There's " .. interactionButton.ApplyLeft .. " remaining groups, click again")
 					else
-						ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "There's 1 remaining group to join")
+						ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "There's 1 remaining group to join, click again")
 					end
 				else
 					ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT)
@@ -2401,7 +2459,7 @@ end
 			return
 		end
 		
-		if ((not IsInGroup() and not IsInRaid()) or (IsInGroup() and GetNumGroupMembers() == 1)) then --> causou problemas de ? - precisa de um aviso case esteja em grupo
+		if ((not IsInGroup() and not IsInRaid()) or (IsInGroup() and GetNumGroupMembers() == 1) or (IsInGroup() and not IsInRaid() and not ff.IsInWQGroup)) then --> causou problemas de ? - precisa de um aviso case esteja em grupo
 			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 			if (not ff.cannot_group_quest [worldQuestType] and not ff.IgnoreList [questID]) then
 				ff.NewWorldQuestEngaged (title, questID)
@@ -6354,6 +6412,15 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 					end
 					GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 60)
+					
+					GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
+					GameCooltip:AddLine ("Avoid PVP Servers", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.nopvp) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetAvoidPVPFunc, not WorldQuestTracker.db.profile.groupfinder.nopvp)					
 				end
 				
 				
