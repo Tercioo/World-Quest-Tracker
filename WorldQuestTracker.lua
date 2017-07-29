@@ -2036,6 +2036,7 @@ end
 									name = UnitName ("party" .. i),
 									x = 0,
 									y = 0,
+									faraway = 0,
 								}
 								unitTable = ff.AFKCheckList [GUID]
 							end
@@ -2046,13 +2047,14 @@ end
 							y = y or 0
 							
 							--> check location for afk
-							if (x ~= unitTable.x or y ~= unitTable.y) then
+							if (x ~= unitTable.x or y ~= unitTable.y or UnitHealth ("party" .. i) < UnitHealthMax ("party" .. i)) then
 								unitTable.tick = 0
 								unitTable.x = x
 								unitTable.y = y
 							else
 								unitTable.tick = unitTable.tick + 1
 								if (unitTable.tick > WorldQuestTracker.db.profile.groupfinder.noafk_ticks) then
+									print ("[debug] found a afk player, not moving or taking damage for 30 seconds", UnitName ("party" .. i))
 									ff.SetAction (ff.actions.ACTIONTYPE_GROUP_KICK, "click to kick an AFK player", "party" .. i, GUID)
 									break
 								end
@@ -2062,11 +2064,15 @@ end
 							if (selfX and selfX ~= 0 and DF.GetDistance_Point) then
 								local distance = DF:GetDistance_Point (selfX, selfY, x, y)
 								if (distance > 500) then
-									print ("found a player too far away, sqrt > 500 yards:", distance)
-									ff.SetAction (ff.actions.ACTIONTYPE_GROUP_KICK, "click to kick an AFK player", "party" .. i, GUID)
-									break
+									unitTable.faraway = unitTable.faraway + 1
+									if (unitTable.faraway > WorldQuestTracker.db.profile.groupfinder.noafk_ticks) then
+										print ("[debug] found a player too far away, sqrt > 500 yards:", distance, UnitName ("party" .. i))
+										ff.SetAction (ff.actions.ACTIONTYPE_GROUP_KICK, "click to kick an AFK player", "party" .. i, GUID)
+										unitTable.faraway = 0
+										break
+									end
 								else
-									--print ("checking distance", UnitName ("party" .. i), distance)
+									unitTable.faraway = 0
 								end
 							end
 						end
@@ -2528,7 +2534,6 @@ end
 				--> player left the group
 				if (not IsInGroup()) then
 					ff.IsInWQGroup = false
-					print ("the group has been disbanded...")
 					C_Timer.After (2, ff.DelayedCheckForDisband)
 				else
 					--> check if lost a member
