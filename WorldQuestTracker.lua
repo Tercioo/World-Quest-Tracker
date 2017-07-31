@@ -1281,7 +1281,7 @@ end
 		GameCooltip:SetOption ("FixedWidth", 180)
 		
 		--enabled
-		GameCooltip:AddLine ("Auto Open On New Quest")
+		GameCooltip:AddLine (L["S_GROUPFINDER_ENABLED"])
 		if (WorldQuestTracker.db.profile.groupfinder.enabled) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
 		else
@@ -1290,7 +1290,7 @@ end
 		GameCooltip:AddMenu (1, ff.Options.SetEnabledFunc, not WorldQuestTracker.db.profile.groupfinder.enabled)
 		
 		--uses buttons on the quest tracker
-		GameCooltip:AddLine ("Show Buttons on the Objective Tracker")
+		GameCooltip:AddLine (L["S_GROUPFINDER_OT_ENABLED"])
 		if (WorldQuestTracker.db.profile.groupfinder.tracker_buttons) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
 		else
@@ -1302,11 +1302,11 @@ end
 		GameCooltip:AddLine ("$div", nil, 1, nil, -5, -11)
 		--
 		
-		GameCooltip:AddLine ("Leave Group Options")
+		GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS"])
 		GameCooltip:AddIcon ([[Interface\BUTTONS\UI-GROUPLOOT-PASS-DOWN]], 1, 1, IconSize, IconSize)
 		
 		--leave group
-		GameCooltip:AddLine ("Leave Immediately on Quest Completed", "", 2)
+		GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_IMMEDIATELY"], "", 2)
 		if (WorldQuestTracker.db.profile.groupfinder.autoleave) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 		else
@@ -1314,7 +1314,7 @@ end
 		end
 		GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave, "autoleave")
 		
-		GameCooltip:AddLine ("Leave After X Seconds", "", 2)
+		GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_AFTERX"], "", 2)
 		if (WorldQuestTracker.db.profile.groupfinder.autoleave_delayed) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 		else
@@ -1322,7 +1322,7 @@ end
 		end
 		GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave_delayed, "autoleave_delayed")
 		
-		GameCooltip:AddLine ("Don't Auto Leave, Just Ask for X Seconds", "", 2)
+		GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_ASKX"], "", 2)
 		if (WorldQuestTracker.db.profile.groupfinder.askleave_delayed) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 		else
@@ -1330,7 +1330,7 @@ end
 		end
 		GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.askleave_delayed, "askleave_delayed")
 		
-		GameCooltip:AddLine ("Don't Show Leave Panel", "", 2)
+		GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_DONTLEAVE"], "", 2)
 		if (WorldQuestTracker.db.profile.groupfinder.noleave) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 		else
@@ -1341,7 +1341,7 @@ end
 		--
 		GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
 		--ask to leave with timeout
-		GameCooltip:AddLine ("10 Seconds", "", 2)
+		GameCooltip:AddLine ("10 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
 		if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 10) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 		else
@@ -1349,7 +1349,7 @@ end
 		end
 		GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 10)
 		
-		GameCooltip:AddLine ("15 Seconds", "", 2)
+		GameCooltip:AddLine ("15 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
 		if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 15) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 		else
@@ -1357,7 +1357,7 @@ end
 		end
 		GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 15)
 		
-		GameCooltip:AddLine ("20 Seconds", "", 2)
+		GameCooltip:AddLine ("20 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
 		if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 20) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 		else
@@ -1365,7 +1365,7 @@ end
 		end
 		GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 20)
 		
-		GameCooltip:AddLine ("30 Seconds", "", 2)
+		GameCooltip:AddLine ("30 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
 		if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 30) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 		else
@@ -1373,7 +1373,7 @@ end
 		end
 		GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 30)
 		
-		GameCooltip:AddLine ("60 Seconds", "", 2)
+		GameCooltip:AddLine ("60 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
 		if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 60) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 		else
@@ -1382,7 +1382,7 @@ end
 		GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 60)
 		
 		GameCooltip:AddLine ("$div", nil, 1, nil, -5, -11)
-		GameCooltip:AddLine ("Avoid PVP Servers")
+		GameCooltip:AddLine (L["S_GROUPFINDER_NOPVP"])
 		if (WorldQuestTracker.db.profile.groupfinder.nopvp) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
 		else
@@ -1422,7 +1422,7 @@ end
 	ff.Label2:SetPoint (5, -47)
 	
 	--> label 3
-	ff.Label3 = DF:CreateLabel (ff, "right click to close this panel", DF:GetTemplate ("font", "WQT_GROUPFINDER_TRANSPARENT"))
+	ff.Label3 = DF:CreateLabel (ff, L["S_GROUPFINDER_RIGHTCLICKCLOSE"], DF:GetTemplate ("font", "WQT_GROUPFINDER_TRANSPARENT"))
 	ff.Label3:SetPoint ("bottom", ff, "bottom", 0, 2)
 	
 	--> progress bar
@@ -1462,7 +1462,7 @@ end
 	ff.AntiAFKCheckbox:SetAsCheckBox()
 	ff.AntiAFKCheckbox:SetSize (20, 20)
 	ff.AntiAFKCheckbox:SetFrameLevel (ff:GetFrameLevel()+2)
-	ff.AntiAFKCheckbox.tooltip = "When you are the group leader, the addon may ask to kick afk players and player that are too far away from the quest location."
+	ff.AntiAFKCheckbox.tooltip = L["S_GROUPFINDER_KICK_DESC"]
 	ff.AntiAFKCheckbox:SetPoint ("bottomleft", ff, "bottomleft", 5, 4)
 	ff.AntiAFKCheckbox.TextLabel = DF:CreateLabel (ff.AntiAFKCheckbox, "anti afk", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
 	ff.AntiAFKCheckbox.TextLabel:SetPoint ("left", ff.AntiAFKCheckbox, "right", 2, 0)
@@ -1744,32 +1744,32 @@ end
 		--> deal with each request action
 		if (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCH) then
 			interactionButton.ToSearch = true
-			ff.SetCurrentActionText ("click to start searching for groups")
+			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_SEARCH"])
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHING) then
-			ff.SetCurrentActionText ("searching...")
+			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_SEARCHING"])
 			ff.ProgressBar:SetTimer (2)
 			ff.ProgressBar:Show()
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_UNAPPLY) then
 			interactionButton.ToUnapply = true
-			ff.SetCurrentActionText (message or "click to remove the apply so we can create a new group")
-			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_SEARCH, "retry serach")
+			ff.SetCurrentActionText (message or L["S_GROUPFINDER_ACTIONS_UNAPPLY1"])
+			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_SEARCH, L["S_GROUPFINDER_ACTIONS_RETRYSEARCH"])
 		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_CREATE) then
 			interactionButton.ToCreate = true
-			ff.SetCurrentActionText ("no group found?, click to start one")
-			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_SEARCH, "retry serach")
+			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_CREATE"])
+			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_SEARCH, L["S_GROUPFINDER_ACTIONS_RETRYSEARCH"])
 			ff.ShowAntiAfkCheckbox()
 			ff.Label3:Hide()
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_UNLIST) then
 			interactionButton.ToUnlist = true
-			ff.SetCurrentActionText ("click to unlist your current group")
+			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_UNLIST"])
 		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_RELIST) then
 			interactionButton.ToCreate = true
-			ff.SetCurrentActionText ("search for more group members?")
+			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_SEARCHMORE"])
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_APPLY) then
 			interactionButton.ToApply = true
@@ -1780,10 +1780,10 @@ end
 			interactionButton.ToLeave = true
 			
 			if (WorldQuestTracker.db.profile.groupfinder.autoleave_delayed) then
-				ff.SetCurrentActionText ("Leaving the group in (click to leave now):")
+				ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_LEAVINGIN"])
 				
 			elseif (WorldQuestTracker.db.profile.groupfinder.askleave_delayed) then
-				ff.SetCurrentActionText ("Leave the group?")
+				ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_LEAVEASK"])
 			end
 			
 			ff.ProgressBar:SetTimer (WorldQuestTracker.db.profile.groupfinder.leavetimer)
@@ -1803,7 +1803,7 @@ end
 			interactionButton.ToKick = true
 		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_WAIT) then
-			ff.SetCurrentActionText (message or "waiting...")
+			ff.SetCurrentActionText (message or L["S_GROUPFINDER_ACTIONS_WAITING"])
 			interactionButton.ToApply = nil
 			local waitTime, callBack = ...
 			if (waitTime) then
@@ -1815,7 +1815,7 @@ end
 			ff.ProgressBar:Show()
 		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHANOTHER) then
-			ff.SetCurrentActionText (message or "Leave and Search a different group?")
+			ff.SetCurrentActionText (message or L["S_GROUPFINDER_ACTIONS_SEARCHOTHER"])
 			interactionButton.ToSearchAnother = true
 
 		end
@@ -1829,7 +1829,7 @@ end
 	
 	function ff.OnBBlockButtonEnter (self)
 		GameTooltip:SetOwner (self, "ANCHOR_LEFT")
-		GameTooltip:AddLine ("Join a group doing this quest")
+		GameTooltip:AddLine (L["S_GROUPFINDER_ACTIONS_SEARCH_TOOLTIP"])
 		GameTooltip:Show()
 	end
 	
@@ -2054,7 +2054,7 @@ end
 							else
 								unitTable.tick = unitTable.tick + 1
 								if (unitTable.tick > WorldQuestTracker.db.profile.groupfinder.noafk_ticks) then
-									print ("[debug] found a afk player, not moving or taking damage for 30 seconds", UnitName ("party" .. i))
+									--print ("[debug] found a afk player, not moving or taking damage for 30 seconds", UnitName ("party" .. i))
 									ff.SetAction (ff.actions.ACTIONTYPE_GROUP_KICK, "click to kick an AFK player", "party" .. i, GUID)
 									break
 								end
@@ -2066,7 +2066,7 @@ end
 								if (distance > 500) then
 									unitTable.faraway = unitTable.faraway + 1
 									if (unitTable.faraway > WorldQuestTracker.db.profile.groupfinder.noafk_ticks) then
-										print ("[debug] found a player too far away, sqrt > 500 yards:", distance, UnitName ("party" .. i))
+										--print ("[debug] found a player too far away, sqrt > 500 yards:", distance, UnitName ("party" .. i))
 										ff.SetAction (ff.actions.ACTIONTYPE_GROUP_KICK, "click to kick an AFK player", "party" .. i, GUID)
 										unitTable.faraway = 0
 										break
@@ -2203,9 +2203,9 @@ end
 		if (#interactionButton.GroupsToApply > 0) then
 			local amt = #interactionButton.GroupsToApply
 			if (amt > 1) then
-				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "found " .. #interactionButton.GroupsToApply .. " groups\nclick to start joining")
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, format (L["S_GROUPFINDER_RESULTS_FOUND"], #interactionButton.GroupsToApply))
 			else
-				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "found 1 group\nclick to start joining")
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, L["S_GROUPFINDER_RESULTS_FOUND1"])
 			end
 			
 			interactionButton.ApplyLeft = #interactionButton.GroupsToApply
@@ -2223,6 +2223,7 @@ end
 		
 		if (GetLFGMode (1) or GetLFGMode (3)) then --dungeon and raid finder
 			print ("nop, you are in queue...")
+			print ("World Quest Tracker: ", L["S_GROUPFINDER_QUEUEBUSY"])
 			ff.HideMainFrame()
 			return
 		end
@@ -2230,14 +2231,14 @@ end
 		for i = 1, 5 do --bg / wont work with ashran
 			local status, mapName, teamSize, registeredMatch, suspendedQueue, queueType, gameType, role = GetBattlefieldStatus (i)
 			if (queueType and status ~= "none") then
-				print ("nop, you are in queue...")
+				print ("World Quest Tracker: ", L["S_GROUPFINDER_QUEUEBUSY"])
 				ff.HideMainFrame()
 				return
 			end
 		end
 		
 		if (not self.ToSearch and not self.ToUnlist and not self.ToLeave and not self.ToCreate and not self.ToApply and not self.ToKick and not self.ToUnapply and not self.ToSearchAnother) then
-			print ("No actions scheduled!")
+			--print ("No actions scheduled!")
 			return
 		end
 		
@@ -2300,7 +2301,7 @@ end
 		elseif (self.ToUnlist) then
 			C_LFGList.RemoveListing()
 			--> call search completed once it can only enter on Unlist state from there
-			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT, "Unlisting...", 1.2, ff.SearchCompleted)
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT, L["S_GROUPFINDER_ACTIONS_UNLISTING"], 1.2, ff.SearchCompleted)
 			self.ToUnlist = nil
 		
 		elseif (self.ToKick) then
@@ -2331,15 +2332,13 @@ end
 				else
 					C_LFGList.CancelApplication (applications [numApplications])
 				end
-				
-				print ("Apply Cancelled:", i, applications [numApplications])
 			end
 			
 			if (numApplications == 1) then
-				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT, "canceling...", 1, ff.GroupApplyTimeout)
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT, L["S_GROUPFINDER_ACTIONS_CANCELING"], 1, ff.GroupApplyTimeout)
 				self.ToUnapply = nil
 			else
-				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_UNAPPLY, (numApplications-1) .. " applications remaining...")
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_UNAPPLY, format (L["S_GROUPFINDER_RESULTS_UNAPPLY"], numApplications-1))
 			end
 			
 			self.HadInteraction = true
@@ -2391,7 +2390,7 @@ end
 			--> if is an epic quest, converto to raid
 			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (self.questID)
 			if (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
-				C_Timer.After (2, function() ConvertToRaid(); print ("party converted") end)
+				C_Timer.After (2, function() ConvertToRaid(); end) --print ("party converted")
 			end
 
 			self.ToCreate = nil
@@ -2426,9 +2425,9 @@ end
 				interactionButton.ApplyLeft = interactionButton.ApplyLeft - 1
 				if (interactionButton.ApplyLeft > 0) then
 					if (interactionButton.ApplyLeft > 1) then
-						ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "There's " .. interactionButton.ApplyLeft .. " remaining groups, click again")
+						ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, format (L["S_GROUPFINDER_RESULTS_APPLYING"], interactionButton.ApplyLeft))
 					else
-						ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, "There's 1 remaining group to join, click again")
+						ff.SetAction (ff.actions.ACTIONTYPE_GROUP_APPLY, L["S_GROUPFINDER_RESULTS_APPLYING1"])
 					end
 				else
 					ff.SetAction (ff.actions.ACTIONTYPE_GROUP_WAIT)
@@ -6314,11 +6313,11 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				
 				do
 					--group finder config
-					GameCooltip:AddLine ("Group Finder")
+					GameCooltip:AddLine (L["S_GROUPFINDER_TITLE"])
 					GameCooltip:AddIcon ([[Interface\LFGFRAME\BattlenetWorking1]], 1, 1, IconSize, IconSize, .22, .78, .22, .78)
 					
 					--enabled
-					GameCooltip:AddLine ("Auto Open On New Quest", "", 2)
+					GameCooltip:AddLine (L["S_GROUPFINDER_ENABLED"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.enabled) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -6327,7 +6326,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddMenu (2, ff.Options.SetEnabledFunc, not WorldQuestTracker.db.profile.groupfinder.enabled)
 					
 					--uses buttons on the quest tracker
-					GameCooltip:AddLine ("Show Buttons on the Objective Tracker", "", 2)
+					GameCooltip:AddLine (L["S_GROUPFINDER_OT_ENABLED"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.tracker_buttons) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -6343,7 +6342,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					--GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]], 1, 1, IconSize, IconSize, 944/1024, 993/1024, 272/1024, 324/1024)
 					
 					--leave group
-					GameCooltip:AddLine ("Leave Immediately on Quest Completed", "", 2)
+					GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_IMMEDIATELY"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.autoleave) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -6351,7 +6350,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 					GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave, "autoleave")
 					
-					GameCooltip:AddLine ("Leave After X Seconds", "", 2)
+					GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_AFTERX"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.autoleave_delayed) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -6359,7 +6358,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 					GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave_delayed, "autoleave_delayed")
 					
-					GameCooltip:AddLine ("Don't Auto Leave, Just Ask for X Seconds", "", 2)
+					GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_ASKX"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.askleave_delayed) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -6367,7 +6366,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 					GameCooltip:AddMenu (2, ff.Options.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.askleave_delayed, "askleave_delayed")
 					
-					GameCooltip:AddLine ("Don't Show Leave Panel", "", 2)
+					GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_DONTLEAVE"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.noleave) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -6378,7 +6377,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					--
 					GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
 					--ask to leave with timeout
-					GameCooltip:AddLine ("10 Seconds", "", 2)
+					GameCooltip:AddLine ("10 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 10) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -6386,7 +6385,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 					GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 10)
 					
-					GameCooltip:AddLine ("15 Seconds", "", 2)
+					GameCooltip:AddLine ("15 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 15) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -6394,7 +6393,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 					GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 15)
 					
-					GameCooltip:AddLine ("20 Seconds", "", 2)
+					GameCooltip:AddLine ("20 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 20) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -6402,7 +6401,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 					GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 20)
 					
-					GameCooltip:AddLine ("30 Seconds", "", 2)
+					GameCooltip:AddLine ("30 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 30) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -6410,7 +6409,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 					GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 30)
 					
-					GameCooltip:AddLine ("60 Seconds", "", 2)
+					GameCooltip:AddLine ("60 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 60) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
