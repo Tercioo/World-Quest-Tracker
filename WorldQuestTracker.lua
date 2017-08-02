@@ -8572,6 +8572,12 @@ end
 
 --atualiza os widgets e reajusta a ancora
 function WorldQuestTracker.RefreshTrackerWidgets()
+
+	if (WorldQuestTracker.LastTrackerRefresh and WorldQuestTracker.LastTrackerRefresh+0.2 > GetTime()) then
+		return
+	end
+	WorldQuestTracker.LastTrackerRefresh = GetTime()
+
 	--reordena as quests
 	WorldQuestTracker.ReorderQuestsOnTracker()
 	--atualiza as quest no tracker
