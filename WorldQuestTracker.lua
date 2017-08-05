@@ -170,6 +170,7 @@ local default_config = {
 			noafk_ticks = 5,
 			nopvp = false,
 			frame = {},
+			tutorial = 0,
 		},
 		
 		disable_world_map_widgets = false,
@@ -1454,6 +1455,10 @@ end
 	secondaryInteractionButton.ButtonText:SetPoint ("CENTER", secondaryInteractionButton, "CENTER", 0, 0)
 	secondaryInteractionButton:Hide()
 	
+	--> tutorial
+	
+	
+	
 	function ff.ChangeNoAFKState (_, _, value)
 		WorldQuestTracker.db.profile.groupfinder.noafk = value
 	end
@@ -2408,16 +2413,16 @@ end
 			self.HadInteraction = true
 			
 			local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n])
---			print ("applying!", isAuto, not isDelisted, name == interactionButton.questName, ilvl <= GetAverageItemLevel()) --, members < 5
 			
 			if (isAuto and not isDelisted and name == interactionButton.questName and ilvl <= GetAverageItemLevel()) then -- and members < 5
 				--print ("Applying:", interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, UnitGetAvailableRoles ("player"))
-				
+
 				--Usage: ApplyToGroup(resultID, comment, tankOK, healerOK, damageOK)
 				local id, name, description, icon, role, primaryStat = GetSpecializationInfo (GetSpecialization())
 				--UnitGetAvailableRoles ("player")
 
-				C_LFGList.ApplyToGroup (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, role == "TANK", role == "HEALER", role == "DAMAGER")
+				C_LFGList.ApplyToGroup (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WQTInvite-" .. self.questName, role == "TANK", role == "HEALER", role == "DAMAGER")
+				--print (interactionButton.GroupsToApply.n, interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], role == "TANK", role == "HEALER", role == "DAMAGER")
 
 				--> set the timeout
 				ff.SetApplyTimeout (4)
@@ -2488,6 +2493,22 @@ end
 			end
 		end
 	end
+	
+	ff:SetScript ("OnShow", function (self)
+		if (WorldQuestTracker.db.profile.groupfinder.tutorial == 0) then
+			local alert = CreateFrame ("frame", "WorldQuestTrackerGroupFinderTutorialAlert1", ff, "MicroButtonAlertTemplate")
+			alert:SetFrameLevel (302)
+			alert.label = L["S_GROUPFINDER_TUTORIAL1"]
+			alert.Text:SetSpacing (4)
+			MicroButtonAlert_SetText (alert, alert.label)
+			alert:SetPoint ("topleft", ff, "topleft", 10, 110)
+			alert.CloseButton:HookScript ("OnClick", function()
+				
+			end)
+			alert:Show()
+			WorldQuestTracker.db.profile.groupfinder.tutorial = WorldQuestTracker.db.profile.groupfinder.tutorial + 1
+		end
+	end)
 	
 	ff:SetScript ("OnEvent", function (self, event, arg1, questID, arg3)
 	
