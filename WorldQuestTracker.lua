@@ -1535,6 +1535,8 @@ end
 		DF:InstallTemplate ("font", "WQT_GROUPFINDER_FEEDBACK", {color = {1, .9, .4, .85}, size = 9, font = "Friz Quadrata TT"})
 		ff.FeedbackFrame.Text = DF:CreateLabel (ff.FeedbackFrame, "Under Development - Send Feedback", DF:GetTemplate ("font", "WQT_GROUPFINDER_FEEDBACK"))
 		ff.FeedbackFrame.Text:SetPoint ("center", ff.FeedbackFrame, "center")
+		
+		ff.FeedbackFrame:Hide()
 	--]=]
 	--[[
 	quotes:
