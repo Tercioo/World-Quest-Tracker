@@ -1483,6 +1483,7 @@ end
 	ff.ProgressBar.fontface = "Accidental Presidency"
 	ff.ProgressBar.fontcolor = "darkorange"
 	ff.ProgressBar.color = "gray"	
+	ff.ProgressBar:EnableMouse (false)
 	
 	function ff.ShowSecondaryInteractionButton (actionID, text)
 		--> reset the button
@@ -1619,6 +1620,7 @@ end
 		[45988] = true, --ancient bones broken shore
 		[45379] = true, --tresure master rope broken shore
 		[43943] = true, --army training suramar
+		[45791] = true, --war materiel broken shore
 	}
 	
 	ff.cannot_group_quest = {
