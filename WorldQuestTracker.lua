@@ -166,7 +166,7 @@ local default_config = {
 			askleave_delayed = true,
 			noleave = false,
 			leavetimer = 30,
-			noafk = false,
+			noafk = true,
 			noafk_ticks = 5,
 			nopvp = false,
 			frame = {},
@@ -1195,7 +1195,7 @@ end
 	ff.TitleBar:EnableMouse (false)
 	ff.TitleBar:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
 	ff.TitleBar:SetBackdropColor (.2, .2, .2, 1)
-	ff.TitleBar:SetBackdropBorderColor (0, 0, 0, 1)
+	ff.TitleBar:SetBackdropBorderColor (0, 0, 0, .5)
 	
 	--close button
 	ff.Close = CreateFrame ("button", "$parentCloseButton", ff)
@@ -1240,6 +1240,11 @@ end
 	
 	ff.Options.SetAvoidPVPFunc = function (_, _, value)
 		WorldQuestTracker.db.profile.groupfinder.nopvp = value
+		GameCooltip:Hide()
+	end
+	
+	ff.Options.SetNoAFKFunc = function (_, _, value)
+		WorldQuestTracker.db.profile.groupfinder.noafk = value
 		GameCooltip:Hide()
 	end
 	
@@ -1383,6 +1388,8 @@ end
 		GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 60)
 		
 		GameCooltip:AddLine ("$div", nil, 1, nil, -5, -11)
+		
+		--no pvp realms
 		GameCooltip:AddLine (L["S_GROUPFINDER_NOPVP"])
 		if (WorldQuestTracker.db.profile.groupfinder.nopvp) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
@@ -1390,6 +1397,15 @@ end
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
 		end
 		GameCooltip:AddMenu (1, ff.Options.SetAvoidPVPFunc, not WorldQuestTracker.db.profile.groupfinder.nopvp)
+		
+		--kick afk players
+		GameCooltip:AddLine ("Kick AFKs")
+		if (WorldQuestTracker.db.profile.groupfinder.noafk) then
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+		else
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+		end
+		GameCooltip:AddMenu (1, ff.Options.SetNoAFKFunc, not WorldQuestTracker.db.profile.groupfinder.noafk)
 		
 	end
 	
@@ -1407,91 +1423,80 @@ end
 	
 	GameCooltip:CoolTipInject (ff.Options)
 	
-	--title
-	ff.Title = ff.TitleBar:CreateFontString ("$parentTitle", "overlay", "GameFontNormal")
-	ff.Title:SetPoint ("center", ff.TitleBar, "center")
-	--ff.Title:SetPoint ("left", ff.TitleBar, "left", 4, 0)
-	ff.Title:SetTextColor (.8, .8, .8, 1)
-	ff.Title:SetText ("World Quest Tracker")	
+	--> illustrate the clickable box
+	ff.ClickArea = CreateFrame ("frame", nil, ff)
+	ff.ClickArea:SetPoint ("topleft", ff.TitleBar, "bottomleft", 0, -1)
+	ff.ClickArea:SetPoint ("topright", ff.TitleBar, "bottomright", 0, -1)
+	ff.ClickArea:SetHeight (74)
+	ff.ClickArea:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
+	ff.ClickArea:SetBackdropColor (.2, .2, .2, .4)
+	ff.ClickArea:SetBackdropBorderColor (0, 0, 0, .5)
+	ff.ClickArea:EnableMouse (false)
+	ff.ClickArea:SetFrameLevel (ff:GetFrameLevel()+1)
 	
-	--> label 1
-	ff.Label1 = DF:CreateLabel (ff, " ", DF:GetTemplate ("font", "WQT_GROUPFINDER_BIG"))
-	ff.Label1:SetPoint (5, -30)
-	
-	--> label 2
-	ff.Label2 = DF:CreateLabel (ff, " ", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
-	ff.Label2:SetPoint (5, -47)
-	
-	--> label 3
-	ff.Label3 = DF:CreateLabel (ff, L["S_GROUPFINDER_RIGHTCLICKCLOSE"], DF:GetTemplate ("font", "WQT_GROUPFINDER_TRANSPARENT"))
-	ff.Label3:SetPoint ("bottom", ff, "bottom", 0, 2)
-	
-	--> progress bar
-	ff.ProgressBar = DF:CreateBar (ff, nil, 230, 16, 50)
-	ff.ProgressBar:SetPoint (5, -60)
-	ff.ProgressBar.fontsize = 11
-	ff.ProgressBar.fontface = "Accidental Presidency"
-	ff.ProgressBar.fontcolor = "darkorange"
-	ff.ProgressBar.color = "gray"
-
 	--> interaction button
 	local interactionButton = CreateFrame ("button", nil, ff)
 	interactionButton:SetPoint ("topleft", ff, "topleft", 0, -20)
 	interactionButton:SetPoint ("bottomright", ff, "bottomright", 0, 0)
-	interactionButton:SetFrameLevel (ff:GetFrameLevel()+1)
+	interactionButton:SetFrameLevel (ff:GetFrameLevel()+2)
 	interactionButton:RegisterForClicks ("RightButtonDown", "LeftButtonDown")
 	
 	local secondaryInteractionButton = CreateFrame ("button", nil, ff)
-	--secondaryInteractionButton:SetPoint ("bottomleft", ff, "bottomleft", 4, 4)
 	secondaryInteractionButton:SetPoint ("bottomright", ff, "bottomright", -5, 4)
 	secondaryInteractionButton:SetWidth (100)
-	secondaryInteractionButton:SetHeight (20)
-	secondaryInteractionButton:SetFrameLevel (ff:GetFrameLevel()+2)
+	secondaryInteractionButton:SetHeight (18)
+	secondaryInteractionButton:SetFrameLevel (ff:GetFrameLevel()+4)
 	secondaryInteractionButton:RegisterForClicks ("RightButtonDown", "LeftButtonDown")
 	secondaryInteractionButton:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
 	secondaryInteractionButton:SetBackdropColor (.2, .2, .2, 1)
 	secondaryInteractionButton:SetBackdropBorderColor (0, 0, 0, 1)
-	secondaryInteractionButton.ButtonText = DF:CreateLabel (secondaryInteractionButton, "anti afk", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
+	secondaryInteractionButton.ButtonText = DF:CreateLabel (secondaryInteractionButton, "placeholder", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
 	secondaryInteractionButton.ButtonText:SetPoint ("CENTER", secondaryInteractionButton, "CENTER", 0, 0)
 	secondaryInteractionButton:Hide()
+
+	--title
+	ff.Title = ff.TitleBar:CreateFontString ("$parentTitle", "overlay", "GameFontNormal")
+	ff.Title:SetPoint ("center", ff.TitleBar, "center")
+	ff.Title:SetTextColor (.8, .8, .8, 1)
+	ff.Title:SetText ("World Quest Tracker")
 	
-	--> tutorial
+	ff.AnchorFrame = CreateFrame ("frame", nil, ff)
+	ff.AnchorFrame:SetAllPoints()
+	ff.AnchorFrame:SetFrameLevel (ff:GetFrameLevel()+3)
 	
+	--> label 1
+	ff.Label1 = DF:CreateLabel (ff.AnchorFrame, " ", DF:GetTemplate ("font", "WQT_GROUPFINDER_BIG"))
+	ff.Label1:SetPoint (5, -30)
 	
+	--> label 2
+	ff.Label2 = DF:CreateLabel (ff.AnchorFrame, " ", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
+	ff.Label2:SetPoint (5, -47)
 	
-	function ff.ChangeNoAFKState (_, _, value)
-		WorldQuestTracker.db.profile.groupfinder.noafk = value
-	end
-	ff.AntiAFKCheckbox = DF:CreateSwitch (ff, ff.ChangeNoAFKState, true)
-	ff.AntiAFKCheckbox:SetTemplate (DF:GetTemplate ("button", "WQT_GROUPFINDER_BUTTON"))
-	ff.AntiAFKCheckbox:SetAsCheckBox()
-	ff.AntiAFKCheckbox:SetSize (20, 20)
-	ff.AntiAFKCheckbox:SetFrameLevel (ff:GetFrameLevel()+2)
-	ff.AntiAFKCheckbox.tooltip = L["S_GROUPFINDER_KICK_DESC"]
-	ff.AntiAFKCheckbox:SetPoint ("bottomleft", ff, "bottomleft", 5, 4)
-	ff.AntiAFKCheckbox.TextLabel = DF:CreateLabel (ff.AntiAFKCheckbox, "anti afk", DF:GetTemplate ("font", "WQT_GROUPFINDER_SMALL"))
-	ff.AntiAFKCheckbox.TextLabel:SetPoint ("left", ff.AntiAFKCheckbox, "right", 2, 0)
-	ff.AntiAFKCheckbox:Hide()
+	--> label 3
+	ff.Label3 = DF:CreateLabel (ff.AnchorFrame, L["S_GROUPFINDER_RIGHTCLICKCLOSE"], DF:GetTemplate ("font", "WQT_GROUPFINDER_TRANSPARENT"))
+	ff.Label3:SetPoint ("bottomleft", ff, "bottomleft", 5, 4)
 	
-	function ff.ShowAntiAfkCheckbox()
-		ff.AntiAFKCheckbox:Show()
-		ff.AntiAFKCheckbox:SetValue (WorldQuestTracker.db.profile.groupfinder.noafk)
-	end
-	
-	function ff.HideAntiAfkCheckbox()
-		ff.AntiAFKCheckbox:Hide()
-	end
+	--> progress bar
+	ff.ProgressBar = DF:CreateBar (ff.AnchorFrame, nil, 230, 16, 50)
+	ff.ProgressBar:SetPoint (5, -60)
+	ff.ProgressBar.fontsize = 11
+	ff.ProgressBar.fontface = "Accidental Presidency"
+	ff.ProgressBar.fontcolor = "darkorange"
+	ff.ProgressBar.color = "gray"	
 	
 	function ff.ShowSecondaryInteractionButton (actionID, text)
 		--> reset the button
 		secondaryInteractionButton.ToSearch = nil
+		secondaryInteractionButton.ToCreate = nil
 		
 		--> setup new variables
 		secondaryInteractionButton.ButtonText:SetText (text)
 		
 		if (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCH) then
 			secondaryInteractionButton.ToSearch = true
-			--print ("action:", secondaryInteractionButton.ToSearch)
+			
+		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_CREATE) then
+			secondaryInteractionButton.ToCreate = true
 		end
 		
 		--> show it
@@ -1693,7 +1698,7 @@ end
 			
 			if (activeApplies and activeApplies > 0) then
 				--> need to undo applications apply before create a new group
-				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_UNAPPLY, "click to cancel applications...")
+				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_UNAPPLY, L["S_GROUPFINDER_ACTIONS_CANCEL_APPLICATIONS"])
 			else
 				--> request an action
 				ff.SetAction (ff.actions.ACTIONTYPE_GROUP_CREATE)
@@ -1741,7 +1746,6 @@ end
 		ff.ShowMainFrame()
 		ff.ProgressBar:Hide()
 		ff.HideSecondaryInteractionButton()
-		ff.HideAntiAfkCheckbox()
 		
 		ff.Label3:Show()
 		
@@ -1753,6 +1757,8 @@ end
 			interactionButton.ToSearch = true
 			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_SEARCH"])
 			
+			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_CREATE, L["S_GROUPFINDER_ACTIONS_CREATE_DIRECT"])
+			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHING) then
 			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_SEARCHING"])
 			ff.ProgressBar:SetTimer (2)
@@ -1762,18 +1768,17 @@ end
 			interactionButton.ToUnapply = true
 			ff.SetCurrentActionText (message or L["S_GROUPFINDER_ACTIONS_UNAPPLY1"])
 			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_SEARCH, L["S_GROUPFINDER_ACTIONS_RETRYSEARCH"])
-		
+			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_CREATE) then
 			interactionButton.ToCreate = true
 			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_CREATE"])
 			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_SEARCH, L["S_GROUPFINDER_ACTIONS_RETRYSEARCH"])
-			ff.ShowAntiAfkCheckbox()
-			ff.Label3:Hide()
+			--ff.Label3:Hide()
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_UNLIST) then
 			interactionButton.ToUnlist = true
 			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_UNLIST"])
-		
+			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_RELIST) then
 			interactionButton.ToCreate = true
 			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_SEARCHMORE"])
@@ -1782,7 +1787,7 @@ end
 			interactionButton.ToApply = true
 			ff.SetCurrentActionText (message)
 			ff.ProgressBar:Show()
-		
+			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_LEAVE) then
 			interactionButton.ToLeave = true
 			
@@ -2257,10 +2262,39 @@ end
 		C_Timer.After (2, ff.SearchCompleted)
 	end
 	
+	function ff.CreateNewListing (questID, questName)
+		local pvpType = GetZonePVPInfo()
+		local pvpTag
+		if (pvpType == "contested") then
+			pvpTag = "@PVP"
+		else
+			pvpTag = ""
+		end
+		
+		local groupDesc = "Doing world quest " .. questName .. ". Group created with World Quest Tracker. @ID" .. questID .. pvpTag
+		
+		local itemLevelRequired = 0
+		local honorLevelRequired = 0
+		local isAutoAccept = true
+		local isPrivate = false
+
+		C_LFGList.CreateListing (C_LFGList.GetActivityIDForQuestID (questID) or 469, "", itemLevelRequired, honorLevelRequired, "", groupDesc, isAutoAccept, isPrivate, questID)
+		
+		--> if is an epic quest, converto to raid
+		local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+		if (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
+			C_Timer.After (2, function() ConvertToRaid(); end)
+		end
+
+		ff.IsInWQGroup = true
+		ff.GroupMembers = 1
+		
+		ff.HideMainFrame()
+	end
+	
 	secondaryInteractionButton:SetScript ("OnClick", function (self, button)
 		--> is a valid click?
 		if (not ff.CheckValidClick (self, button)) then
-			--print (self.ToSearch)
 			return
 		end
 		
@@ -2275,6 +2309,12 @@ end
 			ff.StartSearch()
 			self.ToSearch = nil
 			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHING)
+			
+		elseif (self.ToCreate) then
+			self.ToCreate = nil
+			interactionButton.ToSearch = nil
+			interactionButton.HadInteraction = true
+			ff.CreateNewListing (interactionButton.questID, interactionButton.questName)
 		end
 	end)
 	
@@ -2351,65 +2391,13 @@ end
 			self.HadInteraction = true
 			
 		elseif (self.ToCreate) then
-			--C_LFGList.CreateListing(activityID, name, itemLevel, honorLevel, voiceChatInfo, description, autoAccept, privateGroup, questID)
-			
-			local questName = self.questName
 			local questID = self.questID
+			local questName = self.questName
 			
-			local pvpType = GetZonePVPInfo()
-			local pvpTag
-			if (pvpType == "contested") then
-				pvpTag = "@PVP"
-			else
-				pvpTag = ""
-			end
+			ff.CreateNewListing (questID, questName)
 			
-			local groupDesc = "Doing world quest " .. questName .. ". Group created with World Quest Tracker. @ID" .. questID .. pvpTag
-			
-			local itemLevelRequired = 0
-			local honorLevelRequired = 0
-			local isAutoAccept = true
-			local isPrivate = false
-			
-			local groupName = "" .. self.questID .. self.questID .. self.questID
-			--print ("groupName:", groupName)
-			--print ("ActivityID:", C_LFGList.GetActivityIDForQuestID (self.questID))
-			
-			--can't use my own group name
-			--looks like it's because quest name localization
-			--if dont pass a quest name, can use the group name field
-			
-			--C_LFGList.GetActivityIDForQuestID (self.questID)
-			-- 107 = stratholme
-			--469 = broken shore
-			--activityID looks like is something related to mapID
-			
-			--print ("activityID:", C_LFGList.GetActivityIDForQuestID (self.questID))
-			--print ("questName:", groupName)
-			
-			--create without the quest ID
-			--C_LFGList.CreateListing (C_LFGList.GetActivityIDForQuestID (self.questID) or 469, groupName, itemLevelRequired, honorLevelRequired, "", groupDesc, isAutoAccept, isPrivate) --, self.questID
-			
-			--create with the questID
-			--C_LFGList.CreateListing(lfgID, "groupName", itemLevel, honorLevel, "voiceChat", "comment", autoAccept, privateGroup[, questID])
-			C_LFGList.CreateListing (C_LFGList.GetActivityIDForQuestID (self.questID) or 469, "", itemLevelRequired, honorLevelRequired, "", groupDesc, isAutoAccept, isPrivate, self.questID)
-			
-			--> if is an epic quest, converto to raid
-			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (self.questID)
-			if (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
-				C_Timer.After (2, function() ConvertToRaid(); end) --print ("party converted")
-			end
-
 			self.ToCreate = nil
-			
-			ff.IsInWQGroup = true
-			ff.GroupMembers = 1
-			
-			ff.HideMainFrame()
-			
 			self.HadInteraction = true
-			
---			print ("-creating group for:", self.questName, select (1, C_TaskQuest.GetQuestInfoByQuestID (self.questID)))
 
 		elseif (self.ToApply) then	
 			self.HadInteraction = true
@@ -2627,62 +2615,16 @@ local questButton_OnClick = function (self, button)
 		return
 	end
 
---was middle button and have WQGF installed and have the local group finder disabled
-	if (button == "MiddleButton" and WorldQuestGroupFinderAddon and not WorldQuestTracker.db.profile.groupfinder.enabled) then
+	--was middle button and our group finder is enabled
+	if (button == "MiddleButton" and WorldQuestTracker.db.profile.groupfinder.enabled) then
+		WorldQuestTracker.FindGroupForQuest (self.questID)
+		return
+	end
+	
+	--middle click without our group finder enabled, check for other addons
+	if (button == "MiddleButton" and WorldQuestGroupFinderAddon) then
 		WorldQuestGroupFinder.HandleBlockClick (self.questID)
 		return
-		
-	--elseif (button == "MiddleButton") then
-	elseif (button == "MiddleButton") then
-		WorldQuestTracker.FindGroupForQuest (self.questID)
-		
-		--o jogador entrou em uma world quest? - já tenho isso pois ele faz a animação do tracker quando entra na zona da quest
-		--o jogador não esta em grupo?
-		--registrar os eventos de que chegou resultados da busca
-		--ler as buscas e dar apply em um grupo
-		--se nao tiver grupos, criar um
-		
-		
-		--PVEFrame_ShowFrame("GroupFinderFrame", LFGListPVEStub);
-		
-		--local activityID, categoryID, filters, questName = LFGListUtil_GetQuestCategoryData (self.questID)
-		--LFGListCategorySelection_SelectCategory (LFGListFrame.CategorySelection, categoryID, filters)
-		
-		--LFGListFrame.CategorySelection.FindGroupButton:Click()
-		
-		--LFGListCategorySelection_StartFindGroup (LFGListFrame.CategorySelection, questName, self.questID)
-		
-		--[[
-		local f = CreateFrame ("button", "testebutton", UIParent, "UIPanelButtonTemplate")
-		f:SetSize (100, 100)
-		f:SetPoint ("center", 0, 0)
-		f:Show()
-		f:SetScript ("OnClick", function()
-			PVEFrame_ShowFrame ("GroupFinderFrame", LFGListPVEStub);
-			local activityID, categoryID, filters, questName = LFGListUtil_GetQuestCategoryData (self.questID)
-			--LFGListCategorySelection_SelectCategory (LFGListFrame.CategorySelection, categoryID, filters)
-			--LFGListFrame.CategorySelection.FindGroupButton:Click()
-			
-			--local baseFilters = LFGListFrame.CategorySelection:GetParent().baseFilters;
-			--local searchPanel = LFGListFrame.CategorySelection:GetParent().SearchPanel;
-			
-			--print (baseFilters, searchPanel)
-
-			--LFGListSearchPanel_SetCategory (searchPanel, 1, LFGListFrame.selectedFilters, baseFilters);
-			
-			C_LFGList.Search (1, questName, 0, 4, {})
-			
-			--LFGListSearchPanel_UpdateResultList (LFGListFrame);
-			--LFGListSearchPanel_UpdateResults (LFGListFrame);
-			
-		end)
-		--]]
-		
-		--print (activityID, categoryID, filters, questName)
-		
-		--LFGListFrame_BeginFindQuestGroup (LFGListFrame, self.questID);
-		--LFGListUtil_FindQuestGroup (self.questID)
-	
 	end
 	
 --isn't using the tracker
@@ -6441,6 +6383,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddMenu (2, ff.Options.SetGroupLeaveTimeoutFunc, 60)
 					
 					GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
+					
+					--no pvp realms
 					GameCooltip:AddLine ("Avoid PVP Servers", "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.nopvp) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
@@ -6448,6 +6392,15 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 					end
 					GameCooltip:AddMenu (2, ff.Options.SetAvoidPVPFunc, not WorldQuestTracker.db.profile.groupfinder.nopvp)					
+					
+					--kick afk players
+					GameCooltip:AddLine ("Kick AFKs", "", 2)
+					if (WorldQuestTracker.db.profile.groupfinder.noafk) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetNoAFKFunc, not WorldQuestTracker.db.profile.groupfinder.noafk)					
 				end
 				
 				
