@@ -1,4 +1,4 @@
- 
+
 --details! framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
@@ -8128,8 +8128,17 @@ local TrackerIconButtonOnLeave = function (self)
 end
 local TrackerIconButtonOnClick = function (self, button)
 	if (button == "MiddleButton") then
-		WorldQuestTracker.FindGroupForQuest (self.questID)
-		return
+		--was middle button and our group finder is enabled
+		if (WorldQuestTracker.db.profile.groupfinder.enabled) then
+			WorldQuestTracker.FindGroupForQuest (self.questID)
+			return
+		end
+		
+		--middle click without our group finder enabled, check for other addons
+		if (WorldQuestGroupFinderAddon) then
+			WorldQuestGroupFinder.HandleBlockClick (self.questID)
+			return
+		end
 	end
 
 	if (self.questID == GetSuperTrackedQuestID()) then
