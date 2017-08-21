@@ -4488,6 +4488,9 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 			if (not okay) then
 				WorldQuestTracker.ScheduleZoneMapUpdate()
 			end
+		else
+		--	local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+		--	print ("no time left:", title, timeLeft)
 		end
 		
 	else
@@ -7962,9 +7965,19 @@ local TrackerFrameOnClick = function (self, button)
 		end
 	else
 		if (button == "MiddleButton") then
-			WorldQuestTracker.FindGroupForQuest (self.questID)
-			return
+			--was middle button and our group finder is enabled
+			if (WorldQuestTracker.db.profile.groupfinder.enabled) then
+				WorldQuestTracker.FindGroupForQuest (self.questID)
+				return
+			end
+			
+			--middle click without our group finder enabled, check for other addons
+			if (WorldQuestGroupFinderAddon) then
+				WorldQuestGroupFinder.HandleBlockClick (self.questID)
+				return
+			end
 		end
+	
 		WorldQuestTracker.CanLinkToChat (self, button)
 	end
 end
@@ -10194,6 +10207,9 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 								--	print ("DENIED:", i, title, filter)
 								--end
 							end
+						else
+						--	local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+						--	print ("no time left:", title, timeLeft)
 						end
 					end
 				else
