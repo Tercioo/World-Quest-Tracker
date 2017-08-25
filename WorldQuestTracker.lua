@@ -258,7 +258,8 @@ local suramar_mapId = 1033
 local valsharah_mapId = 1018
 local eoa_mapId = 1096
 
-local is_broken_isles_map = {
+--zones which aren't quest hubs
+local zones_with_worldquests = {
 	[azsuna_mapId] = true,
 	[highmountain_mapId] = true,
 	[stormheim_mapId] = true,
@@ -274,6 +275,7 @@ local is_broken_isles_map = {
 	[1170] = true, --mccree
 }
 
+--patch 7.3
 local is_argus_map = {
 	[1171] = true, --antoran
 	[1135] = true, --krokuun
@@ -1144,7 +1146,7 @@ end
 
 --does the the zone have world quests?
 function WorldQuestTracker.ZoneHaveWorldQuest (mapID)
-	return is_broken_isles_map [mapID or GetCurrentMapAreaID()]
+	return zones_with_worldquests [mapID or GetCurrentMapAreaID()]
 end
 
 --is a argus zone?
@@ -3626,7 +3628,7 @@ end)
 -- ~bar ~showbar ~statusbar ~worldmapevent ~event
 function WorldQuestTracker.RefreshStatusBar()
 	if (WorldQuestTracker.DoubleTapFrame and not InCombatLockdown()) then
-		if (GetCurrentMapAreaID() == MAPID_BROKENISLES or WorldQuestTracker.ZoneHaveWorldQuest (GetCurrentMapAreaID())) then
+		if (WorldQuestTracker.IsWorldQuestHub (GetCurrentMapAreaID()) or WorldQuestTracker.ZoneHaveWorldQuest (GetCurrentMapAreaID())) then
 			WorldQuestTracker.DoubleTapFrame:Show()
 		else
 			WorldQuestTracker.DoubleTapFrame:Hide()
@@ -3748,9 +3750,25 @@ local allow_map_change = function (...)
 		WorldQuestTracker.StopLoadingAnimation()
 	end
 end
-
 WorldMapButton:HookScript ("PreClick", deny_auto_switch)
 WorldMapButton:HookScript ("PostClick", allow_map_change)
+
+if (BrokenIslesArgusButton) then
+	--> at the current PTR state, goes directly to argus map
+	BrokenIslesArgusButton:HookScript ("OnClick", function (self)
+		allow_map_change()
+	end)
+	--> argus map zone use an overlaied button for each of its three zones
+	MacAreeButton:HookScript ("OnClick", function (self)
+		allow_map_change()
+	end)
+	AntoranWastesButton:HookScript ("OnClick", function (self)
+		allow_map_change()
+	end)
+	KrokuunButton:HookScript ("OnClick", function (self)
+		allow_map_change()
+	end)
+end
 
 hooksecurefunc ("WorldMap_CreatePOI", function (index, isObjectIcon, atlasIcon)
 	local POI = _G [ "WorldMapFramePOI"..index]
@@ -4547,21 +4565,11 @@ hooksecurefunc ("WorldMap_UpdateQuestBonusObjectives", function (self, event)
 	end
 	
 	--depois de ter executa o update, vamos hidar todos os widgets default e criar os nossos
-	if (GetCurrentMapAreaID() ~= MAPID_BROKENISLES) then
+	if (WorldQuestTracker.ZoneHaveWorldQuest (mapID)) then
 		--roda nosso custom update e cria nossos proprios widgets
 		WorldQuestTracker.UpdateZoneWidgets()
 	end
 end)
-
---update tick
---desativa toda a atualização das quests no codigo da interface
---esta causando problemas com protected, mesmo colocando pra ser uma função aleatoria
---_G ["WorldMap_UpdateQuestBonusObjectives"] = math.random
-function oie ()
-	if (WorldQuestTracker.lastZoneWidgetsUpdate + 20 < GetTime()) then
-		WorldQuestTracker.UpdateZoneWidgets()
-	end
-end
 
 --WorldQuestTracker.db.profile.AlertTutorialStep = nil
 -- ~tutorial
@@ -5694,7 +5702,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:ExecFunc (sortButton)
 				
 				--atualiza as quests
-				if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+				if (WorldQuestTracker.IsWorldQuestHub (GetCurrentMapAreaID())) then
 					WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
 				end
 			end
@@ -9929,7 +9937,7 @@ create_world_widgets()
 
 --agenda uma atualização nos widgets do world map caso os dados das quests estejam indisponíveis
 local do_worldmap_update = function()
-	if (GetCurrentMapAreaID() == MAPID_BROKENISLES) then
+	if (WorldQuestTracker.IsWorldQuestHub (GetCurrentMapAreaID())) then
 		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true) --no cache true
 	else
 		if (WorldQuestTracker.ScheduledWorldUpdate and not WorldQuestTracker.ScheduledWorldUpdate._cancelled) then
@@ -10025,6 +10033,8 @@ function WorldQuestTracker.GetWorldWidgetForQuest (questID)
 end
 
 function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQuestFlaggedRecheck, forceCriteriaAnimation)
+
+	--print (debugstack())
 
 	if (UnitLevel ("player") < 110) then
 		WorldQuestTracker.HideWorldQuestsOnWorldMap()
