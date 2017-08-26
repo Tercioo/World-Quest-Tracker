@@ -388,6 +388,7 @@ WorldQuestTracker.Cache_ShownWidgetsOnZoneMap = {}
 WorldQuestTracker.WorldMapSupportWidgets = {}
 WorldQuestTracker.PartyQuestsPool = {}
 WorldQuestTracker.PartySharedQuests = {}
+WorldQuestTracker.CurrentZoneQuests = {}
 WorldQuestTracker.CurrentMapID = 0
 WorldQuestTracker.LastWorldMapClick = 0
 WorldQuestTracker.MapSeason = 0
@@ -2968,11 +2969,12 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 		
 				self.rareSerpent:Show()
 				self.rareSerpent:SetSize (48, 52)
-				--self.rareSerpent:SetAtlas ("worldquest-questmarker-dragon")
+				self.rareSerpent:SetSize (48*0.7, 52*0.7)
 				self.rareSerpent:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragon_curveT]])
+				
 				self.rareGlow:Show()
 				self.rareGlow:SetVertexColor (0, 0.36863, 0.74902)
-				self.rareGlow:SetSize (48, 52)
+				self.rareGlow:SetSize (48*0.7, 52*0.7)
 				self.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragonT]])
 				
 				--se estiver sendo trackeada, trocar o banner
@@ -2982,7 +2984,7 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID)
 					self.bgFlag:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_flagT]])
 				end
 
-				self.bgFlag:Show()
+				--self.bgFlag:Show()
 				self.flagText:SetPoint ("top", self.bgFlag, "top", 0, -3)
 				--self.glassTransparence:Show()
 			end
@@ -3675,6 +3677,16 @@ WorldMapFrame:HookScript ("OnUpdate", function (self, deltaTime)
 	end
 	--]]
 
+	--> hide blizzard widgets on the zone map (if scheduled)
+	if (WorldQuestTracker.HideZoneWidgetsOnNextTick and not (WorldQuestTracker.Temp_HideZoneWidgets > GetTime())) then
+		for i = 1, #WorldQuestTracker.AllTaskPOIs do
+			if (WorldQuestTracker.CurrentZoneQuests [WorldQuestTracker.AllTaskPOIs [i].questID]) then
+				WorldQuestTracker.AllTaskPOIs [i]:Hide()
+			end
+		end
+		WorldQuestTracker.HideZoneWidgetsOnNextTick = false
+	end
+	
 	if (WorldQuestTracker.CanShowZoneSummaryFrame()) then
 		WorldMapFrame.UIElementsFrame.BountyBoard:ClearAllPoints()
 		WorldMapFrame.UIElementsFrame.BountyBoard:SetPoint ("bottomright", WorldMapFrame.UIElementsFrame, "bottomright", -18, 15)
@@ -3912,11 +3924,10 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.rareSerpent = supportFrame:CreateTexture (button:GetName() .. "RareSerpent", "OVERLAY")
 	button.rareSerpent:SetWidth (34 * 1.1)
 	button.rareSerpent:SetHeight (34 * 1.1)
-	button.rareSerpent:SetPoint ("CENTER", 1, -2)
+	button.rareSerpent:SetPoint ("CENTER", 1, 0)
 	
 	-- é a sombra da serpente no fundo, pode ser na cor azul ou roxa
 	button.rareGlow = supportFrame:CreateTexture (nil, "background")
-	--button.rareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragonT]])
 	button.rareGlow:SetPoint ("CENTER", 1, -2)
 	button.rareGlow:SetSize (48, 48)
 	button.rareGlow:SetAlpha (.85)
@@ -4036,7 +4047,11 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.IsTrackingRareGlow:SetDrawLayer ("overlay", 0)
 	button.circleBorder:SetDrawLayer ("overlay", 1)
 	button.squareBorder:SetDrawLayer ("overlay", 1)
+	
 	button.rareSerpent:SetDrawLayer ("overlay", 3)
+	button.rareSerpent:SetDrawLayer ("BACKGROUND", -6)
+	button.rareGlow:SetDrawLayer ("BACKGROUND", -7)
+	
 	button.bgFlag:SetDrawLayer ("overlay", 4)
 	button.blackGradient:SetDrawLayer ("overlay", 5)
 	button.flagText:SetDrawLayer ("overlay", 6)
@@ -4097,7 +4112,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 	
 	WorldQuestTracker.RefreshStatusBar()
 	
-	WorldQuestTracker.lastZoneWidgetsUpdate = GetTime() --why there's two?
+	WorldQuestTracker.lastZoneWidgetsUpdate = GetTime() --why there's two timers?
 	
 	--stop the update if it already updated on this tick
 	if (WorldQuestTracker.LastZoneUpdate and WorldQuestTracker.LastZoneUpdate == GetTime()) then
@@ -4128,9 +4143,14 @@ function WorldQuestTracker.UpdateZoneWidgets()
 	local total_Gold, total_Resources, total_APower = 0, 0, 0
 	local scale = WorldQuestTracker.db.profile.zonemap_widgets.scale
 	
+	local questFailed = false
+	local showBlizzardWidgets = WorldQuestTracker.Temp_HideZoneWidgets > GetTime()
+	wipe (WorldQuestTracker.CurrentZoneQuests)
+	
 	if (taskInfo and #taskInfo > 0) then
 		for i, info  in ipairs (taskInfo) do
 			local questID = info.questId
+			
 			if (HaveQuestData (questID)) then
 				local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
 				if (isWorldQuest) then
@@ -4140,7 +4160,9 @@ function WorldQuestTracker.UpdateZoneWidgets()
 					local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
 					
 					if (not isSuppressed and passFilters and timeLeft > 3) then
+						
 						C_TaskQuest.RequestPreloadRewardData (questID)
+						WorldQuestTracker.CurrentZoneQuests [questID] = true
 
 						local tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical = GetQuestTagInfo (questID) -- allowDisplayPastCritical 7.2
 						
@@ -4156,7 +4178,8 @@ function WorldQuestTracker.UpdateZoneWidgets()
 						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 						
 						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount, numRewardItems, rewardTexture)
-						--print (title, itemName, worldQuestType, filter, order, rewardName, rewardTexture, numRewardItems)
+						--print (filter, order, title, itemName, worldQuestType, filter, order, rewardName, rewardTexture, numRewardItems, timeLeft)
+						
 						-- ~legion
 						-- worldQuestType == LE_QUEST_TAG_TYPE_INVASION
 						-- LE_QUEST_TAG_TYPE_RAID
@@ -4210,7 +4233,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 								total_APower = total_APower + artifactPower
 							end
 							
-							if (WorldQuestTracker.Temp_HideZoneWidgets > GetTime()) then
+							if (showBlizzardWidgets) then
 								widget:Hide()
 								for _, button in ipairs (WorldQuestTracker.AllTaskPOIs) do
 									if (button.questID == questID) then
@@ -4219,31 +4242,24 @@ function WorldQuestTracker.UpdateZoneWidgets()
 								end
 							else
 								widget:Show()
-								for _, button in ipairs (WorldQuestTracker.AllTaskPOIs) do
-									if (button.questID == questID) then
-										button:Hide()
-									end
-								end
 							end
 							
 							index = index + 1
 						else
-							--precisa hidar o widget da UI default
-							for i = 1, #WorldQuestTracker.AllTaskPOIs do
-								if (WorldQuestTracker.AllTaskPOIs [i].questID == questID) then
-									--print ("achou o botao")
-									WorldQuestTracker.AllTaskPOIs [i]:Hide()
-								end
-							end
+							--
 						end
 					end
 				end
 			else
+				questFailed = true
 				WorldQuestTracker.ScheduleZoneMapUpdate()
 			end
 		end
 		
-		WorldQuestTracker.LastZoneUpdate = GetTime()
+		if (not questFailed) then
+			WorldQuestTracker.HideZoneWidgetsOnNextTick = true
+			WorldQuestTracker.LastZoneUpdate = GetTime()
+		end
 	else
 		WorldQuestTracker.ScheduleZoneMapUpdate (3)
 	end
@@ -9804,25 +9820,33 @@ WorldQuestTracker.QUEST_POI_FRAME_HEIGHT = 1
 WorldQuestTracker.NextWorldMapWidget = 1
 WorldQuestTracker.WorldMapSquares = {}
 
-function WorldQuestTracker.UpdateAllWorldMapAnchors()
+--> anchor for world quests hub, this is only shown on world maps
+function WorldQuestTracker.UpdateAllWorldMapAnchors (worldMapID)
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-		local x, y = configTable.Anchor_X, configTable.Anchor_Y
-		WorldQuestTracker.UpdateWorldMapAnchors (x, y, configTable.MapAnchor)
-		
-		local mapName = GetMapNameByID (mapId)
-		configTable.MapAnchor.Title:SetText (mapName)
-		
-		configTable.MapAnchor.Title:ClearAllPoints()
-		configTable.MapAnchor.Title:Show()
-		if (configTable.GrowRight) then
-			configTable.MapAnchor.Title:SetPoint ("bottomleft", configTable.MapAnchor, "topleft", 0, 0)
-			configTable.MapAnchor.Title:SetJustifyH ("left")
+	
+		if (configTable.show_on_map == worldMapID) then
+			local x, y = configTable.Anchor_X, configTable.Anchor_Y
+			WorldQuestTracker.UpdateWorldMapAnchors (x, y, configTable.MapAnchor)
+			
+			local mapName = GetMapNameByID (mapId)
+			configTable.MapAnchor.Title:SetText (mapName)
+			
+			configTable.MapAnchor.Title:ClearAllPoints()
+			configTable.MapAnchor.Title:Show()
+			if (configTable.GrowRight) then
+				configTable.MapAnchor.Title:SetPoint ("bottomleft", configTable.MapAnchor, "topleft", 0, 0)
+				configTable.MapAnchor.Title:SetJustifyH ("left")
+			else
+				configTable.MapAnchor.Title:SetPoint ("bottomright", configTable.MapAnchor, "topright", 0, 0)
+				configTable.MapAnchor.Title:SetJustifyH ("right")
+			end
+			
+			configTable.MapAnchor:Show()
+			configTable.factionFrame:Show()
 		else
-			configTable.MapAnchor.Title:SetPoint ("bottomright", configTable.MapAnchor, "topright", 0, 0)
-			configTable.MapAnchor.Title:SetJustifyH ("right")
+			configTable.MapAnchor:Hide()
+			configTable.factionFrame:Hide()
 		end
-		
-		configTable.factionFrame:Show()
 	end
 end
 
@@ -9993,6 +10017,9 @@ function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rew
 			order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_RESOURCE]
 			filter = FILTER_TYPE_GARRISON_RESOURCE
 		elseif (rewardTexture == 1064188) then --veiled argunite (legion)
+			order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_TRADE]
+			filter = FILTER_TYPE_TRADESKILL
+		elseif (rewardTexture == 399041) then --argus waystone (legion)
 			order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_TRADE]
 			filter = FILTER_TYPE_TRADESKILL
 		end
@@ -10635,8 +10662,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 		WorldQuestTracker.ScheduleWorldMapUpdate()
 	end
 	
-	--> update na ancora caso foi de window mode para fullscreen
-	WorldQuestTracker.UpdateAllWorldMapAnchors()
+	--> need update the anchors for windowed and fullscreen modes, plus need to show and hide for different worlds
+	WorldQuestTracker.UpdateAllWorldMapAnchors (worldMapID)
 
 	WorldQuestTracker.HideZoneWidgets()
 	WorldQuestTracker.SavedQuestList_CleanUp()
