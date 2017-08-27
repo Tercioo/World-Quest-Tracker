@@ -2358,6 +2358,14 @@ end
 			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHING)
 
 		elseif (self.ToSearchAnother) then
+			--> get the current leader, so we don't apply to the same group again
+			for i = 1, GetNumGroupMembers() do 
+				if (UnitIsGroupLeader ("party" .. i)) then
+					ff.PreviousLeader = UnitName ("party" .. i)
+					break
+				end
+			end
+			--> leave the group
 			ff.IsInWQGroup = false
 			LeaveParty()
 			ff.StartSearch()
@@ -2423,17 +2431,17 @@ end
 			self.HadInteraction = true
 			
 			local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n])
+			local isPreviousLeader = ff.PreviousLeader and ((ff.PreviousLeader == leaderName) or (leaderName:find (ff.PreviousLeader)))
 			
-			if (isAuto and not isDelisted and name == interactionButton.questName and ilvl <= GetAverageItemLevel()) then -- and members < 5
+			if (isAuto and not isDelisted and name == interactionButton.questName and ilvl <= GetAverageItemLevel() and not isPreviousLeader) then -- and members < 5
 				--print ("Applying:", interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, UnitGetAvailableRoles ("player"))
 
 				--Usage: ApplyToGroup(resultID, comment, tankOK, healerOK, damageOK)
 				local id, name, description, icon, role, primaryStat = GetSpecializationInfo (GetSpecialization())
-				--UnitGetAvailableRoles ("player")
 
 				C_LFGList.ApplyToGroup (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WQTInvite-" .. self.questName, role == "TANK", role == "HEALER", role == "DAMAGER")
 				--print (interactionButton.GroupsToApply.n, interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], role == "TANK", role == "HEALER", role == "DAMAGER")
-
+				
 				--> set the timeout
 				ff.SetApplyTimeout (4)
 				
@@ -2451,6 +2459,7 @@ end
 				ff.SetCheckIfIsInGroup (true)
 				
 			end
+			
 			interactionButton.GroupsToApply.n = interactionButton.GroupsToApply.n + 1
 			
 			if (interactionButton.GroupsToApply.n > #interactionButton.GroupsToApply) then
@@ -2526,7 +2535,7 @@ end
 		if (not WorldQuestTracker.db.profile.groupfinder.enabled) then
 			return
 		end
-	
+		
 		if (event == "QUEST_ACCEPTED") then
 			--> get quest data
 			local isInArea, isOnMap, numObjectives = GetTaskInfo (questID)
@@ -2564,6 +2573,7 @@ end
 				--> player left the group
 				if (not IsInGroup()) then
 					ff.IsInWQGroup = false
+					ff.PreviousLeader = nil
 					C_Timer.After (2, ff.DelayedCheckForDisband)
 				else
 					--> check if lost a member
@@ -2605,6 +2615,9 @@ end
 					if (IsInGroup()) then
 						ff.IsInWQGroup = true
 						ff.GroupMembers = GetNumGroupMembers (LE_PARTY_CATEGORY_HOME) + 1
+						
+						--> player entered in a group
+						
 					end
 				end
 			end
@@ -3878,7 +3891,7 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.IsTrackingGlow:SetSize (36, 36)
 	
 	button.IsTrackingRareGlow = supportFrame:CreateTexture(button:GetName() .. "IsTrackingRareGlow", "BACKGROUND", -6)
-	button.IsTrackingRareGlow:SetSize (44, 44)
+	button.IsTrackingRareGlow:SetSize (44*0.7, 44*0.7)
 	button.IsTrackingRareGlow:SetPoint ("center", button, "center")
 	button.IsTrackingRareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragon_TrackingT]])
 	--button.IsTrackingRareGlow:SetBlendMode ("ADD")
@@ -4099,6 +4112,28 @@ end
 --	end
 --end)
 
+function WorldQuestTracker.IsASubLevel()
+	local level, x1 = GetCurrentMapDungeonLevel()
+	if (level and level >  0 and x1) then
+		x1 = floor (x1)
+		--vindicar antoran
+		if (level == 5 and floor (x1) == 8479) then
+			return true
+		end
+		
+		--vindicar krokuun
+		if (level == 1 and floor (x1) == 1302) then
+			return true
+		end
+		
+		--vindicar mccree
+		if (level == 3 and floor (x1) == 9689) then
+			return true
+		end
+		
+	end
+end
+
 --atualiza as quest do mapa da zona ~updatezone ~zoneupdate
 function WorldQuestTracker.UpdateZoneWidgets()
 	
@@ -4106,8 +4141,13 @@ function WorldQuestTracker.UpdateZoneWidgets()
 	
 	if (WorldQuestTracker.IsWorldQuestHub (mapID) or (mapID ~= WorldQuestTracker.LastMapID and not WorldQuestTracker.IsArgusZone (mapID))) then
 		return WorldQuestTracker.HideZoneWidgets()
+		
 	elseif (not WorldQuestTracker.ZoneHaveWorldQuest (mapID)) then
 		return WorldQuestTracker.HideZoneWidgets()
+		
+	elseif (WorldQuestTracker.IsASubLevel()) then
+		return WorldQuestTracker.HideZoneWidgets()
+		
 	end
 	
 	WorldQuestTracker.RefreshStatusBar()
@@ -4159,7 +4199,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 					local passFilters = WorldMap_DoesWorldQuestInfoPassFilters (info, true, true) --blizzard filters
 					local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
 					
-					if (not isSuppressed and passFilters and timeLeft > 3) then
+					if (not isSuppressed and passFilters and timeLeft > 2) then
 						
 						C_TaskQuest.RequestPreloadRewardData (questID)
 						WorldQuestTracker.CurrentZoneQuests [questID] = true
@@ -4178,7 +4218,7 @@ function WorldQuestTracker.UpdateZoneWidgets()
 						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 						
 						local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount, numRewardItems, rewardTexture)
-						--print (filter, order, title, itemName, worldQuestType, filter, order, rewardName, rewardTexture, numRewardItems, timeLeft)
+						--print (title, filter, order, itemName, worldQuestType, filter, order, rewardName, rewardTexture, numRewardItems, timeLeft)
 						
 						-- ~legion
 						-- worldQuestType == LE_QUEST_TAG_TYPE_INVASION
@@ -4389,7 +4429,8 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 			self.questTypeBlip:Show()
 			self.questTypeBlip:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
 			--self.questTypeBlip:SetTexCoord (172/512, 201/512, 273/512, 301/512)
-			self.questTypeBlip:SetTexCoord (219/512, 246/512, 478/512, 502/512) -- left right    top botton
+			self.questTypeBlip:SetTexCoord (219/512, 246/512, 478/512, 502/512) -- left right    top botton  --7.2.5
+			self.questTypeBlip:SetTexCoord (387/512, 414/512, 378/512, 403/512) -- left right    top botton  --7.3
 			self.questTypeBlip:SetAlpha (1)
 			
 		elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
@@ -10468,7 +10509,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										widget.questTypeBlip:Show()
 										widget.questTypeBlip:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
 										--widget.questTypeBlip:SetTexCoord (172/512, 201/512, 273/512, 301/512)
-										widget.questTypeBlip:SetTexCoord (219/512, 246/512, 478/512, 502/512) -- left right    top botton
+										widget.questTypeBlip:SetTexCoord (219/512, 246/512, 478/512, 502/512) -- left right    top botton --7.2.5
+										widget.questTypeBlip:SetTexCoord (387/512, 414/512, 378/512, 403/512) -- left right    top botton --7.3
 										widget.questTypeBlip:SetAlpha (.85)
 										
 									elseif (worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON) then
