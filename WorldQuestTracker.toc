@@ -1,4 +1,4 @@
-## Interface: 70200
+## Interface: 70300
 ## Title: World Quest Tracker
 ## Notes: Make more easy to see world quests
 ## SavedVariables: WQTrackerDB
