@@ -659,7 +659,7 @@ local CreatePartySharer = function()
 			build_shared_quest_list()
 		end
 	end
-	WorldQuestTracker:RegisterComm (WorldQuestTracker.COMM_PREFIX, "CommReceived")
+	--WorldQuestTracker:RegisterComm (WorldQuestTracker.COMM_PREFIX, "CommReceived")
 
 	WorldQuestTracker.Sharer_LastSentUpdate = 0
 	WorldQuestTracker.Sharer_LastTimer = nil --
@@ -1309,10 +1309,9 @@ function WorldQuestTracker:CommReceived (_, data)
 		local mapID = validData [6]
 		local playerX = validData [7]
 		local playerY = validData [8]
-		
-		--print ("COMM RECEIVED:", prefix, whoSpotted, sourceChannel, rareName, rareSerial, mapID, playerX, playerY)
-		
+
 		if (prefix == "RS") then
+			--print ("COMM RECEIVED:", prefix, whoSpotted, sourceChannel, rareName, rareSerial, mapID, playerX, playerY)
 			rf.TellRareFound (whoSpotted, sourceChannel, rareName, rareSerial, mapID, playerX, playerY)
 		end
 	end
@@ -1367,10 +1366,11 @@ end
 
 function rf.IsTargetARare()
 	if (UnitExists ("target")) then
+		--print ("WQT: o target existe!")
 		local serial = UnitGUID ("target")
 		local npcId = WorldQuestTracker:GetNpcIdFromGuid (serial)
 		if (npcId) then
-
+			--print ("WQT: tem um npc ID")
 			--> check if is a non registered rare
 			if (not rf.RaresToScan [npcId]) then
 				if (WorldQuestTracker.IsArgusZone (GetCurrentMapAreaID())) then
@@ -1391,7 +1391,10 @@ function rf.IsTargetARare()
 					local map = GetCurrentMapAreaID()
 					local rareName = UnitName ("target")
 					local data = LibStub ("AceSerializer-3.0"):Serialize ({"RS", UnitName ("player"), "GUILD", rareName, serial, map, x, y})
-					WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, "GUILD")
+					if (IsInGuild()) then
+						WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, "GUILD")
+					end
+					--print ("COMM ENVIADO!")
 					--> send to other channels
 					
 					--
@@ -1421,9 +1424,17 @@ function rf.IsTargetARare()
 							end
 						end
 					end
+				else
+					--print ("WQT: nao eh rareelite clarification")
 				end
+			else
+				--print ("WQT: nao eh um raro")
 			end
+		else
+			--print ("WQT: nao tem npcID")
 		end
+	else
+		--print ("WQT: o target nao existe")
 	end
 end
 
@@ -4587,6 +4598,20 @@ function WorldQuestTracker.GetOrLoadQuestData (questID)
 	return title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount
 end
 
+function WorldQuestTracker.UpdateZoneWidgetAnchors()
+	for i = 1, #WorldQuestTracker.Cache_ShownWidgetsOnZoneMap do
+		local widget = WorldQuestTracker.Cache_ShownWidgetsOnZoneMap [i]
+		WorldMapPOIFrame_AnchorPOI (widget, widget.PosX, widget.PosY, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
+	end
+end
+
+WorldMapScrollFrame:HookScript ("OnMouseWheel", function (self, delta)
+	--> update widget anchors if the map is a world quest zone
+	if (WorldQuestTracker.ZoneHaveWorldQuest()) then
+		WorldQuestTracker.UpdateZoneWidgetAnchors()
+	end
+end)
+
 --atualiza as quest do mapa da zona ~updatezone ~zoneupdate
 function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 	
@@ -4699,6 +4724,9 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 								widget.Currency_Gold = gold or 0
 								widget.Currency_ArtifactPower = artifactPower or 0
 								widget.Currency_Resources = numRewardItems or 0
+								
+								widget.PosX = info.x
+								widget.PosY = info.y
 
 								local inProgress
 								WorldQuestTracker.SetupWorldQuestButton (widget, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget, mapID)
@@ -4839,6 +4867,7 @@ function WorldQuestTracker.ResetWorldQuestZoneButton (self)
 	self.timeBlipYellow:Hide()
 	self.timeBlipGreen:Hide()
 	self.blackGradient:Hide()
+	self.Shadow:Hide()
 
 	self.IsRare = nil
 	self.RareName = nil
@@ -4869,6 +4898,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 	
 	self.flagText:Show()
 	self.blackGradient:Show()
+	self.Shadow:Show()
 
 	if (HaveQuestData (questID)) then
 		local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
@@ -7191,6 +7221,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			local partyFrame = CreateFrame ("frame", nil, WorldQuestTracker.DoubleTapFrame)
 			partyFrame:SetSize (80, 20)
 			partyFrame:SetPoint ("left", filterButton, "right", 10, 0)
+			partyFrame:Hide()
 
 			local BuildPartyTooltipMenu = function (self)
 				GameCooltip:Preset (2)
@@ -7580,6 +7611,11 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			if (WorldQuestTracker.ZoneHaveWorldQuest (WorldMapFrame.mapID)) then
 				--roda nosso custom update e cria nossos proprios widgets
 				WorldQuestTracker.UpdateZoneWidgets (true)
+				C_Timer.After (1.35, function()
+					if (WorldQuestTracker.ZoneHaveWorldQuest (WorldMapFrame.mapID)) then
+						WorldQuestTracker.UpdateZoneWidgets (true)
+					end
+				end)
 			end
 			
 		end
