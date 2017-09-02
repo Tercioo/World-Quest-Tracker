@@ -467,6 +467,24 @@ function WorldQuestTracker.DumpTrackingList()
 	print (t)
 end
 
+function WorldQuestTracker.ColorScaleByPercent (percent_scaled)
+	local r, g
+	percent_scaled = percent_scaled * 100
+	if (percent_scaled < 50) then
+		r = 255
+	else
+		r = math.floor ( 255 - (percent_scaled * 2 - 100) * 255 / 100)
+	end
+	
+	if (percent_scaled > 50) then
+		g = 255
+	else
+		g = math.floor ( (percent_scaled * 2) * 255 / 100)
+	end
+	
+	return r, g
+end
+
 hooksecurefunc ("TaskPOI_OnEnter", function (self)
 	--WorldMapTooltip:AddLine ("quest ID: " .. self.questID)
 	--print (self.questID)
@@ -478,11 +496,16 @@ hooksecurefunc ("TaskPOI_OnEnter", function (self)
 		GameTooltip:AddLine (self.RareName)
 		local t = time() - self.RareTime
 		GameTooltip:AddDoubleLine (L["S_RAREFINDER_TOOLTIP_SPOTTEDBY"] .. ": ", "" .. (self.RareOwner or ""))
-		GameTooltip:AddDoubleLine ("" .. floor (t/60) .. ":" .. format ("%02.f", t%60) .. " " .. L["S_RAREFINDER_TOOLTIP_TIMEAGO"] .. ".")
+		
+		local timeColor = abs ((t/3600)-1)
+		timeColor = Saturate (timeColor)
+		local colorR, colorG = WorldQuestTracker.ColorScaleByPercent (timeColor)
+		GameTooltip:AddLine ("" .. floor (t/60) .. ":" .. format ("%02.f", t%60) .. " " .. L["S_RAREFINDER_TOOLTIP_TIMEAGO"] .. "", colorR/255, colorG/255, 0)
 		
 		GameTooltip:Show()
 	end
 end)
+
 hooksecurefunc ("TaskPOI_OnLeave", function (self)
 	WorldQuestTracker.CurrentHoverQuest = nil
 	
@@ -1309,71 +1332,69 @@ rf.RaresToScan = {
 	[126908] = true, --zultan the numerous	
 }
 
+--> filling the list, getting the thingies from here: http://www.wowhead.com/achievement=12078/commander-of-argus#comments
 rf.RaresLocations = {
-	[126338] = {x = 0, y = 0}, --wrathlord yarez
-	[126852] = {x = 0, y = 0}, --wrangler kravos
-	[122958] = {x = 0, y = 0}, --blistermaw
-	[127288] = {x = 0, y = 0}, --houndmaster kerrax
-	[126912] = {x = 0, y = 0}, --skreeg the devourer
-	[126867] = {x = 0, y = 0}, --venomtail skyfin
-	[126862] = {x = 0, y = 0}, --baruut the bloodthirsty
-	[127703] = {x = 0, y = 0}, --doomcaster suprax
-	[126900] = {x = 0, y = 0}, --instructor tarahna
-	[126860] = {x = 0, y = 0}, --kaara the pale
-	[126419] = {x = 0, y = 0}, --naroua
-	[126898] = {x = 0, y = 0}, --sabuul
-	[126208] = {x = 0, y = 0}, --varga
-	[127705] = {x = 0, y = 0}, --mother rosula
-	[127706] = {x = 0, y = 0}, --rezira the seer
-	[123464] = {x = 0, y = 0}, --sister subversia
-	[127700] = {x = 0, y = 0}, --squadron commander vishax
-	[127581] = {x = 0, y = 0}, --the many faced devourer
-	[126887] = {x = 0, y = 0}, --ataxon
-	[126338] = {x = 0, y = 0}, --wrath lord yarez
-	[127090] = {x = 0, y = 0}, --admiral relvar
-	[120393] = {x = 0, y = 0}, --siegemaster voraan
-	[127096] = {x = 0, y = 0}, --all seer xanarian
-	[126199] = {x = 0, y = 0}, --vrax-thul
-	[127376] = {x = 0, y = 0}, --chief alchemist munculus
-	[127300] = {x = 0, y = 0}, --void warden valsuran
-	[125820] = {x = 0, y = 0}, --imp mother laglath
-	[125388] = {x = 0, y = 0}, --vagath the betrayed
-	[123689] = {x = 0, y = 0}, --talestra the vile
-	[127118] = {x = 0, y = 0}, --worldsplitter skuul
-	[124804] = {x = 0, y = 0}, --tereck the selector
-	[125479] = {x = 0, y = 0}, --tar spitter
-	[122911] = {x = 0, y = 0}, --commander vecaya
-	[125824] = {x = 0, y = 0}, --khazaduum
-	[122912] = {x = 0, y = 0}, --commander sathrenael
-	[124775] = {x = 0, y = 0}, --commander endaxis
-	[127704] = {x = 0, y = 0}, --soultender videx
-	[126040] = {x = 0, y = 0}, --puscilla
-	[127291] = {x = 0, y = 0}, --watcher aival
-	[127090] = {x = 0, y = 0}, --admiral relvar
-	[122999] = {x = 0, y = 0}, --garzoth
-	[122947] = {x = 0, y = 0}, --mistress ilthendra
-	[127581] = {x = 0, y = 0}, --the many faced devourer
-	[126115] = {x = 0, y = 0}, --venorn
-	[126254] = {x = 0, y = 0}, --lieutenant xakaar
-	[127084] = {x = 0, y = 0}, --commander texlaz
-	[126946] = {x = 0, y = 0}, --inquisitor vethroz
-	[126865] = {x = 0, y = 0}, --vigilant thanos
-	[126869] = {x = 0, y = 0}, --captain faruq
-	[126896] = {x = 0, y = 0}, --herald of chaos
-	[126899] = {x = 0, y = 0}, --jedhin champion vorusk
-	[125497] = {x = 0, y = 0}, --overseer ysorna
-	[126910] = {x = 0, y = 0}, --commander xethgar
-	[126913] = {x = 0, y = 0}, --slithon the last
-	[122838] = {x = 0, y = 0}, --shadowcaster voruun
-	[126815] = {x = 0, y = 0}, --soultwisted monstrosity
-	[126864] = {x = 0, y = 0}, --feasel the muffin thief
-	[126866] = {x = 0, y = 0}, --vigilant kuro
-	[126868] = {x = 0, y = 0}, --turek the lucid
-	[126885] = {x = 0, y = 0}, --umbraliss
-	[126889] = {x = 0, y = 0}, --sorolis the ill fated
-	[124440] = {x = 0, y = 0}, --overseer ybeda
-	[125498] = {x = 0, y = 0}, --overseer ymorna
-	[126908] = {x = 0, y = 0}, --zultan the numerous	
+	[126852] = {x = 55.7, y = 59.9}, --wrangler kravos
+	[122958] = {x = 61.7, y = 37.2}, --blistermaw
+	[127288] = {x = 63.1, y = 25.2}, --houndmaster kerrax
+	[126912] = {x = 49.7, y = 9.9}, --skreeg the devourer
+	[126867] = {x = 33.7, y = 47.5}, --venomtail skyfin
+	[126862] = {x = 43.8, y = 60.2}, --baruut the bloodthirsty
+	[127703] = {x = 58.50, y = 11.75}, --doomcaster suprax
+	[126900] = {x = 61.4, y = 50.2}, --instructor tarahna
+	[126860] = {x = 38.7, y = 55.8}, --kaara the pale
+	[126419] = {x = 70.5, y = 33.7}, --naroua
+	[126898] = {x = 44.2, y = 49.8}, --sabuul
+	[126208] = {x = 64.3, y = 48.2}, --varga
+	[127705] = {x = 65.5, y = 26.6}, --mother rosula
+	[127706] = {x = 0, y = 0}, --rezira the seer (no coords?)
+	[123464] = {x = 53.4, y = 30.9}, --sister subversia
+	[127700] = {x = 77.4, y = 74.9}, --squadron commander vishax
+	[126887] = {x = 30.3, y = 40.4}, --ataxon
+	[126338] = {x = 61.9, y = 64.3}, --wrath lord yarez
+	[120393] = {x = 58.0, y = 74.8}, --siegemaster voraan
+	[127096] = {x = 75.6, y = 56.5}, --all seer xanarian
+	[126199] = {x = 53.1, y = 35.8}, --vrax-thul
+	[127376] = {x = 60.9, y = 22.9}, --chief alchemist munculus
+	[127300] = {x = 55.7, y = 21.9}, --void warden valsuran
+	[125820] = {x = 41.7, y = 70.2}, --imp mother laglath
+	[125388] = {x = 60.8, y = 20.8}, --vagath the betrayed
+	[123689] = {x = 55.5, y = 80.2}, --talestra the vile
+	[127118] = {x = 50.9, y = 55.3}, --worldsplitter skuul
+	[124804] = {x = 69.6, y = 57.5}, --tereck the selector
+	[125479] = {x = 69.7, y = 80.5}, --tar spitter
+	[122911] = {x = 	42.0, y = 57.1}, --commander vecaya
+	[125824] = {x = 50.3, y = 17.3}, --khazaduum
+	[122912] = {x = 33.0, y = 76.0}, --commander sathrenael
+	[124775] = {x = 44.5, y = 58.7}, --commander endaxis
+	[127704] = {x = 0, y = 0}, --soultender videx (no coords?)
+	[126040] = {x = 65.6, y = 26.6}, --puscilla
+	[127291] = {x = 52.7, y = 29.5}, --watcher aival
+	[127090] = {x = 73.2, y = 70.8}, --admiral relvar
+	[122999] = {x = 56.2, y = 45.5}, --garzoth
+	[122947] = {x = 57.4, y = 32.9}, --mistress ilthendra
+	[127581] = {x = 54.7, y = 39.1}, --the many faced devourer
+	[126115] = {x = 66.0, y = 54.1}, --venorn
+	[126254] = {x = 62.4, y = 53.8}, --lieutenant xakaar
+	[127084] = {x = 80.5, y = 62.8}, --commander texlaz
+	[126946] = {x = 61.1, y = 45.7}, --inquisitor vethroz
+	[126865] = {x = 36.3, y = 23.6}, --vigilant thanos
+	[126869] = {x = 27.2, y = 29.8}, --captain faruq
+	[126896] = {x = 35.5, y = 58.7}, --herald of chaos
+	[126899] = {x = 48.5, y = 40.9}, --jedhin champion vorusk
+	[125497] = {x = 58.0, y = 30.9}, --overseer ysorna
+	[126910] = {x = 56.8, y = 14.5}, --commander xethgar
+	[126913] = {x = 49.5, y = 52.8}, --slithon the last
+	[122838] = {x = 44.6, y = 71.6}, --shadowcaster voruun
+	[126815] = {x = 65.3, y = 67.5}, --soultwisted monstrosity
+	[126864] = {x = 41.3, y = 11.6}, --feasel the muffin thief
+	[126866] = {x = 63.8, y = 64.6}, --vigilant kuro
+	[126868] = {x = 39.2, y = 66.6}, --turek the lucid
+	[126885] = {x = 35.2, y = 37.2}, --umbraliss
+	[126889] = {x = 70.4, y = 46.7}, --sorolis the ill fated
+	[124440] = {x = 59.2, y = 37.7}, --overseer ybeda
+	[125498] = {x = 60.4, y = 29.7}, --overseer ymorna
+	[126908] = {x = 64.0, y = 29.5}, --zultan the numerous	
 }
 
 rf.COMM_IDS = {
@@ -1704,6 +1725,15 @@ function WorldQuestTracker.UpdateRareIcons (index, mapID)
 				widget.TextureCustom:SetSize (16, 16)
 				widget.TextureCustom:Show()
 				widget.Texture:Hide()
+				
+				local npcId = WorldQuestTracker:GetNpcIdFromGuid (rareSerial)
+				local position = rf.RaresLocations [npcId]
+				
+				if (position and position.x ~= 0) then
+					positionX = position.x/100;
+					positionY = position.y/100;
+				end
+				
 				WorldMapPOIFrame_AnchorPOI (widget, positionX, positionY, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
 				widget:Show()
 			end
