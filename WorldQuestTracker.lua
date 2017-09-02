@@ -477,8 +477,8 @@ hooksecurefunc ("TaskPOI_OnEnter", function (self)
 		GameTooltip:SetOwner (self, "ANCHOR_TOPLEFT")
 		GameTooltip:AddLine (self.RareName)
 		local t = time() - self.RareTime
-		GameTooltip:AddDoubleLine ("Spotted By: ", "" .. (self.RareOwner or ""))
-		GameTooltip:AddDoubleLine ("" .. floor (t/60) .. ":" .. format ("%02.f", t%60) .. " minutes ago.")
+		GameTooltip:AddDoubleLine (L["S_RAREFINDER_TOOLTIP_SPOTTEDBY"] .. ": ", "" .. (self.RareOwner or ""))
+		GameTooltip:AddDoubleLine ("" .. floor (t/60) .. ":" .. format ("%02.f", t%60) .. " " .. L["S_RAREFINDER_TOOLTIP_TIMEAGO"] .. ".")
 		
 		GameTooltip:Show()
 	end
@@ -1489,6 +1489,10 @@ function rf.GetMyNpcKilledList()
 	local t = WorldQuestTracker.db.profile.rarescan.recently_killed
 	local chrGUID = UnitGUID ("player")
 	
+	if (not chrGUID) then
+		return
+	end
+	
 	if (t [chrGUID]) then
 		return t [chrGUID]
 	else
@@ -1552,7 +1556,7 @@ function rf.IsTargetARare()
 				if (WorldQuestTracker.IsArgusZone (GetCurrentMapAreaID())) then
 					local unitClassification = UnitClassification ("target")
 					if (unitClassification == "rareelite") then
-						print ("|cFFFF9900[WQT]|r rare not in the database:", UnitName ("target"), "NpcID:", npcId)
+						print ("|cFFFF9900[WQT]|r " .. L["S_RAREFINDER_NPC_NOTREGISTERED"] .. ":", UnitName ("target"), "NpcID:", npcId)
 					end
 				end
 			end
@@ -1617,18 +1621,11 @@ rf:SetScript ("OnEvent", function (self, event, ...)
 		local _, token, hidding, who_serial, who_name, who_flags, who_flags2, alvo_serial, alvo_name, alvo_flags, alvo_flags2 = ...
 		if (token == "UNIT_DIED") then
 			if (alvo_serial == rf.LastRareSerial) then
+				--> current rare got killed
 				rf.LastRareSerial = nil
 				rf.LastRareName = nil
 				rf:UnregisterEvent ("COMBAT_LOG_EVENT_UNFILTERED")
 
-				local resetTime = time() + GetQuestResetTime()
-				local npcId = WorldQuestTracker:GetNpcIdFromGuid (alvo_serial)
-				local killed = rf.GetMyNpcKilledList()
-				killed [npcId] = resetTime
-				
-				--> do not remove the spotted rare, since it wont show for the player alts
-				--WorldQuestTracker.db.profile.rarescan.recently_spotted [npcId] = nil
-				
 				--> check if the group finder window is shown with the mob we just killed
 				if (ff:IsShown()) then
 					if (ff.Label1.text == alvo_name) then
@@ -1639,6 +1636,17 @@ rf:SetScript ("OnEvent", function (self, event, ...)
 				--> ask to leave the group
 				if (ff.Label1.text == alvo_name and ff.SearchCustom) then
 					ff.WorldQuestFinished (0, true)
+				end
+				
+				local killed = rf.GetMyNpcKilledList()
+				if (not killed) then
+					return
+				else
+					local npcId = WorldQuestTracker:GetNpcIdFromGuid (alvo_serial)
+					if (npcId) then
+						local resetTime = time() + GetQuestResetTime()
+						killed [npcId] = resetTime
+					end
 				end
 			end
 		end
@@ -1660,6 +1668,10 @@ function WorldQuestTracker.UpdateRareIcons (index, mapID)
 	end
 	
 	local alreadyKilled = rf.GetMyNpcKilledList()
+	if (not alreadyKilled) then
+		--> player serial or database not available at the moment
+		return
+	end
 	
 	for npcId, rareTable in pairs (WorldQuestTracker.db.profile.rarescan.recently_spotted) do
 		local timeSpotted = rareTable [1]
@@ -1878,7 +1890,7 @@ end
 		GameCooltip:AddMenu (1, ff.Options.SetEnabledFunc, not WorldQuestTracker.db.profile.groupfinder.enabled)
 		
 		--find group for rares
-		GameCooltip:AddLine ("Auto Open on Target a Rare Mob") --localize-me
+		GameCooltip:AddLine (L["S_GROUPFINDER_AUTOOPEN_RARENPC_TARGETED"])
 		if (WorldQuestTracker.db.profile.rarescan.search_group) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
 		else
@@ -2427,7 +2439,7 @@ end
 			ff.ProgressBar:Show()
 		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHCUSTOM) then
-			ff.SetCurrentActionText ("Search for a group to kill this rare.")
+			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"])
 			interactionButton.ToSearchCustom = true
 			ff.SearchCustom = true
 		
@@ -7141,7 +7153,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddMenu (2, ff.Options.SetEnabledFunc, not WorldQuestTracker.db.profile.groupfinder.enabled)
 					
 					--find group for rares
-					GameCooltip:AddLine ("Auto Open on Target a Rare Mob", "", 2) --localize-me
+					GameCooltip:AddLine (L["S_GROUPFINDER_AUTOOPEN_RARENPC_TARGETED"], "", 2)
 					if (WorldQuestTracker.db.profile.rarescan.search_group) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -7263,11 +7275,11 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 				
 				--rare finder
-					GameCooltip:AddLine ("Rare Finder")
+					GameCooltip:AddLine (L["S_RAREFINDER_TITLE"])
 					GameCooltip:AddIcon ([[Interface\Collections\Collections]], 1, 1, IconSize, IconSize, 101/512, 116/512, 12/512, 26/512)
 
 					--enabled
-					GameCooltip:AddLine ("Show Rare Icons", "", 2)
+					GameCooltip:AddLine (L["S_RAREFINDER_OPTIONS_SHOWICONS"], "", 2)
 					if (WorldQuestTracker.db.profile.rarescan.show_icons) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
