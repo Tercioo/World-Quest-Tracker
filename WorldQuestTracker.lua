@@ -1374,7 +1374,7 @@ rf.RaresLocations = {
 	[122999] = {x = 56.2, y = 45.5}, --garzoth
 	[122947] = {x = 57.4, y = 32.9}, --mistress ilthendra
 	[127581] = {x = 54.7, y = 39.1}, --the many faced devourer
-	[126115] = {x = 66.0, y = 54.1}, --venorn
+	[126115] = {x = 62.9, y = 57.2}, --venorn
 	[126254] = {x = 62.4, y = 53.8}, --lieutenant xakaar
 	[127084] = {x = 80.5, y = 62.8}, --commander texlaz
 	[126946] = {x = 61.1, y = 45.7}, --inquisitor vethroz
@@ -1567,6 +1567,20 @@ function rf.TellRareFound (whoSpotted, sourceChannel, rareName, rareSerial, mapI
 	end
 end
 
+function rf.IsRareAWorldQuest (rareName)
+	--> get the cache of widgets currently shown on map
+	local cache = WorldQuestTracker.Cache_ShownWidgetsOnZoneMap
+	local isWorldQuest = false
+	
+	--> do the iteration
+	for i = 1, #cache do 
+		local widget = cache [i]
+		if (widget.questName == rareName) then
+			return true
+		end
+	end
+end
+
 function rf.IsTargetARare()
 	if (UnitExists ("target")) then
 		local serial = UnitGUID ("target")
@@ -1609,17 +1623,7 @@ function rf.IsTargetARare()
 						--> search for a group?
 						if (WorldQuestTracker.db.profile.rarescan.search_group) then
 							--> check if the rare isn't a world quest
-							local cache = WorldQuestTracker.Cache_ShownWidgetsOnZoneMap
-							local isWorldQuest = false
-							
-							for i = 1, #cache do 
-								local widget = cache [i]
-								if (widget.questName == rareName) then
-									isWorldQuest = true
-									break
-								end
-							end
-							
+							local isWorldQuest = rf.IsRareAWorldQuest (rareName)
 							if (not isWorldQuest) then
 								WorldQuestTracker.FindGroupForCustom (rareName)
 							end
@@ -1699,43 +1703,50 @@ function WorldQuestTracker.UpdateRareIcons (index, mapID)
 		if (timeSpotted + 3600 > time() and not alreadyKilled [npcId]) then
 			local rareMapID = rareTable [2]
 			if (rareMapID == mapID) then
-				local positionX = rareTable [3]
-				local positionY = rareTable [4]
-				local rareSerial = rareTable [5]
+			
 				local rareName = rareTable [6]
-				local rareOwner = rareTable [7]
-				
-				local widget = WorldQuestTracker.GetOrCreateZoneWidget (nil, index)
-				WorldQuestTracker.ResetWorldQuestZoneButton (widget)
-				index = index + 1
-				
-				widget.mapID = mapID
-				widget.questID = 0
-				widget.numObjectives = 0
-				widget.Order = 0
-				widget.IsRare = true
-				widget.RareName = rareName
-				widget.RareSerial = rareSerial
-				widget.RareTime = timeSpotted
-				widget.RareOwner = rareOwner
-				
-				--widget.Texture:SetTexture ([[Interface\Scenarios\ScenarioIcon-Boss]])
-				widget.TextureCustom:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
-				widget.TextureCustom:SetTexCoord (423/512, 447/512, 344/512, 367/512)
-				widget.TextureCustom:SetSize (16, 16)
-				widget.TextureCustom:Show()
-				widget.Texture:Hide()
-				
-				local npcId = WorldQuestTracker:GetNpcIdFromGuid (rareSerial)
-				local position = rf.RaresLocations [npcId]
-				
-				if (position and position.x ~= 0) then
-					positionX = position.x/100;
-					positionY = position.y/100;
+			
+				--> check if the rare isn't part of a world quest
+				local isWorldQuest = rf.IsRareAWorldQuest (rareName)
+				if (not isWorldQuest) then
+					local positionX = rareTable [3]
+					local positionY = rareTable [4]
+					local rareSerial = rareTable [5]
+					
+					local rareOwner = rareTable [7]
+					
+					local widget = WorldQuestTracker.GetOrCreateZoneWidget (nil, index)
+					WorldQuestTracker.ResetWorldQuestZoneButton (widget)
+					index = index + 1
+					
+					widget.mapID = mapID
+					widget.questID = 0
+					widget.numObjectives = 0
+					widget.Order = 0
+					widget.IsRare = true
+					widget.RareName = rareName
+					widget.RareSerial = rareSerial
+					widget.RareTime = timeSpotted
+					widget.RareOwner = rareOwner
+					
+					--widget.Texture:SetTexture ([[Interface\Scenarios\ScenarioIcon-Boss]])
+					widget.TextureCustom:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
+					widget.TextureCustom:SetTexCoord (423/512, 447/512, 344/512, 367/512)
+					widget.TextureCustom:SetSize (16, 16)
+					widget.TextureCustom:Show()
+					widget.Texture:Hide()
+					
+					local npcId = WorldQuestTracker:GetNpcIdFromGuid (rareSerial)
+					local position = rf.RaresLocations [npcId]
+					
+					if (position and position.x ~= 0) then
+						positionX = position.x/100;
+						positionY = position.y/100;
+					end
+					
+					WorldMapPOIFrame_AnchorPOI (widget, positionX, positionY, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
+					widget:Show()
 				end
-				
-				WorldMapPOIFrame_AnchorPOI (widget, positionX, positionY, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
-				widget:Show()
 			end
 		end
 	end
