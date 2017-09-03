@@ -1264,7 +1264,10 @@ ff:Hide()
 local rf = CreateFrame ("frame", nil, UIParent)
 rf:RegisterEvent ("VIGNETTE_ADDED")
 rf:RegisterEvent ("PLAYER_TARGET_CHANGED")
+
 rf.RecentlySpotted = {}
+rf.LastPartyRareShared = 0
+
 rf.RaresToScan = {
 	[126338] = true, --wrathlord yarez
 	[126852] = true, --wrangler kravos
@@ -1413,11 +1416,32 @@ function WorldQuestTracker.RequestRares()
 	end
 end
 
-function rf.SendRareList()
+function rf.SendRareList (channel)
+	channel = channel or "GUILD"
 	--> build the list to be shared
-	local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_LIST, UnitName ("player"), WorldQuestTracker.db.profile.rarescan.recently_spotted})
-	WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, "GUILD")
+	local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_LIST, UnitName ("player"), WorldQuestTracker.db.profile.rarescan.recently_spotted, channel})
+	WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, channel)
 	WorldQuestTracker.Debug ("sent list of rares > COMM_IDS.RARE_LIST")
+end
+
+--WorldQuestTracker.debug = true;
+
+function rf.ShareInWorldQuestParty()
+	--> check if is realy in a world quest group
+	if (IsInGroup (LE_PARTY_CATEGORY_HOME)) then
+		if (time() > rf.LastPartyRareShared + 30) then
+			rf.SendRareList ("PARTY")
+			rf.LastPartyRareShared = time()
+			WorldQuestTracker.Debug ("group updated, sending rare list to the party")
+		end
+	end
+end
+
+function rf.ScheduleGroupShareRares()
+	if (rf.ShareRaresTimer_Party and not rf.ShareRaresTimer_Party._cancelled) then
+		rf.ShareRaresTimer_Party:Cancel()
+	end
+	rf.ShareRaresTimer_Party = C_Timer.NewTimer (3, rf.ShareInWorldQuestParty)
 end
 
 function WorldQuestTracker:CommReceived (_, data)
@@ -1441,7 +1465,7 @@ function WorldQuestTracker:CommReceived (_, data)
 			local isReliable = validData [9]
 			
 			WorldQuestTracker.Debug ("received a rare spot COMM_IDS.RARE_SPOTTED from " .. (whoSpotted or "invalid whoSpotted"))
-			rf.TellRareFound (whoSpotted, sourceChannel, rareName, rareSerial, mapID, playerX, playerY, isReliable)
+			rf.RareSpotted (whoSpotted, sourceChannel, rareName, rareSerial, mapID, playerX, playerY, isReliable)
 			
 		elseif (prefix == rf.COMM_IDS.RARE_REQUEST) then
 			--> check if the request didn't came from the owner
@@ -1451,26 +1475,33 @@ function WorldQuestTracker:CommReceived (_, data)
 			end
 			
 			--> check if a timer already exists
-			if (rf.ShareRaresTimer and not rf.ShareRaresTimer._cancelled) then
+			if (rf.ShareRaresTimer_Guild and not rf.ShareRaresTimer_Guild._cancelled) then
 				return
 			end
 			
 			--> assign a random timer to share
-			rf.ShareRaresTimer = C_Timer.NewTimer (math.random (15), rf.SendRareList)
+			rf.ShareRaresTimer_Guild = C_Timer.NewTimer (math.random (15), rf.SendRareList)
 			WorldQuestTracker.Debug ("received a rare list request COMM_IDS.RARE_REQUEST from " .. (whoRequested or "invalid whoRequested"))
 			
 		elseif (prefix == rf.COMM_IDS.RARE_LIST) then
 			--> if received from someone else, cancel our share timer
-			if (rf.ShareRaresTimer and not rf.ShareRaresTimer._cancelled) then
-				rf.ShareRaresTimer:Cancel()
-				rf.ShareRaresTimer = nil
+			if (rf.ShareRaresTimer_Guild and not rf.ShareRaresTimer_Guild._cancelled) then
+				rf.ShareRaresTimer_Guild:Cancel()
+				rf.ShareRaresTimer_Guild = nil
 			end
 			
 			--> add the rares to our list
 			local whoSent = validData [2]
-			local rareList = validData [3]
+			local fromChannel = validData [4]
 			
-			WorldQuestTracker.Debug ("received a rare list COMM_IDS.RARE_LIST from " .. (whoSent or "invalid whoSent"))
+			WorldQuestTracker.Debug ("received a rare list COMM_IDS.RARE_LIST from " .. (whoSent or "invalid whoSent") .. " on " .. fromChannel)
+			
+			--> ignore if who sent is the player
+			if (whoSent == UnitName ("player")) then
+				return
+			end
+			
+			local rareList = validData [3]
 			
 			--> list of rare spotted on the player that received the list
 			local localList = WorldQuestTracker.db.profile.rarescan.recently_spotted
@@ -1485,7 +1516,9 @@ function WorldQuestTracker:CommReceived (_, data)
 				--> check if rare already is in the player rare list
 				local localRareTable = localList [npcId]
 				if (localRareTable) then
+					--> already exists
 					if (rareTable [1] > localRareTable [1]) then
+						--> update the timer
 						localRareTable [1] = rareTable [1]
 						localRareTable [7] = rareTable [7]
 						justUpdated = justUpdated + 1
@@ -1496,6 +1529,17 @@ function WorldQuestTracker:CommReceived (_, data)
 						--> add it to the list if the rare was spotted up to 30 min ago
 						localList [npcId] = rareTable
 						newRares = newRares + 1
+						
+						--> if the player doesn't have the rare and he received it from a party, broadcast the rare to his guild as a rare spotted
+						if (IsInGuild() and fromChannel == "PARTY") then
+							--> don't share if both players are in the same guild
+							local guildName = GetGuildInfo (whoSent)
+							if (guildName ~= GetGuildInfo ("player")) then
+								local timeSpotted, mapID,  playerX, playerY, rareSerial, rareName, whoSpotted, serverTime = unpack (rareTable)
+								local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_SPOTTED, whoSpotted, "GUILD", rareName, rareSerial, mapID, playerX, playerY, true})
+								WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, "GUILD")
+							end
+						end
 					end
 				end
 			end
@@ -1522,29 +1566,15 @@ function rf.GetMyNpcKilledList()
 	end
 end
 
-function rf.TellRareFound (whoSpotted, sourceChannel, rareName, rareSerial, mapID, playerX, playerY, isReliable)
---	if (not WorldQuestTracker.IsArgusZone (GetCurrentMapAreaID())) then
-		--received alerts even when not in Argus?
---		if (not WorldQuestTracker.db.profile.rarescan.alerts_anywhere) then
---			return
---		end
---	end
-	
-	--> already killed this rare today
+function rf.RareSpotted (whoSpotted, sourceChannel, rareName, rareSerial, mapID, playerX, playerY, isReliable)
 	local npcId = WorldQuestTracker:GetNpcIdFromGuid (rareSerial)
-	
-	--> do not refuse a rare location if the player already killed, since the player might want the location on Alts
---	local killed = rf.GetMyNpcKilledList()
---	if (killed [npcId]) then
---		return
---	end
 	
 	--> add to the name cache
 	WorldQuestTracker.db.profile.rarescan.name_cache [rareName] = npcId
 	
 	--> announce on chat
 	if (not rf.RecentlySpotted [npcId] or rf.RecentlySpotted [npcId] + 800 < time()) then
-		--print ("|cFFFF9900WQT|r: rare '|cFFFFFF00" .. rareName .. "|r' is up.")
+		--print ("|cFFFF9900WQT|r: rare '|cFFFFFF00" .. rareName .. "|r' spotted.")
 		rf.RecentlySpotted [npcId] = time()
 	end
 	
@@ -1553,7 +1583,7 @@ function rf.TellRareFound (whoSpotted, sourceChannel, rareName, rareSerial, mapI
 	if (not rareTable) then
 		rareTable = {time(), mapID, playerX, playerY, rareSerial, rareName, whoSpotted, GetServerTime()}
 		WorldQuestTracker.db.profile.rarescan.recently_spotted [npcId] = rareTable
-		WorldQuestTracker.Debug ("TellRareFound > added new npc: " .. rareName)
+		WorldQuestTracker.Debug ("RareSpotted > added new npc: " .. rareName)
 	else
 		rareTable [1] = time()
 		rareTable [7] = whoSpotted
@@ -1563,7 +1593,7 @@ function rf.TellRareFound (whoSpotted, sourceChannel, rareName, rareSerial, mapI
 			rareTable [3] = playerX
 			rareTable [4] = playerY
 		end
-		WorldQuestTracker.Debug ("TellRareFound > npc updated: " .. rareName)
+		WorldQuestTracker.Debug ("RareSpotted > npc updated: " .. rareName)
 	end
 end
 
@@ -2264,6 +2294,7 @@ end
 		[48338] = true, --supplies-needed-astral-glory
 		[48360] = true, --supplies-needed-fiendish leather
 		[48358] = true, --supplies-needed-empyrium
+		[48349] = true, --supplies-needed-empyrium
 		[48374] = true, --supplies-needed-lightweave-cloth
 		
 		--other quests
@@ -3302,6 +3333,9 @@ end
 					end
 					
 					ff.GroupMembers = GetNumGroupMembers (LE_PARTY_CATEGORY_HOME) + 1
+					
+					--> tell the rare finder the group has been modified
+					rf.ScheduleGroupShareRares()
 				end
 			else
 				if (ff.QueueGroupUpdate) then
@@ -4933,6 +4967,9 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 	wipe (WorldQuestTracker.CurrentZoneQuests)
 	
 	if (taskInfo and #taskInfo > 0) then
+	
+		local needAnotherUpdate = false
+	
 		for i, info  in ipairs (taskInfo) do
 			local questID = info.questId
 
@@ -4954,6 +4991,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 						if (not HaveQuestRewardData (questID)) then
 							C_TaskQuest.RequestPreloadRewardData (questID)
 							can_cache = false
+							needAnotherUpdate = true
 						end
 						
 						WorldQuestTracker.CurrentZoneQuests [questID] = true
@@ -4979,8 +5017,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 
 						if (passFilter or (forceShowBrokenShore and WorldQuestTracker.IsArgusZone (mapID))) then
 							local widget = WorldQuestTracker.GetOrCreateZoneWidget (info, index)
-
-							if (widget.questID ~= questID or forceUpdate) then
+							if (widget.questID ~= questID or forceUpdate or not widget.Texture:GetTexture()) then
 								local selected = questID == GetSuperTrackedQuestID()
 								local isCriteria = WorldMapFrame.UIElementsFrame.BountyBoard:IsWorldQuestCriteriaForSelectedBounty (questID)
 								local isSpellTarget = SpellCanTargetQuest() and IsQuestIDValidSpellTarget (questID)
@@ -5066,8 +5103,12 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 				end
 			else
 				questFailed = true
-				WorldQuestTracker.ScheduleZoneMapUpdate()
+				WorldQuestTracker.ScheduleZoneMapUpdate (1, true)
 			end
+		end
+		
+		if (needAnotherUpdate) then
+			WorldQuestTracker.ScheduleZoneMapUpdate (0.5, true)
 		end
 		
 		if (not WorldQuestTracker.CanCacheQuestData) then
@@ -5136,8 +5177,10 @@ function WorldQuestTracker.ResetWorldQuestZoneButton (self)
 	self.rareSerpent:Hide()
 	self.rareGlow:Hide()
 	self.blackBackground:Hide()
---	self.criteriaIndicator:Hide()
---	self.criteriaIndicatorGlow:Hide()	
+	
+	self.criteriaIndicator:Hide()
+	self.criteriaIndicatorGlow:Hide()
+	
 	self.flagCriteriaMatchGlow:Hide()
 	self.questTypeBlip:Hide()
 	self.partySharedBlip:Hide()
@@ -5395,14 +5438,19 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 end
 
 --agenda uma atualização se algum dado de alguma quest não estiver disponível ainda
-local do_zonemap_update = function()
-	WorldQuestTracker.UpdateZoneWidgets()
+local do_zonemap_update = function (self)
+	WorldQuestTracker.UpdateZoneWidgets (self.IsForceUpdate)
 end
-function WorldQuestTracker.ScheduleZoneMapUpdate (seconds)
+function WorldQuestTracker.ScheduleZoneMapUpdate (seconds, isForceUpdate)
 	if (WorldQuestTracker.ScheduledZoneUpdate and not WorldQuestTracker.ScheduledZoneUpdate._cancelled) then
+		--> if the previous schedule was a force update, make the new schedule be be a force update too
+		if (WorldQuestTracker.ScheduledZoneUpdate.IsForceUpdate) then
+			isForceUpdate = true
+		end
 		WorldQuestTracker.ScheduledZoneUpdate:Cancel()
 	end
 	WorldQuestTracker.ScheduledZoneUpdate = C_Timer.NewTimer (seconds or 1, do_zonemap_update)
+	WorldQuestTracker.ScheduledZoneUpdate.IsForceUpdate = isForceUpdate
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -11784,7 +11832,7 @@ hooksecurefunc (WorldMapFrame.UIElementsFrame.BountyBoard, "OnTabClick", functio
 	if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
 		WorldQuestTracker.FindBestMapForSelectedBounty_Original (...)
 		WorldQuestTracker.LastMapID = GetCurrentMapAreaID()
-		C_Timer.After (1, WorldQuestTracker.UpdateZoneWidgets)
+		WorldQuestTracker.ScheduleZoneMapUpdate (0.5, true)
 	end
 end)
 
