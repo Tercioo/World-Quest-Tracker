@@ -580,8 +580,6 @@ function WorldQuestTracker.UpdateArrowFrequence()
 	ARROW_UPDATE_FREQUENCE = WorldQuestTracker.db.profile.arrow_update_frequence
 end
 
---/run WorldQuestTrackerAddon.db.profile.arrow_update_frequence = .1; WorldQuestTrackerAddon.UpdateArrowFrequence()
-
 function WorldQuestTracker.IsPartyQuest (questID)
 	return WorldQuestTracker.PartySharedQuests [questID]
 end
@@ -1267,6 +1265,8 @@ rf:RegisterEvent ("PLAYER_TARGET_CHANGED")
 
 rf.RecentlySpotted = {}
 rf.LastPartyRareShared = 0
+rf.FullRareListSendCooldown = 0
+rf.RareSpottedSendCooldown = {}
 
 rf.RaresToScan = {
 	[126338] = true, --wrathlord yarez
@@ -1417,10 +1417,37 @@ function WorldQuestTracker.RequestRares()
 end
 
 function rf.SendRareList (channel)
-	channel = channel or "GUILD"
+	--> check if the list is in cooldown
+	if (rf.FullRareListSendCooldown + 10 > time()) then
+		WorldQuestTracker.Debug ("cound't send full rare list: cooldown.")
+		return
+	end
+
+	--> if this has been called from C_Timer, the param will be the ticker object
+	if (type (channel) == "table") then
+		channel = "GUILD"
+	else
+		channel = channel or "GUILD"
+	end
+	
+	--> make sure the player is in a local group
+	if (channel == "PARTY") then
+		if (not IsInGroup (LE_PARTY_CATEGORY_HOME)) then
+			return
+		end
+	end
+	
+	--> make sure the player is in a guild
+	if (channel == "GUILD") then
+		if (not IsInGuild()) then
+			return
+		end
+	end
+
 	--> build the list to be shared
 	local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_LIST, UnitName ("player"), WorldQuestTracker.db.profile.rarescan.recently_spotted, channel})
 	WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, channel)
+	rf.FullRareListSendCooldown = time()
 	WorldQuestTracker.Debug ("sent list of rares > COMM_IDS.RARE_LIST")
 end
 
@@ -1444,6 +1471,40 @@ function rf.ScheduleGroupShareRares()
 	rf.ShareRaresTimer_Party = C_Timer.NewTimer (3, rf.ShareInWorldQuestParty)
 end
 
+function rf.ValidateCommData (validData, commType)
+	if (commType == rf.COMM_IDS.RARE_SPOTTED) then
+		if (not validData [2] or type (validData[2]) ~= "string") then --whoSpotted
+			return
+		elseif (not validData [3] or type (validData[3]) ~= "string") then --sourceChannel
+			return
+		elseif (not validData [4] or type (validData[4]) ~= "string") then --rareName
+			return
+		elseif (not validData [5] or type (validData[5]) ~= "string") then --rareSerial
+			return
+		elseif (not validData [6] or type (validData[6]) ~= "number") then --mapID
+			return
+		elseif (not validData [7] or type (validData[7]) ~= "number") then --playerX
+			return
+		elseif (not validData [8] or type (validData[8]) ~= "number") then --playerY
+			return
+		end
+	
+		return true
+	end
+	
+	if (commType == rf.COMM_IDS.RARE_LIST) then
+		if (not validData [2] or type (validData[2]) ~= "string") then --whoSent
+			return
+		elseif (not validData [3] or type (validData[2]) ~= "table") then --theList
+			return
+		elseif (not validData [4] or type (validData[2]) ~= "string") then --channel
+			return
+		end
+		
+		return true
+	end
+end
+
 function WorldQuestTracker:CommReceived (_, data)
 	local dataReceived = {LibStub ("AceSerializer-3.0"):Deserialize (data)}
 
@@ -1453,6 +1514,12 @@ function WorldQuestTracker:CommReceived (_, data)
 		local prefix = validData [1]
 
 		if (prefix == rf.COMM_IDS.RARE_SPOTTED) then
+		
+			if (not rf.ValidateCommData (validData, rf.COMM_IDS.RARE_SPOTTED)) then
+				WorldQuestTracker.Debug ("received invalid data on comm ID RARE_SPOTTED")
+				return
+			end
+		
 			local whoSpotted = validData [2]
 			local sourceChannel = validData [3]
 			local rareName = validData [4]
@@ -1488,6 +1555,11 @@ function WorldQuestTracker:CommReceived (_, data)
 			if (rf.ShareRaresTimer_Guild and not rf.ShareRaresTimer_Guild._cancelled) then
 				rf.ShareRaresTimer_Guild:Cancel()
 				rf.ShareRaresTimer_Guild = nil
+			end
+			
+			if (not rf.ValidateCommData (validData, rf.COMM_IDS.RARE_LIST)) then
+				WorldQuestTracker.Debug ("received invalid data on comm ID RARE_LIST")
+				return
 			end
 			
 			--> add the rares to our list
@@ -1637,7 +1709,15 @@ function rf.IsTargetARare()
 					local rareName = UnitName ("target")
 					local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_SPOTTED, UnitName ("player"), "GUILD", rareName, serial, map, x, y, true})
 					if (IsInGuild()) then
+						--> check cooldown for this rare
+						rf.RareSpottedSendCooldown [npcId] = rf.RareSpottedSendCooldown [npcId] or 0
+						if (rf.RareSpottedSendCooldown [npcId] + 10 > time()) then
+							WorldQuestTracker.Debug ("cound't send rare spotted: cooldown.")
+							return
+						end
+					
 						WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, "GUILD")
+						rf.RareSpottedSendCooldown [npcId] = time()
 					end
 					
 					--> add to the name cache
@@ -1794,6 +1874,7 @@ function WorldQuestTracker.CheckForOldRareFinderData()
 			for npcId, timeLeft in pairs (timeTable) do
 				if (timeLeft < now) then
 					timeTable [npcId] = nil
+					WorldQuestTracker.Debug ("CheckForOldRareFinderData > daily reset: " .. npcId)
 				end
 			end
 		end
@@ -1832,6 +1913,7 @@ function rf.ScanMinimapForRares()
 					serial = "Creature-0-0000-0000-00000-" .. npcId .. "-0000000000"
 
 					local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_SPOTTED, UnitName ("player"), "GUILD", rareName, serial, map, x, y, false})
+
 					WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, "GUILD")
 					
 					WorldQuestTracker.Debug ("ScanMinimapForRares > added npc from minimap: " .. rareName .. " ID: " .. npcId)
@@ -2292,6 +2374,7 @@ end
 		[41316] = true, --supplies-needed-leystone
 		
 		[48338] = true, --supplies-needed-astral-glory
+		[48337] = true, --supplies-needed-astral-glory
 		[48360] = true, --supplies-needed-fiendish leather
 		[48358] = true, --supplies-needed-empyrium
 		[48349] = true, --supplies-needed-empyrium
