@@ -162,6 +162,7 @@ local default_config = {
 		
 		groupfinder = {
 			enabled = true,
+			invasion_points = true,
 			tracker_buttons = true,
 			autoleave = false,
 			autoleave_delayed = false,
@@ -892,6 +893,30 @@ function WorldQuestTracker:OnInit()
 	local re_ZONE_CHANGED_NEW_AREA = function()
 		WorldQuestTracker:ZONE_CHANGED_NEW_AREA()
 	end
+	
+	function WorldQuestTracker.IsInvasionPoint()
+		--> check for invasion points, check if the player is inside a scenario
+		if (C_Scenario.IsInScenario()) then
+			--> we are using where the map file name which always start with "InvasionPoint"
+			--> this makes easy to localize group between different languages on the group finder
+			local mapFileName = GetMapInfo()
+			if (mapFileName and mapFileName:find ("InvasionPoint")) then
+				--the player is inside a invasion
+				local invasionName = C_Scenario.GetInfo()
+				if (invasionName) then
+					--> can queue?
+					if (not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then
+						--> is search for invasions enabled?
+						if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
+							--WorldQuestTracker.FindGroupForCustom (mapFileName, invasionName, "click to search for groups")
+							WorldQuestTracker.FindGroupForCustom (invasionName, invasionName, "click to search for groups")
+						end
+					end					
+				end
+			end
+		end
+	end
+	
 	function WorldQuestTracker:ZONE_CHANGED_NEW_AREA()
 		if (IsInInstance()) then
 			WorldQuestTracker:FullTrackerUpdate()
@@ -903,6 +928,13 @@ function WorldQuestTracker:OnInit()
 			else
 				C_Timer.After (.5, WorldQuestTracker.UpdateCurrentStandingZone)
 			end
+		end
+		
+		local mapFileName = GetMapInfo()
+		if (not mapFileName) then
+			C_Timer.After (3, WorldQuestTracker.IsInvasionPoint)
+		else
+			WorldQuestTracker.IsInvasionPoint()
 		end
 	end
 	
@@ -1735,7 +1767,7 @@ function rf.IsTargetARare()
 							--> check if the rare isn't a world quest
 							local isWorldQuest = rf.IsRareAWorldQuest (rareName)
 							if (not isWorldQuest) then
-								WorldQuestTracker.FindGroupForCustom (rareName)
+								WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"])
 							end
 						end
 					end
@@ -1856,6 +1888,7 @@ function WorldQuestTracker.UpdateRareIcons (index, mapID)
 					
 					WorldMapPOIFrame_AnchorPOI (widget, positionX, positionY, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
 					widget:Show()
+					widget:SetFrameLevel (1400 + floor (random (1, 30)))
 				end
 			end
 		end
@@ -1995,6 +2028,11 @@ end
 		GameCooltip:Hide()
 	end
 	
+	ff.Options.SetFindInvasionPoints = function (_, _, value)
+		WorldQuestTracker.db.profile.groupfinder.invasion_points = value
+		GameCooltip:Hide()
+	end
+
 	ff.Options.SetOTButtonsFunc = function (_, _, value)
 		WorldQuestTracker.db.profile.groupfinder.tracker_buttons = value
 		if (value) then
@@ -2050,6 +2088,16 @@ end
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
 		end
 		GameCooltip:AddMenu (1, ff.Options.SetFindGroupForRares, not WorldQuestTracker.db.profile.rarescan.search_group)		
+		
+		--find invasion points
+		GameCooltip:AddLine ("Auto Open on New Invasion Point") --localize-me
+		if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+		else
+			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+		end
+		GameCooltip:AddMenu (1, ff.Options.SetFindInvasionPoints, not WorldQuestTracker.db.profile.groupfinder.invasion_points)
+		
 		
 		--uses buttons on the quest tracker
 		GameCooltip:AddLine (L["S_GROUPFINDER_OT_ENABLED"])
@@ -2385,6 +2433,7 @@ end
 		[45379] = true, --tresure master rope broken shore
 		[43943] = true, --army training suramar
 		[45791] = true, --war materiel broken shore
+		[48097] = true, --gatekeeper's cunning macaree
 	}
 	
 	ff.cannot_group_quest = {
@@ -2594,7 +2643,7 @@ end
 			ff.ProgressBar:Show()
 		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHCUSTOM) then
-			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"])
+			ff.SetCurrentActionText (message)
 			interactionButton.ToSearchCustom = true
 			ff.SearchCustom = true
 		
@@ -2707,7 +2756,7 @@ end
 	end
 	
 	
-	function ff.NewWorldQuestEngaged (questName, questID, isSearchOnCustom)
+	function ff.NewWorldQuestEngaged (questName, questID, isSearchOnCustom, customTitle, customDesc)
 		--> reset the gump
 		ff.ShutdownOnTickScript (true)
 		ff.ResetInteractionButton()
@@ -2725,8 +2774,8 @@ end
 			ff.SetQuestTitle (questName .. " (" .. questID .. ")")
 			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCH)
 		else
-			ff.SetQuestTitle (isSearchOnCustom)
-			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHCUSTOM, isSearchOnCustom)
+			ff.SetQuestTitle (customTitle or isSearchOnCustom)
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHCUSTOM, customDesc)
 		end
 		
 		ff.HasLeadership = false
@@ -3013,7 +3062,10 @@ end
 			interactionButton.ApplyLeft = #interactionButton.GroupsToApply
 		else
 			--> no group found
-			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_CREATE)			
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_CREATE)
+			if (ff.SearchCallback) then
+				ff.SearchCallback ("NO_GROUP_FOUND")
+			end
 		end
 	end
 	
@@ -3278,16 +3330,21 @@ end
 		ff.FindGroupForQuest (questID)
 	end
 	
-	function WorldQuestTracker.FindGroupForCustom (rareName)
-		ff.FindGroupForQuest (rareName, nil, true)
+	function WorldQuestTracker.FindGroupForCustom (searchString, customTitle, customDesc, callback)
+		ff.FindGroupForQuest (searchString, nil, true, customTitle, customDesc, callback)
 	end
 	
-	function ff.FindGroupForQuest (questID, fromOTButton, isSearchOnCustom)
+	function ff.FindGroupForQuest (questID, fromOTButton, isSearchOnCustom, customTitle, customDesc, callback)
 		--> reset the search type
 		ff.SearchCustom = nil
-	
+		ff.SearchCallback = nil
+		
+		if (callback) then
+			ff.SearchCallback = callback
+		end
+		
 		if (isSearchOnCustom) then
-			ff.NewWorldQuestEngaged (nil, nil, questID)
+			ff.NewWorldQuestEngaged (nil, nil, questID, customTitle, customDesc)
 			return
 		end
 	
@@ -5122,6 +5179,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 								local inProgress
 								WorldQuestTracker.SetupWorldQuestButton (widget, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget, mapID)
 								WorldMapPOIFrame_AnchorPOI (widget, info.x, info.y, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
+								widget:SetFrameLevel (1500 + floor (random (1, 30)))
 								widget:Show()
 
 								tinsert (WorldQuestTracker.Cache_ShownQuestOnZoneMap, questID)
@@ -7332,6 +7390,16 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 					end
 					GameCooltip:AddMenu (2, ff.Options.SetFindGroupForRares, not WorldQuestTracker.db.profile.rarescan.search_group)						
+					
+					--find invasion points
+					GameCooltip:AddLine ("Auto Open on New Invasion Point", "", 2) --localize-me
+					if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, ff.Options.SetFindInvasionPoints, not WorldQuestTracker.db.profile.groupfinder.invasion_points)					
+					
 					
 					--uses buttons on the quest tracker
 					GameCooltip:AddLine (L["S_GROUPFINDER_OT_ENABLED"], "", 2)
