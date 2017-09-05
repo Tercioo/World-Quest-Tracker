@@ -895,24 +895,22 @@ function WorldQuestTracker:OnInit()
 	end
 	
 	function WorldQuestTracker.IsInvasionPoint()
-		--> check for invasion points, check if the player is inside a scenario
-		if (C_Scenario.IsInScenario()) then
-			--> we are using where the map file name which always start with "InvasionPoint"
-			--> this makes easy to localize group between different languages on the group finder
-			local mapFileName = GetMapInfo()
-			if (mapFileName and mapFileName:find ("InvasionPoint")) then
-				--the player is inside a invasion
-				local invasionName = C_Scenario.GetInfo()
-				if (invasionName) then
-					--> can queue?
-					if (not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then
-						--> is search for invasions enabled?
-						if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
-							--WorldQuestTracker.FindGroupForCustom (mapFileName, invasionName, "click to search for groups")
-							WorldQuestTracker.FindGroupForCustom (invasionName, invasionName, "click to search for groups")
-						end
-					end					
-				end
+		local mapFileName = GetMapInfo()
+		--> we are using where the map file name which always start with "InvasionPoint"
+		--> this makes easy to localize group between different languages on the group finder
+		--> this won't work with greater invasions which aren't scenarios
+		if (mapFileName and mapFileName:find ("InvasionPoint")) then
+			--the player is inside a invasion
+			local invasionName = C_Scenario.GetInfo()
+			if (invasionName) then
+				--> can queue?
+				if (not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then
+					--> is search for invasions enabled?
+					if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
+						--WorldQuestTracker.FindGroupForCustom (mapFileName, invasionName, "click to search for groups")
+						WorldQuestTracker.FindGroupForCustom (invasionName, invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"])
+					end
+				end					
 			end
 		end
 	end
@@ -931,6 +929,7 @@ function WorldQuestTracker:OnInit()
 		end
 		
 		local mapFileName = GetMapInfo()
+		print (mapFileName)
 		if (not mapFileName) then
 			C_Timer.After (3, WorldQuestTracker.IsInvasionPoint)
 		else
@@ -1367,6 +1366,11 @@ rf.RaresToScan = {
 	[126908] = true, --zultan the numerous	
 }
 
+--> greater invasion point
+rf.InvasionBosses = {
+	[124625] = true, --mistress alluradel
+}
+
 --> filling the list, getting the thingies from here: http://www.wowhead.com/achievement=12078/commander-of-argus#comments
 rf.RaresLocations = {
 	[126852] = {x = 55.7, y = 59.9}, --wrangler kravos
@@ -1734,7 +1738,7 @@ function rf.IsTargetARare()
 			if (rf.RaresToScan [npcId]) then
 				--> check is the npc is flagged as rare
 				local unitClassification = UnitClassification ("target")
-				if (unitClassification == "rareelite") then
+				if (unitClassification == "rareelite") then --
 					--> send comm
 					local x, y = GetPlayerMapPosition ("player")
 					local map = GetCurrentMapAreaID()
@@ -1775,7 +1779,18 @@ function rf.IsTargetARare()
 					WorldQuestTracker.Debug ("IsTargetARare > unit isn't rareelite classification.")
 				end
 			else
-				--WorldQuestTracker.Debug ("IsTargetARare > unit isn't rare.")
+				if (rf.InvasionBosses [npcId]) then
+					--already searching?
+					if (not ff:IsShown() and not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then
+						--> search for a group?
+						if (WorldQuestTracker.db.profile.rarescan.search_group) then
+							--> check if the rare isn't a world quest
+							local rareName = UnitName ("target")
+							WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH"])
+							WorldQuestTracker.Debug ("IsTargetARare > invasion boss detected.")
+						end
+					end
+				end
 			end
 		else
 			WorldQuestTracker.Debug ("IsTargetARare > invalid npcId.")
@@ -2090,7 +2105,7 @@ end
 		GameCooltip:AddMenu (1, ff.Options.SetFindGroupForRares, not WorldQuestTracker.db.profile.rarescan.search_group)		
 		
 		--find invasion points
-		GameCooltip:AddLine ("Auto Open on New Invasion Point") --localize-me
+		GameCooltip:AddLine (L["S_GROUPFINDER_INVASION_ENABLED"])
 		if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
 			GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
 		else
@@ -7392,7 +7407,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddMenu (2, ff.Options.SetFindGroupForRares, not WorldQuestTracker.db.profile.rarescan.search_group)						
 					
 					--find invasion points
-					GameCooltip:AddLine ("Auto Open on New Invasion Point", "", 2) --localize-me
+					GameCooltip:AddLine (L["S_GROUPFINDER_INVASION_ENABLED"], "", 2)
 					if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
