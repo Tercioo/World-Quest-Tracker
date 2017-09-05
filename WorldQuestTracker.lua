@@ -929,7 +929,6 @@ function WorldQuestTracker:OnInit()
 		end
 		
 		local mapFileName = GetMapInfo()
-		print (mapFileName)
 		if (not mapFileName) then
 			C_Timer.After (3, WorldQuestTracker.IsInvasionPoint)
 		else
