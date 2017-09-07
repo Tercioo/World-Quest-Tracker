@@ -1435,6 +1435,72 @@ rf.RaresLocations = {
 	[126908] = {x = 64.0, y = 29.5}, --zultan the numerous	
 }
 
+--quest ids from here: https://docs.google.com/spreadsheets/d/1XkHTaTiiBC-4NHvBzAtqbRMOrOy6B9Silg17g4eSqlM/edit?usp=sharing
+rf.RaresQuestIDs = {
+	[126338] = 48814, --wrathlord yarez
+	[126852] = 48695, --wrangler kravos
+	[122958] = 49183, --blistermaw
+	[127288] = 48821, --houndmaster kerrax
+	[126912] = 48721, --skreeg the devourer
+	[126867] = 48705, --venomtail skyfin
+	[126862] = 48700, --baruut the bloodthirsty
+	[127703] = 48968, --doomcaster suprax
+	[126900] = 48718, --instructor tarahna
+	[126860] = 48697, --kaara the pale
+	[126419] = 48667, --naroua
+	[126898] = 48712, --sabuul
+	[126208] = 48812, --varga
+	[127705] = 48970, --mother rosula
+	[127706] = 48971, --rezira the seer
+	[123464] = 48565, --sister subversia
+	[127700] = 48967, --squadron commander vishax
+	[127581] = 48966, --the many faced devourer
+	[126887] = 48709, --ataxon
+	[126338] = 48814, --wrath-lord yarez
+	[127090] = 48817, --admiral relvar
+	[120393] = 48627, --siegemaster voraan
+	[127096] = 48818, --all seer xanarian
+	[126199] = 48810, --vrax-thul
+	[127376] = 48865, --chief alchemist munculus
+	[127300] = 48824, --void warden valsuran
+	[125820] = 48666, --imp mother laglath
+	[125388] = 48629, --vagath the betrayed
+	[123689] = 48628, --talestra the vile
+	[127118] = 48820, --worldsplitter skuul
+	[124804] = 48664, --tereck the selector
+	[125479] = 48665, --tar spitter
+	[122911] = 48563, --commander vecaya
+	[125824] = 48561, --khazaduum
+	[122912] = 48562, --commander sathrenael
+	[124775] = 48564, --commander endaxis
+	[127704] = 48969, --soultender videx
+	[126040] = 48809, --puscilla
+	[127291] = 48822, --watcher aival
+	[122999] = 49241, --garzoth
+	[122947] = 49240, --mistress ilthendra
+	[126115] = 48811, --venorn
+	[126254] = 48813, --lieutenant xakaar
+	[127084] = 48816, --commander texlaz
+	[126946] = 48815, --inquisitor vethroz
+	[126865] = 48703, --vigilant thanos
+	[126869] = 48707, --captain faruq
+	[126896] = 48711, --herald of chaos
+	[126899] = 48713, --jedhin champion vorusk
+	[125497] = 48716, --overseer ysorna
+	[126910] = 48720, --commander xethgar
+	[126913] = 48936, --slithon the last
+	[122838] = 48692, --shadowcaster voruun
+	[126815] = 48693, --soultwisted monstrosity
+	[126864] = 48702, --feasel the muffin thief
+	[126866] = 48704, --vigilant kuro
+	[126868] = 48706, --turek the lucid
+	[126885] = 48708, --umbraliss
+	[126889] = 48710, --sorolis the ill fated
+	[124440] = 48714, --overseer ybeda
+	[125498] = 48717, --overseer ymorna
+	[126908] = 48719, --zultan the numerous	
+}
+
 rf.COMM_IDS = {
 	RARE_SPOTTED = "RS",
 	RARE_REQUEST = "RR",
@@ -1468,7 +1534,14 @@ function rf.SendRareList (channel)
 	--> make sure the player is in a local group
 	if (channel == "PARTY") then
 		if (not IsInGroup (LE_PARTY_CATEGORY_HOME)) then
+			WorldQuestTracker.Debug ("player not in a home party, aborting rare sharing in the group.")
 			return
+		end
+		
+		--> if the player is in a raid, send the comm on the raid channel instead
+		if (IsInRaid (LE_PARTY_CATEGORY_HOME)) then
+			WorldQuestTracker.Debug ("player is in raid, sending comm on RAID channel.")
+			channel = "RAID"
 		end
 	end
 	
@@ -1483,10 +1556,10 @@ function rf.SendRareList (channel)
 	local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_LIST, UnitName ("player"), WorldQuestTracker.db.profile.rarescan.recently_spotted, channel})
 	WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, channel)
 	rf.FullRareListSendCooldown = time()
-	WorldQuestTracker.Debug ("sent list of rares > COMM_IDS.RARE_LIST")
+	WorldQuestTracker.Debug ("sent list of rares > COMM_IDS.RARE_LIST on channel " .. (channel or "invalid channel"))
 end
 
---WorldQuestTracker.debug = true;
+--/run WorldQuestTrackerAddon.debug = true;
 
 function rf.ShareInWorldQuestParty()
 	--> check if is realy in a world quest group
@@ -1509,18 +1582,25 @@ end
 function rf.ValidateCommData (validData, commType)
 	if (commType == rf.COMM_IDS.RARE_SPOTTED) then
 		if (not validData [2] or type (validData[2]) ~= "string") then --whoSpotted
+			WorldQuestTracker.Debug ("received invalid data on comm ID RARE_SPOTTED: [2]")
 			return
 		elseif (not validData [3] or type (validData[3]) ~= "string") then --sourceChannel
+			WorldQuestTracker.Debug ("received invalid data on comm ID RARE_SPOTTED: [3]")
 			return
 		elseif (not validData [4] or type (validData[4]) ~= "string") then --rareName
+			WorldQuestTracker.Debug ("received invalid data on comm ID RARE_SPOTTED: [4]")
 			return
 		elseif (not validData [5] or type (validData[5]) ~= "string") then --rareSerial
+			WorldQuestTracker.Debug ("received invalid data on comm ID RARE_SPOTTED: [5]")
 			return
 		elseif (not validData [6] or type (validData[6]) ~= "number") then --mapID
+			WorldQuestTracker.Debug ("received invalid data on comm ID RARE_SPOTTED: [6]")
 			return
 		elseif (not validData [7] or type (validData[7]) ~= "number") then --playerX
+			WorldQuestTracker.Debug ("received invalid data on comm ID RARE_SPOTTED: [7]")
 			return
 		elseif (not validData [8] or type (validData[8]) ~= "number") then --playerY
+			WorldQuestTracker.Debug ("received invalid data on comm ID RARE_SPOTTED: [8]")
 			return
 		end
 	
@@ -1529,10 +1609,13 @@ function rf.ValidateCommData (validData, commType)
 	
 	if (commType == rf.COMM_IDS.RARE_LIST) then
 		if (not validData [2] or type (validData[2]) ~= "string") then --whoSent
+			WorldQuestTracker.Debug ("received invalid data on comm ID RARE_LIST: [2]")
 			return
-		elseif (not validData [3] or type (validData[2]) ~= "table") then --theList
+		elseif (not validData [3] or type (validData[3]) ~= "table") then --theList
+			WorldQuestTracker.Debug ("received invalid data on comm ID RARE_LIST: [3]")
 			return
-		elseif (not validData [4] or type (validData[2]) ~= "string") then --channel
+		elseif (not validData [4] or type (validData[4]) ~= "string") then --channel
+			WorldQuestTracker.Debug ("received invalid data on comm ID RARE_LIST: [4]")
 			return
 		end
 		
@@ -1551,7 +1634,6 @@ function WorldQuestTracker:CommReceived (_, data)
 		if (prefix == rf.COMM_IDS.RARE_SPOTTED) then
 		
 			if (not rf.ValidateCommData (validData, rf.COMM_IDS.RARE_SPOTTED)) then
-				WorldQuestTracker.Debug ("received invalid data on comm ID RARE_SPOTTED")
 				return
 			end
 		
@@ -1593,7 +1675,6 @@ function WorldQuestTracker:CommReceived (_, data)
 			end
 			
 			if (not rf.ValidateCommData (validData, rf.COMM_IDS.RARE_LIST)) then
-				WorldQuestTracker.Debug ("received invalid data on comm ID RARE_LIST")
 				return
 			end
 			
@@ -1857,8 +1938,14 @@ function WorldQuestTracker.UpdateRareIcons (index, mapID)
 	for npcId, rareTable in pairs (WorldQuestTracker.db.profile.rarescan.recently_spotted) do
 		local timeSpotted = rareTable [1]
 		if (timeSpotted + 3600 > time() and not alreadyKilled [npcId]) then
+			local questCompleted = false
+			local npcQuestCompletedID = rf.RaresQuestIDs [npcId]
+			if (npcQuestCompletedID and IsQuestFlaggedCompleted (npcQuestCompletedID)) then
+				questCompleted = true
+			end
+			
 			local rareMapID = rareTable [2]
-			if (rareMapID == mapID) then
+			if (rareMapID == mapID and not questCompleted) then
 			
 				local rareName = rareTable [6]
 			
@@ -10275,6 +10362,13 @@ end
 
 WorldQuestTracker.TaxyZoneWidgets = {}
 
+function WorldQuestTracker.UpdatePinAfterZoom (timerObject)
+	local pin = timerObject.Pin
+	pin._UpdateTimer = nil
+	pin:SetAlpha (1)
+	pin:Show()
+end
+
 function WorldQuestTracker:TAXIMAP_OPENED()
 	
 	if (not WorldQuestTracker.FlyMapHook and FlightMapFrame) then
@@ -10335,16 +10429,55 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			alert:Show()
 			WorldQuestTracker.db.profile.TutorialTaxyMap = true
 		end
-	
+		
 		local filters = WorldQuestTracker.db.profile.filters
 		
-		--hooksecurefunc (FlightMapFrame, "SetPinPosition", function (self, pin, normalizedX, normalizedY, insetIndex)
+		hooksecurefunc (FlightMapFrame.ScrollContainer, "ZoomIn", function()
+			WorldQuestTracker.FlightMapZoomAt = GetTime()
+		end)
+		hooksecurefunc (FlightMapFrame.ScrollContainer, "ZoomOut", function()
+			WorldQuestTracker.FlightMapZoomAt = GetTime()
+		end)
+		
 		hooksecurefunc (FlightMapFrame, "ApplyPinPosition", function (self, pin, normalizedX, normalizedY, insetIndex)
 			--print ("setting pin poisition")
+			
 			if (not pin.questID or not QuestMapFrame_IsQuestWorldQuest (pin.questID)) then
 				--print (self.questID)
 				--print (pin._WQT_Twin and pin._WQT_Twin.questID)
 				--print (pin.Icon, self.Icon)
+				
+				--[=[
+				if (pin.HookScript) then
+					pin:HookScript ("OnEnter", function()
+						print ("====================================")
+						for a, b in pairs (pin) do
+							print (a, b)
+						end
+						print ("====================================")
+						print (pin.Texture:GetTexture())
+					end)
+				end
+				--]=]
+				
+				--> invasion point
+				if (pin.Texture and pin.Texture:GetTexture() == 1121272) then
+					pin:SetAlpha (1)
+					pin:Show()
+					
+					if (not pin._UpdateTimer) then
+						pin._UpdateTimer = C_Timer.NewTimer (1, WorldQuestTracker.UpdatePinAfterZoom)
+						pin._UpdateTimer.Pin = pin
+					end
+					
+					--if (WorldQuestTracker.FlightMapZoomAt and WorldQuestTracker.FlightMapZoomAt + 1 > GetTime()) then
+					--	if (not pin._UpdateTimer) then
+					--		pin._UpdateTimer = C_Timer.NewTimer (1, WorldQuestTracker.UpdatePinAfterZoom)
+					--		pin._UpdateTimer.Pin = pin
+					--	end
+					--end
+				end
+				
 				if (pin.Icon and pin.Icon:GetTexture() == 1455734) then
 					--pin.Icon:SetTexture ([[Interface\TAXIFRAME\UI-Taxi-Icon-Highlight]])
 					if (not pin.Icon.ExtraShadow) then
@@ -10466,6 +10599,10 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 					format_for_taxy_zoom_allquests (pin._WQT_Twin)
 					pin._WQT_Twin.LastUpdate = GetTime()
 					pin._WQT_Twin.zoomState = true
+					pin._WQT_Twin:SetScale (2.2)
+					pin:SetAlpha (0)
+					pin.TimeLowFrame:SetAlpha (0)
+					pin.Underlay:SetAlpha (0)
 					--print ("UPDATED")
 				end
 			end
