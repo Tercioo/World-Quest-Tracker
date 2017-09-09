@@ -1,3 +1,6 @@
+hooksecurefunc ("WorldMap_ResetPOI", function (...)
+	---print (...)
+end)
 
 --/dump BrokenIslesArgusButton:IsProtected()
 
@@ -177,7 +180,7 @@ local default_config = {
 			frame = {},
 			tutorial = 0,
 		},
-		
+
 		rarescan = {
 			show_icons = true,
 			alerts_anywhere = false,
@@ -186,6 +189,9 @@ local default_config = {
 			recently_spotted = {},
 			recently_killed = {},
 			name_cache = {},
+			playsound = true,
+			playsound_volume = 1,
+			use_master = true,
 		},
 		
 		disable_world_map_widgets = false,
@@ -1319,6 +1325,7 @@ rf.LastPartyRareShared = 0
 rf.FullRareListSendCooldown = 0
 rf.CommGlobalCooldown = 0
 rf.RareSpottedSendCooldown = {}
+rf.MinimapScanCooldown = {}
 
 rf.RaresToScan = {
 	[126338] = true, --wrathlord yarez
@@ -2131,16 +2138,31 @@ function rf.ScanMinimapForRares()
 			if (objectIcon and (objectIcon == 41 or objectIcon == 4733)) then
 				local npcId = WorldQuestTracker.db.profile.rarescan.name_cache [name]
 				if (npcId and rf.RaresToScan [npcId]) then
-					local x, y = GetPlayerMapPosition ("player")
-					local map = GetCurrentMapAreaID()
-					local rareName = name
-					serial = "Creature-0-0000-0000-00000-" .. npcId .. "-0000000000"
-
-					local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_SPOTTED, UnitName ("player"), "GUILD", rareName, serial, map, x, y, false})
-
-					WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, "GUILD")
+					if (not rf.MinimapScanCooldown [npcId] or rf.MinimapScanCooldown [npcId]+10 < time()) then
 					
-					WorldQuestTracker.Debug ("ScanMinimapForRares > added npc from minimap: " .. rareName .. " ID: " .. npcId)
+						--> make sure the spotted minimap rare isn't the player target
+						local targetSerial = UnitGUID ("target") or ""
+						local targetNpcId = WorldQuestTracker:GetNpcIdFromGuid (targetSerial)
+
+						if (npcId ~= targetNpcId) then
+							local x, y = GetPlayerMapPosition ("player")
+							local map = GetCurrentMapAreaID()
+							local rareName = name
+							serial = "Creature-0-0000-0000-00000-" .. npcId .. "-0000000000"
+							
+							local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_SPOTTED, UnitName ("player"), "GUILD", rareName, serial, map, x, y, false})
+							
+							WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, "GUILD")
+							
+							if (WorldQuestTracker.db.profile.rarescan.playsound) then
+								PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\rare_found" .. WorldQuestTracker.db.profile.rarescan.playsound_volume .. ".ogg", WorldQuestTracker.db.profile.rarescan.use_master and "Master" or "SFX")
+							end
+							
+							rf.MinimapScanCooldown [npcId] = time()
+							
+							WorldQuestTracker.Debug ("ScanMinimapForRares > added npc from minimap: " .. rareName .. " ID: " .. npcId)
+						end
+					end
 				end
 			end
 		end
@@ -6298,6 +6320,10 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			doubleTapBackground:SetTexture ([[Interface\ACHIEVEMENTFRAME\UI-Achievement-HorizontalShadow]])
 			doubleTapBackground:SetTexCoord (0, .5, 0, 1)
 			doubleTapBackground:SetHeight (18)
+			WorldQuestTracker.DoubleTapFrame.Background = doubleTapBackground
+			
+--			/dump WorldQuestTrackerDoubleTapFrame.Background:GetSize()
+			--/run WorldQuestTrackerDoubleTapFrame:SetFrameLevel (5000)
 			
 			function WorldQuestTracker:SetStatusBarAnchor (anchor)
 				anchor = anchor or WorldQuestTracker.db.profile.bar_anchor
@@ -7763,9 +7789,51 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					else
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 					end
-					GameCooltip:AddMenu (2, options_on_click, "rarescan", "show_icons", not WorldQuestTracker.db.profile.rarescan.show_icons)				
-				
-				
+					GameCooltip:AddMenu (2, options_on_click, "rarescan", "show_icons", not WorldQuestTracker.db.profile.rarescan.show_icons)	
+
+					GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
+					
+					--play audion on spot a rare
+					GameCooltip:AddLine ("Play Sound Alert", "", 2)
+					if (WorldQuestTracker.db.profile.rarescan.playsound) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, options_on_click, "rarescan", "playsound", not WorldQuestTracker.db.profile.rarescan.playsound)
+					
+					GameCooltip:AddLine ("Volume: 100%", "", 2)
+					if (WorldQuestTracker.db.profile.rarescan.playsound_volume == 1) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, options_on_click, "rarescan", "playsound_volume", 1)
+					
+					GameCooltip:AddLine ("Volume: 50%", "", 2)
+					if (WorldQuestTracker.db.profile.rarescan.playsound_volume == 2) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, options_on_click, "rarescan", "playsound_volume", 2)
+
+					GameCooltip:AddLine ("Volume: 30%", "", 2)
+					if (WorldQuestTracker.db.profile.rarescan.playsound_volume == 3) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, options_on_click, "rarescan", "playsound_volume", 3)
+					
+					GameCooltip:AddLine ("Play Even When Sound Effects Are Disabled", "", 2)
+					if (WorldQuestTracker.db.profile.rarescan.use_master) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, options_on_click, "rarescan", "use_master", not WorldQuestTracker.db.profile.rarescan.use_master)
+
 				-- other options
 				GameCooltip:AddLine ("$div")
 				--
@@ -11439,6 +11507,7 @@ function WorldQuestTracker.GetWorldWidgetForQuest (questID)
 	end
 end
 
+-- ~world
 function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQuestFlaggedRecheck, forceCriteriaAnimation)
 
 	--print (debugstack())
@@ -11668,6 +11737,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 						
 						--info
 						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
+						
 						--tempo restante
 						local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
 						if (timeLeft == 0) then
