@@ -190,7 +190,7 @@ local default_config = {
 			recently_killed = {},
 			name_cache = {},
 			playsound = true,
-			playsound_volume = 1,
+			playsound_volume = 2,
 			use_master = true,
 		},
 		
@@ -498,6 +498,16 @@ hooksecurefunc ("TaskPOI_OnEnter", function (self)
 	--WorldMapTooltip:AddLine ("quest ID: " .. self.questID)
 	--print (self.questID)
 	WorldQuestTracker.CurrentHoverQuest = self.questID
+	if (self.Texture and self.IsZoneQuestButton) then
+		self.Texture:SetBlendMode ("ADD")
+	end
+end)
+
+hooksecurefunc ("TaskPOI_OnLeave", function (self)
+	WorldQuestTracker.CurrentHoverQuest = nil
+	if (self.Texture and self.IsZoneQuestButton) then
+		self.Texture:SetBlendMode ("BLEND")
+	end
 end)
 
 function WorldQuestTracker.RareWidgetOnEnter (self)
@@ -524,17 +534,26 @@ function WorldQuestTracker.RareWidgetOnEnter (self)
 		
 		GameCooltip:Show()
 		GameTooltip:Hide()
+		
+		if (not WorldMapFrame_InWindowedMode()) then
+			GameCooltipFrame1:SetParent (WorldMapFrame)
+			GameCooltipFrame1:SetFrameLevel (4000)
+		end
+		
+		parent.TextureCustom:SetBlendMode ("ADD")
 	end
 	
 end
 
 function WorldQuestTracker.RareWidgetOnLeave (self)
 	GameCooltip:Hide()
+	if (not WorldMapFrame_InWindowedMode()) then
+		GameCooltipFrame1:SetParent (UIParent)
+	end
+	self:GetParent().TextureCustom:SetBlendMode ("BLEND")
 end
 
-hooksecurefunc ("TaskPOI_OnLeave", function (self)
-	WorldQuestTracker.CurrentHoverQuest = nil
-end)
+
 --enddebug
 
 local all_widgets = {}
@@ -4728,8 +4747,13 @@ function WorldQuestTracker.RefreshStatusBar()
 	if (WorldQuestTracker.DoubleTapFrame and not InCombatLockdown()) then
 		if (WorldQuestTracker.IsWorldQuestHub (GetCurrentMapAreaID()) or WorldQuestTracker.ZoneHaveWorldQuest (GetCurrentMapAreaID())) then
 			WorldQuestTracker.DoubleTapFrame:Show()
+			WorldQuestTracker.DoubleTapFrame:SetParent (WorldQuestTrackerWorldMapPOI)
+			WorldQuestTracker.DoubleTapFrame:SetFrameStrata ("DIALOG")
+			WorldQuestTracker.DoubleTapFrame:SetFrameLevel (5000)
+			WorldQuestTracker.Debug ("is a map with worldquests: showing statusbar", WorldQuestTracker.DoubleTapFrame:IsShown(), WorldQuestTracker.DoubleTapFrame:GetParent():GetName())
 		else
 			WorldQuestTracker.DoubleTapFrame:Hide()
+			WorldQuestTracker.Debug ("hiding the statusbar")
 		end
 	end
 end
