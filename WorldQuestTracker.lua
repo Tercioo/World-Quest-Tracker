@@ -192,6 +192,7 @@ local default_config = {
 			playsound = true,
 			playsound_volume = 2,
 			use_master = true,
+			always_use_english = true,
 		},
 		
 		disable_world_map_widgets = false,
@@ -954,7 +955,9 @@ function WorldQuestTracker:OnInit()
 					--> is search for invasions enabled?
 					if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
 						--WorldQuestTracker.FindGroupForCustom (mapFileName, invasionName, "click to search for groups")
-						WorldQuestTracker.FindGroupForCustom (invasionName, invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"])
+						local callback = nil
+						local ENNameFromMapFileName = mapFileName:gsub ("InvasionPoint", "")
+						WorldQuestTracker.FindGroupForCustom (invasionName, invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point " .. invasionName .. ". Group created with World Quest Tracker #EN Invasion Point: " .. (ENNameFromMapFileName or "") .. " ", callback)
 					end
 				end					
 			end
@@ -1549,6 +1552,72 @@ rf.RaresQuestIDs = {
 	[126908] = 48719, --zultan the numerous	
 }
 
+rf.RaresENNames = {
+	[126338] = "wrath-lord yarez",
+	[126852] = "wrangler kravos",
+	[122958] = "blistermaw",
+	[127288] = "houndmaster kerrax",
+	[126912] = "skreeg the devourer",
+	[126867] = "venomtail skyfin",
+	[126862] = "baruut the bloodthirsty",
+	[127703] = "doomcaster suprax",
+	[126900] = "instructor tarahna",
+	[126860] = "kaara the pale",
+	[126419] = "naroua",
+	[126898] = "sabuul",
+	[126208] = "varga",
+	[127705] = "mother rosula",
+	[127706] = "rezira the seer",
+	[123464] = "sister subversia",
+	[127700] = "squadron commander vishax",
+	[127581] = "the many faced devourer",
+	[126887] = "ataxon",
+	[127090] = "admiral rel'var",
+	[120393] = "siegemaster voraan",
+	[127096] = "all-seer xanarian",
+	[126199] = "vrax'thul",
+	[127376] = "chief alchemist munculus",
+	[127300] = "void warden valsuran",
+	[125820] = "imp mother laglath",
+	[125388] = "vagath the betrayed",
+	[123689] = "talestra the vile",
+	[127118] = "worldsplitter skuul",
+	[124804] = "tereck the selector",
+	[125479] = "tar spitter",
+	[122911] = "commander vecaya",
+	[125824] = "khazaduum",
+	[122912] = "commander sathrenael",
+	[124775] = "commander endaxis",
+	[127704] = "soultender videx",
+	[126040] = "puscilla",
+	[127291] = "watcher aival",
+	[127090] = "admiral relvar",
+	[122999] = "gar'zoth",
+	[122947] = "mistress il'thendra",
+	[127581] = "the many faced devourer",
+	[126115] = "ven'orn",
+	[126254] = "lieutenant xakaar",
+	[127084] = "commander texlaz",
+	[126946] = "inquisitor vethroz",
+	[126865] = "vigilant thanos",
+	[126869] = "captain faruq",
+	[126896] = "herald of chaos",
+	[126899] = "jed'hin champion vorusk",
+	[125497] = "overseer y'sorna",
+	[126910] = "commander xethgar",
+	[126913] = "slithon the last",
+	[122838] = "shadowcaster voruun",
+	[126815] = "soultwisted monstrosity",
+	[126864] = "feasel the muffin thief",
+	[126866] = "vigilant kuro",
+	[126868] = "turek the lucid",
+	[126885] = "umbraliss",
+	[126889] = "sorolis the ill-fated",
+	[124440] = "overseer y'beda",
+	[125498] = "overseer y'morna",
+	[126908] = "zul'tan the numerous",
+}
+
 rf.COMM_IDS = {
 	RARE_SPOTTED = "RS",
 	RARE_REQUEST = "RR",
@@ -1958,14 +2027,21 @@ function rf.IsTargetARare()
 					rf.LastRareSerial = serial
 					rf.LastRareName = rareName
 					
-					--already searching?
-					if (not ff:IsShown() and not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then
-						--> search for a group?
+					--find group or create a group for this rare
+					if (not ff:IsShown() and not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then --> is already searching?
+						--> is search for group enabled?
 						if (WorldQuestTracker.db.profile.rarescan.search_group) then
 							--> check if the rare isn't a world quest
 							local isWorldQuest = rf.IsRareAWorldQuest (rareName)
 							if (not isWorldQuest) then
-								WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"])
+								local callback = nil
+								--WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group create with World Quest Tracker #NPCID" .. npcId .. "#ENUS " .. (rf.RaresENNames [npcId] or "") .. " ", callback)
+								local EnglishRareName = rf.RaresENNames [npcId]
+								if (EnglishRareName and WorldQuestTracker.db.profile.rarescan.always_use_english) then
+									WorldQuestTracker.FindGroupForCustom (EnglishRareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (rareName or "") .. " ", callback)
+								else
+									WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (EnglishRareName or "") .. " ", callback)
+								end
 							end
 						end
 					end
@@ -1980,7 +2056,8 @@ function rf.IsTargetARare()
 						if (WorldQuestTracker.db.profile.rarescan.search_group) then
 							--> check if the rare isn't a world quest
 							local rareName = UnitName ("target")
-							WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH"])
+							local callback= nil
+							WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point boss encounter against " .. rareName .. " Group created with World Quest Tracker #NPCID" .. npcId, callback)
 							WorldQuestTracker.Debug ("IsTargetARare() > invasion boss detected.")
 						end
 					end
@@ -2878,6 +2955,7 @@ end
 			ff.SetCurrentActionText (message)
 			interactionButton.ToSearchCustom = true
 			ff.SearchCustom = true
+			ff.ShowSecondaryInteractionButton (ff.actions.ACTIONTYPE_GROUP_CREATE, L["S_GROUPFINDER_ACTIONS_CREATE_DIRECT"])
 		
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHANOTHER) then
 			ff.SetCurrentActionText (message or L["S_GROUPFINDER_ACTIONS_SEARCHOTHER"])
@@ -2984,37 +3062,6 @@ end
 				--> update the anchor
 				ff.UpdateButtonAnchorOnBBlock (block, ff.BQuestTrackerUsedWidgets [block])
 			end
-		end
-	end
-	
-	
-	function ff.NewWorldQuestEngaged (questName, questID, isSearchOnCustom, customTitle, customDesc)
-		--> reset the gump
-		ff.ShutdownOnTickScript (true)
-		ff.ResetInteractionButton()
-		ff.ResetMembers()
-		
-		--> update the interactive button to current quest
-		interactionButton.questName = questName or isSearchOnCustom
-		interactionButton.questID = questID or 0
-		interactionButton.HadInteraction = nil
-		
-		ff.AFKCheckList = ff.AFKCheckList or {}
-		wipe (ff.AFKCheckList)
-		
-		if (not isSearchOnCustom) then
-			ff.SetQuestTitle (questName .. " (" .. questID .. ")")
-			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCH)
-		else
-			ff.SetQuestTitle (customTitle or isSearchOnCustom)
-			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHCUSTOM, customDesc)
-		end
-		
-		ff.HasLeadership = false
-		
-		--> show the main frame
-		if (not ff.IsRegistered) then
-			WorldQuestTracker.RegisterGroupFinderFrameOnLibWindow()
 		end
 	end
 	
@@ -3259,7 +3306,9 @@ end
 			local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (resultID)
 			
 			--print (members) --is always an int?
-			if (isAuto and not isDelisted and name == interactionButton.questName and ilvl <= GetAverageItemLevel()) then -- and members < 5
+			--print ("resultado:", name, interactionButton.questName)
+			
+			if (isAuto and not isDelisted and ilvl <= GetAverageItemLevel()) then -- and members < 5 -- and name == interactionButton.questName
 				local isPVP = ff.IsPVPRealm (desc)
 				if (not WorldQuestTracker.db.profile.groupfinder.nopvp) then
 					tinsert (t, {resultID, (numBNetFriends or 0) + (numCharFriends or 0) + (numGuildMates or 0), members or 0, isPVP and 0 or 1})
@@ -3332,7 +3381,8 @@ end
 	end
 	
 	function ff.StartSearchForCustom()
-		C_LFGList.Search (6, LFGListSearchPanel_ParseSearchTerms (interactionButton.questName)) --ignora os filtros
+		local terms = LFGListSearchPanel_ParseSearchTerms (interactionButton.questName)
+		C_LFGList.Search (6, terms) --ignora os filtros
 		C_Timer.After (2, ff.SearchCompleted)
 	end
 	
@@ -3341,20 +3391,20 @@ end
 		C_Timer.After (2, ff.SearchCompleted)
 	end
 	
-	function ff.CreateNewListing (questID, questName)
+	function ff.CreateNewListing (questID, questName, AddToDesc)
 		local pvpType = GetZonePVPInfo()
 		local pvpTag
 		if (pvpType == "contested") then
-			pvpTag = "@PVP"
+			pvpTag = "#PVP"
 		else
 			pvpTag = ""
 		end
 
 		local groupDesc
 		if (questID == 0) then
-			groupDesc = "Doing rare encounter against " .. questName .. ". Group created with World Quest Tracker. @ID" .. questID .. pvpTag
+			groupDesc = (ff.SearchCustomGroupDesc or "") .. "#ID" .. questID .. pvpTag
 		else
-			groupDesc = "Doing world quest " .. questName .. ". Group created with World Quest Tracker. @ID" .. questID .. pvpTag
+			groupDesc = "Doing world quest " .. questName .. ". Group created with World Quest Tracker. #ID" .. questID .. pvpTag .. (AddToDesc or "")
 		end
 
 		local itemLevelRequired = 0
@@ -3363,14 +3413,7 @@ end
 		local isPrivate = false
 		
 		if (questID == 0) then
-			--local matchingActivities = C_LFGList.GetAvailableActivities (6, 0, "", questName)
-			--print (matchingActivities [1])
-			
-			--self, activityID, name, itemLevel, honorLevel, voiceChatInfo, description, autoAccept, privateGroup, questID
-			--16, "teste", 0, 0, "", "descricao", false, false, 
-			
 			C_LFGList.CreateListing (16, questName, itemLevelRequired, honorLevelRequired, "", groupDesc, isAutoAccept, isPrivate)
-			--C_LFGList.CreateListing (lfgID, "groupName", itemLevel, honorLevel, "voiceChat", "comment", autoAccept, privateGroup[, questID])
 		else
 			C_LFGList.CreateListing (C_LFGList.GetActivityIDForQuestID (questID) or 469, "", itemLevelRequired, honorLevelRequired, "", groupDesc, isAutoAccept, isPrivate, questID)
 		end
@@ -3401,7 +3444,12 @@ end
 		
 		--> parse the action
 		if (self.ToSearch) then
-			ff.StartSearch()
+			if (not ff.SearchCustom) then
+				ff.StartSearch()
+			else
+				ff.StartSearchForCustom()
+			end
+			
 			self.ToSearch = nil
 			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHING)
 			
@@ -3514,7 +3562,7 @@ end
 			local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (interactionButton.GroupsToApply [interactionButton.GroupsToApply.n])
 			local isPreviousLeader = ff.PreviousLeader and ((ff.PreviousLeader == leaderName) or (leaderName:find (ff.PreviousLeader)))
 			
-			if (isAuto and not isDelisted and name == interactionButton.questName and ilvl <= GetAverageItemLevel() and not isPreviousLeader) then -- and members < 5
+			if (isAuto and not isDelisted and ilvl <= GetAverageItemLevel() and not isPreviousLeader) then -- and members < 5 --name == interactionButton.questName and
 				--print ("Applying:", interactionButton.GroupsToApply [interactionButton.GroupsToApply.n], "WorldQuestTrackerInvite-" .. self.questName, UnitGetAvailableRoles ("player"))
 
 				--Usage: ApplyToGroup(resultID, comment, tankOK, healerOK, damageOK)
@@ -3562,13 +3610,14 @@ end
 		ff.FindGroupForQuest (questID)
 	end
 	
-	function WorldQuestTracker.FindGroupForCustom (searchString, customTitle, customDesc, callback)
-		ff.FindGroupForQuest (searchString, nil, true, customTitle, customDesc, callback)
+	function WorldQuestTracker.FindGroupForCustom (searchString, customTitle, customDesc, customGroupDescription, callback)
+		ff.FindGroupForQuest (searchString, nil, true, customTitle, customDesc, customGroupDescription, callback)
 	end
 	
-	function ff.FindGroupForQuest (questID, fromOTButton, isSearchOnCustom, customTitle, customDesc, callback)
+	function ff.FindGroupForQuest (questID, fromOTButton, isSearchOnCustom, customTitle, customDesc, customGroupDescription, callback)
 		--> reset the search type
 		ff.SearchCustom = nil
+		ff.SearchCustomGroupDesc = nil
 		ff.SearchCallback = nil
 		
 		if (callback) then
@@ -3576,7 +3625,7 @@ end
 		end
 		
 		if (isSearchOnCustom) then
-			ff.NewWorldQuestEngaged (nil, nil, questID, customTitle, customDesc)
+			ff.NewWorldQuestEngaged (nil, nil, questID, customTitle, customDesc, customGroupDescription)
 			return
 		end
 	
@@ -3593,6 +3642,40 @@ end
 			end
 		end
 	end
+	
+	function ff.NewWorldQuestEngaged (questName, questID, isSearchOnCustom, customTitle, customDesc, customGroupDescription)
+		--> reset the gump
+		ff.ShutdownOnTickScript (true)
+		ff.ResetInteractionButton()
+		ff.ResetMembers()
+		
+		--> update the interactive button to current quest
+		interactionButton.questName = questName or isSearchOnCustom
+		interactionButton.questID = questID or 0
+		interactionButton.HadInteraction = nil
+		
+		ff.AFKCheckList = ff.AFKCheckList or {}
+		wipe (ff.AFKCheckList)
+		
+		if (not isSearchOnCustom) then
+			--> normal search for quests
+			ff.SetQuestTitle (questName .. " (" .. questID .. ")")
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCH)
+			
+		else
+			--> custom searchs
+			ff.SearchCustomGroupDesc = customGroupDescription
+			ff.SetQuestTitle (customTitle or isSearchOnCustom)
+			ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCHCUSTOM, customDesc)
+		end
+		
+		ff.HasLeadership = false
+		
+		--> show the main frame
+		if (not ff.IsRegistered) then
+			WorldQuestTracker.RegisterGroupFinderFrameOnLibWindow()
+		end
+	end	
 	
 	function ff.DelayedCheckForDisband()
 		--> everyone from player group could be gone, check if the quest is valid and if still  doing it
@@ -7815,6 +7898,15 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 					GameCooltip:AddMenu (2, options_on_click, "rarescan", "show_icons", not WorldQuestTracker.db.profile.rarescan.show_icons)	
 
+					--english only
+					GameCooltip:AddLine (L["S_RAREFINDER_OPTIONS_ENGLISHSEARCH"], "", 2)
+					if (WorldQuestTracker.db.profile.rarescan.always_use_english) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, options_on_click, "rarescan", "always_use_english", not WorldQuestTracker.db.profile.rarescan.always_use_english)	
+					
 					GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
 					
 					--play audion on spot a rare
