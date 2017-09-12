@@ -957,7 +957,11 @@ function WorldQuestTracker:OnInit()
 						--WorldQuestTracker.FindGroupForCustom (mapFileName, invasionName, "click to search for groups")
 						local callback = nil
 						local ENNameFromMapFileName = mapFileName:gsub ("InvasionPoint", "")
-						WorldQuestTracker.FindGroupForCustom (invasionName, invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point " .. invasionName .. ". Group created with World Quest Tracker #EN Invasion Point: " .. (ENNameFromMapFileName or "") .. " ", callback)
+						if (ENNameFromMapFileName and WorldQuestTracker.db.profile.rarescan.always_use_english) then
+							WorldQuestTracker.FindGroupForCustom ("Invasion Point: " .. (ENNameFromMapFileName or ""), invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point " .. invasionName .. ". Group created with World Quest Tracker #EN Invasion Point: " .. (ENNameFromMapFileName or "") .. " ", callback)
+						else
+							WorldQuestTracker.FindGroupForCustom (invasionName, invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point " .. invasionName .. ". Group created with World Quest Tracker #EN Invasion Point: " .. (ENNameFromMapFileName or "") .. " ", callback)
+						end
 					end
 				end					
 			end
@@ -12473,4 +12477,5 @@ hooksecurefunc (WorldMapFrame.UIElementsFrame.BountyBoard, "AnchorBountyTab", fu
 	end
 end)
 
--- doq dow endf
+
+-- stop auto complete doq dow endf thena
