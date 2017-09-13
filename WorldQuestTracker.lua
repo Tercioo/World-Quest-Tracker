@@ -1636,9 +1636,9 @@ rf.RaresENNames = {
 }
 
 rf.COMM_IDS = {
-	RARE_SPOTTED = "RS",
-	RARE_REQUEST = "RR",
-	RARE_LIST = "RL",
+	RARE_SPOTTED = "RS1",
+	RARE_REQUEST = "RR1",
+	RARE_LIST = "RL1",
 }
 
 --> enum spotted comm indexes
@@ -1674,8 +1674,6 @@ rf.RARETABLE = {
 	WHOSPOTTED = 7;
 	SERVERTIME = 8;
 }
-
-
 
 function WorldQuestTracker.RequestRares()
 	if (IsInGuild()) then
@@ -1772,6 +1770,9 @@ function rf.ValidateCommData (validData, commType)
 		elseif (not validData [8] or type (validData[8]) ~= "number") then --playerY
 			WorldQuestTracker.Debug ("ValidateCommData() > received invalid data on comm ID RARE_SPOTTED: [8]")
 			return
+		elseif (not validData [10] or type (validData[10]) ~= "number") then --time()
+			WorldQuestTracker.Debug ("ValidateCommData() > received invalid data on comm ID RARE_SPOTTED: [10]")
+			return
 		end
 	
 		return true
@@ -1833,14 +1834,8 @@ function WorldQuestTracker:CommReceived (_, data)
 			local localTime = validData [rf.COMM_RARE_SPOTTED.LOCALTIME]
 			
 			--> local time is a new index, lock the spotted rare within a 1 hour timezone
-			if (localTime and type (localTime) == "number") then
-				if (not rf.HasValidTime (localTime)) then
-					WorldQuestTracker.Debug ("CommReceived() > received a rare with an invalid time COMM_IDS.RARE_SPOTTED from " .. (whoSpotted or "invalid whoSpotted") .. " on " .. (sourceChannel or "invalid sourceChannel"), 2)
-					return
-				end
-			end
-			
-			if (not localTime) then
+			if (not rf.HasValidTime (localTime)) then
+				WorldQuestTracker.Debug ("CommReceived() > received a rare with an invalid time COMM_IDS.RARE_SPOTTED from " .. (whoSpotted or "invalid whoSpotted") .. " on " .. (sourceChannel or "invalid sourceChannel"), 2)
 				return
 			end
 			
@@ -2298,7 +2293,7 @@ function WorldQuestTracker.CheckForOldRareFinderData()
 	
 	--> check for outdated spotted rares
 	for npcId, rareTable in pairs (WorldQuestTracker.db.profile.rarescan.recently_spotted) do
-		if (rareTable [rf.RARETABLE.TIMESPOTTED] + 3600 < now) then
+		if (rareTable [rf.RARETABLE.TIMESPOTTED] + 3600 < now or now + 3600 < rareTable [rf.RARETABLE.TIMESPOTTED]) then
 			--> remove the npc from the list
 			WorldQuestTracker.db.profile.rarescan.recently_spotted [npcId] = nil
 			WorldQuestTracker.Debug ("CheckForOldRareFinderData > outdated entry removed: " .. rareTable [6] .. " ID: " .. npcId)
@@ -2825,6 +2820,7 @@ end
 		[48358] = true, --supplies-needed-empyrium
 		[48349] = true, --supplies-needed-empyrium
 		[48374] = true, --supplies-needed-lightweave-cloth
+		[48373] = true, --supplies-needed-lightweave-cloth
 		
 		--other quests
 		[45988] = true, --ancient bones broken shore
