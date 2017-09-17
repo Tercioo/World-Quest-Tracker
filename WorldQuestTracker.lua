@@ -97,6 +97,9 @@ if (not FindLookAtRotation) then
 	end
 end
 
+--> expose group and rare finder frames
+local ff, rf
+
 local WQT_QUESTTYPE_MAX = 9
 local WQT_QUESTTYPE_GOLD = "gold"
 local WQT_QUESTTYPE_RESOURCE = "resource"
@@ -189,10 +192,15 @@ local default_config = {
 			recently_spotted = {},
 			recently_killed = {},
 			name_cache = {},
-			playsound = true,
+			playsound = false,
 			playsound_volume = 2,
+			playsound_warnings = 0,
 			use_master = true,
 			always_use_english = true,
+			add_from_premade = false,
+			autosearch = true,
+			autosearch_cooldown = 1800,
+			autosearch_share = false,
 		},
 		
 		disable_world_map_widgets = false,
@@ -419,6 +427,7 @@ WorldQuestTracker.WorldQuestButton_Click = 0
 WorldQuestTracker.Temp_HideZoneWidgets = 0
 WorldQuestTracker.lastZoneWidgetsUpdate = 0
 WorldQuestTracker.lastMapTap = 0
+WorldQuestTracker.LastGFSearch = 0
 WorldQuestTracker.SoundPitch = math.random (2)
 WorldQuestTracker.RarityColors = {
 	[3] = "|cff2292FF",
@@ -530,8 +539,16 @@ function WorldQuestTracker.RareWidgetOnEnter (self)
 		GameCooltip:SetOption ("FixedWidth", false)
 		
 		GameCooltip:AddLine (parent.RareName, "", 1, "WQT_ORANGE_YELLOW_RARE_TITTLE", nil, 11)
-		GameCooltip:AddLine (L["S_RAREFINDER_TOOLTIP_SPOTTEDBY"] .. ": ", "" .. (parent.RareOwner or ""))
+		GameCooltip:AddLine (L["S_RAREFINDER_TOOLTIP_SPOTTEDBY"] .. ": ", "" .. (parent.RareOwner or ""), 1, nil, parent.RareOwner:find ("%-") and "gray" or nil)
 		GameCooltip:AddLine ("" .. floor (t/60) .. ":" .. format ("%02.f", t%60) .. " " .. L["S_RAREFINDER_TOOLTIP_TIMEAGO"] .. "", "", 1, {colorR/255, colorG/255, 0})
+		
+		GameCooltip:AddLine ("", "", 1, {colorR/255, colorG/255, 0})
+		
+		GameCooltip:AddLine (L["S_RAREFINDER_TOOLTIP_SEACHREALM"], "", 1, "WQT_ORANGE_YELLOW_RARE_TITTLE")
+		GameCooltip:AddIcon ("Interface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME", 1, 1, 12, 12, 0/512, 70/512, 224/512, 306/512)
+		
+		GameCooltip:AddLine (L["S_RAREFINDER_TOOLTIP_REMOVE"], "", 1, "WQT_ORANGE_YELLOW_RARE_TITTLE")
+		GameCooltip:AddIcon ("Interface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME", 1, 1, 12, 12, 0/512, 70/512, 328/512, 409/512)
 		
 		GameCooltip:Show()
 		GameTooltip:Hide()
@@ -552,6 +569,31 @@ function WorldQuestTracker.RareWidgetOnLeave (self)
 		GameCooltipFrame1:SetParent (UIParent)
 	end
 	self:GetParent().TextureCustom:SetBlendMode ("BLEND")
+end
+
+function WorldQuestTracker.RareWidgetOnClick (self, button)
+	if (button == "LeftButton") then
+		local parent = self:GetParent()
+		local npcId = WorldQuestTracker:GetNpcIdFromGuid (parent.RareSerial)
+		if (npcId) then
+			local callback = nil
+			local EnglishRareName = rf.RaresENNames [npcId]
+			local rareName = parent.RareName
+			if (EnglishRareName and WorldQuestTracker.db.profile.rarescan.always_use_english) then
+				WorldQuestTracker.FindGroupForCustom (EnglishRareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (rareName or "") .. " ", callback)
+			else
+				WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (EnglishRareName or "") .. " ", callback)
+			end
+		end
+		
+	elseif (button == "RightButton") then
+		local parent = self:GetParent()
+		local npcId = WorldQuestTracker:GetNpcIdFromGuid (parent.RareSerial)
+		if (npcId and WorldQuestTracker.db.profile.rarescan.recently_spotted [npcId]) then
+			WorldQuestTracker.db.profile.rarescan.recently_spotted [npcId] = nil
+			parent:Hide()
+		end
+	end
 end
 
 
@@ -1329,7 +1371,7 @@ end
 --> ~rare ~finder ~groupfinder
 
 --finder frame
-local ff = CreateFrame ("frame", nil, UIParent)
+ff = CreateFrame ("frame", nil, UIParent)
 ff:SetSize (240, 100)
 ff:SetBackdrop ({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
 ff:SetBackdropColor (0, 0, 0, 1)
@@ -1342,7 +1384,7 @@ ff:Hide()
 -- /run WorldQuestTrackerAddon.debug = true;
 
 --> rare finder frame
-local rf = CreateFrame ("frame", nil, UIParent)
+rf = CreateFrame ("frame", nil, UIParent)
 rf:RegisterEvent ("VIGNETTE_ADDED")
 rf:RegisterEvent ("PLAYER_TARGET_CHANGED")
 
@@ -1484,7 +1526,7 @@ rf.RaresLocations = {
 	[126910] = {x = 56.8, y = 14.5}, --commander xethgar
 	[126913] = {x = 49.5, y = 52.8}, --slithon the last
 	[122838] = {x = 44.6, y = 71.6}, --shadowcaster voruun
-	[126815] = {x = 65.3, y = 67.5}, --soultwisted monstrosity
+	[126815] = {x = 53.0, y = 67.5}, --soultwisted monstrosity 
 	[126864] = {x = 41.3, y = 11.6}, --feasel the muffin thief
 	[126866] = {x = 63.8, y = 64.6}, --vigilant kuro
 	[126868] = {x = 39.2, y = 66.6}, --turek the lucid
@@ -1635,6 +1677,75 @@ rf.RaresENNames = {
 	[124719] = "pit lord vilemus",
 }
 
+rf.RaresIgnored = {
+	[127581] = true, --the many faced devourer
+	[127703] = true, --doomcaster suprax
+	[127706] = true, --rezira the seer
+}
+
+rf.ENRareNameToZoneID = {
+	["sister subversia"] = 1135,
+	["admiral rel'var"] = 1171,	
+	["chief alchemist munculus"] = 1171,
+	["wrangler kravos"] = 1170,
+	["commander texlaz"] = 1171,
+	["commander endaxis"] = 1135,
+	["turek the lucid"] = 1170,
+	["commander sathrenael"] = 1135,	
+	["baruut the bloodthirsty"] = 1170,
+	["watcher aival"] = 1171,
+	["captain faruq"] = 1170,	
+	["mistress il'thendra"] = 1171,
+	["houndmaster kerrax"] = 1171,	
+	["mother rosula"] = 1171,
+	["slithon the last"] = 1170,
+	["puscilla"] = 1171,
+	["imp mother laglath"] = 1135,
+	["rezira the seer"] = 1171,
+	["squadron commander vishax"] = 1171,
+	["skreeg the devourer"] = 1170,	
+	["the many-faced devourer"] = 1171,
+	["umbraliss"] = 1170,
+	["varga"] = 1171,
+	["ven'orn"] = 1171,
+	["all-seer xanarian"] = 1171,
+	["vigilant kuro"] = 1170,
+	["vrax'thul"] = 1171,
+	["gar'zoth"] = 1171,
+	["blistermaw"] = 1171,
+	["inquisitor vethroz"] = 1171,	
+	["lieutenant xakaar"] = 1171,	
+	["soultwisted monstrosity"] = 1170,
+	["wrath-lord yarez"] = 1171,
+	["zul'tan the numerous"] = 1170,	
+	["khazaduum"] = 1135,
+	["vigilant thanos"] = 1170,
+	["naroua"] = 1135,
+	["siegemaster voraan"] = 1135,	
+	["talestra the vile"] = 1135,
+	["tar spitter"] = 1135,
+	["tereck the selector"] = 1135,
+	["doomcaster suprax"] = 1171,
+	["vagath the betrayed"] = 1135,	
+	["feasel the muffin thief"] = 1170,
+	["herald of chaos"] = 1170,
+	["instructor tarahna"] = 1170,
+	["jed'hin champion vorusk"] = 1170,
+	["kaara the pale"] = 1170,	
+	["void warden valsuran"] = 1171,
+	["overseer y'beda"] = 1170,
+	["overseer y'morna"] = 1170,
+	["ataxon"] = 1170,
+	["commander vecaya"] = 1135,
+	["overseer y'sorna"] = 1170,
+	["sabuul"] = 1170,
+	["shadowcaster voruun"] = 1170,
+	["worldsplitter skuul"] = 1171,
+	["sorolis the ill-fated"] = 1170,
+	["commander xethgar"] = 1170,
+	["venomtail skyfin"] = 1170,
+}
+
 rf.COMM_IDS = {
 	RARE_SPOTTED = "RS1",
 	RARE_REQUEST = "RR1",
@@ -1673,6 +1784,7 @@ rf.RARETABLE = {
 	RARENAME = 6;
 	WHOSPOTTED = 7;
 	SERVERTIME = 8;
+	FROMPREMADE = 9;
 }
 
 function WorldQuestTracker.RequestRares()
@@ -1721,7 +1833,16 @@ function rf.SendRareList (channel)
 	end
 
 	--> build the list to be shared
-	local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_LIST, UnitName ("player"), WorldQuestTracker.db.profile.rarescan.recently_spotted, channel})
+	local listToSend = {}
+	
+	--> do not share rares found on premade groups, they aren't reliable
+	for npcId, rareTable in ipairs (WorldQuestTracker.db.profile.rarescan.recently_spotted) do
+		if (not rareTable [rf.RARETABLE.FROMPREMADE]) then
+			listToSend [npcId] = rareTable
+		end
+	end
+	
+	local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_LIST, UnitName ("player"), listToSend, channel})
 	WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, channel)
 	rf.FullRareListSendCooldown = time()
 	WorldQuestTracker.Debug ("SendRareList () > sent list of rares > COMM_IDS.RARE_LIST on channel " .. (channel or "invalid channel"))
@@ -1962,7 +2083,7 @@ function rf.GetMyNpcKilledList()
 	end
 end
 
-function rf.RareSpotted (whoSpotted, sourceChannel, rareName, rareSerial, mapID, playerX, playerY, isReliable, localTime)
+function rf.RareSpotted (whoSpotted, sourceChannel, rareName, rareSerial, mapID, playerX, playerY, isReliable, localTime, fromPreMade)
 	local npcId = WorldQuestTracker:GetNpcIdFromGuid (rareSerial)
 	
 	--> add to the name cache
@@ -1978,7 +2099,7 @@ function rf.RareSpotted (whoSpotted, sourceChannel, rareName, rareSerial, mapID,
 	local rareTable = WorldQuestTracker.db.profile.rarescan.recently_spotted [npcId]
 	if (not rareTable) then
 		--> do not have any reference of this rare, add a new table
-		rareTable = {isReliable and time() or (localTime or time()), mapID, playerX, playerY, rareSerial, rareName, whoSpotted, GetServerTime()}
+		rareTable = {isReliable and time() or (localTime or time()), mapID, playerX, playerY, rareSerial, rareName, whoSpotted, GetServerTime(), fromPreMade}
 		WorldQuestTracker.db.profile.rarescan.recently_spotted [npcId] = rareTable
 		WorldQuestTracker.Debug ("RareSpotted() > added new npc: " .. rareName)
 	else
@@ -2052,7 +2173,7 @@ end
 --/run WorldQuestTrackerAddon.debug = true;
 
 function rf.IsTargetARare()
-	if (UnitExists ("target")) then
+	if (UnitExists ("target") and not UnitIsDead ("target")) then
 		local serial = UnitGUID ("target")
 		local npcId = WorldQuestTracker:GetNpcIdFromGuid (serial)
 		if (npcId) then
@@ -2211,7 +2332,7 @@ function WorldQuestTracker.UpdateRareIcons (index, mapID)
 	
 	for npcId, rareTable in pairs (WorldQuestTracker.db.profile.rarescan.recently_spotted) do
 		local timeSpotted = rareTable [rf.RARETABLE.TIMESPOTTED]
-		if (timeSpotted + 3600 > time() and not alreadyKilled [npcId]) then
+		if (timeSpotted + 3600 > time() and not alreadyKilled [npcId] and not rf.RaresIgnored [npcId]) then
 			local questCompleted = false
 			local npcQuestCompletedID = rf.RaresQuestIDs [npcId]
 			if (npcQuestCompletedID and IsQuestFlaggedCompleted (npcQuestCompletedID)) then
@@ -2225,8 +2346,8 @@ function WorldQuestTracker.UpdateRareIcons (index, mapID)
 			
 				--> check if the rare isn't part of a world quest
 				local isWorldQuest = rf.IsRareAWorldQuest (rareName)
-				if (not isWorldQuest) then
-				
+				if (not isWorldQuest and rareTable [rf.RARETABLE.WHOSPOTTED]) then
+					
 					local positionX = rareTable [rf.RARETABLE.PLAYERX]
 					local positionY = rareTable [rf.RARETABLE.PLAYERY]
 					local rareSerial = rareTable [rf.RARETABLE.RARESERIAL]
@@ -2319,28 +2440,34 @@ function rf.ScanMinimapForRares()
 				local npcId = WorldQuestTracker.db.profile.rarescan.name_cache [name]
 				if (npcId and rf.RaresToScan [npcId]) then
 					if (not rf.MinimapScanCooldown [npcId] or rf.MinimapScanCooldown [npcId]+10 < time()) then
-					
-						--> make sure the spotted minimap rare isn't the player target
-						local targetSerial = UnitGUID ("target") or ""
-						local targetNpcId = WorldQuestTracker:GetNpcIdFromGuid (targetSerial)
-
-						if (npcId ~= targetNpcId) then
-							local x, y = GetPlayerMapPosition ("player")
-							local map = GetCurrentMapAreaID()
-							local rareName = name
-							serial = "Creature-0-0000-0000-00000-" .. npcId .. "-0000000000"
-							
-							local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_SPOTTED, UnitName ("player"), "GUILD", rareName, serial, map, x, y, true, time()})
-							
-							WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, "GUILD")
-							
-							if (WorldQuestTracker.db.profile.rarescan.playsound) then
-								PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\rare_found" .. WorldQuestTracker.db.profile.rarescan.playsound_volume .. ".ogg", WorldQuestTracker.db.profile.rarescan.use_master and "Master" or "SFX")
+						local isWorldQuest = rf.IsRareAWorldQuest (name)
+						if (not isWorldQuest) then
+							--> make sure the spotted minimap rare isn't the player target
+							local targetSerial = UnitGUID ("target") or ""
+							local targetNpcId = WorldQuestTracker:GetNpcIdFromGuid (targetSerial)
+						
+							if (npcId ~= targetNpcId) then
+								local x, y = GetPlayerMapPosition ("player")
+								local map = GetCurrentMapAreaID()
+								local rareName = name
+								serial = "Creature-0-0000-0000-00000-" .. npcId .. "-0000000000"
+								
+								local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_SPOTTED, UnitName ("player"), "GUILD", rareName, serial, map, x, y, true, time()})
+								
+								WorldQuestTracker:SendCommMessage (WorldQuestTracker.COMM_PREFIX, data, "GUILD")
+								
+								if (WorldQuestTracker.db.profile.rarescan.playsound and (not rf.MinimapScanCooldown [npcId] or rf.MinimapScanCooldown [npcId]+60 < time())) then
+									PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\rare_found" .. WorldQuestTracker.db.profile.rarescan.playsound_volume .. ".ogg", WorldQuestTracker.db.profile.rarescan.use_master and "Master" or "SFX")
+									if (WorldQuestTracker.db.profile.rarescan.playsound_warnings < 3) then
+										WorldQuestTracker.db.profile.rarescan.playsound_warnings = WorldQuestTracker.db.profile.rarescan.playsound_warnings + 1
+										WorldQuestTracker:Msg (L["S_RAREFINDER_SOUNDWARNING"])
+									end
+								end
+								
+								rf.MinimapScanCooldown [npcId] = time()
+								
+								WorldQuestTracker.Debug ("ScanMinimapForRares > added npc from minimap: " .. rareName .. " ID: " .. npcId)
 							end
-							
-							rf.MinimapScanCooldown [npcId] = time()
-							
-							WorldQuestTracker.Debug ("ScanMinimapForRares > added npc from minimap: " .. rareName .. " ID: " .. npcId)
 						end
 					end
 				end
@@ -2828,6 +2955,7 @@ end
 		[43943] = true, --army training suramar
 		[45791] = true, --war materiel broken shore
 		[48097] = true, --gatekeeper's cunning macaree
+		[48386] = true, --jed'hin tournament
 	}
 	
 	ff.cannot_group_quest = {
@@ -2971,7 +3099,7 @@ end
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_SEARCHING) then
 			ff.SetCurrentActionText (L["S_GROUPFINDER_ACTIONS_SEARCHING"])
-			ff.ProgressBar:SetTimer (2)
+			ff.ProgressBar:SetTimer (1.6)
 			ff.ProgressBar:Show()
 			
 		elseif (actionID == ff.actions.ACTIONTYPE_GROUP_UNAPPLY) then
@@ -3368,6 +3496,8 @@ end
 	function ff.SearchCompleted() --~searchfinished
 		--C_LFGList.GetSearchResultInfo (applicationID)
 		
+		--ff.ProgressBar:Hide()
+		
 		local active, activityID, iLevel, name, comment, voiceChat, expiration, autoAccept = C_LFGList.GetActiveEntryInfo()
 		if (active) then
 			--> the player group is listing, need request to get out
@@ -3464,16 +3594,139 @@ end
 		
 		return true
 	end
+
+	ff.NameCache = {}
+	ff.NameCacheLatestUpdate = 0
+	
+	function ff.RareFound_FromSearchGroups (npcId, leaderName)
+		--> can add rares from group finder?
+		if (not WorldQuestTracker.db.profile.rarescan.add_from_premade) then
+			return
+		end
+		
+		--> this rare is unreliable
+		local rareName = rf.RaresENNames [npcId]
+		if (rareName) then
+			local zoneID = rf.ENRareNameToZoneID [rareName]
+			if (zoneID) then
+				rf.RareSpotted (leaderName, "GROUPFINDER", rareName, "Creature-0-0000-0000-00000-" .. npcId .. "-0000000000", zoneID, 0, 0, false, time(), true)
+			end
+		end
+	end
+	
+	function ff.ParsePremadeSearchGroups()
+		
+		if (ff.NameCacheLatestUpdate+30 < time()) then
+			--> names from all languages discovered
+			for name, npcId in pairs (WorldQuestTracker.db.profile.rarescan.name_cache) do
+				ff.NameCache [name:lower()] = npcId
+			end
+			--> only universal english names
+			for npcId, name in pairs (rf.RaresENNames) do
+				ff.NameCache [name] = npcId
+			end
+			ff.NameCacheLatestUpdate = time()
+		end
+		
+		local numResults, resultIDTable = C_LFGList.GetSearchResults()
+		local foundRares, foundAmount = {}, 0
+		
+		for index, resultID in pairs (resultIDTable) do
+			local id, activityID, name, desc, voiceChat, ilvl, honorLevel, age, numBNetFriends, numCharFriends, numGuildMates, isDelisted, leaderName, members, isAuto = C_LFGList.GetSearchResultInfo (resultID)
+			
+			if (ff.NameCache [name:lower()]) then
+				local npcId = ff.NameCache [name:lower()]
+				if (not foundRares [npcId]) then
+					ff.RareFound_FromSearchGroups (npcId, leaderName)
+					foundRares [npcId] = true
+					foundAmount = foundAmount + 1
+				end
+			else
+				--> format used by world quest tracker
+				local npcId = desc:match ("#NPCID%x%x%x%x%x%x")
+				if (npcId) then
+					npcId = tonumber (npcId:gsub ("#NPCID", ""))
+					if (npcId) then
+						if (rf.RaresToScan [npcId]) then
+							--> rare up
+							if (not foundRares [npcId]) then
+								ff.RareFound_FromSearchGroups (npcId, leaderName)
+								foundRares [npcId] = true
+								foundAmount = foundAmount + 1
+							end
+							
+							--> learn the rare name on different languages
+							local rareName = desc:match ("#LOC%s.+%s")
+							if (rareName) then
+								rareName = rareName:gsub ("#LOC ", "")
+								if (rareName) then
+									rareName = WorldQuestTracker:trim (rareName)
+									if (rareName) then
+										WorldQuestTracker.db.profile.rarescan.name_cache [rareName] = npcId
+									end
+								end
+							end
+						end
+					end
+				else
+					--> format used by handynotes_argus
+					local npcId = desc:match ("##rare%x%x%x%x%x%x")
+					if (npcId) then
+						npcId = tonumber (npcId:gsub ("##rare", ""))
+						if (npcId) then
+							if (rf.RaresToScan [npcId]) then
+								--> rare up
+								if (not foundRares [npcId]) then
+									ff.RareFound_FromSearchGroups (npcId, leaderName)
+									foundRares [npcId] = true
+									foundAmount = foundAmount + 1
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+		
+		WorldQuestTracker.Debug ("ParsePremadeSearchGroups () > found " .. foundAmount .. " rares.")
+		
+		if (WorldQuestTracker.db.profile.rarescan.autosearch_share) then
+			--> check if a timer already exists
+			if (rf.ShareRaresTimer_Guild and not rf.ShareRaresTimer_Guild._cancelled) then
+				return
+			end
+			--> schedule to share those new rares in the guild
+			rf.ShareRaresTimer_Guild = C_Timer.NewTimer (20, rf.SendRareList)
+		end
+	end
+	
+	--> make a bridge with addons that search the premade groups for rares
+	--> so when the user search we can show the desired rare location on the map
+	--> also use these searches to discover rare names in other languages
+	hooksecurefunc (C_LFGList, "Search", function (where, terms)
+		if (not WorldQuestTracker.db.profile.rarescan.add_from_premade) then
+			return
+		end
+		
+		if (ff.LatestSearch and ff.LatestSearch+3 > GetTime()) then
+			return
+		end
+		if (where == 6 and type (terms) == "table" and #terms == 0) then
+			C_Timer.After (2, ff.ParsePremadeSearchGroups)
+		end
+	end)
 	
 	function ff.StartSearchForCustom()
 		local terms = LFGListSearchPanel_ParseSearchTerms (interactionButton.questName)
+		ff.LatestSearch = 
 		C_LFGList.Search (6, terms) --ignora os filtros
-		C_Timer.After (2, ff.SearchCompleted)
+		C_Timer.After (1.6, ff.SearchCompleted)
 	end
 	
 	function ff.StartSearch()
+		ff.LatestSearch = GetTime()
 		C_LFGList.Search (1, LFGListSearchPanel_ParseSearchTerms (interactionButton.questName)) --ignora os filtros
-		C_Timer.After (2, ff.SearchCompleted)
+		C_Timer.After (1.6, ff.SearchCompleted)
 	end
 	
 	function ff.CreateNewListing (questID, questName, AddToDesc)
@@ -3551,11 +3804,6 @@ end
 		if (not ff.CheckValidClick (self, button)) then
 			return
 		end
-		
-		---C_LFGList.GetLanguageSearchFilter()
-		--print (self.questName)
-		--Message: Usage: C_LFGList.Search(categoryID, searchTerms [, filter, preferredFilters, languageFilter])
-		--LFGListSearchPanel_ParseSearchTerms = coloca dentro de uma tabela
 		
 --		print ("Search", self.ToSearch, "Unlist", self.ToUnlist, "Leave", self.ToLeave, "Create", self.ToCreate, "Apply", self.ToApply, "Kick", self.ToKick, "UnApply", self.ToUnapply)
 		
@@ -5076,6 +5324,10 @@ WorldMapButton:HookScript ("PostClick", allow_map_change)
 if (BrokenIslesArgusButton) then
 	--> at the current PTR state, goes directly to argus map
 	BrokenIslesArgusButton:HookScript ("OnClick", function (self)
+		if (not BrokenIslesArgusButton:IsProtected() and WorldQuestTracker.db.profile.rarescan.autosearch and WorldQuestTracker.db.profile.rarescan.add_from_premade and WorldQuestTracker.LastGFSearch + WorldQuestTracker.db.profile.rarescan.autosearch_cooldown < time()) then
+			C_LFGList.Search (6, LFGListSearchPanel_ParseSearchTerms (""))
+			WorldQuestTracker.LastGFSearch = time()
+		end
 		allow_map_change()
 	end)
 	--> argus map zone use an overlaied button for each of its three zones
@@ -5159,10 +5411,12 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.worldQuest = true
 	button.ClearWidget = clear_widget
 	
-	button.RareOverlay = CreateFrame ("frame", button:GetName() .. "RareOverlay", button)
+	button.RareOverlay = CreateFrame ("button", button:GetName() .. "RareOverlay", button)
 	button.RareOverlay:SetAllPoints()
 	button.RareOverlay:SetScript ("OnEnter", WorldQuestTracker.RareWidgetOnEnter)
 	button.RareOverlay:SetScript ("OnLeave", WorldQuestTracker.RareWidgetOnLeave)
+	button.RareOverlay:SetScript ("OnClick", WorldQuestTracker.RareWidgetOnClick)
+	button.RareOverlay:RegisterForClicks ("LeftButtonDown", "RightButtonDown")
 	button.RareOverlay:Hide()
 	
 	button.Texture = supportFrame:CreateTexture (button:GetName() .. "Texture", "BACKGROUND")
@@ -6141,6 +6395,11 @@ end
 hooksecurefunc ("ToggleWorldMap", function (self)
 	if (true) then
 		--return
+	end
+	
+	if (not BrokenIslesArgusButton:IsProtected() and WorldQuestTracker.db.profile.rarescan.autosearch and WorldQuestTracker.db.profile.rarescan.add_from_premade and WorldQuestTracker.LastGFSearch + WorldQuestTracker.db.profile.rarescan.autosearch_cooldown < time()) then
+		C_LFGList.Search (6, LFGListSearchPanel_ParseSearchTerms (""))
+		WorldQuestTracker.LastGFSearch = time()
 	end
 	
 	WorldMapFrame.currentStandingZone = GetCurrentMapAreaID()
@@ -7997,11 +8256,19 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 					end
 					GameCooltip:AddMenu (2, options_on_click, "rarescan", "always_use_english", not WorldQuestTracker.db.profile.rarescan.always_use_english)	
-					
+					 
+					GameCooltip:AddLine (L["S_RAREFINDER_ADDFROMPREMADE"], "", 2)
+					if (WorldQuestTracker.db.profile.rarescan.add_from_premade) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					GameCooltip:AddMenu (2, options_on_click, "rarescan", "add_from_premade", not WorldQuestTracker.db.profile.rarescan.add_from_premade)	
+
 					GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
 					
 					--play audion on spot a rare
-					GameCooltip:AddLine ("Play Sound Alert", "", 2)
+					GameCooltip:AddLine (L["S_RAREFINDER_SOUND_ENABLED"], "", 2)
 					if (WorldQuestTracker.db.profile.rarescan.playsound) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -8033,7 +8300,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 					GameCooltip:AddMenu (2, options_on_click, "rarescan", "playsound_volume", 3)
 					
-					GameCooltip:AddLine ("Play Even When Sound Effects Are Disabled", "", 2)
+					GameCooltip:AddLine (L["S_RAREFINDER_SOUND_ALWAYSPLAY"], "", 2)
 					if (WorldQuestTracker.db.profile.rarescan.use_master) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
