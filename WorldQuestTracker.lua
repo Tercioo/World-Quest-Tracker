@@ -8451,11 +8451,42 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				end
 			}
 			
-			GameCooltip:CoolTipInject (optionsButton)			
+			GameCooltip:CoolTipInject (optionsButton)
+			
+			--> options on the interface menu
+			WorldQuestTracker.OptionsInterfaceMenu = CreateFrame ("frame", "WorldQuestTrackerInterfaceOptionsPanel", UIParent)
+			WorldQuestTracker.OptionsInterfaceMenu.name = "World Quest Tracker"
+			InterfaceOptions_AddCategory (WorldQuestTracker.OptionsInterfaceMenu)
+			
+			WorldQuestTracker.OptionsInterfaceMenu.options_button = CreateFrame ("button", nil, WorldQuestTracker.OptionsInterfaceMenu, "OptionsButtonTemplate")
+			WorldQuestTracker.OptionsInterfaceMenu.options_button:SetText ("Hover Over Me: Options Menu")
+			WorldQuestTracker.OptionsInterfaceMenu.options_button:SetPoint ("topleft", WorldQuestTracker.OptionsInterfaceMenu, "topleft", 100, -300)
+			WorldQuestTracker.OptionsInterfaceMenu.options_button:SetWidth (270)
+			
+			WorldQuestTracker.OptionsInterfaceMenu.options_button.CoolTip = {
+				Type = "menu",
+				BuildFunc = BuildOptionsMenu, --> called when user mouse over the frame
+				OnEnterFunc = function (self) 
+					WorldQuestTracker.OptionsInterfaceMenu.options_button.button_mouse_over = true
+					button_onenter (self)
+					C_Timer.After (.05, CooltipOnTop_WhenFullScreen)
+				end,
+				OnLeaveFunc = function (self) 
+					WorldQuestTracker.OptionsInterfaceMenu.options_button.button_mouse_over = false
+					button_onleave (self)
+				end,
+				FixedValue = "none",
+				ShowSpeed = 0.05,
+				Options = function()
+				end
+			}
+			
+			GameCooltip:CoolTipInject (WorldQuestTracker.OptionsInterfaceMenu.options_button)			
+			
 			
 			rewardButton:SetScript ("OnEnter", WorldQuestTracker.ShowHistoryTooltip)
 			rewardButton:SetScript ("OnLeave", button_onLeave)
-			
+		
 			--
 			
 			--[[
