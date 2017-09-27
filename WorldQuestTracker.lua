@@ -4044,8 +4044,16 @@ end
 					--> everything at this point should be already set
 					--> just query the player if want another group
 					ff.SetAction (ff.actions.ACTIONTYPE_GROUP_SEARCH)
+					return
 				end
 			end
+		end
+		
+		local mapFileName = GetMapInfo()
+		if (not mapFileName) then
+			C_Timer.After (3, WorldQuestTracker.IsInvasionPoint)
+		else
+			WorldQuestTracker.IsInvasionPoint()
 		end
 	end
 	
