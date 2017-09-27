@@ -179,6 +179,7 @@ local default_config = {
 			leavetimer = 30,
 			noafk = true,
 			noafk_ticks = 5,
+			noafk_distance = 500,
 			nopvp = false,
 			frame = {},
 			tutorial = 0,
@@ -199,7 +200,7 @@ local default_config = {
 			always_use_english = true,
 			add_from_premade = false,
 			autosearch = true,
-			autosearch_cooldown = 1800,
+			autosearch_cooldown = 600,
 			autosearch_share = false,
 		},
 		
@@ -428,6 +429,7 @@ WorldQuestTracker.Temp_HideZoneWidgets = 0
 WorldQuestTracker.lastZoneWidgetsUpdate = 0
 WorldQuestTracker.lastMapTap = 0
 WorldQuestTracker.LastGFSearch = 0
+WorldQuestTracker.ArgusMinItemLevel = 830
 WorldQuestTracker.SoundPitch = math.random (2)
 WorldQuestTracker.RarityColors = {
 	[3] = "|cff2292FF",
@@ -579,10 +581,13 @@ function WorldQuestTracker.RareWidgetOnClick (self, button)
 			local callback = nil
 			local EnglishRareName = rf.RaresENNames [npcId]
 			local rareName = parent.RareName
+			
+			local itemLevelRequired = ff.GetItemLevelRequirement()
+			
 			if (EnglishRareName and WorldQuestTracker.db.profile.rarescan.always_use_english) then
-				WorldQuestTracker.FindGroupForCustom (EnglishRareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (rareName or "") .. " ", callback)
+				WorldQuestTracker.FindGroupForCustom (EnglishRareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (rareName or "") .. " ", itemLevelRequired, callback)
 			else
-				WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (EnglishRareName or "") .. " ", callback)
+				WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (EnglishRareName or "") .. " ", itemLevelRequired, callback)
 			end
 		end
 		
@@ -996,13 +1001,12 @@ function WorldQuestTracker:OnInit()
 				if (not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then
 					--> is search for invasions enabled?
 					if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
-						--WorldQuestTracker.FindGroupForCustom (mapFileName, invasionName, "click to search for groups")
 						local callback = nil
 						local ENNameFromMapFileName = mapFileName:gsub ("InvasionPoint", "")
 						if (ENNameFromMapFileName and WorldQuestTracker.db.profile.rarescan.always_use_english) then
-							WorldQuestTracker.FindGroupForCustom ("Invasion Point: " .. (ENNameFromMapFileName or ""), invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point " .. invasionName .. ". Group created with World Quest Tracker #EN Invasion Point: " .. (ENNameFromMapFileName or "") .. " ", callback)
+							WorldQuestTracker.FindGroupForCustom ("Invasion Point: " .. (ENNameFromMapFileName or ""), invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point " .. invasionName .. ". Group created with World Quest Tracker #EN Invasion Point: " .. (ENNameFromMapFileName or "") .. " ", 0, callback)
 						else
-							WorldQuestTracker.FindGroupForCustom (invasionName, invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point " .. invasionName .. ". Group created with World Quest Tracker #EN Invasion Point: " .. (ENNameFromMapFileName or "") .. " ", callback)
+							WorldQuestTracker.FindGroupForCustom (invasionName, invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point " .. invasionName .. ". Group created with World Quest Tracker #EN Invasion Point: " .. (ENNameFromMapFileName or "") .. " ", 0, callback)
 						end
 					end
 				end					
@@ -1142,6 +1146,8 @@ function WorldQuestTracker:OnInit()
 			
 			WorldQuestTracker.AllCharactersQuests_Remove (questID)
 			WorldQuestTracker.RemoveQuestFromTracker (questID)
+			
+			FlashClientIcon()
 			
 			if (QuestMapFrame_IsQuestWorldQuest (questID)) then --wait, is this inception?
 				local title, questType, texture, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, selected, isSpellTarget, timeLeft, isCriteria, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker:GetQuestFullInfo (questID)
@@ -2173,7 +2179,7 @@ end
 --/run WorldQuestTrackerAddon.debug = true;
 
 function rf.IsTargetARare()
-	if (UnitExists ("target") and not UnitIsDead ("target")) then
+	if (UnitExists ("target")) then -- and not UnitIsDead ("target")
 		local serial = UnitGUID ("target")
 		local npcId = WorldQuestTracker:GetNpcIdFromGuid (serial)
 		if (npcId) then
@@ -2232,12 +2238,13 @@ function rf.IsTargetARare()
 							local isWorldQuest = rf.IsRareAWorldQuest (rareName)
 							if (not isWorldQuest) then
 								local callback = nil
-								--WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group create with World Quest Tracker #NPCID" .. npcId .. "#ENUS " .. (rf.RaresENNames [npcId] or "") .. " ", callback)
 								local EnglishRareName = rf.RaresENNames [npcId]
+								local itemLevelRequired = ff.GetItemLevelRequirement()
+								
 								if (EnglishRareName and WorldQuestTracker.db.profile.rarescan.always_use_english) then
-									WorldQuestTracker.FindGroupForCustom (EnglishRareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (rareName or "") .. " ", callback)
+									WorldQuestTracker.FindGroupForCustom (EnglishRareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (rareName or "") .. " ", itemLevelRequired, callback)
 								else
-									WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (EnglishRareName or "") .. " ", callback)
+									WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH_RARENPC"], "Doing rare encounter against " .. rareName .. ". Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (EnglishRareName or "") .. " ", itemLevelRequired, callback)
 								end
 							end
 						end
@@ -2257,10 +2264,10 @@ function rf.IsTargetARare()
 							
 							local EnglishRareName = rf.RaresENNames [npcId]
 							if (EnglishRareName and WorldQuestTracker.db.profile.rarescan.always_use_english) then
-								WorldQuestTracker.FindGroupForCustom (EnglishRareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Argus World Boss against " .. rareName .. " Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (rareName or "") .. " ", callback)
+								WorldQuestTracker.FindGroupForCustom (EnglishRareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Argus World Boss against " .. rareName .. " Group created with World Quest Tracker #NPCID" .. npcId .. "#LOC " .. (rareName or "") .. " ", 0, callback)
 								WorldQuestTracker.Debug ("IsTargetARare() > invasion boss detected and using english name.")
 							else
-								WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point boss encounter against " .. rareName .. " Group created with World Quest Tracker #NPCID" .. npcId, callback)
+								WorldQuestTracker.FindGroupForCustom (rareName, rareName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point boss encounter against " .. rareName .. " Group created with World Quest Tracker #NPCID" .. npcId, 0, callback)
 								WorldQuestTracker.Debug ("IsTargetARare() > invasion boss detected and cannot english name.")
 							end
 						end
@@ -3078,6 +3085,14 @@ end
 		--muitas vezes nao esta acontecendo nadad ao tentar crita um grupo
 	--
 	
+	function ff.GetItemLevelRequirement()
+		local isInArgus = WorldQuestTracker.IsArgusZone (GetCurrentMapAreaID())
+		if (isInArgus) then
+			return WorldQuestTracker.ArgusMinItemLevel
+		end
+		return 0
+	end
+	
 	function ff.SetAction (actionID, message, ...)
 	
 		--> show the frame
@@ -3179,7 +3194,7 @@ end
 	
 	function ff.OnBBlockButtonPress (self, button)
 		if (self.questID) then
-			ff.FindGroupForQuest (self.questID, true)
+			WorldQuestTracker.FindGroupForQuest (self.questID, true)
 		end
 	end
 	
@@ -3404,7 +3419,7 @@ end
 								--> check location for distance
 								if (selfX and selfX ~= 0 and DF.GetDistance_Point) then
 									local distance = DF:GetDistance_Point (selfX, selfY, x, y)
-									if (distance > 500) then
+									if (distance > WorldQuestTracker.db.profile.groupfinder.noafk_distance) then
 										unitTable.faraway = unitTable.faraway + 1
 										if (unitTable.faraway > WorldQuestTracker.db.profile.groupfinder.noafk_ticks) then
 											--print ("[debug] found a player too far away, sqrt > 500 yards:", distance, UnitName ("party" .. i))
@@ -3645,7 +3660,8 @@ end
 				--> format used by world quest tracker
 				local npcId = desc:match ("#NPCID%x%x%x%x%x%x")
 				if (npcId) then
-					npcId = tonumber (npcId:gsub ("#NPCID", ""))
+					npcId = npcId:gsub ("#NPCID", "")
+					npcId = tonumber (npcId)
 					if (npcId) then
 						if (rf.RaresToScan [npcId]) then
 							--> rare up
@@ -3745,7 +3761,7 @@ end
 			groupDesc = "Doing world quest " .. questName .. ". Group created with World Quest Tracker. #ID" .. questID .. pvpTag .. (AddToDesc or "")
 		end
 
-		local itemLevelRequired = 0
+		local itemLevelRequired = ff.MinItemLevel or 0
 		local honorLevelRequired = 0
 		local isAutoAccept = true
 		local isPrivate = false
@@ -3939,22 +3955,28 @@ end
 		end
 	end)
 
-	function WorldQuestTracker.FindGroupForQuest (questID)
-		ff.FindGroupForQuest (questID)
+	function WorldQuestTracker.FindGroupForQuest (questID, fromOTButton)
+		local itemLevelRequired = ff.GetItemLevelRequirement()
+		ff.FindGroupForQuest (questID, fromOTButton, nil, nil, nil, nil, itemLevelRequired)
 	end
 	
-	function WorldQuestTracker.FindGroupForCustom (searchString, customTitle, customDesc, customGroupDescription, callback)
-		ff.FindGroupForQuest (searchString, nil, true, customTitle, customDesc, customGroupDescription, callback)
+	function WorldQuestTracker.FindGroupForCustom (searchString, customTitle, customDesc, customGroupDescription, minItemLevel, callback)
+		ff.FindGroupForQuest (searchString, nil, true, customTitle, customDesc, customGroupDescription, minItemLevel, callback)
 	end
 	
-	function ff.FindGroupForQuest (questID, fromOTButton, isSearchOnCustom, customTitle, customDesc, customGroupDescription, callback)
+	function ff.FindGroupForQuest (questID, fromOTButton, isSearchOnCustom, customTitle, customDesc, customGroupDescription, minItemLevel, callback)
 		--> reset the search type
 		ff.SearchCustom = nil
 		ff.SearchCustomGroupDesc = nil
 		ff.SearchCallback = nil
+		ff.MinItemLevel = nil
 		
 		if (callback) then
 			ff.SearchCallback = callback
+		end
+		
+		if (minItemLevel) then
+			ff.MinItemLevel = minItemLevel
 		end
 		
 		if (isSearchOnCustom) then
@@ -4059,7 +4081,8 @@ end
 			if (isInArea and HaveQuestData (questID)) then
 				local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
 				if (isWorldQuest) then
-					ff.FindGroupForQuest (questID)
+					--FlashClientIcon()
+					WorldQuestTracker.FindGroupForQuest (questID)
 				end
 			end 
 		
