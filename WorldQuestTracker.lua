@@ -183,6 +183,7 @@ local default_config = {
 			nopvp = false,
 			frame = {},
 			tutorial = 0,
+			argus_min_itemlevel = 830,
 		},
 
 		rarescan = {
@@ -429,7 +430,6 @@ WorldQuestTracker.Temp_HideZoneWidgets = 0
 WorldQuestTracker.lastZoneWidgetsUpdate = 0
 WorldQuestTracker.lastMapTap = 0
 WorldQuestTracker.LastGFSearch = 0
-WorldQuestTracker.ArgusMinItemLevel = 830
 WorldQuestTracker.SoundPitch = math.random (2)
 WorldQuestTracker.RarityColors = {
 	[3] = "|cff2292FF",
@@ -997,10 +997,10 @@ function WorldQuestTracker:OnInit()
 			--the player is inside a invasion
 			local invasionName = C_Scenario.GetInfo()
 			if (invasionName) then
-				--> can queue?
-				if (not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then
-					--> is search for invasions enabled?
-					if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
+				--> is search for invasions enabled?
+				if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
+					--> can queue?
+					if (not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then
 						local callback = nil
 						local ENNameFromMapFileName = mapFileName:gsub ("InvasionPoint", "")
 						if (ENNameFromMapFileName and WorldQuestTracker.db.profile.rarescan.always_use_english) then
@@ -1008,8 +1008,10 @@ function WorldQuestTracker:OnInit()
 						else
 							WorldQuestTracker.FindGroupForCustom (invasionName, invasionName, L["S_GROUPFINDER_ACTIONS_SEARCH"], "Doing Invasion Point " .. invasionName .. ". Group created with World Quest Tracker #EN Invasion Point: " .. (ENNameFromMapFileName or "") .. " ", 0, callback)
 						end
+					else
+						WorldQuestTracker:Msg (L["S_GROUPFINDER_QUEUEBUSY2"])
 					end
-				end					
+				end
 			end
 		end
 	end
@@ -3088,7 +3090,7 @@ end
 	function ff.GetItemLevelRequirement()
 		local isInArgus = WorldQuestTracker.IsArgusZone (GetCurrentMapAreaID())
 		if (isInArgus) then
-			return WorldQuestTracker.ArgusMinItemLevel
+			return WorldQuestTracker.db.profile.groupfinder.argus_min_itemlevel
 		end
 		return 0
 	end
@@ -4370,6 +4372,9 @@ elseif (GetLocale() == "zhTW") then
 end
 
 if (symbol_1K) then
+
+	--> replace the To "K" functions if the client is running with asian languages
+
 	function WorldQuestTracker.ToK (numero)
 		if (numero > 99999999) then
 			--return format ("%.2f", numero/100000000) .. symbol_1B
@@ -4386,8 +4391,38 @@ if (symbol_1K) then
 		end
 		return format ("%.1f", numero)
 	end
+	
+	--> used on zone maps where there is more space for numbers
+	function WorldQuestTracker.ToK_FormatBigger (numero)
+		if (numero > 99999999) then
+			return format ("%.2f", numero/100000000) .. symbol_1B
+		elseif (numero > 999999) then
+			return format ("%d", numero/10000) .. symbol_10K
+		elseif (numero > 99999) then
+			return floor (numero/10000) .. symbol_10K
+		elseif (numero > 9999) then
+			return format ("%.1f", (numero/10000)) .. symbol_10K
+		elseif (numero > 999) then
+			return format ("%.1f", (numero/1000)) .. symbol_1K
+		end
+		return format ("%.1f", numero)
+	end
 else
 	function WorldQuestTracker.ToK (numero)
+		if (numero > 99999999) then
+			return format ("%.1f", numero/1000000000) .. "B"
+		elseif (numero > 999999) then
+			return format ("%.0f", numero/1000000) .. "M"
+		elseif (numero > 99999) then
+			return floor (numero/1000) .. "K"
+		elseif (numero > 999) then
+			return format ("%.1f", (numero/1000)) .. "K"
+		end
+		return format ("%.1f", numero)
+	end
+	
+	--> used on zone maps where there is more space for numbers
+	function WorldQuestTracker.ToK_FormatBigger (numero)
 		if (numero > 999999) then
 			return format ("%.0f", numero/1000000) .. "M"
 		elseif (numero > 99999) then
@@ -5992,7 +6027,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 			WorldQuestTracker.WorldMap_ResourceIndicator.text = total_Resources
 		end
 		if (total_APower >= 1000) then
-			WorldQuestTracker.WorldMap_APowerIndicator.text = WorldQuestTracker.ToK (total_APower)
+			WorldQuestTracker.WorldMap_APowerIndicator.text = WorldQuestTracker.ToK_FormatBigger (total_APower)
 		else
 			WorldQuestTracker.WorldMap_APowerIndicator.text = total_APower
 		end
@@ -6233,7 +6268,8 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 					
 					if (artifactPower >= 1000) then
 						if (artifactPower > 999999) then -- 1M
-							self.flagText:SetText (WorldQuestTracker.ToK (artifactPower))
+							--self.flagText:SetText (WorldQuestTracker.ToK (artifactPower))
+							self.flagText:SetText (WorldQuestTracker.ToK_FormatBigger (artifactPower))
 						elseif (artifactPower > 9999) then
 							self.flagText:SetText (WorldQuestTracker.ToK (artifactPower))
 						else
