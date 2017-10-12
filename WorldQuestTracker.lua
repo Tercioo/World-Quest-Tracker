@@ -4375,12 +4375,11 @@ if (symbol_1K) then
 
 	--> replace the To "K" functions if the client is running with asian languages
 
+	--> @yuk6196 (updated on 12 october 2017)
 	function WorldQuestTracker.ToK (numero)
 		if (numero > 99999999) then
-			--return format ("%.2f", numero/100000000) .. symbol_1B
-			return format ("%.2f", numero/100000000) .. symbol_1B
+			return format ("%.1f", numero/100000000) .. symbol_1B
 		elseif (numero > 999999) then
-			--print ("--", numero, format ("%d", numero/10000))
 			return format ("%d", numero/10000) .. symbol_10K
 		elseif (numero > 99999) then
 			return floor (numero/10000) .. symbol_10K
@@ -4392,22 +4391,12 @@ if (symbol_1K) then
 		return format ("%.1f", numero)
 	end
 	
-	--> used on zone maps where there is more space for numbers
-	function WorldQuestTracker.ToK_FormatBigger (numero)
-		if (numero > 99999999) then
-			return format ("%.2f", numero/100000000) .. symbol_1B
-		elseif (numero > 999999) then
-			return format ("%d", numero/10000) .. symbol_10K
-		elseif (numero > 99999) then
-			return floor (numero/10000) .. symbol_10K
-		elseif (numero > 9999) then
-			return format ("%.1f", (numero/10000)) .. symbol_10K
-		elseif (numero > 999) then
-			return format ("%.1f", (numero/1000)) .. symbol_1K
-		end
-		return format ("%.1f", numero)
-	end
+	WorldQuestTracker.ToK_FormatBigger = WorldQuestTracker.ToK
 else
+
+	--> To "K" functions for western clients
+	
+	--> used on the world map small squares, there's not much space there since patch 7.3, so we are formating them on billions to preserve space
 	function WorldQuestTracker.ToK (numero)
 		if (numero > 99999999) then
 			return format ("%.1f", numero/1000000000) .. "B"
@@ -4421,7 +4410,7 @@ else
 		return format ("%.1f", numero)
 	end
 	
-	--> used on zone maps where there is more space for numbers
+	--> used on zone maps and the on the statusbar where there is more space for numbers
 	function WorldQuestTracker.ToK_FormatBigger (numero)
 		if (numero > 999999) then
 			return format ("%.0f", numero/1000000) .. "M"
@@ -4758,7 +4747,7 @@ function WorldQuestTracker.RewardIsArtifactPowerGerman (itemLink) -- thanks @Sup
 	local w1, w2, w3, w4 = "Millionen", "Million", "%d+,%d+", "([^,]+),([^,]+)" --works for German
 
 	if (WorldQuestTracker.GameLocale == "ptBR") then
-		w1, w2, w3, w4 = "milh", "milh", "%d+.%d+", "([^,]+).([^,]+)"
+		w1, w2, w3, w4 = "milh", "milh", "%d+,%d+", "([^,]+).([^,]+)" --@tercio 11 october 2017: replaced the dot with a comma on "%d+,%d+"
 	elseif (WorldQuestTracker.GameLocale == "frFR") then
 		w1, w2, w3, w4 = "million", "million", "%d+,%d+", "([^,]+),([^,]+)"
 	end
