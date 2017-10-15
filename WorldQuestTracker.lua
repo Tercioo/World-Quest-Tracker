@@ -4766,11 +4766,15 @@ function WorldQuestTracker.RewardIsArtifactPowerGerman (itemLink) -- thanks @Sup
 					local one,two=n:match(w4) n=one.."."..two 
 				end
 				n = tonumber (n)
+
 				if (not n) then
 					n = power:match (" %d+ ") --thanks @Arwarld_ on curseforge - ticket #427
 					n = tonumber (n)
-					n=n..".0"
-					n = tonumber (n)
+
+					if (n) then
+						n=n..".0"
+						n = tonumber (n)
+					end
 				end
 				
 				if (n) then
