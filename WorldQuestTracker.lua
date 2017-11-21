@@ -989,6 +989,10 @@ function WorldQuestTracker:OnInit()
 	end
 	
 	function WorldQuestTracker.IsInvasionPoint()
+		if (ff:IsShown()) then
+			return
+		end
+		
 		local mapFileName = GetMapInfo()
 		--> we are using where the map file name which always start with "InvasionPoint"
 		--> this makes easy to localize group between different languages on the group finder
@@ -1034,6 +1038,9 @@ function WorldQuestTracker:OnInit()
 			C_Timer.After (3, WorldQuestTracker.IsInvasionPoint)
 		else
 			WorldQuestTracker.IsInvasionPoint()
+			--> trigger once more since on some clientes MapInfo() is having a delay on update the correct map
+			C_Timer.After (1, WorldQuestTracker.IsInvasionPoint)
+			C_Timer.After (2, WorldQuestTracker.IsInvasionPoint)
 		end
 	end
 	
@@ -3777,7 +3784,7 @@ end
 		--> if is an epic quest, converto to raid
 		local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 		if (rarity == LE_WORLD_QUEST_QUALITY_EPIC or questID == 0) then
-			C_Timer.After (2, function() ConvertToRaid(); end)
+			--C_Timer.After (2, function() ConvertToRaid(); end)
 		end
 
 		ff.IsInWQGroup = true
