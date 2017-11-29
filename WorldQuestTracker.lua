@@ -4419,7 +4419,9 @@ else
 	
 	--> used on zone maps and the on the statusbar where there is more space for numbers
 	function WorldQuestTracker.ToK_FormatBigger (numero)
-		if (numero > 999999) then
+		if (numero > 999999999) then
+			return format ("%.0f", numero/1000000000) .. "B"
+		elseif (numero > 999999) then
 			return format ("%.0f", numero/1000000) .. "M"
 		elseif (numero > 99999) then
 			return floor (numero/1000) .. "K"
@@ -4865,6 +4867,18 @@ function WorldQuestTracker.RewardIsArtifactPower (itemLink)
 				end
 				if (n) then
 					n = n * 1000000
+					return true, n or 0
+				end
+				
+			elseif (power:find (THIRD_NUMBER)) then
+				local n = power:match (" %d+%.%d+ ")
+				n = tonumber (n)
+				if (not n) then
+					n = power:match (" %d+ ")
+					n = tonumber (n)
+				end
+				if (n) then
+					n = n * 1000000000
 					return true, n or 0
 				end
 			end
@@ -6241,6 +6255,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 
 			-- items
 			local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker.GetQuestReward_Item (questID)
+			
 			if (itemName) then
 				if (isArtifact) then
 					local texture = WorldQuestTracker.GetArtifactPowerIcon (artifactPower, true) --
@@ -6267,7 +6282,10 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 					--end
 					
 					if (artifactPower >= 1000) then
-						if (artifactPower > 999999) then -- 1M
+						if (artifactPower > 999999999) then -- 1B
+							self.flagText:SetText (WorldQuestTracker.ToK_FormatBigger (artifactPower))
+							
+						elseif (artifactPower > 999999) then -- 1M
 							--self.flagText:SetText (WorldQuestTracker.ToK (artifactPower))
 							self.flagText:SetText (WorldQuestTracker.ToK_FormatBigger (artifactPower))
 						elseif (artifactPower > 9999) then
@@ -12570,9 +12588,16 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 											--WorldQuestTracker.SetIconTexture (widget.texture, artifactIcon, false, false)
 											widget.isArtifact = true
 											if (artifactPower >= 1000) then
+												--if (artifactPower > 999999999) then
+												--	widget.amountText:SetText (WorldQuestTracker.ToK_FormatBigger (artifactPower))
+												
 												if (artifactPower > 999999) then
 													--widget.amountText:SetText (format ("%.1fM", artifactPower/1000000))
 													widget.amountText:SetText (WorldQuestTracker.ToK (artifactPower))
+													
+													local text = widget.amountText:GetText()
+													text = text:gsub ("%.0", "")
+													widget.amountText:SetText (text)
 													
 												elseif (artifactPower > 9999) then
 													--widget.amountText:SetText (format ("%.0fK", artifactPower/1000))
