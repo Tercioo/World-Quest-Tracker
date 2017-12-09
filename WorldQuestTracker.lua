@@ -3783,8 +3783,15 @@ end
 		
 		--> if is an epic quest, converto to raid
 		local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
-		if (rarity == LE_WORLD_QUEST_QUALITY_EPIC or questID == 0) then
-			--C_Timer.After (2, function() ConvertToRaid(); end)
+		if (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then -- or questID == 0
+			--converto to raid if the quest is a world boss
+			C_Timer.After (2, function() ConvertToRaid(); end)
+		end
+		
+		local mapFileName = GetMapInfo()
+		if (mapFileName and mapFileName:find ("InvasionPoint")) then
+			--converto to raid if the group is for an invasion point
+			C_Timer.After (2, function() ConvertToRaid(); end)
 		end
 
 		ff.IsInWQGroup = true
