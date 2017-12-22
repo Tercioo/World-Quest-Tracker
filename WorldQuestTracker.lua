@@ -5528,16 +5528,14 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.highlight:Hide()
 	
 	button.IsTrackingGlow = supportFrame:CreateTexture(button:GetName() .. "IsTrackingGlow", "BACKGROUND", -6)
-	button.IsTrackingGlow:SetSize (44, 44)
 	button.IsTrackingGlow:SetPoint ("center", button, "center")
-	button.IsTrackingGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\glow_yellow_roundT]])
 	button.IsTrackingGlow:SetBlendMode ("ADD")
 	button.IsTrackingGlow:SetAlpha (1)
 	button.IsTrackingGlow:Hide()
 	button.IsTrackingGlow:SetDesaturated (nil)
 	--testing another texture
 	button.IsTrackingGlow:SetTexture ([[Interface\Calendar\EventNotificationGlow]])
-	button.IsTrackingGlow:SetSize (36, 36)
+	button.IsTrackingGlow:SetSize (31, 31)
 	
 	button.IsTrackingRareGlow = supportFrame:CreateTexture(button:GetName() .. "IsTrackingRareGlow", "BACKGROUND", -6)
 	button.IsTrackingRareGlow:SetSize (44*0.7, 44*0.7)
@@ -5545,7 +5543,7 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent) --~zone
 	button.IsTrackingRareGlow:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\rare_dragon_TrackingT]])
 	--button.IsTrackingRareGlow:SetBlendMode ("ADD")
 	button.IsTrackingRareGlow:Hide()
-
+	
 	button.Shadow = supportFrame:CreateTexture(button:GetName() .. "Shadow", "BACKGROUND", -8)
 	button.Shadow:SetSize (24, 24)
 	button.Shadow:SetPoint ("center", button, "center")
@@ -11644,16 +11642,19 @@ local create_worldmap_square = function (mapName, index)
 	
 	local trackingGlowBorder = button:CreateTexture (nil, "overlay", 1)
 	trackingGlowBorder:SetPoint ("center", button, "center")
-	trackingGlowBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_trackingT]])
-	trackingGlowBorder:SetSize (WORLDMAP_SQUARE_SIZE * 1.33, WORLDMAP_SQUARE_SIZE * 1.33)
-	trackingGlowBorder:Hide()
-	
 	trackingGlowBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\glow_yellow_squareT]])
 	trackingGlowBorder:SetBlendMode ("ADD")
-	--trackingGlowBorder:SetDesaturated (true)
 	trackingGlowBorder:SetSize (55, 55)
-	trackingGlowBorder:SetAlpha (.6)
+	trackingGlowBorder:SetAlpha (1)
 	trackingGlowBorder:SetDrawLayer ("BACKGROUND", -5)
+	trackingGlowBorder:Hide()
+	
+	local trackingGlowInside = button:CreateTexture (nil, "overlay", 1)
+	trackingGlowInside:SetPoint ("center", button, "center")
+	--trackingGlowInside:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_trackingT]])
+	trackingGlowInside:SetColorTexture (1, 1, 1, .03)
+	trackingGlowInside:SetSize (WORLDMAP_SQUARE_SIZE * 0.8, WORLDMAP_SQUARE_SIZE * 0.8)
+	trackingGlowInside:Hide()
 	
 	local onStartTrackAnimation = DF:CreateAnimationHub (trackingGlowBorder, onStartClickAnimation)
 	WorldQuestTracker:CreateAnimation (onStartTrackAnimation, "Scale", 1, .12, .9, .9, 1.1, 1.1)
@@ -11832,6 +11833,7 @@ local create_worldmap_square = function (mapName, index)
 	criteriaIndicator:SetDrawLayer ("OVERLAY", 2)
 	newFlashTexture:SetDrawLayer ("OVERLAY", 7)
 	new:SetDrawLayer ("OVERLAY", 6)
+	trackingGlowInside:SetDrawLayer ("OVERLAY", 7)
 	
 	button.timeBlipRed:SetDrawLayer ("overlay", 2)
 	button.timeBlipOrange:SetDrawLayer ("overlay", 2)
@@ -11849,6 +11851,8 @@ local create_worldmap_square = function (mapName, index)
 	button.invasionBorder = invasionBorder
 	button.trackingBorder = trackingBorder
 	button.trackingGlowBorder = trackingGlowBorder
+	
+	button.trackingGlowInside = trackingGlowInside
 	
 	button.timeBlip = timeBlip
 	button.timeLeftText = timeLeftText
@@ -12349,7 +12353,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 							if (isCriteria) then
 								factionAmountForEachMap [mapId] = (factionAmountForEachMap [mapId] or 0) + 1
 							end
-						
+							
 							--local widget = widgets [taskIconIndex]
 							local widget = WorldQuestTracker.GetWorldMapWidget (configTable, showTimeLeftText)
 							
@@ -12431,8 +12435,10 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 									else
 										if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
 											widget.trackingGlowBorder:Show()
+											widget.trackingGlowInside:Show()
 										else
 											--widget.trackingGlowBorder:Hide()
+											widget.trackingGlowInside:Hide()
 										end
 									end									
 									
@@ -12504,8 +12510,10 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 									else
 										if (WorldQuestTracker.IsQuestBeingTracked (questID)) then
 											widget.trackingGlowBorder:Show()
+											widget.trackingGlowInside:Show()
 										else
 											widget.trackingGlowBorder:Hide()
+											widget.trackingGlowInside:Hide()
 										end
 									end
 
