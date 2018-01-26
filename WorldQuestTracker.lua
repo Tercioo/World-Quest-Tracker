@@ -7951,7 +7951,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				
 				local IconSize = 14
 				
-				--all tracker options
+				--all tracker options ~tracker config
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERCONFIG"])
 				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]], 1, 1, IconSize, IconSize, 944/1024, 993/1024, 272/1024, 324/1024)
 				
@@ -8001,7 +8001,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (2, options_on_click, "tracker_is_movable", true)
-				
+				--locked
 				if (WorldQuestTracker.db.profile.tracker_is_movable) then
 					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED"], "", 2)
 				else
@@ -8013,6 +8013,15 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (2, options_on_click, "tracker_is_locked", not WorldQuestTracker.db.profile.tracker_is_locked)
+				--reset pos
+				GameCooltip:AddLine ("Reset Position", "", 2)
+				GameCooltip:AddMenu (2, function()
+					options_on_click (_, _, "tracker_is_movable", false)
+					C_Timer.After (0.5, function()
+						options_on_click (_, _, "tracker_is_movable", true)
+						LibWindow.SavePosition (WorldQuestTrackerScreenPanel)
+					end)
+				end)
 				
 				--				
 				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
