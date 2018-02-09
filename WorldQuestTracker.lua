@@ -2340,7 +2340,9 @@ function WorldQuestTracker.UpdateRareIcons (index, mapID)
 					
 					--widget.Texture:SetTexture ([[Interface\Scenarios\ScenarioIcon-Boss]])
 					widget.TextureCustom:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
-					widget.TextureCustom:SetTexCoord (423/512, 447/512, 344/512, 367/512)
+					--widget.TextureCustom:SetTexCoord (423/512, 447/512, 344/512, 367/512) --pre 7.3.5
+					widget.TextureCustom:SetTexCoord (413/512, 438/512, 204/512, 228/512) --fix by @HyperAktiveBonusBanane at curse forge, the coords was wrong, the star icon wasn't showing up
+					
 					widget.TextureCustom:SetSize (16, 16)
 					widget.TextureCustom:Show()
 					
