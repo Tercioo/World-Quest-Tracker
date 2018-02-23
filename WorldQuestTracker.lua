@@ -253,7 +253,7 @@ local default_config = {
 		tracker_only_currentmap = false,
 		tracker_scale = 1,
 		tracker_show_time = false,
-		use_quest_summary = false,
+		use_quest_summary = true,
 		zone_only_tracked = false,
 		bar_anchor = "bottom",
 		use_old_icons = false,
@@ -8879,9 +8879,6 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					--print (xp, xpForNextPoint)
 				end
 
-				local str = "|TInterface\\AddOns\\WorldQuestTracker\\media\\icon_artifactpower_blueT:0|t"
-				GameCooltip:AddLine (format (L["S_APOWER_DOWNVALUE"], str), "", 1, "white", _, 10)
-				
 				GameCooltip:AddLine ("", "", 1, "green", _, 10)
 				GameCooltip:AddLine (format (L["S_MAPBAR_RESOURCES_TOOLTIP_TRACKALL"], L["S_QUESTTYPE_ARTIFACTPOWER"]), "", 1, "green", _, 10)
 				GameCooltip:SetOption ("LeftTextHeight", 22)
@@ -8889,9 +8886,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:Show(self)
 				
 				CooltipOnTop_WhenFullScreen()
-				
---WQT_QUEST_NAMES_AND_ICONS [WQT_QUESTTYPE_GOLD].icon
---WQT_QUEST_NAMES_AND_ICONS [WQT_QUESTTYPE_RESOURCE].icon
+
 			end)
 			
 			local resource_IconsOnLeave = function (self)
@@ -8924,7 +8919,6 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 			
 		else
 			WorldQuestTracker.HideWorldQuestsOnWorldMap()
-			--print ("eh pra hidar...")
 			
 			--is zone map?
 			if (WorldQuestTracker.ZoneHaveWorldQuest (WorldMapFrame.mapID)) then
@@ -9309,13 +9303,10 @@ local GetOrCreateZoneSummaryWidget = function (index)
 	button:SetPoint ("bottomleft", ZoneSumaryFrame, "bottomleft", 0, ((index-1)* (ZoneSumaryFrame.WidgetHeight + 1)) -2)
 	button:SetSize (ZoneSumaryFrame.WidgetWidth, ZoneSumaryFrame.WidgetHeight)
 	button:SetFrameLevel (worldFramePOIs:GetFrameLevel()+1)
-	--button:SetBackdrop (ZoneSumaryFrame.WidgetBackdrop)
-	--button:SetBackdropColor (unpack (ZoneSumaryFrame.WidgetBackdropColor))
 	
 	local buttonIcon = WorldQuestTracker.CreateZoneWidget (index, "WorldQuestTrackerZoneSummaryFrame_WidgetIcon", button)
 	buttonIcon:SetPoint ("left", button, "left", 2, 0)
 	buttonIcon:SetSize (ZoneSumaryFrame.IconSize, ZoneSumaryFrame.IconSize)
-	--buttonIcon:SetFrameStrata ("DIALOG")
 	buttonIcon:SetFrameLevel (worldFramePOIs:GetFrameLevel()+2)
 	button.Icon = buttonIcon
 	
@@ -9519,6 +9510,11 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 
 	summaryWidget.BlackBackground:SetAlpha (.4)
 	summaryWidget.Highlight:SetAlpha (.2)
+	
+--	Icon.timeBlipRed:SetAlpha (1)
+--	Icon.timeBlipOrange:SetAlpha (1)
+--	Icon.timeBlipYellow:SetAlpha (1)
+--	Icon.timeBlipGreen:SetAlpha (1)
 	
 	summaryWidget:Show()
 end
