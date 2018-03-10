@@ -9255,10 +9255,10 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 end)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
---> zone summary
+--> zone summary  ~summaryframe
 
 local ZoneSumaryFrame = CreateFrame ("frame", "WorldQuestTrackerZoneSummaryFrame", worldFramePOIs)
-ZoneSumaryFrame:SetPoint ("bottomleft", WorldMapScrollFrame, "bottomleft", 0, 19)
+ZoneSumaryFrame:SetPoint ("bottomleft", WorldMapScrollFrame, "bottomleft", 0, 110)
 ZoneSumaryFrame:SetSize (1, 1)
 
 ZoneSumaryFrame.WidgetHeight = 18
@@ -9378,10 +9378,10 @@ local GetOrCreateZoneSummaryWidget = function (index)
 	--
 	
 	button.OnTracker = button:CreateTexture (nil, "overlay")
-	button.OnTracker:SetPoint ("left", buttonIcon, "right", 65, 0)
+	button.OnTracker:SetPoint ("left", buttonIcon, "right", 63, 0)
 	button.OnTracker:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]])
-	button.OnTracker:SetAlpha (.75)
-	button.OnTracker:SetSize (16, 16)
+	button.OnTracker:SetAlpha (.65)
+	button.OnTracker:SetSize (14, 14)
 	button.OnTracker:SetTexCoord (.15, .8, .15, .80)
 	
 	--
@@ -9511,14 +9511,10 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 	summaryWidget.BlackBackground:SetAlpha (.4)
 	summaryWidget.Highlight:SetAlpha (.2)
 	
---	Icon.timeBlipRed:SetAlpha (1)
---	Icon.timeBlipOrange:SetAlpha (1)
---	Icon.timeBlipYellow:SetAlpha (1)
---	Icon.timeBlipGreen:SetAlpha (1)
-	
 	summaryWidget:Show()
 end
 
+-- ~summary
 function WorldQuestTracker.CanShowZoneSummaryFrame()
 	return WorldQuestTracker.db.profile.use_quest_summary and WorldQuestTracker.ZoneHaveWorldQuest() and not WorldMapFrame_InWindowedMode()
 end
@@ -9555,6 +9551,7 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 		index = index + 1
 	end
 	
+	--attach the header to the last widget
 	if (LastWidget) then
 		ZoneSumaryFrame.Header:Show()
 		ZoneSumaryFrame.Header:SetPoint ("bottomleft", LastWidget, "topleft", 20, 0)
