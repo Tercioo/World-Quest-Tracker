@@ -253,6 +253,7 @@ local default_config = {
 		tracker_only_currentmap = false,
 		tracker_scale = 1,
 		tracker_show_time = false,
+		tracker_textsize = 12,
 		use_quest_summary = true,
 		zone_only_tracked = false,
 		bar_anchor = "bottom",
@@ -6721,6 +6722,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 					end
 				else
 					WorldQuestTracker.db.profile [option] = value
+					
 					if (option == "bar_anchor") then
 						WorldQuestTracker:SetStatusBarAnchor()
 					
@@ -6730,6 +6732,10 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 						else
 							WorldQuestTracker.UpdateZoneWidgets()
 						end
+						
+					elseif (option == "tracker_textsize") then
+						WorldQuestTracker.RefreshTrackerWidgets()
+						
 					end
 				end
 				
@@ -7981,6 +7987,17 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1.3)
 				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.5"), "", 2)
 				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1.5)
+				
+				--
+				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
+				--
+				
+				GameCooltip:AddLine ("Small Text Size", "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "tracker_textsize", 12)
+				GameCooltip:AddLine ("Medium Text Size", "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "tracker_textsize", 13)
+				GameCooltip:AddLine ("Large Text Size", "", 2)
+				GameCooltip:AddMenu (2, options_on_click, "tracker_textsize", 14)
 				
 				--
 				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
@@ -10633,8 +10650,8 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 					widget.ArrowDistance:Show()
 					widget.RightBackground:Show()
 					widget:SetAlpha (TRACKER_FRAME_ALPHA_INMAP)
-					widget.Title.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
-					widget.Zone.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
+					widget.Title.textsize = WorldQuestTracker.db.profile.tracker_textsize --TRACKER_TITLE_TEXT_SIZE_INMAP
+					widget.Zone.textsize = WorldQuestTracker.db.profile.tracker_textsize --TRACKER_TITLE_TEXT_SIZE_INMAP
 					needSortByDistance = needSortByDistance + 1
 					
 					if (WorldQuestTracker.db.profile.show_yards_distance) then
