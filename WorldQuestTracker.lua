@@ -282,6 +282,69 @@ local default_config = {
 	},
 }
 
+-------------------------------------------------------------------------------------------------------------------
+--search checkpoint: ~8 ~bfa ~kultiras ~zandalar
+
+
+--[=[
+	8.0 notepad
+	
+	- which zones will have world quests?
+	- what's the garrison resource for this expansion?
+	- check for new rewards
+	
+	
+	need new functions for:
+		- check for the player current standing map	
+		- get the current map shown in the map frame
+	
+	notes:
+		WorldMapFrame.currentStandingZone > might need changes
+		
+		Check if self <WorldMapFrame>.mapID still keep the mapID
+		
+		WorldQuestTracker.IsASubLevel() might need to be updated
+		
+		All argus and broken shore related functions can be removed
+		
+		GetCurrentMapAreaID() might have to be replaced
+		
+		Cleanup removing all these locals with the zone name and mapId
+	
+		Remove the filter exceptions
+		
+		Remove, put all in tables now
+		WorldQuestTracker.MAPID_DALARAN = 1014
+		WorldQuestTracker.MAPID_ARGUS = 1184
+		WorldQuestTracker.MAPID_BROKENISLES = 1007
+		local MAPID_BROKENISLES = 1007
+		
+--> BfA world quest zones:
+local PLACEHOLDER_MAPID = 0
+
+local BATTLE_FOR_AZEROTH_ZONES = {
+	--Zandalar horde zones
+		--Nazmir
+		[PLACEHOLDER_MAPID] = true,
+		--Zuldazar
+		[PLACEHOLDER_MAPID] = true,
+		--Voldun
+		[PLACEHOLDER_MAPID] = true,
+	
+	--Kul Tiras aliance zones
+		--Stormsong Valley
+		[PLACEHOLDER_MAPID] = true,
+		--Drustvar
+		[PLACEHOLDER_MAPID] = true,
+		--Tiragarde Sound
+		[PLACEHOLDER_MAPID] = true,
+}
+
+
+--]=]
+-------------------------------------------------------------------------------------------------------------------
+
+
 local azsuna_mapId = 1015
 local highmountain_mapId = 1024
 local stormheim_mapId = 1017
@@ -343,7 +406,7 @@ local WQT_QUEST_NAMES_AND_ICONS = {
 	--[WQT_QUESTTYPE_PROFESSION] = {name = "Profession", icon = [[Interface\Garrison\MobileAppIcons]], coords = {256/1024, 384/1024, 0/1024, 128/1024}},
 	--[WQT_QUESTTYPE_PVP] = {name = "PvP", icon = [[Interface\PVPFrame\Icon-Combat]], coords = {0, 1, 0, 1}},
 	[WQT_QUESTTYPE_PVP] = {name = L["S_QUESTTYPE_PVP"], icon = [[Interface\QUESTFRAME\QuestTypeIcons]], coords = {37/128, 53/128, 19/64, 36/64}},
-	[WQT_QUESTTYPE_PETBATTLE] = {name = L["S_QUESTTYPE_PETBATTLE"], icon = [[Interface\MINIMAP\ObjectIconsAtlas]], coords = {387/512, 414/512, 378/512, 403/512}},
+	[WQT_QUESTTYPE_PETBATTLE] = {name = L["S_QUESTTYPE_PETBATTLE"], icon = [[Interface\MINIMAP\ObjectIconsAtlas]], coords = {208/512, 235/512, 443/512, 468/512}},
 	[WQT_QUESTTYPE_TRADE] = {name = L["S_QUESTTYPE_TRADESKILL"], icon = [[Interface\ICONS\INV_Blood of Sargeras]], coords = {5/64, 59/64, 5/64, 59/64}},
 }
 
@@ -6134,9 +6197,10 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 		elseif (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
 			self.questTypeBlip:Show()
 			self.questTypeBlip:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
-			--self.questTypeBlip:SetTexCoord (172/512, 201/512, 273/512, 301/512)
-			self.questTypeBlip:SetTexCoord (219/512, 246/512, 478/512, 502/512) -- left right    top botton  --7.2.5
-			self.questTypeBlip:SetTexCoord (387/512, 414/512, 378/512, 403/512) -- left right    top botton  --7.3
+			--self.questTypeBlip:SetTexCoord (172/512, 201/512, 273/512, 301/512) -- left right    top botton  --7.1.0
+			--self.questTypeBlip:SetTexCoord (219/512, 246/512, 478/512, 502/512) -- left right    top botton  --7.2.5
+			--self.questTypeBlip:SetTexCoord (387/512, 414/512, 378/512, 403/512) -- left right    top botton  --7.3
+			self.questTypeBlip:SetTexCoord (unpack (WQT_QUEST_NAMES_AND_ICONS [WQT_QUESTTYPE_PETBATTLE].coords)) -- left right    top botton  --7.3.5
 			self.questTypeBlip:SetAlpha (1)
 			
 		elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
@@ -12473,8 +12537,9 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 										widget.questTypeBlip:Show()
 										widget.questTypeBlip:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
 										--widget.questTypeBlip:SetTexCoord (172/512, 201/512, 273/512, 301/512)
-										widget.questTypeBlip:SetTexCoord (219/512, 246/512, 478/512, 502/512) -- left right    top botton --7.2.5
-										widget.questTypeBlip:SetTexCoord (387/512, 414/512, 378/512, 403/512) -- left right    top botton --7.3
+										--widget.questTypeBlip:SetTexCoord (219/512, 246/512, 478/512, 502/512) -- left right    top botton --7.2.5
+										--widget.questTypeBlip:SetTexCoord (387/512, 414/512, 378/512, 403/512) -- left right    top botton --7.3
+										widget.questTypeBlip:SetTexCoord (unpack (WQT_QUEST_NAMES_AND_ICONS [WQT_QUESTTYPE_PETBATTLE].coords)) -- left right    top botton  --7.3.5
 										widget.questTypeBlip:SetAlpha (.85)
 										
 									elseif (worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON) then
