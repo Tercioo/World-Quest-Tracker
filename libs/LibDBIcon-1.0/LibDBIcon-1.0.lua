@@ -1,39 +1,12 @@
---[[
-Name: DBIcon-1.0
-Revision: $Rev: 34 $
-Author(s): Rabbit (rabbit.magtheridon@gmail.com)
-Description: Allows addons to register to recieve a lightweight minimap icon as an alternative to more heavy LDB displays.
-Dependencies: LibStub
-License: GPL v2 or later.
-]]
-
---[[
-Copyright (C) 2008-2011 Rabbit
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-]]
 
 -----------------------------------------------------------------------
--- DBIcon-1.0
+-- LibDBIcon-1.0
 --
--- Disclaimer: Most of this code was ripped from Barrel but fixed, streamlined
---             and cleaned up a lot so that it no longer sucks.
+-- Allows addons to easily create a lightweight minimap icon as an alternative to heavier LDB displays.
 --
 
 local DBICON10 = "LibDBIcon-1.0"
-local DBICON10_MINOR = tonumber(("$Rev: 34 $"):match("(%d+)"))
+local DBICON10_MINOR = 36 -- Bump on changes
 if not LibStub then error(DBICON10 .. " requires LibStub.") end
 local ldb = LibStub("LibDataBroker-1.1", true)
 if not ldb then error(DBICON10 .. " requires LibDataBroker-1.1.") end
@@ -45,8 +18,9 @@ lib.objects = lib.objects or {}
 lib.callbackRegistered = lib.callbackRegistered or nil
 lib.callbacks = lib.callbacks or LibStub("CallbackHandler-1.0"):New(lib)
 lib.notCreated = lib.notCreated or {}
+lib.tooltip = lib.tooltip or CreateFrame("GameTooltip", "LibDBIconTooltip", UIParent, "GameTooltipTemplate")
 
-function lib:IconCallback(event, name, key, value, dataobj)
+function lib:IconCallback(event, name, key, value)
 	if lib.objects[name] then
 		if key == "icon" then
 			lib.objects[name].icon:SetTexture(value)
@@ -73,7 +47,6 @@ if not lib.callbackRegistered then
 	lib.callbackRegistered = true
 end
 
--- Tooltip code ripped from StatBlockCore by Funkydude
 local function getAnchors(frame)
 	local x, y = frame:GetCenter()
 	if not x or not y then return "CENTER" end
@@ -86,10 +59,10 @@ local function onEnter(self)
 	if self.isMoving then return end
 	local obj = self.dataObject
 	if obj.OnTooltipShow then
-		GameTooltip:SetOwner(self, "ANCHOR_NONE")
-		GameTooltip:SetPoint(getAnchors(self))
-		obj.OnTooltipShow(GameTooltip)
-		GameTooltip:Show()
+		lib.tooltip:SetOwner(self, "ANCHOR_NONE")
+		lib.tooltip:SetPoint(getAnchors(self))
+		obj.OnTooltipShow(lib.tooltip)
+		lib.tooltip:Show()
 	elseif obj.OnEnter then
 		obj.OnEnter(self)
 	end
@@ -97,13 +70,13 @@ end
 
 local function onLeave(self)
 	local obj = self.dataObject
-	GameTooltip:Hide()
+	lib.tooltip:Hide()
 	if obj.OnLeave then obj.OnLeave(self) end
 end
 
 --------------------------------------------------------------------------------
 
-local onClick, onMouseUp, onMouseDown, onDragStart, onDragStop, onDragEnd, updatePosition
+local onClick, onMouseUp, onMouseDown, onDragStart, onDragStop, updatePosition
 
 do
 	local minimapShapes = {
@@ -165,7 +138,7 @@ do
 		self.icon:UpdateCoord()
 		self:SetScript("OnUpdate", onUpdate)
 		self.isMoving = true
-		GameTooltip:Hide()
+		lib.tooltip:Hide()
 	end
 end
 
@@ -197,14 +170,14 @@ local function createButton(name, object, db)
 	button:SetFrameLevel(8)
 	button:RegisterForClicks("anyUp")
 	button:RegisterForDrag("LeftButton")
-	button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+	button:SetHighlightTexture(136477) --"Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight"
 	local overlay = button:CreateTexture(nil, "OVERLAY")
 	overlay:SetSize(53, 53)
-	overlay:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+	overlay:SetTexture(136430) --"Interface\\Minimap\\MiniMap-TrackingBorder"
 	overlay:SetPoint("TOPLEFT")
 	local background = button:CreateTexture(nil, "BACKGROUND")
 	background:SetSize(20, 20)
-	background:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
+	background:SetTexture(136467) --"Interface\\Minimap\\UI-Minimap-Background"
 	background:SetPoint("TOPLEFT", 7, -5)
 	local icon = button:CreateTexture(nil, "ARTWORK")
 	icon:SetSize(17, 17)

@@ -21,5 +21,6 @@
 	
 	<Script file="LibWindow-1.1\LibWindow-1.1.lua" />
 	
+	<Include file="HereBeDragons\OpenTheCage.xml"/>
 	<Include file="DF\load.xml"/>
 </Ui>
