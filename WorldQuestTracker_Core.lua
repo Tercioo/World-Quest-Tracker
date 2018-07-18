@@ -40,6 +40,8 @@ local MapRangeClamped = DF.MapRangeClamped
 local FindLookAtRotation = DF.FindLookAtRotation
 local GetDistance_Point = DF.GetDistance_Point
 
+local GameCooltip = GameCooltip2
+
 local LibWindow = LibStub ("LibWindow-1.1")
 if (not LibWindow) then
 	print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
