@@ -369,6 +369,10 @@ WorldQuestTracker.MapData.GroupFinderIgnoreQuestList = {
 }
 
 WorldQuestTracker.MapData.RaresToScan = {
+	--BFA
+		[124185] = true, -- Golrakahn
+		[122004] = true, -- Umbra'jin
+		
 	--Legion
 		[126338] = true, --wrathlord yarez
 		[126852] = true, --wrangler kravos

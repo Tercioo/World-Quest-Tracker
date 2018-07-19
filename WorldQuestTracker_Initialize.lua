@@ -1,5 +1,5 @@
 
-C_Timer.After (0.5, function() ScriptErrorsFrame:Hide() end)
+
 
 do
 
@@ -199,13 +199,29 @@ do
 	CreateFrame ("frame", "WorldQuestTrackerFinderFrame", UIParent)
 	CreateFrame ("frame", "WorldQuestTrackerRareFrame", UIParent)
 	
+	--create world quest tracker pin
+	WorldQuestTrackerPinMixin = CreateFromMixins (MapCanvasPinMixin)
+	
 	--data providers are stored inside .dataProviders folder
-	for dataProvider, state in pairs (WorldMapFrame.dataProviders) do 
-		if (dataProvider.IsQuestSuppressed) then
-			WorldQuestTrackerAddon.DataProvider = dataProvider
-			break
+	--catch the blizzard quest provider
+	function WorldQuestTrackerAddon.CatchMapProvider (fromMapOpened)
+		if (not WorldQuestTrackerAddon.DataProvider) then
+			if (WorldMapFrame and WorldMapFrame.dataProviders) then
+				for dataProvider, state in pairs (WorldMapFrame.dataProviders) do
+					if (dataProvider.IsQuestSuppressed) then
+						WorldQuestTrackerAddon.DataProvider = dataProvider
+						break
+					end
+				end
+			end
+			
+			if (not WorldQuestTrackerAddon.DataProvider and fromMapOpened) then
+				WorldQuestTracker:Msg ("Failed to initialize or get Data Provider.")
+			end
 		end
-	end 
+	end
+	
+	WorldQuestTrackerAddon.CatchMapProvider()
 	
 	--WorldQuestTracker.WorldMapSquares store the world widgets
 	local WorldQuestTracker = WorldQuestTrackerAddon

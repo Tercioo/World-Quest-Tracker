@@ -38,37 +38,6 @@ local GetDistance_Point = DF.GetDistance_Point
 local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 local worldFramePOIs = WorldMapFrame.BorderFrame
 
---[=[
-local worldQuestDataProvider = CreateFromMixins (WorldMap_WorldQuestDataProviderMixin)
-
-worldQuestDataProvider:SetMatchWorldMapFilters (true)
-worldQuestDataProvider:SetUsesSpellEffect (true)
-worldQuestDataProvider:SetCheckBounties (true)
-worldQuestDataProvider:SetMarkActiveQuests (true)
-
-WorldQuestTrackerProvider:AddDataProvider  (worldQuestDataProvider);
-
-print (WorldQuestTrackerProvider.SetBountyQuestID, WorldQuestTrackerProvider.bountyQuestID, WorldQuestTrackerProvider.DoesWorldQuestInfoPassFilters)
-
-hooksecurefunc (worldQuestDataProvider, "SetBountyQuestID", function (self, ...)
-	print (self, ...)
-end)
-
-local pin = self:GetMap():AcquirePin(self:GetPinTemplate());
-
-print (   WorldQuestTrackerAddon.DataProvider.owningMap   )
-print (   WorldQuestTrackerAddon.DataProvider:GetPinTemplate()   )
-
-owningMap
-
---]=]
-
-
-hooksecurefunc (WorldQuestTrackerAddon.DataProvider, "IsQuestSuppressed", function (self, ...)
-	--print ("test okay", self, ...)
-end)
-
-
 local ff = WorldQuestTrackerFinderFrame
 local rf = WorldQuestTrackerRareFrame
 
@@ -411,12 +380,13 @@ function WorldQuestTracker.UpdateZoneWidgetAnchors()
 	end
 end
 
-
 --atualiza as quest do mapa da zona ~updatezone ~zoneupdate
 function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 	
 	--get the map shown in the map frame
 	local mapID = WorldQuestTracker.GetCurrentMapAreaID()
+	
+	WorldQuestTracker.UpdateRareIcons (mapID)
 	
 	-- or (mapID ~= WorldQuestTracker.LastMapID and not WorldQuestTracker.IsArgusZone (mapID)) -- 8.0 removed
 	if (WorldQuestTracker.IsWorldQuestHub (mapID)) then
@@ -705,8 +675,6 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 	end
 	
 	WorldQuestTracker.UpdateZoneSummaryFrame()
-	
-	WorldQuestTracker.UpdateRareIcons (index, mapID)
 	
 end
 

@@ -94,6 +94,7 @@ end
 hooksecurefunc (WorldMapFrame, "OnMapChanged", function()
 
 	local mapID = WorldMapFrame.mapID
+	WorldQuestTracker.InitializeWorldWidgets()
 	
 	--set the current map in the addon
 	WorldQuestTracker.LastMapID = WorldQuestTracker.CurrentMapID
@@ -105,6 +106,13 @@ hooksecurefunc (WorldMapFrame, "OnMapChanged", function()
 	--check if quest summary is shown and if can hide it
 	if (WorldQuestTracker.QuestSummaryShown and not WorldQuestTracker.CanShowZoneSummaryFrame()) then
 		WorldQuestTracker.ClearZoneSummaryButtons()
+	end
+	
+	--> clear custom map pins
+	local map = WorldQuestTrackerDataProvider:GetMap()
+	for pin in map:EnumeratePinsByTemplate ("WorldQuestTrackerRarePinTemplate") do
+		pin.RareWidget:Hide()
+		map:RemovePin (pin)
 	end
 	
 	--is the map a zone map with world quests?
@@ -155,15 +163,7 @@ hooksecurefunc (WorldMapFrame, "OnMapChanged", function()
 			end
 		end
 	end
-	
-	--broken
-		--if (WorldQuestTracker.CanShowZoneSummaryFrame()) then -- and not InCombatLockdown()
-		--	WorldMapFrame.UIElementsFrame.BountyBoard:ClearAllPoints()
-		--	WorldMapFrame.UIElementsFrame.BountyBoard:SetPoint ("bottomright", WorldMapFrame.UIElementsFrame, "bottomright", -18, 15)
-		--end
-	
-	
-	
+
 end)
 
 -- default world quest pins from the map
@@ -336,20 +336,15 @@ WorldMapFrame:HookScript ("OnHide", function()
 end)
 
 hooksecurefunc ("ToggleWorldMap", function (self)
-	if (true) then
-		--return
-	end
-	
-	-- ~autosearch
-	--if (not BrokenIslesArgusButton:IsProtected() and WorldQuestTracker.db.profile.rarescan.autosearch and WorldQuestTracker.db.profile.rarescan.add_from_premade and WorldQuestTracker.LastGFSearch + WorldQuestTracker.db.profile.rarescan.autosearch_cooldown < time()) then
-	--	C_LFGList.Search (6, LFGListSearchPanel_ParseSearchTerms (""))
-	--	WorldQuestTracker.LastGFSearch = time()
-	--end
-	
+
 	if (not WorldMapFrame:IsShown()) then
+		--closed
 		C_Timer.After (0.2, WorldQuestTracker.RefreshTrackerWidgets)
 	else
+		--opened
 		C_Timer.After (0.2, WorldQuestTracker.RefreshStatusBarVisibility)
+		WorldQuestTrackerAddon.CatchMapProvider (true)
+		WorldQuestTracker.InitializeWorldWidgets()
 	end
 	
 	WorldMapFrame.currentStandingZone = WorldQuestTracker.GetCurrentMapAreaID()
@@ -609,7 +604,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				elseif (option == "zone_map_config") then
 					WorldQuestTracker.db.profile.zonemap_widgets [value] = value2
 					if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
-						WorldQuestTracker.UpdateZoneWidgets()
+						WorldQuestTracker.UpdateZoneWidgets (true)
 					end
 					return
 				end

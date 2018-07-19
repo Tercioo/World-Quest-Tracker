@@ -673,3 +673,14 @@ function WorldQuestTracker.SetTextSize (MapType, Size)
 	end
 	
 end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--> pin mixin
+
+function WorldQuestTrackerPinMixin:OnLoad()
+	self:UseFrameLevelType ("PIN_FRAME_LEVEL_AREA_POI")
+end
+
+function WorldQuestTrackerPinMixin:OnAcquired (...)
+	return self
+end

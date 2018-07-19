@@ -496,11 +496,16 @@ function WorldQuestTracker.ClearWorldMapWidgets()
 	WorldQuestTracker.NextWorldMapWidget = 1
 end
 
-local create_world_widgets = function()
+function WorldQuestTracker.InitializeWorldWidgets()
+
+	if (WorldQuestTracker.WorldMapFrameReference) then
+		return
+	end
 	
-	--cria 7 ancoras (5 mapas 1 eye of azshara 1 dalaran)
-	--os quadrados serão ancorados a estas ancoras
-	
+	if (not WorldQuestTracker.DataProvider) then
+		WorldQuestTrackerAddon.CatchMapProvider (true)
+	end
+
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		local anchor = CreateFrame ("frame", nil, worldFramePOIs)
 		anchor:SetSize (1, 1)
@@ -518,8 +523,6 @@ local create_world_widgets = function()
 		local x, y = configTable.Anchor_X, configTable.Anchor_Y
 		configTable.MapAnchor = anchor
 		
-		--print (mapId, C_Map.GetMapInfo (mapId))
-		
 		WorldQuestTracker.UpdateWorldMapAnchors (x, y, anchor)
 		
 		local anchorText = anchor:CreateFontString (nil, "artwork", "GameFontNormal")
@@ -533,14 +536,6 @@ local create_world_widgets = function()
 		
 		tinsert (all_widgets, factionFrame)
 		tinsert (all_widgets, anchorText)
-		
-		--[=[
-		--debug anchor
-		local textureTest = anchor:CreateTexture (nil, "overlay")
-		textureTest:SetSize (32, 32)
-		textureTest:SetColorTexture (1, 0, 0)
-		textureTest:SetPoint ("center", worldFramePOIs, "center", 100, 100)
-		--]=]
 	end
 	
 	for i = 1, 120 do
@@ -551,8 +546,6 @@ local create_world_widgets = function()
 	
 	WorldQuestTracker.WorldMapFrameReference = WorldQuestTracker.WorldMapSquares [1]
 end
-
-create_world_widgets()
 
 --agenda uma atualização nos widgets do world map caso os dados das quests estejam indisponíveis
 local do_worldmap_update = function()

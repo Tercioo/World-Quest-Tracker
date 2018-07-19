@@ -28,7 +28,6 @@ local p = math.pi/2
 local pi = math.pi
 local pipi = math.pi*2
 local GetPlayerFacing = GetPlayerFacing
-local GetPlayerMapPosition = GetPlayerMapPosition
 
 local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest or QuestUtils_IsQuestWorldQuest
 local GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
@@ -945,13 +944,10 @@ local TrackerOnTick = function (self, deltaTime)
 		end
 	end
 	
-	--local x, y = GetPlayerMapPosition ("player")
-	--/dump C_Map.GetPlayerMapPosition (WorldQuestTrackerAddon.GetCurrentMapAreaID(), "player")
 	local mapPosition = C_Map.GetPlayerMapPosition (WorldQuestTracker.GetCurrentStandingMapAreaID(), "player")
 	if (not mapPosition) then
 		return
 	end
-	
 	local x, y = mapPosition.x, mapPosition.y
 	
 	if (self.NextArrowUpdate < 0) then

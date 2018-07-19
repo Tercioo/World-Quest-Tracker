@@ -1,4 +1,4 @@
-
+-- ~disabled
 
 --world quest tracker object
 local WorldQuestTracker = WorldQuestTrackerAddon
@@ -904,8 +904,8 @@ function ff.OnTick (self, deltaTime)
 								unitTable = ff.AFKCheckList [GUID]
 							end
 							
-							--local x, y = GetPlayerMapPosition ("party" .. i)
-							local x, y, posZ, instanceID = UnitPosition ("party" .. i)
+							local mapPosition = C_Map.GetPlayerMapPosition (WorldQuestTracker.GetCurrentStandingMapAreaID(), "party" .. i) or {}
+							local x, y = mapPosition.x, mapPosition.y
 							x = x or 0
 							y = y or 0
 							
@@ -1588,6 +1588,11 @@ ff:SetScript ("OnShow", function (self)
 end)
 
 ff:SetScript ("OnEvent", function (self, event, arg1, questID, arg3)
+
+	--> ~disabled
+	if (true) then
+		return
+	end
 
 	--is this feature enable?
 	if (not WorldQuestTracker.db.profile.groupfinder.enabled) then

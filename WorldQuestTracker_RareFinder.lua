@@ -1,4 +1,4 @@
-
+-- ~disabled
 
 --world quest tracker object
 local WorldQuestTracker = WorldQuestTrackerAddon
@@ -40,7 +40,7 @@ local GetDistance_Point = DF.GetDistance_Point
 -- /run WorldQuestTrackerAddon.debug = true;
 
 --> rare finder frame
---rf:RegisterEvent ("VIGNETTE_ADDED")
+rf:RegisterEvent ("VIGNETTES_UPDATED")
 rf:RegisterEvent ("PLAYER_TARGET_CHANGED")
 
 rf.RecentlySpotted = {}
@@ -477,10 +477,13 @@ end
 --/run WorldQuestTrackerAddon.debug = true;
 
 function rf.IsTargetARare()
+
 	if (UnitExists ("target")) then -- and not UnitIsDead ("target")
 		local serial = UnitGUID ("target")
 		local npcId = WorldQuestTracker:GetNpcIdFromGuid (serial)
+
 		if (npcId) then
+		
 			--> check if is a non registered rare
 			if (not WorldQuestTracker.MapData.RaresToScan [npcId]) then
 				if (WorldQuestTracker.IsArgusZone (WorldQuestTracker.GetCurrentMapAreaID())) then
@@ -495,9 +498,14 @@ function rf.IsTargetARare()
 			if (WorldQuestTracker.MapData.RaresToScan [npcId]) then
 				--> check is the npc is flagged as rare
 				local unitClassification = UnitClassification ("target")
-				if (unitClassification == "rareelite") then --
+				if (unitClassification == "rareelite" or unitClassification == "rare") then
 					--> send comm
-					local x, y = GetPlayerMapPosition ("player")
+					local mapPosition = C_Map.GetPlayerMapPosition (WorldQuestTracker.GetCurrentStandingMapAreaID(), "player")
+					if (not mapPosition) then
+						return
+					end
+					local x, y = mapPosition.x, mapPosition.y
+					
 					local map = WorldQuestTracker.GetCurrentMapAreaID()
 					local rareName = UnitName ("target")
 					local data = LibStub ("AceSerializer-3.0"):Serialize ({rf.COMM_IDS.RARE_SPOTTED, UnitName ("player"), "GUILD", rareName, serial, map, x, y, true, time()})
@@ -527,6 +535,11 @@ function rf.IsTargetARare()
 					rf:RegisterEvent ("COMBAT_LOG_EVENT_UNFILTERED")
 					rf.LastRareSerial = serial
 					rf.LastRareName = rareName
+					
+					-- ~disabled
+					if (true) then
+						return
+					end
 					
 					--find group or create a group for this rare
 					if (not ff:IsShown() and not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then --> is already searching?
@@ -579,8 +592,11 @@ function rf.IsTargetARare()
 end
 
 rf:SetScript ("OnEvent", function (self, event, ...)
+
 	if (event == "COMBAT_LOG_EVENT_UNFILTERED") then
-		local _, token, hidding, who_serial, who_name, who_flags, who_flags2, alvo_serial, alvo_name, alvo_flags, alvo_flags2 = ...
+
+		local _, token, hidding, who_serial, who_name, who_flags, who_flags2, alvo_serial, alvo_name, alvo_flags, alvo_flags2 = CombatLogGetCurrentEventInfo()
+		
 		if (token == "UNIT_DIED") then
 			if (alvo_serial == rf.LastRareSerial) then
 				--> current rare got killed
@@ -616,10 +632,10 @@ rf:SetScript ("OnEvent", function (self, event, ...)
 	elseif (event == "PLAYER_TARGET_CHANGED") then
 		rf.IsTargetARare()
 		
-	elseif (event == "VIGNETTE_ADDED") then
-		if (WorldQuestTracker.IsArgusZone (WorldQuestTracker.GetCurrentMapAreaID())) then
+	elseif (event == "VIGNETTES_UPDATED") then
+		--if (WorldQuestTracker.IsArgusZone (WorldQuestTracker.GetCurrentMapAreaID())) then
 			rf.ScanMinimapForRares()
-		end
+		--end
 	end
 end)
 
@@ -658,7 +674,7 @@ function WorldQuestTracker.RareWidgetOnEnter (self)
 		
 		parent.TextureCustom:SetBlendMode ("ADD")
 	end
-	
+	 
 end
 
 function WorldQuestTracker.RareWidgetOnLeave (self)
@@ -697,23 +713,33 @@ function WorldQuestTracker.RareWidgetOnClick (self, button)
 	end
 end
 
-
-
 WorldQuestTracker.RareWidgets = {}
-function WorldQuestTracker.UpdateRareIcons (index, mapID)
+
+function WorldQuestTracker.UpdateRareIcons (mapID)
+
 	if (not WorldQuestTracker.db.profile.rarescan.show_icons) then
 		return
 	end
-	
+
 	local alreadyKilled = rf.GetMyNpcKilledList()
 	if (not alreadyKilled) then
 		--> player serial or database not available at the moment
 		return
 	end
+
+	local map = WorldQuestTrackerDataProvider:GetMap()
+	for pin in map:EnumeratePinsByTemplate ("WorldQuestTrackerRarePinTemplate") do
+		pin.RareWidget:Hide()
+		map:RemovePin (pin)
+	end
 	
 	for npcId, rareTable in pairs (WorldQuestTracker.db.profile.rarescan.recently_spotted) do
 		local timeSpotted = rareTable [rf.RARETABLE.TIMESPOTTED]
+		
+		--alreadyKilled [npcId] = nil --debug
+		
 		if (timeSpotted + 3600 > time() and not alreadyKilled [npcId] and not WorldQuestTracker.MapData.RaresIgnored [npcId]) then
+		
 			local questCompleted = false
 			local npcQuestCompletedID = WorldQuestTracker.MapData.RaresQuestIDs [npcId]
 			if (npcQuestCompletedID and IsQuestFlaggedCompleted (npcQuestCompletedID)) then
@@ -734,32 +760,6 @@ function WorldQuestTracker.UpdateRareIcons (index, mapID)
 					local rareSerial = rareTable [rf.RARETABLE.RARESERIAL]
 					local rareOwner = rareTable [rf.RARETABLE.WHOSPOTTED]
 					
-					local widget = WorldQuestTracker.GetOrCreateZoneWidget (nil, index)
-					WorldQuestTracker.ResetWorldQuestZoneButton (widget)
-					index = index + 1
-					
-					widget.mapID = mapID
-					widget.questID = 0
-					widget.numObjectives = 0
-					widget.Order = 0
-					widget.IsRare = true
-					widget.RareName = rareName
-					widget.RareSerial = rareSerial
-					widget.RareTime = timeSpotted
-					widget.RareOwner = rareOwner
-					
-					widget.RareOverlay:Show()
-					
-					--widget.Texture:SetTexture ([[Interface\Scenarios\ScenarioIcon-Boss]])
-					widget.TextureCustom:SetTexture ([[Interface\MINIMAP\ObjectIconsAtlas]])
-					--widget.TextureCustom:SetTexCoord (423/512, 447/512, 344/512, 367/512) --pre 7.3.5
-					widget.TextureCustom:SetTexCoord (413/512, 438/512, 204/512, 228/512) --fix by @HyperAktiveBonusBanane at curse forge, the coords was wrong, the star icon wasn't showing up
-					
-					widget.TextureCustom:SetSize (16, 16)
-					widget.TextureCustom:Show()
-					
-					widget.Texture:Hide()
-					
 					local npcId = WorldQuestTracker:GetNpcIdFromGuid (rareSerial)
 					local position = WorldQuestTracker.MapData.RaresLocations [npcId]
 					
@@ -768,9 +768,37 @@ function WorldQuestTracker.UpdateRareIcons (index, mapID)
 						positionY = position.y/100;
 					end
 					
-					WorldMapPOIFrame_AnchorPOI (widget, positionX, positionY, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
-					widget:Show()
-					widget:SetFrameLevel (1400 + floor (random (1, 30)))
+					local pin = WorldQuestTrackerDataProvider:GetMap():AcquirePin ("WorldQuestTrackerRarePinTemplate", "rarePin")
+					pin:SetSize (1, 1)
+					
+					if (not pin.InitializedForRare) then
+						pin.InitializedForRare = true
+						local widget = WorldQuestTracker.GetOrCreateZoneWidget (nil, math.random (1, 99999999))
+						WorldQuestTracker.ResetWorldQuestZoneButton (widget)
+						widget:SetPoint ("center", pin, "center")
+						pin.RareWidget = widget
+					end
+					
+					pin.RareWidget.mapID = mapID
+					pin.RareWidget.questID = 0
+					pin.RareWidget.numObjectives = 0
+					pin.RareWidget.Order = 0
+					pin.RareWidget.IsRare = true
+					pin.RareWidget.RareName = rareName
+					pin.RareWidget.RareSerial = rareSerial
+					pin.RareWidget.RareTime = timeSpotted
+					pin.RareWidget.RareOwner = rareOwner
+					
+					pin.RareWidget.RareOverlay:Show()
+					
+					pin.RareWidget.Texture:Hide()
+					pin.RareWidget.TextureCustom:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_star]])
+					pin.RareWidget.TextureCustom:SetSize (22, 22)
+					pin.RareWidget.TextureCustom:Show()
+					
+					pin.RareWidget:Show()
+					
+					pin:SetPosition (positionX, positionY)
 				end
 			end
 		end
@@ -812,16 +840,25 @@ C_Timer.NewTicker (60, function (ticker)
 end)
 
 function rf.ScanMinimapForRares()
+
 	if (not IsInGuild()) then
 		return
 	end
-	for i = 1, C_Vignettes.GetNumVignettes() do
-		local serial = C_Vignettes.GetVignetteGUID (i)
+	
+	-- vignetteInfo.atlasName == "VignetteKill"
+	for i, vignetteID in ipairs (C_VignetteInfo.GetVignettes()) do
+		local vignetteInfo = C_VignetteInfo.GetVignetteInfo (vignetteID)
+		local serial = vignetteInfo.objectGUID
+
 		if (serial) then
-			local _, _, name, objectIcon = C_Vignettes.GetVignetteInfoFromInstanceID (serial)
-			if (objectIcon and (objectIcon == 41 or objectIcon == 4733)) then
+			local name = vignetteInfo.name
+			local objectIcon = vignetteInfo.atlasName
+			
+			if (objectIcon and (objectIcon == "VignetteKill")) then
+			
 				local npcId = WorldQuestTracker.db.profile.rarescan.name_cache [name]
-				if (npcId and rf.RaresToScan [npcId]) then
+				
+				if (npcId and WorldQuestTracker.MapData.RaresToScan [npcId]) then
 					if (not rf.MinimapScanCooldown [npcId] or rf.MinimapScanCooldown [npcId]+10 < time()) then
 						local isWorldQuest = rf.IsRareAWorldQuest (name)
 						if (not isWorldQuest) then
@@ -830,7 +867,12 @@ function rf.ScanMinimapForRares()
 							local targetNpcId = WorldQuestTracker:GetNpcIdFromGuid (targetSerial)
 						
 							if (npcId ~= targetNpcId) then
-								local x, y = GetPlayerMapPosition ("player")
+								local mapPosition = C_Map.GetPlayerMapPosition (WorldQuestTracker.GetCurrentStandingMapAreaID(), "player")
+								if (not mapPosition) then
+									return
+								end
+								local x, y = mapPosition.x, mapPosition.y
+								
 								local map = WorldQuestTracker.GetCurrentMapAreaID()
 								local rareName = name
 								serial = "Creature-0-0000-0000-00000-" .. npcId .. "-0000000000"
