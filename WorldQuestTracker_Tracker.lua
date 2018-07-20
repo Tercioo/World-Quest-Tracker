@@ -61,6 +61,8 @@ local TRACKER_BACKGROUND_ALPHA_MAX = .75
 local TRACKER_FRAME_ALPHA_INMAP = 1
 local TRACKER_FRAME_ALPHA_OUTMAP = .75
 
+local worldFramePOIs = WorldQuestTrackerWorldMapPOI
+
 --verifica se a quest ja esta na lista de track
 function WorldQuestTracker.IsQuestBeingTracked (questID)
 	for _, quest in ipairs (WorldQuestTracker.QuestTrackList) do
@@ -1111,6 +1113,20 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				end
 				
 				widget:Show()
+				
+				WorldQuestTracker.db.profile.TutorialTracker = WorldQuestTracker.db.profile.TutorialTracker or 1
+
+				if (WorldQuestTracker.db.profile.TutorialTracker == 1) then
+					WorldQuestTracker.db.profile.TutorialTracker = WorldQuestTracker.db.profile.TutorialTracker + 1
+					local alert = CreateFrame ("frame", "WorldQuestTrackerTrackerTutorialAlert1", worldFramePOIs, "MicroButtonAlertTemplate")
+					alert:SetFrameLevel (302)
+					alert.label = "Tracked quests are shown here!"
+					alert.Text:SetSpacing (4)
+					alert:SetPoint ("bottom", widget, "top", 0, 28)
+					
+					MicroButtonAlert_SetText (alert, alert.label)
+					alert:Show()
+				end
 				
 				if (WorldQuestTracker.JustAddedToTracker [quest.questID]) then
 					widget.AnimationFrame.ShowAnimation()

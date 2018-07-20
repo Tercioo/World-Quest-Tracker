@@ -131,10 +131,15 @@ local format_for_taxy_zoom_allquests = function (button)
 	button:SetWidth (20)
 	button:SetAlpha (1)
 end
-local format_for_taxy_nozoom_tracked = function (button)
+local format_for_taxy_nozoom_tracked = function (button, isOnlyTracked)
 	button:ClearWidget()
-
-	button:SetScale (WorldQuestTracker.db.profile.taxy_tracked_scale)
+	
+	if (isOnlyTracked) then
+		button:SetScale (WorldQuestTracker.db.profile.taxy_tracked_scale * 1.4)
+	else
+		button:SetScale (WorldQuestTracker.db.profile.taxy_tracked_scale)
+	end
+	
 	button:SetWidth (20)
 	button:SetAlpha (1)
 	
@@ -327,7 +332,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			local hasZoom = WorldQuestTracker.TaxyFrameHasZoom()
 			
 			--não esta mostrando as quests e o mapa não tem zoom
-			if (not isShowingQuests and not hasZoom) then
+			if (not isShowingQuests) then -- and not hasZoom
 				pin._WQT_Twin:Hide()
 				WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
 				pin._WQT_Twin.questID = nil
@@ -337,7 +342,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			
 			--esta mostrando apenas quests que estão sendo trackeadas
 			if (isShowingOnlyTracked) then
-				if ((not WorldQuestTracker.IsQuestBeingTracked (pin.questID) and not WorldQuestTracker.IsQuestOnObjectiveTracker (pin.questID)) and not hasZoom) then
+				if ((not WorldQuestTracker.IsQuestBeingTracked (pin.questID) and not WorldQuestTracker.IsQuestOnObjectiveTracker (pin.questID))) then -- and not hasZoom
 					pin._WQT_Twin:Hide()
 					WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
 					pin._WQT_Twin.questID = nil
@@ -372,7 +377,6 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			local mapID, zoneID = C_TaskQuest.GetQuestZoneID (pin.questID)
 			pin._WQT_Twin.mapID = zoneID
 			
-
 			local nextZoomOutScale, nextZoomInScale = FlightMapFrame.ScrollContainer:GetCurrentZoomRange()
 			
 			--local nextZoomOutScale, nextZoomInScale = FlightMapFrame.ScrollContainer:GetCurrentZoomRange() --only updates when the map finishes the zoom animation
@@ -382,8 +386,6 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			local pinScale = DF:MapRangeClamped (.2, .6, 2, 1, scale)
 			
 			--print ("newScale:", pinScale)
-			
-			
 			--print (scale)
 			--local minX, maxX, minY, maxY = FlightMapFrame.ScrollContainer:CalculateScrollExtentsAtScale (nextZoomInScale)
 			--print (minX, maxX, minY, maxY)
@@ -395,7 +397,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				if (isShowingOnlyTracked) then
 					if (questIDChanged or pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
 						WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, questType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
-						format_for_taxy_nozoom_tracked (pin._WQT_Twin)
+						format_for_taxy_nozoom_tracked (pin._WQT_Twin, true)
 						pin._WQT_Twin.LastUpdate = GetTime()
 						pin._WQT_Twin.zoomState = nil
 						--print ("UPDATED")
