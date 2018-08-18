@@ -578,8 +578,10 @@ ff:RegisterEvent ("QUEST_REMOVED")
 
 ChatFrame_AddMessageEventFilter ("CHAT_MSG_WHISPER", function (_, _, msg)
 	if (not WorldQuestTracker.db.profile.groupfinder.send_whispers) then
-		if (msg:find ("[World Quest Tracker]")) then
-			return true
+		if (msg:find ("World Quest Tracker")) then
+			if (msg:find ("Invite for World Quest")) then
+				return true
+			end
 		end
 	end
 end)
