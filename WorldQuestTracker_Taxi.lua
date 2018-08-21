@@ -366,8 +366,8 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				end)
 				--]=]
 				
-				pin._WQT_Twin.AnchorFrame.UpdateTooltip = function()end
-				pin._WQT_Twin.UpdateTooltip = function()end
+				--pin._WQT_Twin.AnchorFrame.UpdateTooltip = function()end
+				--pin._WQT_Twin.UpdateTooltip = function()end
 
 				tinsert (WorldQuestTracker.TaxyZoneWidgets, pin._WQT_Twin)
 			end
@@ -483,7 +483,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 					--pin._WQT_Twin:SetScale (2.2)
 					pin._WQT_Twin:SetScale (pinScale);-- print ("using scale", pinScale)
 					pin:SetAlpha (0)
-					pin.TimeLowFrame:SetAlpha (0)
+					--pin.TimeLowFrame:SetAlpha (0)
 					pin.Underlay:SetAlpha (0)
 					--print ("UPDATED")
 				end
