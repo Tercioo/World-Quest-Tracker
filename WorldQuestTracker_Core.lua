@@ -134,6 +134,13 @@ WorldQuestTracker.OnMapHasChanged = function (self)
 		C_Timer.After (0.5, check_for_quests_on_unknown_map)
 	end
 	
+	if (not WorldQuestTracker.IsWorldQuestHub (mapID)) then
+		local map = WorldQuestTrackerDataProvider:GetMap()
+		for pin in map:EnumeratePinsByTemplate ("WorldQuestTrackerWorldMapPinTemplate") do
+			map:RemovePin (pin)
+		end
+	end
+	
 	--is the map a zone map with world quests?
 	if (WorldQuestTracker.MapData.WorldQuestZones [mapID]) then
 		--hide the toggle world quests button
