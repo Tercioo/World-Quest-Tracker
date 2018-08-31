@@ -363,7 +363,7 @@ WorldMapFrame:HookScript ("OnHide", function()
 	C_Timer.After (0.2, WorldQuestTracker.RefreshTrackerWidgets)
 end)
 
-hooksecurefunc ("ToggleWorldMap", function (self)
+WorldQuestTracker.OnToggleWorldMap = function (self)
 
 	if (not WorldMapFrame:IsShown()) then
 		--closed
@@ -374,6 +374,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 		WorldQuestTrackerAddon.CatchMapProvider (true)
 		WorldQuestTracker.InitializeWorldWidgets()
 	end
+	
+	WorldQuestTracker.IsLoaded = true
 	
 	WorldMapFrame.currentStandingZone = WorldQuestTracker.GetCurrentMapAreaID()
 	
@@ -2854,7 +2856,22 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 	else
 		WorldQuestTracker.NoAutoSwitchToWorldMap = nil
 	end
-end)
+end
 
+hooksecurefunc ("ToggleWorldMap", WorldQuestTracker.OnToggleWorldMap)
+
+WorldQuestTracker.CheckIfLoaded = function (self)
+	if (not WorldQuestTracker.IsLoaded) then
+		if (WorldMapFrame:IsShown()) then
+			WorldQuestTracker.OnToggleWorldMap()
+		end
+	end
+end
+
+WorldMapFrame:HookScript ("OnShow", function()
+	if (not WorldQuestTracker.IsLoaded) then
+		C_Timer.After (0.5, WorldQuestTracker.CheckIfLoaded)
+	end
+end)
 
 
