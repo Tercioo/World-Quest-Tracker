@@ -141,11 +141,7 @@ do
 				scale = 1,
 				quest_icons_scale_offset = 0,
 			},
-			
-			zonemap_widgets = {
-				scale = 1,
-			},
-			
+
 			filter_always_show_faction_objectives = true,
 			filter_force_show_brokenshore = false, --deprecated at this point, but won't be removed since further expantion might need this back
 			sort_time_priority = 0,
@@ -175,7 +171,14 @@ do
 			tracker_scale = 1,
 			tracker_show_time = false,
 			tracker_textsize = 12,
+			
 			use_quest_summary = true,
+			zone_map_config = {
+				quest_summary_scale = 1,
+				show_widgets = true,
+				scale = 1,
+			},
+			
 			zone_only_tracked = false,
 			low_level_tutorial = false, --
 			bar_anchor = "bottom",

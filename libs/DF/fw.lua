@@ -1,5 +1,5 @@
 
-local dversion = 115
+local dversion = 121
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary (major, minor)
 
@@ -19,6 +19,11 @@ local string_match = string.match
 
 SMALL_NUMBER = 0.000001
 ALPHA_BLEND_AMOUNT = 0.8400251
+
+DF.AuthorInfo = {
+	Name = "Tercioo",
+	Discord = "https://discord.gg/AGSzAZX",
+}
 
 --> will always give a very random name for our widgets
 local init_counter = math.random (1, 1000000)
@@ -2460,6 +2465,33 @@ function DF:Dispatch (func, ...)
 	return result1, result2, result3, result4
 end
 
+--[=[
+	DF:CoreDispatch (func, context, ...)
+	safe call a function making a error window with what caused, the context and traceback of the error
+	this func is only used inside the framework for sensitive calls where the func must run without errors
+	@func = the function which will be called
+	@context = what made the function be called
+	... parameters to pass in the function call
+--]=]
+function DF:CoreDispatch (context, func, ...)
+	if (type (func) ~= "function") then
+		local stack = debugstack(2)
+		local errortext = "D!Framework " .. context .. " error: invalid function to call\n====================\n" .. stack .. "\n====================\n"
+		error (errortext)
+	end
+	
+	local okay, result1, result2, result3, result4 = pcall (func, ...)
+	
+	if (not okay) then
+		local stack = debugstack (2)
+		local errortext = "D!Framework (" .. context .. ") error: " .. result1 .. "\n====================\n" .. stack .. "\n====================\n"
+		error (errortext)
+	end
+	
+	return result1, result2, result3, result4
+end
+
+
 --/run local a, b =32,3; local f=function(c,d) return c+d, 2, 3;end; print (xpcall(f,geterrorhandler(),a,b))
 function DF_CALC_PERFORMANCE()
 	local F = CreateFrame ("frame")
@@ -2660,6 +2692,7 @@ DF.CLEncounterID = {
 function DF:GetCLEncounterIDs()
 	return DF.CLEncounterID
 end
+
 
 --doo elsee 
 --was doing double loops due to not enought height

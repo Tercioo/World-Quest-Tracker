@@ -3808,13 +3808,19 @@ function DF:CreateTabContainer (parent, title, frame_name, frame_list, options_t
 		DF.TabContainerFunctions.CreateUnderlineGlow (tabButton)
 		
 		local right_click_to_back
-		if (i == 1) then
+		if (i == 1 or options_table.rightbutton_always_close) then
 			right_click_to_back = DF:CreateLabel (f, "right click to close", 10, "gray")
 			right_click_to_back:SetPoint ("bottomright", f, "bottomright", -1, options_table.right_click_y or 0)
+			if (options_table.close_text_alpha) then
+				right_click_to_back:SetAlpha (options_table.close_text_alpha)
+			end
 			f.IsFrontPage = true
 		else
 			right_click_to_back = DF:CreateLabel (f, "right click to go back to main menu", 10, "gray")
 			right_click_to_back:SetPoint ("bottomright", f, "bottomright", -1, options_table.right_click_y or 0)
+			if (options_table.close_text_alpha) then
+				right_click_to_back:SetAlpha (options_table.close_text_alpha)
+			end
 		end
 		
 		if (options_table.hide_click_label) then
@@ -4089,10 +4095,7 @@ DF.ScrollBoxFunctions.Refresh = function (self)
 		offset = FauxScrollFrame_GetOffset (self)
 	end	
 	
-	local okay, totalLines = pcall (self.refresh_func, self, self.data, offset, self.LineAmount)
-	if (not okay) then
-		error ("Details! FrameWork: Refresh(): " .. totalLines)
-	end
+	DF:CoreDispatch ((self:GetName() or "ScrollBox") .. ":Refresh()", self.refresh_func, self, self.data, offset, self.LineAmount)
 
 	for _, frame in ipairs (self.Frames) do 
 		if (not frame._InUse) then
@@ -4951,9 +4954,13 @@ DF.IconRowFunctions = {
 			local newIconFrame = CreateFrame ("frame", "$parentIcon" .. self.NextIcon, self)
 			newIconFrame:SetSize (self.options.icon_width, self.options.icon_height)
 			
-			newIconFrame.Texture = newIconFrame:CreateTexture (nil, "background")
+			newIconFrame.Texture = newIconFrame:CreateTexture (nil, "artwork")
 			newIconFrame.Texture:SetAllPoints()
 			
+			newIconFrame.Border = newIconFrame:CreateTexture (nil, "background")
+			newIconFrame.Border:SetAllPoints()
+			newIconFrame.Border:SetColorTexture (0, 0, 0)
+
 			newIconFrame:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
 			newIconFrame:SetBackdropBorderColor (0, 0, 0, 0)
 			newIconFrame:EnableMouse (false)
@@ -6232,4 +6239,297 @@ function DF:OpenLoadConditionsPanel (optionsTable, callback, frameOptions)
 end
 
 
---functionn falsee truee breakk
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--> simple data scroll
+
+DF.DataScrollFunctions = {
+	RefreshScroll = function (self, data, offset, totalLines)
+		local filter = self.Filter
+		local currentData = {}
+		if (type (filter) == "string" and filter ~= "") then
+			for i = 1, #data do
+				for o = 1, #data[i] do
+					if (data[i][o]:find (filter)) then
+						tinsert (currentData, data[i])
+						break
+					end
+				end
+			end
+		else
+			currentData = data
+		end
+		
+		if (self.SortAlphabetical) then
+			table.sort (currentData, function(t1, t2) return t1[1] < t2[1] end)
+		end
+		
+		--update the scroll
+		for i = 1, totalLines do
+			local index = i + offset
+			local thisData = currentData [index]
+			if (thisData) then
+				local line = self:GetLine (i)
+				line:Update (index, thisData)
+			end
+		end
+	end,
+	
+	CreateLine = function (self, index)
+		--create a new line
+		local line = CreateFrame ("button", "$parentLine" .. index, self)
+		line.Update = self.options.update_line_func
+		
+		--set its parameters
+		line:SetPoint ("topleft", self, "topleft", 1, -((index-1) * (self.options.line_height+1)) - 1)
+		line:SetSize (self.options.width - 2, self.options.line_height)
+		line:RegisterForClicks ("LeftButtonDown", "RightButtonDown")
+		
+		line:SetScript ("OnEnter",	self.options.on_enter)
+		line:SetScript ("OnLeave",	self.options.on_leave)
+		line:SetScript ("OnClick",	self.options.on_click)
+		
+		line:SetBackdrop (self.options.backdrop)
+		line:SetBackdropColor (unpack (self.options.backdrop_color))
+		line:SetBackdropBorderColor (unpack (self.options.backdrop_border_color))
+		
+		local title = DF:CreateLabel (line, "", DF:GetTemplate ("font", self.options.title_template))
+		local date = DF:CreateLabel (line, "", DF:GetTemplate ("font", self.options.title_template))
+		local text = DF:CreateLabel (line, "", DF:GetTemplate ("font", self.options.text_tempate))
+		
+		title.textsize = 14
+		date.textsize = 14
+		text:SetSize (self.options.width - 20, self.options.line_height)
+		text:SetJustifyV ("top")
+		
+		--setup anchors
+		if (self.options.show_title) then
+			title:SetPoint ("topleft", line, "topleft", 2, 0)
+			date:SetPoint ("topright", line, "topright", -2, 0)
+			text:SetPoint ("topleft", title, "bottomleft", 0, -4)
+		else
+			text:SetPoint ("topleft", line, "topleft", 2, 0)
+		end
+
+		line.Title = title
+		line.Date = date
+		line.Text = text
+		
+		return line
+	end,
+	
+	LineOnEnter = function (self)
+		local parent = self:GetParent()
+		self:SetBackdropColor (unpack (parent.options.backdrop_color_highlight))
+	end,
+	
+	LineOnLeave = function (self)
+		local parent = self:GetParent()
+		self:SetBackdropColor (unpack (parent.options.backdrop_color))
+	end,
+	
+	OnClick = function (self)
+	
+	end,
+	
+	UpdateLine = function (line, lineIndex, data)
+		local parent = line:GetParent()
+		
+		if (parent.options.show_title) then
+			line.Title.text = data [2] or ""
+			line.Date.text = data [3] or ""
+			line.Text.text = data [4] or ""
+		else
+			line.Text.text = data [2] or ""
+		end
+	end,
+}
+
+local default_datascroll_options = {
+	width = 400,
+	height = 700,
+	line_amount = 10,
+	line_height = 20,
+	
+	show_title = true,
+	
+	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
+	backdrop_color = {0, 0, 0, 0.2},
+	backdrop_color_highlight = {.2, .2, .2, 0.4},
+	backdrop_border_color = {0.1, 0.1, 0.1, .2},
+	
+	title_template = "ORANGE_FONT_TEMPLATE",
+	text_tempate = "OPTIONS_FONT_TEMPLATE",
+	
+	create_line_func = DF.DataScrollFunctions.CreateLine,
+	update_line_func = DF.DataScrollFunctions.UpdateLine,
+	refresh_func = DF.DataScrollFunctions.RefreshScroll,
+	on_enter = DF.DataScrollFunctions.LineOnEnter,
+	on_leave = DF.DataScrollFunctions.LineOnLeave,
+	on_click =  DF.DataScrollFunctions.OnClick,
+	
+	data = {},
+}
+
+--[=[
+	Create a scroll frame to show text in an organized way
+	Functions in the options table can be overritten to customize the layout
+	@parent = the parent of the frame
+	@name = the frame name to use in the CreateFrame call
+	@options = options table to override default values from the table above
+--]=]
+function DF:CreateDataScrollFrame (parent, name, options)
+	--call the mixin with a dummy table to built the default options before the frame creation
+	--this is done because CreateScrollBox needs parameters at creation time
+	local optionsTable = {}
+	DF.OptionsFunctions.BuildOptionsTable (optionsTable, default_datascroll_options, options)
+	optionsTable = optionsTable.options
+	
+	--scroll frame
+	local newScroll = DF:CreateScrollBox (parent, name, optionsTable.refresh_func, optionsTable.data, optionsTable.width, optionsTable.height, optionsTable.line_amount, optionsTable.line_height)
+	DF:ReskinSlider (newScroll)
+	
+	DF:Mixin (newScroll, DF.OptionsFunctions)
+	DF:Mixin (newScroll, DF.LayoutFrame)
+	
+	newScroll:BuildOptionsTable (default_datascroll_options, options)
+	
+	--create the scrollbox lines
+	for i = 1, newScroll.options.line_amount do 
+		newScroll:CreateLine (newScroll.options.create_line_func)
+	end
+	
+	newScroll:Refresh()
+	
+	return newScroll
+end
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--> what's new window
+
+local default_newsframe_options = {
+	width = 400,
+	height = 700,
+	
+	line_amount = 16,
+	line_height = 40,
+	
+	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
+	backdrop_color = {0, 0, 0, 0.2},
+	backdrop_border_color = {0.1, 0.1, 0.1, .2},
+	
+	title = "What's New?",
+	show_title = true,
+}
+
+DF.NewsFrameFunctions = {
+
+}
+
+--[=[
+	Get the amount of news that the player didn't see yet
+	@newsTable = an indexed table of tables
+	@lastNewsTime = last time the player opened the news window
+--]=]
+function DF:GetNumNews (newsTable, lastNewsTime)
+	local now = time()
+	local nonReadNews = 0
+	
+	for _, news in ipairs (newsTable) do
+		if (news[1] > lastNewsTime) then
+			nonReadNews = nonReadNews + 1
+		end
+	end
+	
+	return nonReadNews
+end
+
+--[=[
+	Creates a panel with a scroll to show texts organized in separated lines
+	@parent =  the parent of the frame
+	@name = the frame name to use in the CreateFrame call
+	@options = options table to override default values from the table above
+	@newsTable = an indexed table of tables
+	@db = (optional) an empty table from the addon database to store the position of the frame between game sessions
+--]=]
+function DF:CreateNewsFrame (parent, name, options, newsTable, db)
+	
+	local f = DF:CreateSimplePanel (parent, 400, 700, options and options.title or default_newsframe_options.title, name, {UseScaleBar = db and true}, db)
+	f:SetFrameStrata ("MEDIUM")
+	DF:ApplyStandardBackdrop (f)
+	
+	DF:Mixin (f, DF.OptionsFunctions)
+	DF:Mixin (f, DF.LayoutFrame)
+	
+	f:BuildOptionsTable (default_newsframe_options, options)
+	
+	f:SetSize (f.options.width, f.options.height)
+	f:SetBackdrop (f.options.backdrop)
+	f:SetBackdropColor (unpack (f.options.backdrop_color))
+	f:SetBackdropBorderColor (unpack (f.options.backdrop_border_color))
+	
+	local scrollOptions = {
+		data = newsTable,
+		width = f.options.width - 32, --frame distance from walls and scroll bar space
+		height = f.options.height - 40 + (not f.options.show_title and 20 or 0),
+		line_amount = f.options.line_amount,
+		line_height = f.options.line_height,
+	}
+	local newsScroll = DF:CreateDataScrollFrame (f, "$parentScroll", scrollOptions)
+
+	if (not f.options.show_title) then
+		f.TitleBar:Hide()
+		newsScroll:SetPoint ("topleft", f, "topleft", 5, -10)
+	else
+		newsScroll:SetPoint ("topleft", f, "topleft", 5, -30)
+	end
+	
+	return f
+end
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--> statusbar info
+
+function DF:BuildStatusbarAuthorInfo (f)
+	
+	local authorName = DF:CreateLabel (f, "An addon by |cFFFFFFFFTercioo|r")
+	authorName.textcolor = "silver"
+	local discordLabel = DF:CreateLabel (f, "Discord: ")
+	discordLabel.textcolor = "silver"
+	
+	local options_dropdown_template = DF:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE")
+	local discordTextEntry = DF:CreateTextEntry (f, function()end, 200, 18, "DiscordTextBox", _, _, options_dropdown_template)
+	discordTextEntry:SetText ("https://discord.gg/AGSzAZX")
+	discordTextEntry:SetFrameLevel (5000)
+	
+	authorName:SetPoint ("left", f, "left", 2, 0)
+	discordLabel:SetPoint ("left", authorName, "right", 20, 0)
+	discordTextEntry:SetPoint ("left", discordLabel, "right", 2, 0)
+	
+	--format
+	authorName:SetAlpha (.4)
+	discordLabel:SetAlpha (.4)
+	discordTextEntry:SetAlpha (.4)
+	discordTextEntry:SetBackdropBorderColor (1, 1, 1, 0)
+	
+	discordTextEntry:SetHook ("OnEditFocusGained", function()
+		discordTextEntry:HighlightText()
+	end)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--functionn falsee truee breakk elsea

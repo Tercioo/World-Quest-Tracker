@@ -46,6 +46,9 @@ WorldQuestTracker.MapData = {}
 
 --list of all zone ids
 WorldQuestTracker.MapData.ZoneIDs = {
+	--Main Hub
+		AZEROTH =		947,
+		
 	--Legion
 		ARGUS = 		905, --905
 		BROKENISLES = 	619, --
@@ -118,12 +121,33 @@ WorldQuestTracker.MapData.QuestHubs = {
 	[WorldQuestTracker.MapData.ZoneIDs.ARGUS] = true, --argus (~rev)
 	[WorldQuestTracker.MapData.ZoneIDs.ZANDALAR] = true, --bfa horde
 	[WorldQuestTracker.MapData.ZoneIDs.KULTIRAS] = true, --bfa alliance
+	[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = true, --main hub
 }
 
 --world map anchors
 WorldQuestTracker.mapTables = {
+	--Main Hub
+		[WorldQuestTracker.MapData.ZoneIDs.ZANDALAR] = {
+			widgets = {},
+			Anchor_X = 0.01,
+			Anchor_Y = 0.55,
+			GrowRight = true,
+			show_on_map = {
+				[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = true,
+			},
+		},
+		
+		[WorldQuestTracker.MapData.ZoneIDs.KULTIRAS] = {
+			widgets = {},
+			Anchor_X = 0.99,
+			Anchor_Y = 0.15,
+			GrowRight = false,
+			show_on_map = {
+				[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = true,
+			},
+		},
+
 	--BFA
-	
 		[1161] = { --boralus
 			widgets = {},
 			Anchor_X = 0.99,

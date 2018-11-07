@@ -172,11 +172,11 @@ end
 
 --return the default pin for the quest
 function WorldQuestTracker.GetDefaultPinForQuest (questID)
-
-	--WorldQuestTracker.DefaultWorldQuestPin
-	--WorldQuestTracker.DefaultWorldQuestPin [self.questID] = self
-
 	return WorldQuestTracker.DefaultWorldQuestPin [questID]
+end
+
+function WorldQuestTracker.GetDefaultPinIT()
+	return pairs (WorldQuestTracker.DefaultWorldQuestPin)
 end
 
 --return the artifact icon
@@ -345,10 +345,12 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID, is
 				self:SetBackdropBorderColor (.1, .1, .1, 1)
 			end
 			
-			if (WorldQuestTracker.WorldSummary.FactionSelected == self.FactionID) then
-				self.commonBorder:SetAlpha (0)
-				self.commonBorder:SetVertexColor (1, 1, 1)
-				self:SetBackdropBorderColor (1, 1, .1, 1)
+			if (not self.IsZoneSummaryQuestButton) then
+				if (WorldQuestTracker.WorldSummary.FactionSelected == self.FactionID) then
+					self.commonBorder:SetAlpha (0)
+					self.commonBorder:SetVertexColor (1, 1, 1)
+					self:SetBackdropBorderColor (1, 1, .1, 1)
+				end
 			end
 			
 			self.commonBorder:Show()
@@ -358,10 +360,12 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID, is
 			--self:SetBackdropBorderColor (.3, .3, .98, 1)
 			self:SetBackdropBorderColor (.1, .1, .1, 1)
 			
-			if (WorldQuestTracker.WorldSummary.FactionSelected == self.FactionID) then
-				self.commonBorder:SetAlpha (0)
-				self.commonBorder:SetVertexColor (1, 1, 1)
-				self:SetBackdropBorderColor (1, 1, .1, 1)
+			if (not self.IsZoneSummaryQuestButton) then
+				if (WorldQuestTracker.WorldSummary.FactionSelected == self.FactionID) then
+					self.commonBorder:SetAlpha (0)
+					self.commonBorder:SetVertexColor (1, 1, 1)
+					self:SetBackdropBorderColor (1, 1, .1, 1)
+				end
 			end
 			
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
@@ -566,6 +570,25 @@ function WorldQuestTracker.CheckAddToTracker (self, button, onlyTrack)
 		
 	elseif (self.IsWorldQuestButton or self.IsWorldZoneQuestButton) then
 		WorldQuestTracker.UpdateQuestOnWorldMap (questID)
+		
+	elseif (self.IsZoneSummaryQuestButton) then
+		for _, widget in ipairs (WorldQuestTracker.Cache_ShownWidgetsOnZoneMap) do
+			if (widget.questID == self.questID) then
+				if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
+					if (not widget.AddedToTrackerAnimation:IsPlaying()) then
+						widget.AddedToTrackerAnimation:Play()
+					end
+				end
+				WorldQuestTracker.SetupWorldQuestButton (widget, true)
+				WorldQuestTracker.SetupZoneSummaryButton (self:GetParent(), widget)
+				
+				--override the glow animation and hide it right after it  starts to play
+				C_Timer.After (0.1, function()
+					self.trackingGlowBorder:Hide()
+				end)
+				break
+			end
+		end
 	end
 end
 
@@ -588,14 +611,7 @@ function WorldQuestTracker.OnQuestButtonClick (self, button)
 		WorldQuestTracker:Msg (L["S_ERROR_NOTLOADEDYET"])
 		return
 	end
-	
-	--[=[
-	local timeLeft = C_TaskQuest.GetQuestTimeLeftMinutes (self.questID)
-	if (not timeLeft or timeLeft <= 0) then
-		WorldQuestTracker:Msg (L["S_ERROR_NOTIMELEFT"])
-	end
-	--]=]
-	
+
 	--chat link
 	if (WorldQuestTracker.CanLinkToChat (self, button)) then
 		--true if the quest got linked in chat
@@ -604,8 +620,6 @@ function WorldQuestTracker.OnQuestButtonClick (self, button)
 
 	--was middle button and our group finder is enabled
 	if (button == "MiddleButton" and WorldQuestTracker.db.profile.groupfinder.enabled) then
-		--WorldQuestTracker.FindGroupForQuest (self.questID)
-		
 		--> simulate entering a quest to show the group finder window
 		ff:PlayerEnteredWorldQuestZone (self.questID)
 		return

@@ -798,7 +798,7 @@ function WorldQuestTracker.UpdateRareIcons (mapID)
 					
 					if (not pin.InitializedForRare) then
 						pin.InitializedForRare = true
-						local widget = WorldQuestTracker.GetOrCreateZoneWidget (nil, math.random (1, 99999999))
+						local widget = WorldQuestTracker.GetOrCreateZoneWidget (math.random (1, 99999999))
 						WorldQuestTracker.ResetWorldQuestZoneButton (widget)
 						widget:SetPoint ("center", pin, "center")
 						pin.RareWidget = widget

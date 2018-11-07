@@ -378,7 +378,7 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 end
 
 --cria os widgets no mapa da zona
-function WorldQuestTracker.GetOrCreateZoneWidget (info, index)
+function WorldQuestTracker.GetOrCreateZoneWidget (index)
 	local taskPOI = ZoneWidgetPool [index]
 	
 	if (not taskPOI) then
@@ -463,10 +463,15 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 	wipe (WorldQuestTracker.Cache_ShownWidgetsOnZoneMap)
 	
 	local total_Gold, total_Resources, total_APower = 0, 0, 0
-	local scale = WorldQuestTracker.db.profile.zonemap_widgets.scale
+	local scale = WorldQuestTracker.db.profile.zone_map_config.scale
 	
 	local questFailed = false
 	local showBlizzardWidgets = WorldQuestTracker.Temp_HideZoneWidgets > GetTime()
+	if (not showBlizzardWidgets) then
+		--if not suppresss regular widgets, see if not showing from the profile
+		showBlizzardWidgets = not WorldQuestTracker.db.profile.zone_map_config.show_widgets
+	end
+	
 	wipe (WorldQuestTracker.CurrentZoneQuests)
 	wipe (WorldQuestTracker.ShowDefaultWorldQuestPin)
 	
@@ -475,9 +480,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 	--print (WorldQuestTracker.GetMapName (mapID), #taskInfo) --DEBUG: amount of quests on the map
 	
 	local testCounter = 0
-	
-	-- "Supplies Needed"
-	
+
 	if (taskInfo and #taskInfo > 0) then
 	
 		local needAnotherUpdate = false
@@ -531,7 +534,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 
 						--todo: broken shore is outdated, as well as argus
 						if (passFilter or (forceShowBrokenShore and WorldQuestTracker.IsArgusZone (mapID))) then
-							local widget = WorldQuestTracker.GetOrCreateZoneWidget (info, index)
+							local widget = WorldQuestTracker.GetOrCreateZoneWidget (index)
 							
 							if (widget.questID ~= questID or forceUpdate or not widget.Texture:GetTexture()) then
 							
@@ -590,13 +593,22 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 								
 								if (showBlizzardWidgets) then
 									widget:Hide()
-									for _, button in ipairs (WorldQuestTracker.AllTaskPOIs) do
+									for _, button in WorldQuestTracker.GetDefaultPinIT() do
 										if (button.questID == questID) then
 											button:Show()
 										end
 									end
 								else
 									widget:Show()
+									--[=[
+									widget:Hide()
+									for _, button in WorldQuestTracker.GetDefaultPinIT() do
+									print (button)
+										if (button.questID == questID) then
+											button:Show()
+										end
+									end
+									--]=]
 								end
 								
 								if (timeLeft == 1) then
@@ -604,12 +616,10 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 									widget:Hide()
 									WorldQuestTracker.ShowDefaultPinForQuest (questID)
 								end
-								
 							else
-							
 								if (showBlizzardWidgets) then
 									widget:Hide()
-									for _, button in ipairs (WorldQuestTracker.AllTaskPOIs) do
+									for _, button in WorldQuestTracker.GetDefaultPinIT() do
 										if (button.questID == questID) then
 											button:Show()
 										end
@@ -807,7 +817,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 		local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 	
 		--default alpha
-		self:SetAlpha (WQT_ZONEWIDGET_ALPHA)
+		self:SetAlpha (WQT_ZONEWIDGET_ALPHA - 0.05)
 	
 		if (self.isCriteria) then
 			--self.BountyRing:Show()
@@ -866,7 +876,13 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 		
 		-- tempo restante
 		local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
+		if (timeLeft < 1) then
+			timeLeft = 1
+		end
+		
 		if (timeLeft and timeLeft > 0) then
+		
+			self.TimeLeft = timeLeft
 		
 			WorldQuestTracker.SetTimeBlipColor (self, timeLeft)
 			local okay = false
@@ -1028,12 +1044,11 @@ end
 --> zone summary  ~summaryframe
 
 local ZoneSumaryFrame = CreateFrame ("frame", "WorldQuestTrackerZoneSummaryFrame", worldFramePOIs)
---ZoneSumaryFrame:SetPoint ("bottomleft", worldFramePOIs, "bottomleft", 0, 210)
 ZoneSumaryFrame:SetPoint ("topleft", worldFramePOIs, "topleft", 2, -380)
 ZoneSumaryFrame:SetSize (200, 400)
 
 ZoneSumaryFrame.WidgetHeight = 20
-ZoneSumaryFrame.WidgetWidth = 160
+ZoneSumaryFrame.WidgetWidth = 140
 ZoneSumaryFrame.WidgetBackdrop = {bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16}
 ZoneSumaryFrame.WidgetBackdropColor = {0, 0, 0, 0}
 ZoneSumaryFrame.IconSize = 20
@@ -1043,6 +1058,7 @@ ZoneSumaryFrame.IconTimeSize = 20
 WorldQuestTracker.ZoneSumaryWidgets = {}
 
 ZoneSumaryFrame.Header = CreateFrame ("frame", "WorldQuestTrackerSummaryHeader", ZoneSumaryFrame, "ObjectiveTrackerHeaderTemplate")
+ZoneSumaryFrame.Header:SetAlpha (0)
 ZoneSumaryFrame.Header.Title = ZoneSumaryFrame.Header:CreateFontString (nil, "overlay", "GameFontNormal")
 ZoneSumaryFrame.Header.Title:SetText ("Quest Summary")
 ZoneSumaryFrame.Header.Desc = ZoneSumaryFrame.Header:CreateFontString (nil, "overlay", "GameFontNormal")
@@ -1073,98 +1089,70 @@ local GetOrCreateZoneSummaryWidget = function (index)
 		return widget
 	end
 	
-	
 	local button = CreateFrame ("button", "WorldQuestTrackerZoneSummaryFrame_Widget" .. index, ZoneSumaryFrame)
+	button:SetAlpha (WQT_ZONEWIDGET_ALPHA)
 	
 	--button:SetPoint ("bottomleft", ZoneSumaryFrame, "bottomleft", 0, ((index-1)* (ZoneSumaryFrame.WidgetHeight + 1)) -2) --grow bottom to top
 	button:SetPoint ("topleft", ZoneSumaryFrame, "topleft", 0, (((index-1) * (ZoneSumaryFrame.WidgetHeight + 1)) -2) * -1) --grow top to bottom
-	
 	button:SetSize (ZoneSumaryFrame.WidgetWidth, ZoneSumaryFrame.WidgetHeight)
 	button:SetFrameLevel (WorldQuestTracker.DefaultFrameLevel + 1)
 	
+	--create a square icon
+	local squareIcon = WorldQuestTracker.CreateWorldMapWidget ("ZoneWidget", index, button)
+	squareIcon.IsWorldQuestButton = false
+	--squareIcon.isWorldMapWidget = false --required when updating borders
+	squareIcon.IsZoneSummaryQuestButton = true
+	squareIcon:SetPoint ("left", button, "left", 2, 0)
+	squareIcon:SetSize (ZoneSumaryFrame.IconSize, ZoneSumaryFrame.IconSize)
+	squareIcon:SetFrameLevel (WorldQuestTracker.DefaultFrameLevel + 2)
+	squareIcon.IsZoneSummaryButton = true
+	button.Icon = squareIcon
 	
-	local buttonIcon = WorldQuestTracker.CreateZoneWidget (index, "WorldQuestTrackerZoneSummaryFrame_WidgetIcon", button)
-	buttonIcon:SetPoint ("left", button, "left", 2, 0)
-	buttonIcon:SetSize (ZoneSumaryFrame.IconSize, ZoneSumaryFrame.IconSize)
-	buttonIcon:SetFrameLevel (WorldQuestTracker.DefaultFrameLevel + 2)
-	buttonIcon.IsZoneSummaryButton = true
-	button.Icon = buttonIcon
+	local buttonIcon = squareIcon
+	buttonIcon.commonBorder:SetPoint ("bottomright", squareIcon, "bottomright")
+	buttonIcon.rareBorder:SetPoint ("bottomright", squareIcon, "bottomright")
+	buttonIcon.epicBorder:SetPoint ("bottomright", squareIcon, "bottomright")
+	buttonIcon.invasionBorder:SetPoint ("bottomright", squareIcon, "bottomright")
+	buttonIcon.trackingBorder:SetPoint ("bottomright", squareIcon, "bottomright", 6, -5)
 	
-	local art = button:CreateTexture (nil, "border")
-	art:SetAllPoints()
-	art:SetTexture ([[Interface\ARCHEOLOGY\ArchaeologyParts]])
-	art:SetTexCoord (73/512, 320/512, 15/256, 65/256)
-	art:SetAlpha (1)
-	
+	--background
 	local art2 = button:CreateTexture (nil, "artwork")
 	art2:SetAllPoints()
 	art2:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\background_summaryzoneT]])
-	art2:SetAlpha (.4)
+	art2:SetAlpha (.5)
 	button.BlackBackground = art2
 	
+	--hover over highlight
 	local highlight = button:CreateTexture (nil, "highlight")
 	highlight:SetAllPoints()
 	highlight:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_pixel_whiteT.blp]])
-	highlight:SetAlpha (.2)
+	highlight:SetAlpha (.4)
 	button.Highlight = highlight
 	
-	--border lines
-	local lineUp = button:CreateTexture (nil, "overlay")
-	lineUp:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_pixel_whiteT.blp]])
-	lineUp:SetPoint ("bottomleft", button, "topleft", 0, -1)
-	lineUp:SetPoint ("bottomright", button, "topright", 0, -1)
-	lineUp:SetHeight (1)
-	lineUp:SetVertexColor (0, 0, 0)
-	lineUp:SetAlpha (.3)
-	
-	--border lines
-	local lineDown = button:CreateTexture (nil, "overlay")
-	lineDown:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_pixel_whiteT.blp]])
-	lineDown:SetPoint ("topleft", button, "bottomleft", 0, 1)
-	lineDown:SetPoint ("topright", button, "bottomright", 0, 1)
-	lineDown:SetHeight (1)
-	lineDown:SetVertexColor (0, 0, 0)
-	lineDown:SetAlpha (.3)
-	button.LineDown = lineDown
-	button.LineUp = lineUp
-	--
-
-	local x = 75
-	buttonIcon.timeBlipRed:ClearAllPoints()
-	buttonIcon.timeBlipRed:SetPoint ("left", buttonIcon, "right", x, 0)
-	buttonIcon.timeBlipRed:SetSize (ZoneSumaryFrame.IconTimeSize, ZoneSumaryFrame.IconTimeSize)
-	buttonIcon.timeBlipRed:SetAlpha (1)
-	buttonIcon.timeBlipOrange:ClearAllPoints()
-	buttonIcon.timeBlipOrange:SetPoint ("left", buttonIcon, "right", x, 0)
-	buttonIcon.timeBlipOrange:SetSize (ZoneSumaryFrame.IconTimeSize, ZoneSumaryFrame.IconTimeSize)
-	buttonIcon.timeBlipOrange:SetAlpha (.8)
-	buttonIcon.timeBlipYellow:ClearAllPoints()
-	buttonIcon.timeBlipYellow:SetPoint ("left", buttonIcon, "right", x, 0)
-	buttonIcon.timeBlipYellow:SetSize (ZoneSumaryFrame.IconTimeSize, ZoneSumaryFrame.IconTimeSize)
-	buttonIcon.timeBlipYellow:SetAlpha (.6)
-	buttonIcon.timeBlipGreen:ClearAllPoints()
-	buttonIcon.timeBlipGreen:SetPoint ("left", buttonIcon, "right", x, 0)
-	buttonIcon.timeBlipGreen:SetSize (ZoneSumaryFrame.IconTimeSize, ZoneSumaryFrame.IconTimeSize)
-	buttonIcon.timeBlipGreen:SetAlpha (.3)
-	--
-	buttonIcon.criteriaIndicator:ClearAllPoints()
-	buttonIcon.criteriaIndicator:SetPoint ("left", buttonIcon, "right", 50, 0)
-	buttonIcon.criteriaIndicator:SetSize (23*.4, 37*.4)
-	--
+	--resource amount text
 	button.Text = DF:CreateLabel (button)
 	button.Text:SetPoint ("left", buttonIcon, "right", 3, 0)
 	DF:SetFontSize (button.Text, 10)
 	DF:SetFontColor (button.Text, "orange")
-	--
 	
-	button.OnTracker = button:CreateTexture (nil, "overlay")
-	button.OnTracker:SetPoint ("left", buttonIcon, "right", 63, 0)
-	button.OnTracker:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]])
-	button.OnTracker:SetAlpha (.65)
-	button.OnTracker:SetSize (14, 14)
-	button.OnTracker:SetTexCoord (.15, .8, .15, .80)
+	--faction icon
+	local factionIcon = button:CreateTexture (nil, "overlay")
+	factionIcon:SetSize (18, 18)
+	factionIcon:SetAlpha (.9314)
+	factionIcon:SetTexCoord (.1, .9, .1, .9)
+	factionIcon:SetPoint ("left", buttonIcon, "right", 30, 0)
+	button.factionIcon = factionIcon
 	
-	--
+	--time left text
+	local timeLeftText = button:CreateFontString (nil, "overlay", "GameFontNormal")
+	timeLeftText:SetPoint ("left", buttonIcon, "right", 66, 0)
+	button.timeLeftText = timeLeftText
+	
+	--transfers the criteria icon from the icon to the button line
+	buttonIcon.criteriaIndicator:ClearAllPoints()
+	buttonIcon.criteriaIndicator:SetPoint ("left", buttonIcon, "right", 54, 0)
+	buttonIcon.criteriaIndicator:SetSize (23*.4, 37*.4)
+	
 	--animations
 	local on_enter_animation = DF:CreateAnimationHub (button, nil, function()
 		--button:SetScale (1.1, 1.1)
@@ -1184,6 +1172,8 @@ local GetOrCreateZoneSummaryWidget = function (index)
 	mouseoverHighlight:SetSize (80, 80)
 	mouseoverHighlight:SetBlendMode ("ADD")
 	
+	--clicking is disable at the moment
+	--[=[
 	button:SetScript ("OnClick", function (self)
 		--WorldQuestTracker.AddQuestToTracker (self.Icon)
 		for i = 1, #WorldQuestTracker.Cache_ShownWidgetsOnZoneMap do
@@ -1192,20 +1182,18 @@ local GetOrCreateZoneSummaryWidget = function (index)
 				break
 			end
 		end
+		print ("click")
 	end)
+	--]=]
+	
 	
 	button:SetScript ("OnEnter", function (self)
-		--print ("enter", self:GetScale())
-		--self.OnEnterAnimation.Step1:SetFromScale (self.OnEnterAnimation.Step1:GetScale())
-		--self.OnLeaveAnimation:Stop()
-		--self.OnEnterAnimation:Play()
-		--WorldQuestTracker.HaveZoneSummaryHover = self._Twin
 		WorldQuestTracker.HaveZoneSummaryHover = self
 		self.Icon:GetScript ("OnEnter")(self.Icon)
-		WorldMapTooltip:SetPoint ("bottomleft", WorldQuestTracker.HaveZoneSummaryHover, "bottomright", 2, 0)
+		WorldQuestTracker.HighlightOnZoneMap (self.Icon.questID, 1.2)
 		
-		--GameCooltip:Hide()
 		--procura o icone da quest no mapa e indica ele
+		--[=[
 		for i = 1, #WorldQuestTracker.Cache_ShownWidgetsOnZoneMap do
 			if (WorldQuestTracker.Cache_ShownWidgetsOnZoneMap[i].questID == self.Icon.questID) then
 				mouseoverHighlight:SetPoint ("center", WorldQuestTracker.Cache_ShownWidgetsOnZoneMap[i], "center")
@@ -1213,19 +1201,22 @@ local GetOrCreateZoneSummaryWidget = function (index)
 				break
 			end
 		end
-
+		--]=]
 	end)
+	
 	button:SetScript ("OnLeave", function (self)
-		--print ("enter", self:GetScale())
-		--self.OnLeaveAnimation.Step1:SetFromScale (self.OnLeaveAnimation.Step1:GetScale())
-		--self.OnEnterAnimation:Stop()
-		--self.OnLeaveAnimation:Play()
 		self.Icon:GetScript ("OnLeave")(self.Icon)
 		WorldQuestTracker.HaveZoneSummaryHover = nil
-		mouseoverHighlight:Hide()
+		
+		WorldQuestTracker.HideMapQuestHighlight()
+		
+		--mouseoverHighlight:Hide()
 	end)
 	
 	WorldQuestTracker.ZoneSumaryWidgets [index] = button
+
+	--disable mouse click
+	button:SetMouseClickEnabled (false)
 	return button
 end
 
@@ -1244,59 +1235,83 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 	Icon.questID = zoneWidget.questID
 	Icon.numObjectives = zoneWidget.numObjectives
 	
-	WorldQuestTracker.SetupWorldQuestButton (Icon, zoneWidget.worldQuestType, zoneWidget.rarity, zoneWidget.isElite, zoneWidget.tradeskillLineIndex, zoneWidget.inProgress, zoneWidget.selected, zoneWidget.isCriteria, zoneWidget.isSpellTarget)
+	--setup the world quest button within the summary line
+	local widget = Icon
+	local isCriteria, isNew, isUsingTracker, timeLeft, artifactPowerIcon = zoneWidget.isCriteria, false, false, zoneWidget.TimeLeft, WorldQuestTracker.MapData.ItemIcons ["BFA_ARTIFACT"]
+	local questID, numObjectives, mapID = zoneWidget.questID, zoneWidget.numObjectives, zoneWidget.mapID
 	
-	--Icon.Shadow:Hide()
-	Icon.blackGradient:Hide()
-	Icon.rareSerpent:Hide()
-	Icon.rareGlow:Hide()
-	Icon.bgFlag:Hide()
-	Icon.IsTrackingRareGlow:Hide()
-	Icon.flagCriteriaMatchGlow:Hide()
-	Icon.flagText:Hide()
+	--update the quest icon
+	local okay, gold, resource, apower = WorldQuestTracker.UpdateWorldWidget (widget, questID, numObjectives, mapID, isCriteria, isNew, isUsingTracker, timeLeft, artifactPowerIcon)
+	widget.texture:SetTexCoord (.05, .95, .05, .95)
+	widget:SetAlpha (WQT_ZONEWIDGET_ALPHA)
 	
-	Icon.IsTrackingGlow:SetSize (30, 30)
-	Icon.IsTrackingGlow:Hide()
-	Icon.criteriaIndicatorGlow:Hide()
+	widget.background:Hide()
+	widget.factionBorder:Hide()
+	widget.commonBorder:Hide()
+	widget.amountText:Hide()
+	widget.amountBackground:Hide()	
+	widget.timeBlipRed:Hide()
+	widget.timeBlipOrange:Hide()
+	widget.timeBlipYellow:Hide()
+	widget.timeBlipGreen:Hide()
+	widget.trackingGlowBorder:Hide()
 	
-	Icon.Texture:SetSize (ZoneSumaryFrame.IconTextureSize, ZoneSumaryFrame.IconTextureSize)
-	Icon.Texture:SetAlpha (.75)
-	Icon.circleBorder:SetAlpha (.75)
+	--set the amount text
+	summaryWidget.Text:SetText (type (zoneWidget.IconText) == "number" and floor (zoneWidget.IconText) or zoneWidget.IconText)
 	
-	if (zoneWidget.rarity == LE_WORLD_QUEST_QUALITY_COMMON) then
-		summaryWidget.LineUp:SetAlpha (.3)
-		summaryWidget.LineDown:SetAlpha (.3)
-		summaryWidget.LineUp:SetVertexColor (0, 0, 0)
-		summaryWidget.LineDown:SetVertexColor (0, 0, 0)
-		
-	elseif (zoneWidget.rarity == LE_WORLD_QUEST_QUALITY_RARE) then
-		local color = BAG_ITEM_QUALITY_COLORS [LE_ITEM_QUALITY_RARE]
-		summaryWidget.LineUp:SetAlpha (.8)
-		summaryWidget.LineDown:SetAlpha (.8)
-		summaryWidget.LineUp:SetVertexColor (color.r, color.g, color.b)
-		summaryWidget.LineDown:SetVertexColor (color.r, color.g, color.b)
-		
-	elseif (zoneWidget.rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
-		local color = BAG_ITEM_QUALITY_COLORS [LE_ITEM_QUALITY_EPIC]
-		summaryWidget.LineUp:SetAlpha (.8)
-		summaryWidget.LineDown:SetAlpha (.8)
-		summaryWidget.LineUp:SetVertexColor (color.r, color.g, color.b)
-		summaryWidget.LineDown:SetVertexColor (color.r, color.g, color.b)
-		
+	if (widget.criteriaIndicator:IsShown()) then
+		summaryWidget.timeLeftText:SetPoint ("left", widget, "right", 66, 0)
+		summaryWidget:SetWidth (ZoneSumaryFrame.WidgetWidth)
+	else
+		summaryWidget.timeLeftText:SetPoint ("left", widget, "right", 54, 0)
+		summaryWidget:SetWidth (ZoneSumaryFrame.WidgetWidth - 12)
 	end
 	
-	Icon.flagText:SetText (zoneWidget.IconText)
-	summaryWidget.Text:SetText (type (zoneWidget.IconText) == "number" and WorldQuestTracker.ToK (zoneWidget.IconText) or zoneWidget.IconText)
-
-	summaryWidget.BlackBackground:SetAlpha (.4)
-	summaryWidget.Highlight:SetAlpha (.2)
+	--set the time left
+	local timePriority = WorldQuestTracker.db.profile.sort_time_priority
+	if (timePriority < 4) then
+		timePriority = 4
+	end
+	timePriority = timePriority * 60 --4 8 12 16 24
 	
+	if (timePriority) then
+		if (timeLeft <= timePriority) then
+			DF:SetFontColor (summaryWidget.timeLeftText, "yellow")
+			summaryWidget.timeLeftText:SetAlpha (1)
+		else
+			DF:SetFontColor (summaryWidget.timeLeftText, "white")
+			summaryWidget.timeLeftText:SetAlpha (0.8)
+			
+			if (WorldQuestTracker.db.profile.alpha_time_priority) then
+				summaryWidget:SetAlpha (ALPHA_BLEND_AMOUNT - 0.50)
+			end
+		end
+	else
+		DF:SetFontColor (summaryWidget.timeLeftText, "white")
+		summaryWidget.timeLeftText:SetAlpha (1)
+	end
+
+	summaryWidget.timeLeftText:SetText (timeLeft > 1440 and floor (timeLeft/1440) .. "d" or timeLeft > 60 and floor (timeLeft/60) .. "h" or timeLeft .. "m")
+	summaryWidget.timeLeftText:SetJustifyH ("center")
+	summaryWidget.timeLeftText:Show()
+	
+	summaryWidget.factionIcon:SetTexture (WorldQuestTracker.MapData.FactionIcons [widget.FactionID])
+
 	summaryWidget:Show()
 end
 
 -- ~summary
 function WorldQuestTracker.CanShowZoneSummaryFrame()
-	return WorldQuestTracker.db.profile.use_quest_summary and WorldQuestTracker.ZoneHaveWorldQuest() and WorldMapFrame.isMaximized
+	local canShow = WorldQuestTracker.db.profile.use_quest_summary and WorldQuestTracker.ZoneHaveWorldQuest() and (WorldMapFrame.isMaximized or true)
+	if (canShow) then
+		if (WorldMapFrame.isMaximized) then
+			ZoneSumaryFrame:SetPoint ("topleft", worldFramePOIs, "topleft", 2, -380) --380
+		else
+			ZoneSumaryFrame:SetPoint ("topleft", worldFramePOIs, "topleft", 2, -105) --380
+		end
+		ZoneSumaryFrame:SetScale (WorldQuestTracker.db.profile.zone_map_config.quest_summary_scale)
+	end
+	return canShow
 end
 
 function WorldQuestTracker.UpdateZoneSummaryFrame()
@@ -1311,22 +1326,17 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 	WorldQuestTracker.ClearZoneSummaryButtons()
 	
 	table.sort (WorldQuestTracker.Cache_ShownWidgetsOnZoneMap, function (t1, t2)
-		return t1.Order < t2.Order
+		return t1.Order > t2.Order
 	end)
 	
 	local LastWidget
 	for i = 1, #WorldQuestTracker.Cache_ShownWidgetsOnZoneMap do
 		local zoneWidget = WorldQuestTracker.Cache_ShownWidgetsOnZoneMap [i]
 		local summaryWidget = GetOrCreateZoneSummaryWidget (index)
+		
 		summaryWidget._Twin = zoneWidget
 		WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 		LastWidget = summaryWidget
-		
-		if (WorldQuestTracker.IsQuestBeingTracked (zoneWidget.questID)) then
-			summaryWidget.OnTracker:Show()
-		else
-			summaryWidget.OnTracker:Hide()
-		end
 		
 		index = index + 1
 	end

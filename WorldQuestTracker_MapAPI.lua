@@ -100,6 +100,9 @@ function WorldQuestTracker.CheckQuestRewardDataForWidget (widget, noScheduleRefr
 	return true
 end
 
+function WorldQuestTracker.HaveDataForQuest (questID)
+	return HaveQuestData (questID) and HaveQuestRewardData (questID)
+end
 
 --return the list of quests on the tracker
 function WorldQuestTracker.GetTrackedQuests()

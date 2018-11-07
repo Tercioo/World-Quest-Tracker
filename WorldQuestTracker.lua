@@ -1,28 +1,4 @@
 
---/dump BrokenIslesArgusButton:IsProtected()
-
---[=[
---WorldMapButton:HookScript ("PreClick", deny_auto_switch)
-
-doesnt existst any more:
-
-WorldMapButton
-WorldMap_CreatePOI
-WorldMap_GetOrCreateTaskPOI
-WorldMap_UpdateQuestBonusObjectives
-
-WorldMapScrollFrame - sub by WorldMapFrame.ScrollContainer
-WorldMapFrame_InWindowedMode - sub by WorldMapFrame.isMaximized
-
-/run WorldQuestTrackerAddon.UpdateZoneWidgets (true)
-
-
-function WorldMapMixin:AddOverlayFrame(templateName, templateType, anchorPoint, relativeTo, relativePoint, offsetX, offsetY)
-this return the bounty board frame, just check if templatename is "WorldMapBountyBoardTemplate"
-
-
-
---]=]
 
 hooksecurefunc (WorldQuestDataProviderMixin, "RefreshAllData", function (self, fromOnShow)
 	--is triggering each 0.5 seconds
@@ -99,62 +75,6 @@ end
 
 local _
 
--------------------------------------------------------------------------------------------------------------------
---search checkpoint: ~8 ~bfa ~kultiras ~zandalar
-
-
---[=[
-	8.0 notepad
-	
-	- which zones will have world quests?
-	- what's the garrison resource for this expansion?
-	- check for new rewards
-	
-	
-	need new functions for:
-		- check for the player current standing map	
-		- get the current map shown in the map frame
-	
-	notes:
-		WorldMapFrame.currentStandingZone > might need changes
-		
-		Check if self <WorldMapFrame>.mapID still keep the mapID
-		
-		WorldQuestTracker.IsASubLevel() might need to be updated
-		
-		All argus and broken shore related functions can be removed
-		
-		WorldQuestTracker.GetCurrentMapAreaID() might have to be replaced
-		
-		Cleanup removing all these locals with the zone name and mapId
-	
-		Remove the filter exceptions
-		
---> BfA world quest zones:
-local PLACEHOLDER_MAPID = 0
-
-local BATTLE_FOR_AZEROTH_ZONES = {
-	--Zandalar horde zones
-		--Nazmir
-		[PLACEHOLDER_MAPID] = true,
-		--Zuldazar
-		[PLACEHOLDER_MAPID] = true,
-		--Voldun
-		[PLACEHOLDER_MAPID] = true,
-	
-	--Kul Tiras aliance zones
-		--Stormsong Valley
-		[PLACEHOLDER_MAPID] = true,
-		--Drustvar
-		[PLACEHOLDER_MAPID] = true,
-		--Tiragarde Sound
-		[PLACEHOLDER_MAPID] = true,
-}
-
-
---]=]
--------------------------------------------------------------------------------------------------------------------
-
 WorldQuestTracker.QuestTrackList = {} --place holder until OnInit is triggered
 WorldQuestTracker.AllTaskPOIs = {}
 WorldQuestTracker.JustAddedToTracker = {}
@@ -190,9 +110,6 @@ end
 local ARROW_UPDATE_FREQUENCE = 0.016
 
 local WorldMapScrollFrame = WorldMapFrame.ScrollContainer
-
-
-
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> initialize the addon
@@ -249,6 +166,8 @@ function WorldQuestTracker:OnInit()
 	WorldQuestTracker.GetTrackedQuestsOnDB()
 	
 	WorldQuestTracker.CreateLoadingIcon()
+	
+	C_Timer.After (.5, WorldQuestTracker.InitializeWorldWidgets)
 	
 	WQTrackerDBChr = WQTrackerDBChr or {}
 	WorldQuestTracker.dbChr = WQTrackerDBChr
