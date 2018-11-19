@@ -29,7 +29,7 @@ local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 WorldQuestTracker.WorldSummary = CreateFrame ("frame", "WorldQuestTrackerWorldSummaryFrame", anchorFrame)
 
 --dev version string
-local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker Alpha $322")
+local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker Alpha $323")
 
 
 
@@ -1191,7 +1191,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				else
 					--return the anchor chosen to hold quests of this zone
 					anchorIndex = worldSummary.ZoneAnchors [mapID]
-					
+
 					if (not anchorIndex) then
 						anchorIndex = worldSummary.ZoneAnchors.NextAnchor
 						worldSummary.ZoneAnchors [mapID] = anchorIndex
@@ -1240,6 +1240,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				
 				--calculate the weight of the quest to give to the sort function
 				if (not isShowingByZone) then
+					--showing by the quest reward type
 					for i = 1, #anchor.Widgets do
 						local widget = anchor.Widgets [i]
 						
@@ -1670,6 +1671,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				widget:Show()
 				widget.Anchor = anchor
 				widget.Order = order
+				widget.X = x
+				widget.Y = y
 				
 				local okay, gold, resource, apower = WorldQuestTracker.UpdateWorldWidget (widget, questID, numObjectives, mapID, isCriteria, isNew, isUsingTracker, timeLeft, artifactPowerIcon)
 				widget.texture:SetTexCoord (.05, .95, .05, .95)

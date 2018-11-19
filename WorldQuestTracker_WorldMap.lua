@@ -136,6 +136,12 @@ local questButton_OnEnter = function (self)
 		self.UpdateTooltip = TaskPOI_OnEnter -- function()end
 		TaskPOI_OnEnter (self)
 		WorldQuestTracker.HighlightOnWorldMap (self.questID)
+
+		if (WorldMapFrame.mapID == WorldQuestTracker.MapData.ZoneIDs.AZEROTH) then
+			local t = {self.questID, self.mapID, self.numObjectives, 1, "", self.X, self.Y}
+			WorldQuestTracker.ShowWorldMapSmallIcon_Temp (t)
+			self.IsShowingSmallQuestIcon = true
+		end
 	end
 end
 
@@ -143,6 +149,20 @@ local questButton_OnLeave = function (self)
 	TaskPOI_OnLeave (self)
 	WorldQuestTracker.CurrentHoverQuest = nil
 	WorldQuestTracker.HideMapQuestHighlight()
+	
+	if (self.IsShowingSmallQuestIcon) then
+		if (WorldMapFrame.mapID == WorldQuestTracker.MapData.ZoneIDs.AZEROTH) then
+			local map = WorldQuestTrackerDataProvider:GetMap()
+			for pin in map:EnumeratePinsByTemplate ("WorldQuestTrackerWorldMapPinTemplate") do
+				map:RemovePin (pin)
+				if (pin.Child) then
+					pin.Child:Hide()
+				end
+			end
+		end
+		wipe (WorldQuestTracker.WorldMapWidgetsLazyUpdateFrame.ShownQuests)
+		self.IsShowingSmallQuestIcon = nil
+	end
 end
 
 WorldQuestTracker.TaskPOI_OnEnterFunc = questButton_OnEnter
@@ -1029,6 +1049,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	
 	local mapChildren = WorldQuestTracker.BuildMapChildrenTable (WorldMapFrame.mapID)
 	
+	--
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
 		questsAvailable [mapId] = {}
 
@@ -1052,8 +1073,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 						WorldQuestTracker.HasQuestData [questID] = true
 					
 						local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
-
-						if (isWorldQuest and (info.mapID == mapId or mapChildren [info.mapID])) then
+						--if is showing the azeroth map, check if this map is a child of azeroth
+						if (isWorldQuest and ( (info.mapID == mapId) or (WorldMapFrame.mapID == WorldQuestTracker.MapData.ZoneIDs.AZEROTH and mapChildren [info.mapID]) ) ) then
 						
 							local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData (questID, true)
 						
@@ -1162,6 +1183,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 				
 				--add to the update schedule
 				tinsert (addToWorldMap, {questID, mapId, numObjectives, questCounter, title, quest [4], quest [5], quest [6], worldQuestType, isCriteria, isNew, timeLeft, quest [2]})
+			
 				questCounter = questCounter + 1
 				taskIconIndex = taskIconIndex + 1
 			end
@@ -1205,7 +1227,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	WorldQuestTracker.HideZoneWidgets()
 	WorldQuestTracker.SavedQuestList_CleanUp()
 
-	if (not WorldQuestTracker.db.profile.disable_world_map_widgets) then
+	if (not WorldQuestTracker.db.profile.disable_world_map_widgets and WorldMapFrame.mapID ~= WorldQuestTracker.MapData.ZoneIDs.AZEROTH) then
 		WorldQuestTracker.UpdateWorldMapSmallIcons (addToWorldMap, questList)
 	else
 		local map = WorldQuestTrackerDataProvider:GetMap()
@@ -1222,11 +1244,16 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 end
 
 local mapRangeValues = {
-	0.18, .38, 5.2, 3.3
+	[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = {0.18, .38, 5.2, 3.3},
+	[WorldQuestTracker.MapData.ZoneIDs.ZANDALAR] = {0.18, .38, 5.2, 3.3},
+	[WorldQuestTracker.MapData.ZoneIDs.KULTIRAS] = {0.18, .38, 5.2, 3.3},
+	[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = {0.18/2.5, .38/2.5, 5.2/2.5, 3.3/2.5},
+	[WorldQuestTracker.MapData.ZoneIDs.ARGUS] = {0.18/2.5, .38/2.5, 5.2/2.5, 3.3/2.5},
 }
 
 hooksecurefunc (WorldMapFrame.ScrollContainer, "ZoomIn", function()
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
+	local mapRangeValues = mapRangeValues [WorldMapFrame.mapID]
 	local pinScale = DF:MapRangeClamped (mapRangeValues[1], mapRangeValues[2], mapRangeValues[3], mapRangeValues[4], mapScale)
 	--print ("map",mapScale, "pin", pinScale)
 	
@@ -1239,6 +1266,7 @@ end)
 
 hooksecurefunc (WorldMapFrame.ScrollContainer, "ZoomOut", function()
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
+	local mapRangeValues = mapRangeValues [WorldMapFrame.mapID]
 	local pinScale = DF:MapRangeClamped (mapRangeValues[1], mapRangeValues[2], mapRangeValues[3], mapRangeValues[4], mapScale)
 	--print ("map",mapScale, "pin", pinScale)
 	
@@ -1278,6 +1306,8 @@ end
 local lazyUpdate = CreateFrame ("frame")
 --list of quests queued to receive an update
 lazyUpdate.WidgetsToUpdate = {}
+WorldQuestTracker.WorldMapWidgetsLazyUpdateFrame = lazyUpdate
+
 
 --store quests that are shown in the world map with the value poiting to its widget
 lazyUpdate.ShownQuests = {}
@@ -1318,6 +1348,8 @@ local scheduledIconUpdate = function (questTable)
 	button:Show()
 	
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
+	
+	local mapRangeValues = mapRangeValues [WorldMapFrame.mapID]
 	local pinScale = DF:MapRangeClamped (mapRangeValues[1], mapRangeValues[2], mapRangeValues[3], mapRangeValues[4], mapScale)
 	button:SetScale (pinScale + WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset)
 	
@@ -1348,6 +1380,11 @@ local scheduledIconUpdate = function (questTable)
 	button.highlight:ClearAllPoints()
 	button.highlight:SetPoint ("center", button, "center")
 	button.highlight:Show()
+end
+
+--this function show the small quest icon in the map when the player hover over a squere in the azeroth map
+function WorldQuestTracker.ShowWorldMapSmallIcon_Temp (questTable)
+	scheduledIconUpdate (questTable)
 end
 
 local lazyUpdateEnded = function()
