@@ -2901,7 +2901,20 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				WorldQuestTracker.UpdateWorldMapFrameAnchor (true)
 			end)
 			
-			GameCooltip:InjectQuickTooltip (mapFrameAnchorButton, L["S_MAPFRAME_ALIGN_DESC"])
+			if (GameCooltip.InjectQuickTooltip) then
+				--testing a way to add tooltips faster to regular frames
+				GameCooltip:InjectQuickTooltip (mapFrameAnchorButton, L["S_MAPFRAME_ALIGN_DESC"])
+			else
+				mapFrameAnchorButton:SetScript ("OnEnter", function()
+					GameCooltip:Preset(2)
+					GameCooltip:SetHost (mapFrameAnchorButton)
+					GameCooltip:AddLine (L["S_MAPFRAME_ALIGN_DESC"])
+					GameCooltip:Show()
+				end)
+				mapFrameAnchorButton:SetScript ("OnLeave", function()
+					GameCooltip:Hide()
+				end)
+			end
 			
 			--window icon
 			mapFrameAnchorButton.Icon = DF:CreateImage (mapFrameAnchorButton, [[Interface\BUTTONS\UI-SquareButton-Disabled]])
