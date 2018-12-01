@@ -29,7 +29,7 @@ local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 WorldQuestTracker.WorldSummary = CreateFrame ("frame", "WorldQuestTrackerWorldSummaryFrame", anchorFrame)
 
 --dev version string
-local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker Alpha $323")
+local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker Alpha $324")
 
 
 
@@ -384,6 +384,25 @@ WorldMapFrame:HookScript ("OnHide", function()
 	C_Timer.After (0.2, WorldQuestTracker.RefreshTrackerWidgets)
 end)
 
+WorldQuestTracker.UpdateWorldMapFrameAnchor = function (resetLeft)
+	if (WorldQuestTracker.db.profile.map_frame_anchor == "center") then
+		if (not resetLeft) then
+			WorldMapFrame:ClearAllPoints()
+			WorldMapFrame:SetPoint ("center", UIParent, "center", 100, 0)
+		else
+			C_Timer.After (0.1, function() 
+				WorldMapFrame:ClearAllPoints()
+				WorldMapFrame:SetPoint ("center", UIParent, "center", 100, 0)
+			end)
+		end
+		
+	elseif (WorldQuestTracker.db.profile.map_frame_anchor == "left" and resetLeft) then
+		WorldMapFrame:Hide()
+		C_Timer.After (0.03, function() ToggleWorldMap() end)
+	end
+end
+
+local firstAnchorRun = true
 WorldQuestTracker.OnToggleWorldMap = function (self)
 
 	if (not WorldMapFrame:IsShown()) then
@@ -395,12 +414,6 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 		WorldQuestTrackerAddon.CatchMapProvider (true)
 		WorldQuestTracker.InitializeWorldWidgets()
 	end
-	
-	--debug positioning the map in the center of the screen
-	--disable this when sending versions to curse
-	--~disable ~remove
-	WorldMapFrame:ClearAllPoints()
-	WorldMapFrame:SetPoint ("center", UIParent, "center", 100, 0)
 	
 	WorldQuestTracker.IsLoaded = true
 	
@@ -718,6 +731,31 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 						WorldQuestTracker.UpdateZoneWidgets (true)
 					end
 
+					return
+				end
+				
+				if (option == "show_faction_frame") then
+					WorldQuestTracker.db.profile.show_faction_frame = value
+				
+					if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+						WorldQuestTracker.WorldSummary.UpdateFactionAnchor()
+					end
+					
+					GameCooltip:Close()
+					return
+					
+				elseif (option == "map_frame_anchor") then
+					WorldQuestTracker.db.profile.map_frame_anchor = value
+					
+					if (not WorldMapFrame.isMaximized) then
+						WorldQuestTracker.UpdateWorldMapFrameAnchor (true)
+						WorldQuestTracker.MapAnchorButton:UpdateButton()
+						WorldQuestTracker.MapAnchorButton:Show()
+					else
+						WorldQuestTracker.MapAnchorButton:Hide()
+					end
+					
+					GameCooltip:Close()
 					return
 				end
 				
@@ -1046,6 +1084,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				anchor:SetBackdropBorderColor (0, 0, 0, 0)
 				
 				anchor.Title = DF:CreateLabel (anchor)
+				anchor.Title.textcolor = {1, .8, .2, .854}
+				anchor.Title.textsize = 11
 				
 				anchor.WidgetsAmount = 0
 				anchor.Widgets = {}
@@ -1071,7 +1111,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				anchorButton:SetHook ("OnEnter", function()
 					anchorButton.Texture:SetBlendMode ("ADD")
 					GameCooltip:Preset (2)
-					GameCooltip:AddLine (" track all quests of this type")
+					GameCooltip:AddLine (" " .. L["S_WORLDMAP_TOOLTIP_TRACKALL"])
 					GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]], 1, 1, 20, 20, 0.1171, 0.6796, 0.1171, 0.7343)
 					GameCooltip:ShowCooltip (anchor.Button)
 				end)
@@ -1356,10 +1396,11 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			
 			--update anchors for the faction button in the topleft or topright corners
 			function worldSummary.UpdateFactionAnchor()
+			
 				local factionAnchor = worldSummary.FactionAnchor
 				local anchorSide = worldSummary.GetAnchorSide (true)
 				factionAnchor:ClearAllPoints()
-			
+				
 				--set the point of the faction anchor
 				--[=[ this code is for anchoring in the top left or top right side, the faction anchor got moved to the bottom right with the alliance and horde buttons
 				if (anchorSide == "left") then
@@ -1406,14 +1447,23 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					barMin = 0
 
 					if (repAmount > 41900) then
-						factionButton:SetAlpha (.5)
+						factionButton:SetAlpha (.75)
+						factionButton.Icon:SetDesaturated (true)
 					else
 						factionButton:SetAlpha (1)
+						factionButton.Icon:SetDesaturated (false)
 					end
 				end
 				
 				factionAnchor:SetSize (anchorWidth, anchorHeight)
 				factionAnchor:SetPoint ("bottomright", WorldQuestTrackerGoToAllianceButton, "topleft", 0, WorldQuestTracker.db.profile.bar_anchor == "top" and -31 or -15)
+				
+				if (WorldQuestTracker.db.profile.show_faction_frame) then
+					factionAnchor:Show()
+				else
+					factionAnchor:Hide()
+				end
+				
 			end			
 			
 			--create faction buttons
@@ -1449,8 +1499,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					GameCooltip:AddIcon ("", 1, 1, 1, 20)
 					GameCooltip:AddStatusBar (barValue / barMax * 100, 1, 0, 0.65, 0, 0.7, nil, {value = 100, color = {.21, .21, .21, 0.8}, texture = [[Interface\Tooltips\UI-Tooltip-Background]]}, [[Interface\Tooltips\UI-Tooltip-Background]])
 					
-					GameCooltip:AddLine ("Click: select this faction", "", 1, "orange", "orange", 9)
-					GameCooltip:AddLine ("Shift + Click: track this faction quests", "", 1, "orange", "orange", 9)
+					GameCooltip:AddLine (L["S_FACTION_TOOLTIP_SELECT"], "", 1, "orange", "orange", 9)
+					GameCooltip:AddLine (L["S_FACTION_TOOLTIP_TRACK"], "", 1, "orange", "orange", 9)
 					GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]], 1, 1, 12, 12, 0.1171, 0.6796, 0.1171, 0.7343)
 					
 					GameCooltip:Show()
@@ -1667,6 +1717,11 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				worldSummary.WidgetIndex = worldSummary.WidgetIndex + 1
 				tinsert (anchor.Widgets, widget)
 				
+				if (not widget) then
+					WorldQuestTracker:Msg ("exception: AddQuest() while cache still loading, close and reopen the map.")
+					return
+				end
+				
 				widget:SetScale (WorldQuestTracker.db.profile.world_map_config.summary_scale)
 				widget:Show()
 				widget.Anchor = anchor
@@ -1754,26 +1809,41 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			end
 			
 			function worldSummary.LazyUpdate (self, deltaTime)
-				if (WorldMapFrame:IsShown() and #worldSummary.ScheduleToUpdate > 0 and WorldQuestTracker.IsWorldQuestHub (WorldMapFrame.mapID)) then
-					local questTable = tremove (worldSummary.ScheduleToUpdate)
-					if (questTable) then
-						--check if the quest is already shown (return the widget being use to show the quest)
-						local alreadyShown = worldSummary.ShownQuests [questTable [1]]
-						if (alreadyShown) then
-							--quick update the quest widget
-							WorldQuestTracker.UpdateWorldWidget (alreadyShown, true)
-							worldSummary.ReorderAnchorWidgets (alreadyShown.Anchor)
-						else
-							worldSummary.AddQuest (questTable)
+			
+				--if framerate is low, update more quests at the same time
+				local frameRate = GetFramerate()
+				local amountToUpdate = 1
+				
+				if (frameRate < 20) then
+					amountToUpdate = amountToUpdate + 3
+				elseif (frameRate < 30) then
+					amountToUpdate = amountToUpdate + 2
+				elseif (frameRate < 40) then
+					amountToUpdate = amountToUpdate + 1
+				end
+				
+				for i = 1, amountToUpdate do
+					if (WorldMapFrame:IsShown() and #worldSummary.ScheduleToUpdate > 0 and WorldQuestTracker.IsWorldQuestHub (WorldMapFrame.mapID)) then
+						local questTable = tremove (worldSummary.ScheduleToUpdate)
+						if (questTable) then
+							--check if the quest is already shown (return the widget being use to show the quest)
+							local alreadyShown = worldSummary.ShownQuests [questTable [1]]
+							if (alreadyShown) then
+								--quick update the quest widget
+								WorldQuestTracker.UpdateWorldWidget (alreadyShown, true)
+								worldSummary.ReorderAnchorWidgets (alreadyShown.Anchor)
+							else
+								worldSummary.AddQuest (questTable)
+							end
 						end
+					else
+						--is still on the map?
+						if (WorldQuestTracker.IsWorldQuestHub (WorldMapFrame.mapID)) then
+							worldSummary.UpdateFaction()
+						end
+						--shutdown lazy updates
+						worldSummary:SetScript ("OnUpdate", nil)
 					end
-				else
-					--is still on the map?
-					if (WorldQuestTracker.IsWorldQuestHub (WorldMapFrame.mapID)) then
-						worldSummary.UpdateFaction()
-					end
-					--shutdown lazy updates
-					worldSummary:SetScript ("OnUpdate", nil)
 				end
 			end
 
@@ -2390,7 +2460,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			
 			-----------
 			
-			local buttons_width = 70
+			local buttons_width = 65
 			
 			local setup_button = function (button, name)
 				button:SetSize (buttons_width, 16)
@@ -2676,7 +2746,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			}
 			
 			GameCooltip:CoolTipInject (filterButton)
-			
+
 			---------------------------------------------------------
 			-- ~time left
 			
@@ -2800,6 +2870,47 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			}
 			
 			GameCooltip:CoolTipInject (timeLeftButton)			
+
+			---------------------------------------------------------
+			-- ~map ~anchor ~ãnchor
+			
+			local mapFrameAnchorButton = CreateFrame ("button", "WorldQuestTrackerTimeLeftButton", WorldQuestTracker.DoubleTapFrame)
+			mapFrameAnchorButton:SetPoint ("left", timeLeftButton, "right", 2, 0)
+			setup_button (mapFrameAnchorButton, "center")
+			mapFrameAnchorButton.Text:SetTextColor (.8, .8, .8, .65)
+			
+			function mapFrameAnchorButton:UpdateButton()
+				if (WorldQuestTracker.db.profile.map_frame_anchor == "center") then
+					mapFrameAnchorButton.Text:SetText (L["S_MAPFRAME_ALIGN_CENTER"])
+					
+				elseif (WorldQuestTracker.db.profile.map_frame_anchor == "left") then
+					mapFrameAnchorButton.Text:SetText (L["S_MAPFRAME_ALIGN_LEFT"])
+					
+				end
+			end
+			
+			mapFrameAnchorButton:SetScript ("OnClick", function()
+				if (WorldQuestTracker.db.profile.map_frame_anchor == "center") then
+					WorldQuestTracker.db.profile.map_frame_anchor = "left"
+					
+				elseif (WorldQuestTracker.db.profile.map_frame_anchor == "left") then
+					WorldQuestTracker.db.profile.map_frame_anchor = "center"
+				end
+				
+				mapFrameAnchorButton:UpdateButton()
+				WorldQuestTracker.UpdateWorldMapFrameAnchor (true)
+			end)
+			
+			GameCooltip:InjectQuickTooltip (mapFrameAnchorButton, L["S_MAPFRAME_ALIGN_DESC"])
+			
+			--window icon
+			mapFrameAnchorButton.Icon = DF:CreateImage (mapFrameAnchorButton, [[Interface\BUTTONS\UI-SquareButton-Disabled]])
+			mapFrameAnchorButton.Icon:SetPoint ("right", mapFrameAnchorButton.Text, "left", -2, 0)
+			mapFrameAnchorButton.Icon:SetScale (.6)
+			mapFrameAnchorButton.Icon:SetAlpha (.7)
+			mapFrameAnchorButton.Text:SetPoint ("center", 12, 0)
+			
+			WorldQuestTracker.MapAnchorButton = mapFrameAnchorButton
 			
 			---------------------------------------------------------
 			
@@ -2961,7 +3072,11 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				
 				local add_checkmark_icon = function (isOptionEnabled, isMainMenu)
 					if (isMainMenu) then
-						
+						if (isOptionEnabled) then
+							GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
+						else
+							GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
+						end
 					else
 						if (isOptionEnabled) then
 							GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
@@ -3044,8 +3159,9 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (2, options_on_click, "tracker_is_locked", not WorldQuestTracker.db.profile.tracker_is_locked)
+				
 				--reset pos
-				GameCooltip:AddLine ("Reset Position", "", 2)
+				GameCooltip:AddLine (L["S_OPTIONS_TRACKER_RESETPOSITION"], "", 2)
 				GameCooltip:AddMenu (2, function()
 					options_on_click (_, _, "tracker_is_movable", false)
 					C_Timer.After (0.5, function()
@@ -3101,30 +3217,35 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "summary_show", not WorldQuestTracker.db.profile.world_map_config.summary_show)
 					
 					--show by
-					GameCooltip:AddLine ("Summary by Map", "", 2)
+					GameCooltip:AddLine ("", "", 2)
+					GameCooltip:AddLine (L["S_OPTIONS_WORLD_ORGANIZE_BYMAP"], "", 2)
 					add_checkmark_icon (WorldQuestTracker.db.profile.world_map_config.summary_showbyzone)
 					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "summary_showbyzone", true)
 				
-					GameCooltip:AddLine ("Summary by Quest Type", "", 2)
+					GameCooltip:AddLine (L["S_OPTIONS_WORLD_ORGANIZE_BYTYPE"], "", 2)
 					add_checkmark_icon (not WorldQuestTracker.db.profile.world_map_config.summary_showbyzone)
 					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "summary_showbyzone", false)
+					GameCooltip:AddLine ("", "", 2)
 					
 					--anchor
-					GameCooltip:AddLine ("Anchor to Left Side", "", 2)
+					GameCooltip:AddLine (L["S_OPTIONS_WORLD_ANCHOR_LEFT"], "", 2)
 					add_checkmark_icon (WorldQuestTracker.db.profile.world_map_config.summary_anchor == "left")
 					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "summary_anchor", "left")
 					
-					GameCooltip:AddLine ("Anchor to Right Side", "", 2)
+					GameCooltip:AddLine (L["S_OPTIONS_WORLD_ANCHOR_RIGHT"], "", 2)
 					add_checkmark_icon (WorldQuestTracker.db.profile.world_map_config.summary_anchor == "right")
 					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "summary_anchor", "right")
+					GameCooltip:AddLine ("", "", 2)
 					
 					--sizes
-					GameCooltip:AddLine ("Increase Squares per Row", "", 2)
+					GameCooltip:AddLine (L["S_OPTIONS_WORLD_INCREASEICONSPERROW"], "", 2)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
 					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "incrows", "summary_widgets_per_row")
-					GameCooltip:AddLine ("Decrease Squares per Row", "", 2)
+					GameCooltip:AddLine (L["S_OPTIONS_WORLD_DECREASEICONSPERROW"], "", 2)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 0, 1)
 					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "decrows", "summary_widgets_per_row")
+					
+					GameCooltip:AddLine ("", "", 2)
 					
 					GameCooltip:AddLine (L["S_INCREASESIZE"], "", 2)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
@@ -3140,13 +3261,12 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					add_checkmark_icon (WorldQuestTracker.db.profile.world_map_config.onmap_show)
 					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "onmap_show", not WorldQuestTracker.db.profile.world_map_config.onmap_show)
 
-					GameCooltip:AddLine ("Increase Size", "", 2)
+					GameCooltip:AddLine (L["S_INCREASESIZE"], "", 2)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
 					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "incsize", "onmap_scale_offset")
-					GameCooltip:AddLine ("Decrease Size", "", 2)
+					GameCooltip:AddLine (L["S_DECREASESIZE"], "", 2)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 0, 1)
 					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "decsize", "onmap_scale_offset")
-					
 					
 				--Zone Map Config
 					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ZONEMAPCONFIG"])
@@ -3160,29 +3280,29 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					end
 					GameCooltip:AddMenu (2, options_on_click, "use_quest_summary", not WorldQuestTracker.db.profile.use_quest_summary)
 					
-					GameCooltip:AddLine ("Increase Size", "", 2)
+					GameCooltip:AddLine (L["S_INCREASESIZE"], "", 2)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
 					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "incsize", "quest_summary_scale")
-					GameCooltip:AddLine ("Decrease Size", "", 2)
+					GameCooltip:AddLine (L["S_DECREASESIZE"], "", 2)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 0, 1)
 					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "decsize", "quest_summary_scale")
 					
 					GameCooltip:AddLine ("$div", nil, 2, nil, -7, -14)
 					
-					GameCooltip:AddLine ("Show Quest Locations", "", 2)
+					GameCooltip:AddLine (L["S_WORLDMAP_QUESTLOCATIONS"], "", 2)
 					add_checkmark_icon (WorldQuestTracker.db.profile.zone_map_config.show_widgets)
 					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "show_widgets", not WorldQuestTracker.db.profile.zone_map_config.show_widgets)
 
-					GameCooltip:AddLine ("Increase Size", "", 2)
+					GameCooltip:AddLine (L["S_INCREASESIZE"], "", 2)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
 					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "incsize", "scale")
-					GameCooltip:AddLine ("Decrease Size", "", 2)
+					GameCooltip:AddLine (L["S_DECREASESIZE"], "", 2)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 0, 1)
 					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "decsize", "scale")
 
 					GameCooltip:AddLine ("$div", nil, 2, nil, -7, -14)
 					
-					GameCooltip:AddLine ("Only Tracked", "", 2)
+					GameCooltip:AddLine (L["S_OPTIONS_ZONE_SHOWONLYTRACKED"], "", 2)
 					if (WorldQuestTracker.db.profile.zone_only_tracked) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 					else
@@ -3400,6 +3520,18 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				end
 				GameCooltip:AddMenu (1, options_on_click, "sound_enabled", not WorldQuestTracker.db.profile.sound_enabled)
 				--
+				
+				GameCooltip:AddLine (L["S_OPTIONS_SHOWFACTIONS"])
+				add_checkmark_icon (WorldQuestTracker.db.profile.show_faction_frame, true)
+				GameCooltip:AddMenu (1, options_on_click, "show_faction_frame", not WorldQuestTracker.db.profile.show_faction_frame)
+
+				--
+				
+				GameCooltip:AddLine (L["S_OPTIONS_MAPFRAME_ALIGN"])
+				add_checkmark_icon (WorldQuestTracker.db.profile.map_frame_anchor == "center", true)
+				GameCooltip:AddMenu (1, options_on_click, "map_frame_anchor", WorldQuestTracker.db.profile.map_frame_anchor == "center" and "left" or "center")
+				
+				--
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_EQUIPMENTICONS"])
 				if (WorldQuestTracker.db.profile.use_old_icons) then
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
@@ -3407,15 +3539,9 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (1, options_on_click, "use_old_icons", not WorldQuestTracker.db.profile.use_old_icons)
+
 				--
-				GameCooltip:AddLine (L["S_MAPBAR_AUTOWORLDMAP"])
-				if (WorldQuestTracker.db.profile.enable_doubletap) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (1, options_on_click, "enable_doubletap", not WorldQuestTracker.db.profile.enable_doubletap)
-				--
+				
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_STATUSBARANCHOR"]) --anchor on top
 				if (WorldQuestTracker.db.profile.bar_anchor == "top") then
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
@@ -3933,6 +4059,18 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 	else
 		WorldQuestTracker.NoAutoSwitchToWorldMap = nil
 	end
+	
+	-- ~frame anchor
+	if (WorldQuestTracker.MapAnchorButton) then
+		if (not WorldMapFrame.isMaximized) then
+			WorldQuestTracker.UpdateWorldMapFrameAnchor()
+			WorldQuestTracker.MapAnchorButton:UpdateButton()
+			WorldQuestTracker.MapAnchorButton:Show()
+		else
+			WorldQuestTracker.MapAnchorButton:Hide()
+		end
+	end
+	
 end
 
 hooksecurefunc ("ToggleWorldMap", WorldQuestTracker.OnToggleWorldMap)

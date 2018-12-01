@@ -1249,13 +1249,18 @@ local mapRangeValues = {
 	[WorldQuestTracker.MapData.ZoneIDs.KULTIRAS] = {0.18, .38, 5.2, 3.3},
 	[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = {0.18/2.5, .38/2.5, 5.2/2.5, 3.3/2.5},
 	[WorldQuestTracker.MapData.ZoneIDs.ARGUS] = {0.18/2.5, .38/2.5, 5.2/2.5, 3.3/2.5},
+	["default"] = {0.18, .38, 5.2, 3.3},
 }
 
 hooksecurefunc (WorldMapFrame.ScrollContainer, "ZoomIn", function()
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
-	local mapRangeValues = mapRangeValues [WorldMapFrame.mapID]
-	local pinScale = DF:MapRangeClamped (mapRangeValues[1], mapRangeValues[2], mapRangeValues[3], mapRangeValues[4], mapScale)
-	--print ("map",mapScale, "pin", pinScale)
+	
+	local rangeValues = mapRangeValues [WorldMapFrame.mapID]
+	if (not rangeValues) then
+		rangeValues = mapRangeValues ["default"]
+	end
+	
+	local pinScale = DF:MapRangeClamped (rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
 	
 	if (WorldQuestTracker.IsWorldQuestHub (WorldMapFrame.mapID)) then
 		for _, widget in pairs (WorldQuestTracker.WorldMapSmallWidgets) do
@@ -1266,10 +1271,13 @@ end)
 
 hooksecurefunc (WorldMapFrame.ScrollContainer, "ZoomOut", function()
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
-	local mapRangeValues = mapRangeValues [WorldMapFrame.mapID]
-	local pinScale = DF:MapRangeClamped (mapRangeValues[1], mapRangeValues[2], mapRangeValues[3], mapRangeValues[4], mapScale)
-	--print ("map",mapScale, "pin", pinScale)
 	
+	local rangeValues = mapRangeValues [WorldMapFrame.mapID]
+	if (not rangeValues) then
+		rangeValues = mapRangeValues ["default"]
+	end
+	
+	local pinScale = DF:MapRangeClamped (rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
 	if (WorldQuestTracker.IsWorldQuestHub (WorldMapFrame.mapID)) then
 		for _, widget in pairs (WorldQuestTracker.WorldMapSmallWidgets) do
 			widget:SetScale (pinScale + WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset)
@@ -1349,8 +1357,12 @@ local scheduledIconUpdate = function (questTable)
 	
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
 	
-	local mapRangeValues = mapRangeValues [WorldMapFrame.mapID]
-	local pinScale = DF:MapRangeClamped (mapRangeValues[1], mapRangeValues[2], mapRangeValues[3], mapRangeValues[4], mapScale)
+	local rangeValues = mapRangeValues [WorldMapFrame.mapID]
+	if (not rangeValues) then
+		rangeValues = mapRangeValues ["default"]
+	end
+	
+	local pinScale = DF:MapRangeClamped (rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
 	button:SetScale (pinScale + WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset)
 	
 --	if (button.questID ~= questID and HaveQuestData (questID)) then

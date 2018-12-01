@@ -172,6 +172,10 @@ do
 			tracker_show_time = false,
 			tracker_textsize = 12,
 			
+			show_faction_frame = true,
+			
+			map_frame_anchor = "center",
+			
 			use_quest_summary = true,
 			zone_map_config = {
 				quest_summary_scale = 1,
