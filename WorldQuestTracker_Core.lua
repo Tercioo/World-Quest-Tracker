@@ -29,9 +29,7 @@ local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 WorldQuestTracker.WorldSummary = CreateFrame ("frame", "WorldQuestTrackerWorldSummaryFrame", anchorFrame)
 
 --dev version string
-local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker Alpha $324")
-
-
+local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker Alpha $325")
 
 local _
 local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest or QuestUtils_IsQuestWorldQuest
@@ -402,6 +400,26 @@ WorldQuestTracker.UpdateWorldMapFrameAnchor = function (resetLeft)
 	end
 end
 
+local defaultWorldMapScale
+WorldQuestTracker.UpdateWorldMapFrameScale = function (reset)
+	if (WorldQuestTracker.db.profile.map_frame_scale_enabled) then
+		--save the original scale if is the first time applying the modifier
+		if (not defaultWorldMapScale) then
+			defaultWorldMapScale = WorldMapFrame:GetScale()
+		end
+		
+		--apply the scale modifier
+		local scaleMod = WorldQuestTracker.db.profile.map_frame_scale_mod
+		WorldMapFrame:SetScale (scaleMod)
+		
+	elseif (reset) then
+		--if reset is called from the options menu, check if there's a default value saved and restore it
+		if (defaultWorldMapScale) then
+			WorldMapFrame:SetScale (defaultWorldMapScale)
+		end
+	end
+end
+
 local firstAnchorRun = true
 WorldQuestTracker.OnToggleWorldMap = function (self)
 
@@ -733,8 +751,18 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 
 					return
 				end
+
+				if (option == "reset_map_frame_scale_mod") then
+					WorldQuestTracker.db.profile.map_frame_scale_mod = 1
+					
+					if (WorldQuestTracker.db.profile.map_frame_scale_enabled) then
+						WorldQuestTracker.UpdateWorldMapFrameScale()
+					end
+					
+					GameCooltip:Close()
+					return
 				
-				if (option == "show_faction_frame") then
+				elseif (option == "show_faction_frame") then
 					WorldQuestTracker.db.profile.show_faction_frame = value
 				
 					if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
@@ -753,6 +781,39 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 						WorldQuestTracker.MapAnchorButton:Show()
 					else
 						WorldQuestTracker.MapAnchorButton:Hide()
+					end
+					
+					GameCooltip:Close()
+					return
+					
+				elseif (option == "map_frame_scale_mod") then
+					--option, value, value2, mouseButton
+					--"map_frame_scale_mod", "incsize"
+					if (WorldQuestTracker.db.profile.map_frame_scale_enabled) then
+						if (value == "incsize") then
+							WorldQuestTracker.db.profile.map_frame_scale_mod = WorldQuestTracker.db.profile.map_frame_scale_mod + 0.05
+						elseif (value == "decsize") then
+							WorldQuestTracker.db.profile.map_frame_scale_mod = WorldQuestTracker.db.profile.map_frame_scale_mod - 0.05
+						end
+						
+						WorldQuestTracker.UpdateWorldMapFrameScale()
+						
+						WorldQuestTracker:Msg ("Value: " .. WorldQuestTracker.db.profile.map_frame_scale_mod)
+					else
+						WorldQuestTracker:Msg (L["S_OPTIONS_MAPFRAME_ERROR_SCALING_DISABLED"])
+					end
+					
+					GameCooltip:Close()
+					return
+					
+				elseif (option == "map_frame_scale_enabled") then
+					
+					WorldQuestTracker.db.profile.map_frame_scale_enabled = value
+					
+					if (value) then
+						WorldQuestTracker.UpdateWorldMapFrameScale()
+					else
+						WorldQuestTracker.UpdateWorldMapFrameScale (true)
 					end
 					
 					GameCooltip:Close()
@@ -941,7 +1002,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			worldSummary.TotalGold = 0
 			worldSummary.TotalResources = 0
 			worldSummary.TotalAPower = 0
-			worldSummary.FactionSelected = 1
+			worldSummary.FactionSelected = 1 
+			worldSummary.FactionSelected_OnInit = 6 --the index 6 is the tortollan faction which has less quests and add less noise
 			worldSummary.AnchorAmount = 6
 			worldSummary.MaxWidgetsPerRow = 7
 			worldSummary.FactionIDs = {}
@@ -1586,7 +1648,12 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					end
 				end
 				
-				worldSummary.FactionSelected = worldSummary.FactionIDs [1]
+				worldSummary.FactionSelected = worldSummary.FactionIDs [worldSummary.FactionSelected_OnInit]
+				if (not worldSummary.FactionSelected) then
+					WorldQuestTracker:Msg ("(debug) failed to get the initial faction selection.")
+				end
+				
+				
 				worldSummary.RefreshFactionButtons()
 			end
 			
@@ -3522,9 +3589,46 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					end
 					GameCooltip:AddMenu (2, options_on_click, "rarescan", "use_master", not WorldQuestTracker.db.profile.rarescan.use_master)
 
+					--tracker arrow update speed
+					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED"])
+					GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]], 1, 1, IconSize, IconSize, .15, .8, .15, .80)
+					
+					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_REALTIME"], "", 2)
+					GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.016)
+					if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.017) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					
+					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_HIGH"], "", 2)
+					GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.03)
+					if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.032 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.029) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					
+					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_MEDIUM"], "", 2)
+					GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.075)
+					if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.076 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.074) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end
+					
+					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_SLOW"], "", 2)
+					GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.1)
+					if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.11 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.099) then
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
+					else
+						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
+					end					
+					
 				-- other options
 				GameCooltip:AddLine ("$div")
-				--
+				
+				--sound enabled
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_SOUNDENABLED"])
 				if (WorldQuestTracker.db.profile.sound_enabled) then
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
@@ -3532,19 +3636,13 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (1, options_on_click, "sound_enabled", not WorldQuestTracker.db.profile.sound_enabled)
-				--
 				
+				--show faction frames
 				GameCooltip:AddLine (L["S_OPTIONS_SHOWFACTIONS"])
 				add_checkmark_icon (WorldQuestTracker.db.profile.show_faction_frame, true)
 				GameCooltip:AddMenu (1, options_on_click, "show_faction_frame", not WorldQuestTracker.db.profile.show_faction_frame)
 
-				--
-				
-				GameCooltip:AddLine (L["S_OPTIONS_MAPFRAME_ALIGN"])
-				add_checkmark_icon (WorldQuestTracker.db.profile.map_frame_anchor == "center", true)
-				GameCooltip:AddMenu (1, options_on_click, "map_frame_anchor", WorldQuestTracker.db.profile.map_frame_anchor == "center" and "left" or "center")
-				
-				--
+				--show the real equipment icon
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_EQUIPMENTICONS"])
 				if (WorldQuestTracker.db.profile.use_old_icons) then
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
@@ -3553,8 +3651,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				end
 				GameCooltip:AddMenu (1, options_on_click, "use_old_icons", not WorldQuestTracker.db.profile.use_old_icons)
 
-				--
-				
+				--anchor to the top side
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_STATUSBARANCHOR"]) --anchor on top
 				if (WorldQuestTracker.db.profile.bar_anchor == "top") then
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
@@ -3562,46 +3659,35 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
 				end
 				GameCooltip:AddMenu (1, options_on_click, "bar_anchor", WorldQuestTracker.db.profile.bar_anchor == "bottom" and "top" or "bottom")
-				--
-
+				
+				-- frame scale and frame align options
 				GameCooltip:AddLine ("$div")
 				--
+				GameCooltip:AddLine (L["S_OPTIONS_MAPFRAME_ALIGN"])
+				add_checkmark_icon (WorldQuestTracker.db.profile.map_frame_anchor == "center", true)
+				GameCooltip:AddMenu (1, options_on_click, "map_frame_anchor", WorldQuestTracker.db.profile.map_frame_anchor == "center" and "left" or "center")
 				
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED"])
-				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]], 1, 1, IconSize, IconSize, .15, .8, .15, .80)
+				--create a sub menu for the map frame scale
+				GameCooltip:AddLine (L["S_OPTIONS_MAPFRAME_SCALE"])
+				GameCooltip:AddIcon ([[Interface\COMMON\UI-ModelControlPanel]], 1, 1, 16, 16, 20/64, 34/64, 38/128, 52/128)
+				--is enabled?
+				GameCooltip:AddLine (L["S_OPTIONS_MAPFRAME_SCALE_ENABLED"], "", 2)
+				add_checkmark_icon (WorldQuestTracker.db.profile.map_frame_scale_enabled)
+				GameCooltip:AddMenu (2, options_on_click, "map_frame_scale_enabled", not WorldQuestTracker.db.profile.map_frame_scale_enabled)
+				--increase and decrease the map scale
+				GameCooltip:AddLine (L["S_INCREASESIZE"], "", 2)
+				GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
+				GameCooltip:AddMenu (2, options_on_click, "map_frame_scale_mod", "incsize")
+				GameCooltip:AddLine (L["S_DECREASESIZE"], "", 2)
+				GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 0, 1)
+				GameCooltip:AddMenu (2, options_on_click, "map_frame_scale_mod", "decsize")
+				--reset the scale setting
+				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
+				GameCooltip:AddLine (L["S_OPTIONS_RESET"], "", 2)
+				GameCooltip:AddIcon ([[Interface\GLUES\CharacterSelect\CharacterUndelete]], 2, 1, 16, 16, .1, .9, .1, .9)
+				GameCooltip:AddMenu (2, options_on_click, "reset_map_frame_scale_mod")
 				
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_REALTIME"], "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.016)
-				if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.017) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_HIGH"], "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.03)
-				if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.032 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.029) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_MEDIUM"], "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.075)
-				if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.076 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.074) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_SLOW"], "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.1)
-				if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.11 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.099) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				
+
 				--
 				if (TomTom and IsAddOnLoaded ("TomTom")) then
 					GameCooltip:AddLine ("$div")
@@ -4082,6 +4168,11 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 		else
 			WorldQuestTracker.MapAnchorButton:Hide()
 		end
+	end
+	
+	-- ~frame scale
+	if (WorldQuestTracker.db.profile.map_frame_scale_enabled) then
+		WorldQuestTracker.UpdateWorldMapFrameScale()
 	end
 	
 end

@@ -176,6 +176,9 @@ do
 			
 			map_frame_anchor = "center",
 			
+			map_frame_scale_enabled = false,
+			map_frame_scale_mod = 1,
+			
 			use_quest_summary = true,
 			zone_map_config = {
 				quest_summary_scale = 1,
