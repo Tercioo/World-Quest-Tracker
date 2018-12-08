@@ -87,10 +87,13 @@ local do_highlight_pulse_animation = function (timerObject)
 	worldFramePOIs.mouseoverHighlight.PulseAnimation:Play()
 end
 
-local do_highlight_on_quest = function (widget, scale)
+local do_highlight_on_quest = function (widget, scale, color)
 	if (worldFramePOIs.mouseoverHighlight.StartPulseAnimation) then
 		worldFramePOIs.mouseoverHighlight.StartPulseAnimation:Cancel()
 	end
+	
+	local r, g, b, a = DF:ParseColors (color or "white")
+	worldFramePOIs.mouseoverHighlight:SetVertexColor (r, g, b, a)
 	
 	worldFramePOIs.mouseoverHighlight:Show()
 	worldFramePOIs.mouseoverHighlight:SetScale (scale)
@@ -103,20 +106,20 @@ local do_highlight_on_quest = function (widget, scale)
 end
 
 --when a square is hover hovered in the world map, find the circular quest button in the world map and highlight it
-function WorldQuestTracker.HighlightOnWorldMap (questID, scale)
+function WorldQuestTracker.HighlightOnWorldMap (questID, scale, color)
 	scale = scale or 1
 	for questCounter, button in pairs (WorldQuestTracker.WorldMapSmallWidgets) do
 		if (button.questID == questID) then
-			do_highlight_on_quest (button, scale)
+			do_highlight_on_quest (button, scale, color)
 		end
 	end
 end
 
-function WorldQuestTracker.HighlightOnZoneMap (questID, scale)
+function WorldQuestTracker.HighlightOnZoneMap (questID, scale, color)
 	scale = scale or 1
 	for questCounter, button in pairs (WorldQuestTracker.Cache_ShownWidgetsOnZoneMap) do
 		if (button.questID == questID) then
-			do_highlight_on_quest (button, scale)
+			do_highlight_on_quest (button, scale, color)
 		end
 	end
 end
@@ -135,17 +138,43 @@ local questButton_OnEnter = function (self)
 		WorldQuestTracker.CurrentHoverQuest = self.questID
 		self.UpdateTooltip = TaskPOI_OnEnter -- function()end
 		TaskPOI_OnEnter (self)
-		WorldQuestTracker.HighlightOnWorldMap (self.questID)
+		WorldQuestTracker.HighlightOnWorldMap (self.questID, 1.3, "orange")
 
 		if (WorldMapFrame.mapID == WorldQuestTracker.MapData.ZoneIDs.AZEROTH) then
 			local t = {self.questID, self.mapID, self.numObjectives, 1, "", self.X, self.Y}
 			WorldQuestTracker.ShowWorldMapSmallIcon_Temp (t)
 			self.IsShowingSmallQuestIcon = true
 		end
+		
+		if (self.OnEnterAnimation) then
+			if (self.OnLeaveAnimation:IsPlaying()) then
+				self.OnLeaveAnimation:Stop()
+			end
+		
+			self.OriginalScale = self:GetScale()
+			self.ModifiedScale = self.OriginalScale + 0.1
+			self.OnEnterAnimation.ScaleAnimation:SetFromScale (self.OriginalScale, self.OriginalScale)
+			self.OnEnterAnimation.ScaleAnimation:SetToScale (self.ModifiedScale, self.ModifiedScale)
+			self.OnEnterAnimation:Play()
+		end
 	end
 end
 
 local questButton_OnLeave = function (self)
+	if (self.OnLeaveAnimation) then
+		if (self.OnEnterAnimation:IsPlaying()) then
+			self.OnEnterAnimation:Stop()
+		end
+	
+		local currentScale = self.ModifiedScale
+		local originalScale = self.OriginalScale
+		
+		self.OnLeaveAnimation.ScaleAnimation:SetFromScale (currentScale, currentScale)
+		self.OnLeaveAnimation.ScaleAnimation:SetToScale (originalScale, originalScale)
+		
+		self.OnLeaveAnimation:Play()
+	end
+	
 	TaskPOI_OnLeave (self)
 	WorldQuestTracker.CurrentHoverQuest = nil
 	WorldQuestTracker.HideMapQuestHighlight()
@@ -276,6 +305,26 @@ local create_worldmap_square = function (mapName, index, parent)
 	button.shineAnimation = shineAnimation
 	
 	--animation
+	
+	--create the on enter/leave scale mini animation
+	
+		--animations
+		local animaSettings = {
+			scaleMax = 1.2,
+			speed = 0.1,
+		}
+		do 
+			button.OnEnterAnimation = DF:CreateAnimationHub (button, function() end, function() end)
+			local anim = WorldQuestTracker:CreateAnimation (button.OnEnterAnimation, "Scale", 1, animaSettings.speed, 1, 1, animaSettings.scaleMax, animaSettings.scaleMax, "center", 0, 0)
+			anim:SetEndDelay (60) --this fixes the animation going back to 1 after it finishes
+			button.OnEnterAnimation.ScaleAnimation = anim
+			
+			button.OnLeaveAnimation = DF:CreateAnimationHub (button, function() end, function() end)
+			local anim = WorldQuestTracker:CreateAnimation (button.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleMax, animaSettings.scaleMax, 1, 1, "center", 0, 0)
+			button.OnLeaveAnimation.ScaleAnimation = anim
+		end
+		
+		
 	WorldQuestTracker.CreateStartTrackingAnimation (button, nil, 5)
 	
 	local trackingGlowInside = button:CreateTexture (nil, "overlay", 1)
@@ -419,13 +468,11 @@ local create_worldmap_square = function (mapName, index, parent)
 	button.questTypeBlip:SetSize (12, 12)
 	
 	local amountText = button:CreateFontString (nil, "overlay", "GameFontNormal", 1)
-	amountText:SetPoint ("top", button, "bottom", 1, 0)
+	amountText:SetPoint ("bottom", button, "bottom", 1, -10)
 	DF:SetFontSize (amountText, 9)
 	
 	local timeLeftText = button:CreateFontString (nil, "overlay", "GameFontNormal", 1)
 	timeLeftText:SetPoint ("bottom", button, "bottom", 0, 1)
-	--timeLeftText:SetPoint ("top", button, "top", 0, -2)
-	--timeLeftText:SetPoint ("bottomright", button, "bottomright", 0, 0)
 	timeLeftText:SetJustifyH ("center")
 	DF:SetFontOutline (timeLeftText, true)
 	DF:SetFontSize (timeLeftText, 9)
@@ -1048,6 +1095,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 	local failedToUpdate = {}
 	
 	local mapChildren = WorldQuestTracker.BuildMapChildrenTable (WorldMapFrame.mapID)
+	local bannedQuests = WorldQuestTracker.db.profile.banned_quests
 	
 	--
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
@@ -1073,8 +1121,10 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 						WorldQuestTracker.HasQuestData [questID] = true
 					
 						local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
+						local isNotBanned = not bannedQuests [questID]
+						
 						--if is showing the azeroth map, check if this map is a child of azeroth
-						if (isWorldQuest and ( (info.mapID == mapId) or (WorldMapFrame.mapID == WorldQuestTracker.MapData.ZoneIDs.AZEROTH and mapChildren [info.mapID]) ) ) then
+						if (isWorldQuest and isNotBanned and ( (info.mapID == mapId) or (WorldMapFrame.mapID == WorldQuestTracker.MapData.ZoneIDs.AZEROTH and mapChildren [info.mapID]) ) ) then
 						
 							local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData (questID, true)
 						
@@ -1364,6 +1414,7 @@ local scheduledIconUpdate = function (questTable)
 	
 	local pinScale = DF:MapRangeClamped (rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
 	button:SetScale (pinScale + WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset)
+	--/dump WorldQuestTrackerAddon.db.profile.world_map_config.onmap_scale_offset
 	
 --	if (button.questID ~= questID and HaveQuestData (questID)) then
 		--> can cache here, at this point the quest data should already be in the cache

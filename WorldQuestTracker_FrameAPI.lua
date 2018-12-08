@@ -349,7 +349,7 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID, is
 				if (WorldQuestTracker.WorldSummary.FactionSelected == self.FactionID) then
 					self.commonBorder:SetAlpha (0)
 					self.commonBorder:SetVertexColor (1, 1, 1)
-					self:SetBackdropBorderColor (1, 1, .1, 1)
+					self:SetBackdropBorderColor (1, .85, 0, 1)
 				end
 			end
 			
@@ -364,7 +364,7 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID, is
 				if (WorldQuestTracker.WorldSummary.FactionSelected == self.FactionID) then
 					self.commonBorder:SetAlpha (0)
 					self.commonBorder:SetVertexColor (1, 1, 1)
-					self:SetBackdropBorderColor (1, 1, .1, 1)
+					self:SetBackdropBorderColor (1, .85, 0, 1)
 				end
 			end
 			
@@ -616,6 +616,10 @@ function WorldQuestTracker.OnQuestButtonClick (self, button)
 	if (WorldQuestTracker.CanLinkToChat (self, button)) then
 		--true if the quest got linked in chat
 		return
+	end
+	
+	if (self.OnEnterAnimation and self.OnEnterAnimation:IsPlaying()) then
+		self.OnEnterAnimation:Stop()
 	end
 
 	--was middle button and our group finder is enabled

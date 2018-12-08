@@ -134,7 +134,7 @@ do
 				summary_widgets_per_row = 7,
 			},
 			
-			disable_world_map_widgets = true,
+			disable_world_map_widgets = false,
 			
 			worldmap_widgets = {
 				textsize = 9,
@@ -150,6 +150,7 @@ do
 			show_timeleft = false,
 			quests_tracked = {},
 			quests_all_characters = {},
+			banned_quests = {},
 			syntheticMapIdList = {
 				[1015] = 1, --azsuna
 				[1018] = 2, --valsharah

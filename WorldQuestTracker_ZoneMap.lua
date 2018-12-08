@@ -172,12 +172,91 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 	button.Shadow:SetTexture ([[Interface\PETBATTLES\BattleBar-AbilityBadge-Neutral]])
 	button.Shadow:SetAlpha (1)
 	
+	
+	--create the on enter/leave scale mini animation
+	
+		--animations
+		local animaSettings = {
+			scaleZone = 0.12, --used when the widget is placed in a zone map
+			scaleWorld = 0.12, --used when the widget is placed in the world
+			speed = 0.1,
+		}
+		do 
+			button.OnEnterAnimation = DF:CreateAnimationHub (button, function() end, function() end)
+			local anim = WorldQuestTracker:CreateAnimation (button.OnEnterAnimation, "Scale", 1, animaSettings.speed, 1, 1, animaSettings.scaleZone, animaSettings.scaleZone, "center", 0, 0)
+			anim:SetEndDelay (60) --this fixes the animation going back to 1 after it finishes
+			button.OnEnterAnimation.ScaleAnimation = anim
+			
+			button.OnLeaveAnimation = DF:CreateAnimationHub (button, function() end, function() end)
+			local anim = WorldQuestTracker:CreateAnimation (button.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleZone, animaSettings.scaleZone, 1, 1, "center", 0, 0)
+			button.OnLeaveAnimation.ScaleAnimation = anim
+		end
+	
+		button:HookScript ("OnEnter", function (self)
+			if (self.OnEnterAnimation) then
+				if (self.OnLeaveAnimation:IsPlaying()) then
+					self.OnLeaveAnimation:Stop()
+				end
+			
+				self.OriginalScale = self:GetScale()
+				
+				if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+					self.ModifiedScale = self.OriginalScale + animaSettings.scaleZone
+					self.OnEnterAnimation.ScaleAnimation:SetFromScale (self.OriginalScale, self.OriginalScale)
+					self.OnEnterAnimation.ScaleAnimation:SetToScale (self.ModifiedScale, self.ModifiedScale)
+					self.OnEnterAnimation:Play()
+					
+				elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+					self.ModifiedScale = 1 + animaSettings.scaleWorld
+					self.OnEnterAnimation.ScaleAnimation:SetFromScale (1, 1)
+					self.OnEnterAnimation.ScaleAnimation:SetToScale (self.ModifiedScale, self.ModifiedScale)
+					self.OnEnterAnimation:Play()
+				end
+
+			end
+		end)
+		
+		button:HookScript ("OnLeave", function (self)
+			if (self.OnLeaveAnimation) then
+				if (self.OnEnterAnimation:IsPlaying()) then
+					self.OnEnterAnimation:Stop()
+				end
+			
+				local currentScale = self.ModifiedScale
+				local originalScale = self.OriginalScale
+				
+				if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+					self.OnLeaveAnimation.ScaleAnimation:SetFromScale (currentScale, currentScale)
+					self.OnLeaveAnimation.ScaleAnimation:SetToScale (originalScale, originalScale)
+				
+				elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+					self.OnLeaveAnimation.ScaleAnimation:SetFromScale (currentScale, currentScale)
+					self.OnLeaveAnimation.ScaleAnimation:SetToScale (1, 1)
+				end
+				
+				self.OnLeaveAnimation:Play()
+			end
+		end)
+	
 	WorldQuestTracker.CreateStartTrackingAnimation (button, nil, 5)
 	
 	local smallFlashOnTrack = supportFrame:CreateTexture (nil, "overlay", 7)
 	smallFlashOnTrack:Hide()
 	smallFlashOnTrack:SetTexture ([[Interface\CHARACTERFRAME\TempPortraitAlphaMask]])
 	smallFlashOnTrack:SetAllPoints()
+	
+	--make the highlight for faction indicator
+		local factionPulseAnimationTexture = button:CreateTexture (nil, "background", 6)
+		factionPulseAnimationTexture:SetPoint ("center", button, "center")
+		factionPulseAnimationTexture:SetTexture ([[Interface\CHARACTERFRAME\TempPortraitAlphaMaskSmall]])
+		factionPulseAnimationTexture:SetSize (WorldQuestTracker.Constants.WorldMapSquareSize * 1.3, WorldQuestTracker.Constants.WorldMapSquareSize * 1.3)
+		factionPulseAnimationTexture:Hide()
+		
+		button.FactionPulseAnimation = DF:CreateAnimationHub (factionPulseAnimationTexture, function() factionPulseAnimationTexture:Show() end, function() factionPulseAnimationTexture:Hide() end)
+		WorldQuestTracker:CreateAnimation (button.FactionPulseAnimation, "Alpha", 1, .35, 0, .5)
+		WorldQuestTracker:CreateAnimation (button.FactionPulseAnimation, "Alpha", 2, .35, .5, 0)
+		button.FactionPulseAnimation:SetLooping ("REPEAT")
+	
 	
 	local onFlashTrackAnimation = DF:CreateAnimationHub (smallFlashOnTrack, nil, function(self) self:GetParent():Hide() end)
 	onFlashTrackAnimation.FlashTexture = smallFlashOnTrack
@@ -480,6 +559,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 	--print (WorldQuestTracker.GetMapName (mapID), #taskInfo) --DEBUG: amount of quests on the map
 	
 	local testCounter = 0
+	local bannedQuests = WorldQuestTracker.db.profile.banned_quests
 
 	if (taskInfo and #taskInfo > 0) then
 	
@@ -489,8 +569,11 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 			local questID = info.questId
 
 			if (HaveQuestData (questID)) then
+			
 				local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
-				if (isWorldQuest and WorldQuestTracker.CanShowQuest (info)) then
+				local isNotBanned = not bannedQuests [questID]
+				
+				if (isWorldQuest and isNotBanned and WorldQuestTracker.CanShowQuest (info)) then
 
 					local isSuppressed = WorldQuestTracker.DataProvider:IsQuestSuppressed (questID)
 					local passFilters = WorldQuestTracker.DataProvider:DoesWorldQuestInfoPassFilters (info)
@@ -818,6 +901,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 	
 		--default alpha
 		self:SetAlpha (WQT_ZONEWIDGET_ALPHA - 0.05)
+		self.FactionID = factionID
 	
 		if (self.isCriteria) then
 			--self.BountyRing:Show()
@@ -1190,7 +1274,7 @@ local GetOrCreateZoneSummaryWidget = function (index)
 	button:SetScript ("OnEnter", function (self)
 		WorldQuestTracker.HaveZoneSummaryHover = self
 		self.Icon:GetScript ("OnEnter")(self.Icon)
-		WorldQuestTracker.HighlightOnZoneMap (self.Icon.questID, 1.2)
+		WorldQuestTracker.HighlightOnZoneMap (self.Icon.questID, 1.2, "orange")
 		
 		--procura o icone da quest no mapa e indica ele
 		--[=[
@@ -1269,26 +1353,35 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 	
 	--set the time left
 	local timePriority = WorldQuestTracker.db.profile.sort_time_priority
-	if (timePriority < 4) then
-		timePriority = 4
-	end
-	timePriority = timePriority * 60 --4 8 12 16 24
-	
-	if (timePriority) then
-		if (timeLeft <= timePriority) then
-			DF:SetFontColor (summaryWidget.timeLeftText, "yellow")
-			summaryWidget.timeLeftText:SetAlpha (1)
+	if (timePriority and timePriority > 0) then
+		if (timePriority < 4) then
+			timePriority = 4
+		end
+		timePriority = timePriority * 60 --4 8 12 16 24
+		
+		if (timePriority) then
+			if (timeLeft <= timePriority) then
+				DF:SetFontColor (summaryWidget.timeLeftText, "yellow")
+				summaryWidget:SetAlpha (1)
+				summaryWidget.timeLeftText:SetAlpha (1)
+			else
+				DF:SetFontColor (summaryWidget.timeLeftText, "white")
+				summaryWidget.timeLeftText:SetAlpha (0.8)
+				
+				if (WorldQuestTracker.db.profile.alpha_time_priority) then
+					summaryWidget:SetAlpha (ALPHA_BLEND_AMOUNT - 0.50) --making quests be faded out by default
+				else
+					summaryWidget:SetAlpha (1)
+				end
+			end
 		else
 			DF:SetFontColor (summaryWidget.timeLeftText, "white")
-			summaryWidget.timeLeftText:SetAlpha (0.8)
-			
-			if (WorldQuestTracker.db.profile.alpha_time_priority) then
-				summaryWidget:SetAlpha (ALPHA_BLEND_AMOUNT - 0.50)
-			end
+			summaryWidget.timeLeftText:SetAlpha (1)
 		end
 	else
 		DF:SetFontColor (summaryWidget.timeLeftText, "white")
 		summaryWidget.timeLeftText:SetAlpha (1)
+		summaryWidget:SetAlpha (1)
 	end
 
 	summaryWidget.timeLeftText:SetText (timeLeft > 1440 and floor (timeLeft/1440) .. "d" or timeLeft > 60 and floor (timeLeft/60) .. "h" or timeLeft .. "m")
