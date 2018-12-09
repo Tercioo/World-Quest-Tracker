@@ -1353,6 +1353,8 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 	
 	--set the time left
 	local timePriority = WorldQuestTracker.db.profile.sort_time_priority
+	local alphaAmount = WQT_WORLDWIDGET_BLENDED + 0.06
+	
 	if (timePriority and timePriority > 0) then
 		if (timePriority < 4) then
 			timePriority = 4
@@ -1362,7 +1364,7 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 		if (timePriority) then
 			if (timeLeft <= timePriority) then
 				DF:SetFontColor (summaryWidget.timeLeftText, "yellow")
-				summaryWidget:SetAlpha (1)
+				summaryWidget:SetAlpha (alphaAmount)
 				summaryWidget.timeLeftText:SetAlpha (1)
 			else
 				DF:SetFontColor (summaryWidget.timeLeftText, "white")
@@ -1371,7 +1373,7 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 				if (WorldQuestTracker.db.profile.alpha_time_priority) then
 					summaryWidget:SetAlpha (ALPHA_BLEND_AMOUNT - 0.50) --making quests be faded out by default
 				else
-					summaryWidget:SetAlpha (1)
+					summaryWidget:SetAlpha (alphaAmount)
 				end
 			end
 		else
@@ -1381,7 +1383,7 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 	else
 		DF:SetFontColor (summaryWidget.timeLeftText, "white")
 		summaryWidget.timeLeftText:SetAlpha (1)
-		summaryWidget:SetAlpha (1)
+		summaryWidget:SetAlpha (alphaAmount)
 	end
 
 	summaryWidget.timeLeftText:SetText (timeLeft > 1440 and floor (timeLeft/1440) .. "d" or timeLeft > 60 and floor (timeLeft/60) .. "h" or timeLeft .. "m")
@@ -1404,6 +1406,7 @@ function WorldQuestTracker.CanShowZoneSummaryFrame()
 		end
 		ZoneSumaryFrame:SetScale (WorldQuestTracker.db.profile.zone_map_config.quest_summary_scale)
 	end
+	
 	return canShow
 end
 

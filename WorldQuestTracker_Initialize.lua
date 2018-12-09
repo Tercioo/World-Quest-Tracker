@@ -146,7 +146,7 @@ do
 			filter_force_show_brokenshore = false, --deprecated at this point, but won't be removed since further expantion might need this back
 			sort_time_priority = 0,
 			force_sort_by_timeleft = false,
-			alpha_time_priority = true,
+			alpha_time_priority = false,
 			show_timeleft = false,
 			quests_tracked = {},
 			quests_all_characters = {},
@@ -186,6 +186,8 @@ do
 				show_widgets = true,
 				scale = 1,
 			},
+			
+			is_BFA_version = false, --if is false, reset the tutorial
 			
 			zone_only_tracked = false,
 			low_level_tutorial = false, --

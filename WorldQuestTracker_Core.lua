@@ -29,7 +29,7 @@ local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 WorldQuestTracker.WorldSummary = CreateFrame ("frame", "WorldQuestTrackerWorldSummaryFrame", anchorFrame)
 
 --dev version string
-local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 1  ")
+local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 2  ")
 
 local _
 local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest or QuestUtils_IsQuestWorldQuest
@@ -613,6 +613,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					
 					local line_onleave = function (self)
 						self:SetBackdropColor (unpack (config.backdrop_color))
+						WorldQuestTracker.HideMapQuestHighlight()
 					end
 
 					--create the scroll widgets
@@ -853,7 +854,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			ToggleQuestsButton.Highlight:SetSize (128*1.5, 20*1.5)
 			ToggleQuestsButton.Highlight:SetPoint ("center")
 			
-			ToggleQuestsButton.TextLabel = DF:CreateLabel (ToggleQuestsButton, "Toggle World Quests", DF:GetTemplate ("font", "WQT_TOGGLEQUEST_TEXT"))
+			ToggleQuestsButton.TextLabel = DF:CreateLabel (ToggleQuestsButton, L["S_WORLDBUTTONS_TOGGLE_QUESTS"], DF:GetTemplate ("font", "WQT_TOGGLEQUEST_TEXT"))
 			ToggleQuestsButton.TextLabel:SetPoint ("center", ToggleQuestsButton, "center")
 			
 			ToggleQuestsButton:SetScript ("OnClick", function()
@@ -906,6 +907,21 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			ToggleQuestsSummaryButton.TextLabel = DF:CreateLabel (ToggleQuestsSummaryButton, "Toggle Summary", DF:GetTemplate ("font", "WQT_TOGGLEQUEST_TEXT"))
 			ToggleQuestsSummaryButton.TextLabel:SetPoint ("center", ToggleQuestsSummaryButton, "center")
 			
+			function ToggleQuestsSummaryButton:UpdateText()
+				if (WorldQuestTracker.db.profile.world_map_config.summary_showbyzone) then
+					--show none
+					ToggleQuestsSummaryButton.TextLabel:SetText (L["S_WORLDBUTTONS_SHOW_NONE"])
+					
+				elseif (not WorldQuestTracker.db.profile.world_map_config.summary_show) then
+					--show by type
+					ToggleQuestsSummaryButton.TextLabel:SetText (L["S_WORLDBUTTONS_SHOW_TYPE"])
+					
+				elseif (not WorldQuestTracker.db.profile.world_map_config.summary_showbyzone) then
+					--show by zone
+					ToggleQuestsSummaryButton.TextLabel:SetText (L["S_WORLDBUTTONS_SHOW_ZONE"])
+				end
+			end
+			
 			ToggleQuestsSummaryButton:SetScript ("OnClick", function()
 			
 				if (WorldQuestTracker.db.profile.world_map_config.summary_showbyzone) then
@@ -929,7 +945,10 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
 				end
 				
+				ToggleQuestsSummaryButton:UpdateText()
 			end)
+			
+			ToggleQuestsSummaryButton:UpdateText()
 			
 			ToggleQuestsSummaryButton:SetScript ("OnMouseDown", function()
 				ToggleQuestsSummaryButton.TextLabel:SetPoint ("center", ToggleQuestsSummaryButton, "center", -1, -1)
@@ -2146,8 +2165,14 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					end
 
 					if (WorldQuestTracker.db.profile.show_timeleft) then
+					
+						--timePriority is now zero instead of false if disabled
 						local timePriority = WorldQuestTracker.db.profile.sort_time_priority and WorldQuestTracker.db.profile.sort_time_priority * 60 --4 8 12 16 24
-						if (timePriority) then
+						
+						--reset the widget alpha
+						widget:SetAlpha (WQT_WORLDWIDGET_BLENDED)
+						
+						if (timePriority and timePriority > 0) then
 							if (timeLeft <= timePriority) then
 								DF:SetFontColor (widget.timeLeftText, "yellow")
 								widget.timeLeftText:SetAlpha (1)
@@ -2156,7 +2181,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 								widget.timeLeftText:SetAlpha (0.8)
 								
 								if (WorldQuestTracker.db.profile.alpha_time_priority) then
-									widget:SetAlpha (ALPHA_BLEND_AMOUNT - 0.50)
+									widget:SetAlpha (ALPHA_BLEND_AMOUNT - 0.35)
 								end
 							end
 						else
@@ -2171,6 +2196,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 						widget.timeLeftText:Show()
 					else
 						widget.timeLeftText:Hide()
+						widget:SetAlpha (WQT_WORLDWIDGET_BLENDED)
 					end
 				end
 				
@@ -3257,10 +3283,10 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			
 			function mapFrameAnchorButton:UpdateButton()
 				if (WorldQuestTracker.db.profile.map_frame_anchor == "center") then
-					mapFrameAnchorButton.Text:SetText (L["S_MAPFRAME_ALIGN_CENTER"])
+					mapFrameAnchorButton.Text:SetText (L["S_MAPFRAME_ALIGN_LEFT"])
 					
 				elseif (WorldQuestTracker.db.profile.map_frame_anchor == "left") then
-					mapFrameAnchorButton.Text:SetText (L["S_MAPFRAME_ALIGN_LEFT"])
+					mapFrameAnchorButton.Text:SetText (L["S_MAPFRAME_ALIGN_CENTER"])
 					
 				end
 			end
@@ -4570,6 +4596,21 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 		end
 
 		-- ~tutorial
+		--check bfa version launch on 8.1, if the tutorial is at 3, reset if bfa setting is false
+		if (WorldQuestTracker.db.profile.TutorialPopupID) then
+			if (WorldQuestTracker.db.profile.TutorialPopupID >= 3) then
+				--player already saw all tutorials
+				if (not WorldQuestTracker.db.profile.is_BFA_version) then
+					--player just isntalled the bfa version, reset the tutorial
+					WorldQuestTracker.db.profile.TutorialPopupID = 1
+				end
+			end
+		end
+		
+		--the user is using the bfa version
+		WorldQuestTracker.db.profile.is_BFA_version = true
+		
+		--check for tutorials
 		WorldQuestTracker.ShowTutorialAlert()
 		
 	else
