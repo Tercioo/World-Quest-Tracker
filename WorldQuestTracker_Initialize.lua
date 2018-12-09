@@ -181,6 +181,9 @@ do
 			map_frame_scale_mod = 1,
 			
 			use_quest_summary = true,
+			quest_summary_minimized = false,
+			show_summary_minimize_button = true,
+			
 			zone_map_config = {
 				quest_summary_scale = 1,
 				show_widgets = true,

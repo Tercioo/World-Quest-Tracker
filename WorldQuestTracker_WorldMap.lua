@@ -132,6 +132,25 @@ function WorldQuestTracker.HideMapQuestHighlight()
 	worldFramePOIs.mouseoverHighlight:Hide()
 end
 
+local tickSound = true
+function WorldQuestTracker.PlayTick (tickType)
+	tickType = tickType or 1
+	
+	--play sound
+	if (WorldQuestTracker.db.profile.sound_enabled) then
+		if (tickType == 1) then
+			if (tickSound) then
+				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\tick1.ogg")
+			else
+				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\tick2.ogg")
+			end
+		end
+		
+		tickSound = not tickSound
+	end
+	
+end
+
 --local onenter function for worldmap buttons
 local questButton_OnEnter = function (self)
 	if (self.questID) then
@@ -157,6 +176,9 @@ local questButton_OnEnter = function (self)
 			self.OnEnterAnimation.ScaleAnimation:SetToScale (self.ModifiedScale, self.ModifiedScale)
 			self.OnEnterAnimation:Play()
 		end
+		
+		--play tick sound
+		WorldQuestTracker.PlayTick (1)
 	end
 end
 
@@ -216,7 +238,9 @@ function WorldQuestTracker.HideWorldQuestsOnWorldMap()
 	end
 end
 
-local worldSquareBackdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1.5, bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16}
+--local worldSquareBackdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1.5, bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16}
+--local worldSquareBackdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1.5, bgFile = [[Interface\DialogFrame\UI-DialogBox-Background-Dark]], tile = true, tileSize = 16}
+local worldSquareBackdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\TARGETINGFRAME\UI-TargetingFrame-LevelBackground]], tile = true, tileSize = 16}
 
 --cria uma square widget no world map ~world ~createworld ~createworldwidget
 --index and name are only for the glogal name
@@ -398,7 +422,7 @@ local create_worldmap_square = function (mapName, index, parent)
 	--criteriaIndicator:SetPoint ("bottomleft", button, "bottomleft", 1, 2)
 	criteriaIndicator:SetPoint ("topleft", button, "topleft", 1, -1)
 	criteriaIndicator:SetSize (28*.32, 34*.32) --original sizes: 23 37
-	criteriaIndicator:SetAlpha (.893)
+	criteriaIndicator:SetAlpha (.843)
 	criteriaIndicator:SetTexture (WorldQuestTracker.MapData.GeneralIcons.CRITERIA.icon)
 	criteriaIndicator:SetTexCoord (unpack (WorldQuestTracker.MapData.GeneralIcons.CRITERIA.coords))
 	criteriaIndicator:Hide()
@@ -898,6 +922,7 @@ function WorldQuestTracker.UpdateWorldWidget (widget, questID, numObjectives, ma
 	if (gold > 0) then
 		local texture, coords = WorldQuestTracker.GetGoldIcon()
 		widget.texture:SetTexture (texture)
+		--widget.texture:SetTexture ("") --debug border
 		
 		widget.amountText:SetText (goldFormated)
 		widget.amountBackground:Show()

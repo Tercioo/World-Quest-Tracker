@@ -1396,6 +1396,68 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 end
 
 -- ~summary
+
+function WorldQuestTracker.UpdateZoneSummaryToggleButton (canShow)
+
+	if (not WorldQuestTracker.ZoneSummaryToogleButton) then
+		local button = CreateFrame ("button", nil, ZoneSumaryFrame)
+		button:SetSize (12, 12)
+		button:SetAlpha (.60)
+		button:SetPoint ("bottomleft", ZoneSumaryFrame, "topleft", 2, 2)
+		
+		button:SetScript ("OnClick", function (self)
+			WorldQuestTracker.db.profile.quest_summary_minimized = not WorldQuestTracker.db.profile.quest_summary_minimized
+			WorldQuestTracker.UpdateZoneSummaryFrame()
+		end)
+		
+		WorldQuestTracker.ZoneSummaryToogleButton = button
+	end
+	
+	local button = WorldQuestTracker.ZoneSummaryToogleButton
+	
+	--check if can show the minimize button
+	local canShowButton = WorldQuestTracker.db.profile.show_summary_minimize_button
+	if (not canShowButton) then
+		button:Hide()
+		return
+	else
+		button:Show()
+	end
+	
+	local isMinimized = WorldQuestTracker.db.profile.quest_summary_minimized
+	
+	--change the appearance of the minimize button
+	if (not isMinimized) then
+		--is showing the summary, not minimized
+		button:SetNormalTexture ([[Interface\BUTTONS\UI-SpellbookIcon-PrevPage-Up]])
+		button:SetPushedTexture ([[Interface\BUTTONS\UI-SpellbookIcon-PrevPage-Down]])
+		button:SetHighlightTexture ([[Interface\BUTTONS\UI-Panel-MinimizeButton-Highlight]])
+	else
+		--the summary is minimized
+		button:SetNormalTexture ([[Interface\BUTTONS\UI-SpellbookIcon-NextPage-Up]])
+		button:SetPushedTexture ([[Interface\BUTTONS\UI-SpellbookIcon-NextPage-Down]])
+		button:SetHighlightTexture ([[Interface\BUTTONS\UI-Panel-MinimizeButton-Highlight]])
+	end
+
+	local normalTexture = button:GetNormalTexture()
+	normalTexture:SetTexCoord (.25, .75, .25, .75)
+	local pushedTexture = button:GetPushedTexture()
+	pushedTexture:SetTexCoord (.25, .75, .28, .75)
+	
+	local isZoneMap = WorldQuestTrackerAddon.GetCurrentZoneType() == "zone"
+	
+	if (not canShow) then
+		button:Hide()
+		
+	elseif (canShow and not isZoneMap) then
+		button:Hide()
+		
+	else
+		button:Show()
+	end
+	
+end
+
 function WorldQuestTracker.CanShowZoneSummaryFrame()
 	local canShow = WorldQuestTracker.db.profile.use_quest_summary and WorldQuestTracker.ZoneHaveWorldQuest() and (WorldMapFrame.isMaximized or true)
 	if (canShow) then
@@ -1406,6 +1468,8 @@ function WorldQuestTracker.CanShowZoneSummaryFrame()
 		end
 		ZoneSumaryFrame:SetScale (WorldQuestTracker.db.profile.zone_map_config.quest_summary_scale)
 	end
+	
+	WorldQuestTracker.UpdateZoneSummaryToggleButton (canShow)
 	
 	return canShow
 end
@@ -1426,15 +1490,19 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 	end)
 	
 	local LastWidget
-	for i = 1, #WorldQuestTracker.Cache_ShownWidgetsOnZoneMap do
-		local zoneWidget = WorldQuestTracker.Cache_ShownWidgetsOnZoneMap [i]
-		local summaryWidget = GetOrCreateZoneSummaryWidget (index)
-		
-		summaryWidget._Twin = zoneWidget
-		WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
-		LastWidget = summaryWidget
-		
-		index = index + 1
+	local isSummaryMinimized = WorldQuestTracker.db.profile.quest_summary_minimized
+	
+	if (not isSummaryMinimized) then
+		for i = 1, #WorldQuestTracker.Cache_ShownWidgetsOnZoneMap do
+			local zoneWidget = WorldQuestTracker.Cache_ShownWidgetsOnZoneMap [i]
+			local summaryWidget = GetOrCreateZoneSummaryWidget (index)
+			
+			summaryWidget._Twin = zoneWidget
+			WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
+			LastWidget = summaryWidget
+			
+			index = index + 1
+		end
 	end
 	
 	--attach the header to the last widget

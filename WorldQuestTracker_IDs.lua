@@ -363,7 +363,8 @@ WorldQuestTracker.MapData.EquipmentIcons = {
 
 WorldQuestTracker.MapData.ItemIcons = {
 	["BFA_RESOURCE"] = [[Interface\ICONS\INV_Crate_02]],
-	["BFA_ARTIFACT"] = [[Interface\ICONS\INV_SmallAzeriteShard]],
+	--["BFA_ARTIFACT"] = [[Interface\ICONS\INV_SmallAzeriteShard]],
+	["BFA_ARTIFACT"] = [[Interface\AddOns\WorldQuestTracker\media\icon_artifact_power]],
 }
 
 WorldQuestTracker.MapData.ResourceIcons = {

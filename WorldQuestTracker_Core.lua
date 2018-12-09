@@ -29,7 +29,7 @@ local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 WorldQuestTracker.WorldSummary = CreateFrame ("frame", "WorldQuestTrackerWorldSummaryFrame", anchorFrame)
 
 --dev version string
-local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 2  ")
+local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 3  ")
 
 local _
 local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest or QuestUtils_IsQuestWorldQuest
@@ -965,7 +965,17 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			
 				if (option == "ignore_quest") then
 					WorldQuestTracker.OpenQuestBanPanel()
-					GameCooltip:Close()
+					GameCooltip:Hide()
+					return
+				end
+				
+				if (option == "show_summary_minimize_button") then
+					WorldQuestTracker.db.profile.show_summary_minimize_button = value
+					if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+						WorldQuestTracker.UpdateZoneSummaryFrame()
+					end
+					
+					GameCooltip:Hide()
 					return
 				end
 			
@@ -1017,7 +1027,6 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 						WorldQuestTracker.db.profile.zone_map_config [value2] = WorldQuestTracker.db.profile.zone_map_config [value2] - 0.05
 					else
 						WorldQuestTracker.db.profile.zone_map_config [value] = value2
-						GameCooltip:Close()
 					end
 					
 					--update if showing zone map
@@ -1025,6 +1034,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 						WorldQuestTracker.UpdateZoneWidgets (true)
 					end
 
+					GameCooltip:Close()
 					return
 				end
 
@@ -3687,6 +3697,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ZONEMAPCONFIG"])
 					GameCooltip:AddIcon ([[Interface\Worldmap\WorldMap-Icon]], 1, 1, IconSize, IconSize)
 					
+					--summary enabled
 					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ZONE_QUESTSUMMARY"], "", 2)
 					if (WorldQuestTracker.db.profile.use_quest_summary) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
@@ -3695,6 +3706,12 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					end
 					GameCooltip:AddMenu (2, options_on_click, "use_quest_summary", not WorldQuestTracker.db.profile.use_quest_summary)
 					
+					--is summary minimized
+					GameCooltip:AddLine ("Show Minimize Button", "", 2)
+					add_checkmark_icon (WorldQuestTracker.db.profile.show_summary_minimize_button)
+					GameCooltip:AddMenu (2, options_on_click, "show_summary_minimize_button", not WorldQuestTracker.db.profile.show_summary_minimize_button)
+					
+					--change the summary scale
 					GameCooltip:AddLine (L["S_INCREASESIZE"], "", 2)
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
 					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "incsize", "quest_summary_scale")

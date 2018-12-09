@@ -337,7 +337,8 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID, is
 				
 			elseif (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
 				self.commonBorder:SetVertexColor (.4, 1, .4)
-				self:SetBackdropBorderColor (.4, 1, .4, 1)
+				self.commonBorder:SetAlpha (0)
+				self:SetBackdropBorderColor (.4, 1, .4, .5)
 			
 			else
 				self.commonBorder:SetVertexColor (.45, .45, .45)
@@ -358,7 +359,12 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID, is
 		elseif (rarity == LE_WORLD_QUEST_QUALITY_RARE) then
 			--self.rareBorder:Show()
 			--self:SetBackdropBorderColor (.3, .3, .98, 1)
-			self:SetBackdropBorderColor (.1, .1, .1, 1)
+			--self:SetBackdropBorderColor (.1, .1, .1, 1)
+			
+			--paint with a blue border
+			self.commonBorder:SetAlpha (0)
+			self.commonBorder:SetVertexColor (1, 1, 1)
+			self:SetBackdropBorderColor (.11, .39, 1, .5)
 			
 			if (not self.IsZoneSummaryQuestButton) then
 				if (WorldQuestTracker.WorldSummary.FactionSelected == self.FactionID) then
@@ -385,6 +391,9 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID, is
 			end
 			
 		end
+		
+		self:SetBackdropColor (.3, .3, .3, 1)
+		self.commonBorder:Hide()
 
 	else
 		if (not isCriteria) then
