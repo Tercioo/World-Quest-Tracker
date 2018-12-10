@@ -411,7 +411,7 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 	bountyRing:SetPoint ("topleft", supportFrame, "topleft", -1.5, 1.5)
 	bountyRing:SetPoint ("bottomright", supportFrame, "bottomright", 1.5, -1.5)
 	bountyRing:SetAtlas ("worldquest-emissary-ring")
-	bountyRing:SetAlpha (0.8)
+	bountyRing:SetAlpha (0.6)
 	bountyRing:Hide()
 	button.BountyRing = bountyRing
 	
@@ -910,8 +910,10 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 			--	self.CriteriaAnimation:Play()
 			--	self.CriteriaAnimation.LastPlay = time()
 			--end
-			--self.criteriaIndicator:Show()
-			--self.criteriaIndicatorGlow:Show()
+			self.criteriaIndicator:Show()
+			self.criteriaIndicator:SetAlpha (1)
+			self.criteriaIndicatorGlow:Show()
+			self.criteriaIndicatorGlow:SetAlpha (0.7)
 		else
 			self.flagCriteriaMatchGlow:Hide()
 			self.criteriaIndicator:Hide()

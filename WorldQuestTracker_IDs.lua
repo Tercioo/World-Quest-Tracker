@@ -239,7 +239,7 @@ WorldQuestTracker.mapTables = {
 		[WorldQuestTracker.MapData.ZoneIDs.AZSUNA] = {
 			widgets = {},
 			Anchor_X = 0.01,
-			Anchor_Y = 0.52,
+			Anchor_Y = 0.53,
 			GrowRight = true,
 			show_on_map = {
 				[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = true,
@@ -248,7 +248,7 @@ WorldQuestTracker.mapTables = {
 		[WorldQuestTracker.MapData.ZoneIDs.VALSHARAH] = {
 			widgets = {},
 			Anchor_X = 0.01,
-			Anchor_Y = 0.37,
+			Anchor_Y = 0.33,
 			GrowRight = true,
 			show_on_map = {
 				[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = true,
@@ -257,7 +257,7 @@ WorldQuestTracker.mapTables = {
 		[WorldQuestTracker.MapData.ZoneIDs.HIGHMONTAIN] = {
 			widgets = {},
 			Anchor_X = 0.01,
-			Anchor_Y = 0.20,
+			Anchor_Y = 0.10,
 			GrowRight = true,
 			show_on_map = {
 				[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = true,
@@ -266,7 +266,7 @@ WorldQuestTracker.mapTables = {
 		[WorldQuestTracker.MapData.ZoneIDs.STORMHEIM] = {
 			widgets = {},
 			Anchor_X = 0.99,
-			Anchor_Y = 0.37,
+			Anchor_Y = 0.30,
 			show_on_map = {
 				[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = true,
 			}
@@ -274,7 +274,7 @@ WorldQuestTracker.mapTables = {
 		[WorldQuestTracker.MapData.ZoneIDs.SURAMAR] = {
 			widgets = {},
 			Anchor_X = 0.99,
-			Anchor_Y = 0.52,
+			Anchor_Y = 0.50,
 			show_on_map = {
 				[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = true,
 			}
@@ -282,7 +282,7 @@ WorldQuestTracker.mapTables = {
 		[WorldQuestTracker.MapData.ZoneIDs.BROKENSHORE] = { --broken shore
 			widgets = {},
 			Anchor_X = 0.99,
-			Anchor_Y = 0.67,
+			Anchor_Y = 0.69,
 			show_on_map = {
 				[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = true,
 			}
@@ -362,7 +362,8 @@ WorldQuestTracker.MapData.EquipmentIcons = {
 }
 
 WorldQuestTracker.MapData.ItemIcons = {
-	["BFA_RESOURCE"] = [[Interface\ICONS\INV_Crate_02]],
+	--["BFA_RESOURCE"] = [[Interface\ICONS\INV_Crate_02]],
+	["BFA_RESOURCE"] = [[Interface\AddOns\WorldQuestTracker\media\icon_resource]],
 	--["BFA_ARTIFACT"] = [[Interface\ICONS\INV_SmallAzeriteShard]],
 	["BFA_ARTIFACT"] = [[Interface\AddOns\WorldQuestTracker\media\icon_artifact_power]],
 }
@@ -371,6 +372,15 @@ WorldQuestTracker.MapData.ResourceIcons = {
 	[2032600] = true, --war resources BFA
 	[WorldQuestTracker.MapData.ItemIcons ["BFA_RESOURCE"]] = true, --custom icon for the BFA war resource
 	[1397630] = true, --order resources LEGION
+}
+
+--which faction set to be used by the map id
+WorldQuestTracker.MapData.FactionByMapID = {
+	[WorldQuestTracker.MapData.ZoneIDs.ZANDALAR] = "BFA",
+	[WorldQuestTracker.MapData.ZoneIDs.KULTIRAS] = "BFA",
+	[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = "BFA",
+	[619] = "LEGION", --brosken isles map
+	[905] = "LEGION", --argus map
 }
 
 -- texture ID of the reward when the world quest reward is a faction rep token

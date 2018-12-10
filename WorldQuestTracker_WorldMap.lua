@@ -132,24 +132,34 @@ function WorldQuestTracker.HideMapQuestHighlight()
 	worldFramePOIs.mouseoverHighlight:Hide()
 end
 
-local tickSound = true
+local tickSound = true --flip flop
 function WorldQuestTracker.PlayTick (tickType)
 	tickType = tickType or 1
 	
 	--play sound
 	if (WorldQuestTracker.db.profile.sound_enabled) then
+		--hovering over a quest icon in the world map
 		if (tickType == 1) then
 			if (tickSound) then
 				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\tick1.ogg")
 			else
 				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\tick2.ogg")
 			end
-			
+		
+		--hovering over a faction icon
 		elseif (tickType == 2) then
 			if (tickSound) then
 				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\tick1_heavy.ogg")
 			else
 				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\tick2_heavy.ogg")
+			end
+		
+		--when a quest is added to the tracker
+		elseif (tickType == 3) then
+			if (tickSound) then
+				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker1.mp3")
+			else
+				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\quest_added_to_tracker2.mp3")	
 			end
 		end
 		
@@ -487,7 +497,7 @@ local create_worldmap_square = function (mapName, index, parent)
 	--criteriaIndicator:SetPoint ("bottomleft", button, "bottomleft", 1, 2)
 	criteriaIndicator:SetPoint ("topleft", button, "topleft", 1, -1)
 	criteriaIndicator:SetSize (28*.32, 34*.32) --original sizes: 23 37
-	criteriaIndicator:SetAlpha (.843)
+	criteriaIndicator:SetAlpha (.933)
 	criteriaIndicator:SetTexture (WorldQuestTracker.MapData.GeneralIcons.CRITERIA.icon)
 	criteriaIndicator:SetTexCoord (unpack (WorldQuestTracker.MapData.GeneralIcons.CRITERIA.coords))
 	criteriaIndicator:Hide()
@@ -947,6 +957,10 @@ function WorldQuestTracker.UpdateWorldWidget (widget, questID, numObjectives, ma
 	
 	if (not WorldQuestTracker.db.profile.show_timeleft) then
 		WorldQuestTracker.SetTimeBlipColor (widget, timeLeft)
+	end
+	
+	if (widget.FactionPulseAnimation and widget.FactionPulseAnimation:IsPlaying()) then
+		button.FactionPulseAnimation:Stop()
 	end
 	
 	widget.amountBackground:SetWidth (32)

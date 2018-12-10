@@ -29,7 +29,7 @@ local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 WorldQuestTracker.WorldSummary = CreateFrame ("frame", "WorldQuestTrackerWorldSummaryFrame", anchorFrame)
 
 --dev version string
-local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 4  ")
+local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 5  ")
 
 local _
 local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest or QuestUtils_IsQuestWorldQuest
@@ -1387,6 +1387,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				--worldSummary.HideAnimation:Play()
 			end
 
+			-- ãnchorbutton ~anchorbutton
 			local on_click_anchor_button = function (self, button, param1, param2)
 				local anchor = self.MyObject.Anchor
 				local questsToTrack = {}
@@ -1403,6 +1404,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					if (widget) then
 						WorldQuestTracker.CheckAddToTracker (widget, widget, true)
 						local questID = widget.questID
+						
+						WorldQuestTracker.PlayTick (3)
 						
 						for _, widget in pairs (WorldQuestTracker.WorldMapSmallWidgets) do
 							if (widget.questID == questID and widget:IsShown()) then
@@ -2010,6 +2013,9 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			end
 			
 			function worldSummary.OnSelectFaction (self, _, buttonIndex)
+			
+				PlaySoundFile ("Interface\\AddOns\\WorldQuestTracker\\media\\faction_on_click.ogg")
+			
 				if (IsShiftKeyDown()) then
 					local questsToTrack = {}
 					
@@ -2124,13 +2130,13 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				worldSummary.WidgetIndex = worldSummary.WidgetIndex + 1
 				tinsert (anchor.Widgets, widget)
 				
-				widget.WidgetID = worldSummary.WidgetIndex
-				widget.CurrentAnchor = anchor
-				
 				if (not widget) then
 					WorldQuestTracker:Msg ("exception: AddQuest() while cache still loading, close and reopen the map.")
 					return
 				end
+				
+				widget.WidgetID = worldSummary.WidgetIndex
+				widget.CurrentAnchor = anchor
 				
 				widget:SetScale (WorldQuestTracker.db.profile.world_map_config.summary_scale)
 				widget:Show()
@@ -4405,14 +4411,14 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 
 				if (mapType == "world") then
 					for _, widget in ipairs (WorldQuestTracker.WorldSummaryQuestsSquares) do
-						if (widget.QuestType == questType) then
+						if (widget.QuestType == questType and widget:IsShown()) then
 							widget.LoopFlash:Play()
 						end
 					end
 					
 					--play quick flash on widgets shown in the world map (quest locations)
 					for questCounter, button in pairs (WorldQuestTracker.WorldMapSmallWidgets) do
-						if (button.QuestType == questType) then
+						if (button.QuestType == questType and button:IsShown()) then
 							button.FactionPulseAnimation:Play()
 						end
 					end
@@ -4420,7 +4426,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				elseif (mapType == "zone") then
 					
 					for _, widget in ipairs (WorldQuestTracker.Cache_ShownWidgetsOnZoneMap) do
-						if (widget.QuestType == questType) then
+						if (widget.QuestType == questType and widget:IsShown()) then
 							widget.FactionPulseAnimation:Play()
 						end
 					end

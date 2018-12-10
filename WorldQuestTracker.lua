@@ -636,7 +636,7 @@ end
 	--pega o icone para as quest que dao goild
 	local goldCoords = {0, 1, 0, 1}
 	function WorldQuestTracker.GetGoldIcon()
-		return [[Interface\GossipFrame\auctioneerGossipIcon]], goldCoords
+		return [[Interface\AddOns\WorldQuestTracker\media\icon_gold]], goldCoords
 	end
 
 
