@@ -253,10 +253,11 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 		factionPulseAnimationTexture:Hide()
 		
 		button.FactionPulseAnimation = DF:CreateAnimationHub (factionPulseAnimationTexture, function() factionPulseAnimationTexture:Show() end, function() factionPulseAnimationTexture:Hide() end)
-		WorldQuestTracker:CreateAnimation (button.FactionPulseAnimation, "Alpha", 1, .35, 0, .5)
-		WorldQuestTracker:CreateAnimation (button.FactionPulseAnimation, "Alpha", 2, .35, .5, 0)
+		local anim = WorldQuestTracker:CreateAnimation (button.FactionPulseAnimation, "Alpha", 1, .35, 0, .5)
+		anim:SetSmoothing ("IN_OUT")
+		local anim = WorldQuestTracker:CreateAnimation (button.FactionPulseAnimation, "Alpha", 2, .35, .5, 0)
+		anim:SetSmoothing ("IN_OUT")
 		button.FactionPulseAnimation:SetLooping ("REPEAT")
-	
 	
 	local onFlashTrackAnimation = DF:CreateAnimationHub (smallFlashOnTrack, nil, function(self) self:GetParent():Hide() end)
 	onFlashTrackAnimation.FlashTexture = smallFlashOnTrack
@@ -1470,7 +1471,7 @@ function WorldQuestTracker.CanShowZoneSummaryFrame()
 		end
 		ZoneSumaryFrame:SetScale (WorldQuestTracker.db.profile.zone_map_config.quest_summary_scale)
 	end
-	
+
 	WorldQuestTracker.UpdateZoneSummaryToggleButton (canShow)
 	
 	return canShow
@@ -1530,6 +1531,9 @@ if (bountyBoard) then
 	end)
 	
 	local UpdateBountyBoard = function (self, mapID)
+	
+		self:SetAlpha (WQT_WORLDWIDGET_ALPHA + 0.02) -- + 0.06
+	
 		local tabs = self.bountyTabPool
 		
 		for bountyIndex, bounty in ipairs(self.bounties) do
@@ -1559,12 +1563,31 @@ if (bountyBoard) then
 				local b = WorldQuestTracker:CreateAnimation (animationHub, "ALPHA", 1, .4, 0, 0.4)
 				b:SetTarget (bountyButton.objectiveCompletedBackground)
 				bountyButton.objectiveCompletedAnimation = animationHub
+				
+				--create reward preview
+				local rewardPreview = WorldQuestTracker:CreateImage (bountyButton, "", 16, 16, "overlay")
+				rewardPreview:SetPoint ("bottomright", bountyButton, "bottomright", -4, 4)
+				rewardPreview:SetMask ([[Interface\CHARACTERFRAME\TempPortraitAlphaMaskSmall]])
+				local rewardPreviewBorder = WorldQuestTracker:CreateImage (bountyButton, [[Interface\AddOns\WorldQuestTracker\media\border_zone_browT]], 22, 22, "overlay")
+				rewardPreviewBorder:SetVertexColor (.9, .9, .8)
+				rewardPreviewBorder:SetPoint ("center", rewardPreview, "center")
+				
+				--artwork is shared with the blizzard art
+				rewardPreview:SetDrawLayer ("overlay", 4)
+				rewardPreviewBorder:SetDrawLayer ("overlay", 5)
+				--blend
+				--rewardPreview:SetAlpha (ALPHA_BLEND_AMOUNT)
+				rewardPreviewBorder:SetAlpha (ALPHA_BLEND_AMOUNT)
+				
+				bountyButton.RewardPreview = rewardPreview
+				
 			end
 			
 			local numCompleted, numTotal = self:CalculateBountySubObjectives (bounty)
 			
 			if (numCompleted) then
 				bountyButton.objectiveCompletedText:SetText (numCompleted .. "/" .. numTotal)
+				bountyButton.objectiveCompletedText:SetAlpha (.92)
 				bountyButton.objectiveCompletedBackground:SetAlpha (.4)
 				
 				if (not bountyButton.objectiveCompletedText:IsShown()) then
@@ -1573,6 +1596,34 @@ if (bountyBoard) then
 			else
 				bountyButton.objectiveCompletedText:SetText ("")
 				bountyButton.objectiveCompletedBackground:SetAlpha (0)
+			end
+			
+			local bountyQuestID = bounty.questID
+			if (bountyQuestID and HaveQuestData (bountyQuestID)) then
+				local questIndex = GetQuestLogIndexByID (bountyQuestID)
+				local title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isStory = GetQuestLogTitle (questIndex)
+			
+				if (not HaveQuestRewardData (bountyQuestID)) then
+					C_TaskQuest.RequestPreloadRewardData (bountyQuestID)
+					WorldQuestTracker.ForceRefreshBountyBoard()
+				else
+					
+					local itemName, itemTexture, quantity, quality, isUsable, itemID = GetQuestLogRewardInfo (1, bountyQuestID)
+					if (itemName) then
+						bountyButton.RewardPreview.texture = itemTexture
+						bountyButton.Icon:SetTexture (bounty.icon)
+					else
+						local numQuestCurrencies = GetNumQuestLogRewardCurrencies (bountyQuestID)
+						if (numQuestCurrencies and numQuestCurrencies > 0) then
+							local name, texture, numItems, currencyID = GetQuestLogRewardCurrencyInfo (1, bountyQuestID)
+							if (name and texture) then
+								bountyButton.RewardPreview.texture = texture
+								bountyButton.Icon:SetTexture (bounty.icon)
+							end
+						end
+					end
+
+				end
 			end
 			
 			bountyButton.lastUpdateByWQT = GetTime()
@@ -1592,8 +1643,21 @@ if (bountyBoard) then
 	end
 	
 	hooksecurefunc (bountyBoard, "RefreshBountyTabs", function (self, mapID)
-		C_Timer.After (1, function() UpdateBountyBoard (self, mapID) end)
+		UpdateBountyBoard (self, mapID)
+		--don't remmember why I added a delay, using a direct call now
+		--C_Timer.After (0.1, function() UpdateBountyBoard (self, mapID) end)
 	end)
+		
+	function WorldQuestTracker.ForceRefreshBountyBoard()
+		if (WorldQuestTracker.RefreshBountyBoardTimer and not WorldQuestTracker.RefreshBountyBoardTimer._cancelled) then
+			WorldQuestTracker.RefreshBountyBoardTimer:Cancel()
+		end
+		
+		local bountyBoard = WorldQuestTracker.GetOverlay ("IsWorldQuestCriteriaForSelectedBounty")
+		if (bountyBoard) then
+			WorldQuestTracker.RefreshBountyBoardTimer = C_Timer.NewTimer (1, function() UpdateBountyBoard (bountyBoard, WorldMapFrame.mapID) end)
+		end
+	end
 end
 
 --doo

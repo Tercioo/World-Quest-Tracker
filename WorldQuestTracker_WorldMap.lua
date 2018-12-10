@@ -200,6 +200,15 @@ local questButton_OnEnter = function (self)
 		WorldQuestTracker.CurrentHoverQuest = self.questID
 		self.UpdateTooltip = TaskPOI_OnEnter -- function()end
 		TaskPOI_OnEnter (self)
+		
+		--[=[ --this code pushes the tooltip to the left so it cannot be over the map zone in the world quest hub
+		if (self.mapID) then
+			if (WorldQuestTracker.mapTables [self.mapID].GrowRight) then
+				WorldMapTooltip:ClearAllPoints()
+				WorldMapTooltip:SetPoint ("bottomright", self, "topright", 0, 0)
+			end
+		end
+		--]=]
 		WorldQuestTracker.HighlightOnWorldMap (self.questID, 1.3, "orange")
 
 		if (WorldMapFrame.mapID == WorldQuestTracker.MapData.ZoneIDs.AZEROTH) then
@@ -414,13 +423,14 @@ local create_worldmap_square = function (mapName, index, parent)
 			button.OnEnterAnimation = DF:CreateAnimationHub (button, function() end, function() end)
 			local anim = WorldQuestTracker:CreateAnimation (button.OnEnterAnimation, "Scale", 1, animaSettings.speed, 1, 1, animaSettings.scaleMax, animaSettings.scaleMax, "center", 0, 0)
 			anim:SetEndDelay (60) --this fixes the animation going back to 1 after it finishes
+			anim:SetSmoothing ("IN_OUT")
 			button.OnEnterAnimation.ScaleAnimation = anim
 			
 			button.OnLeaveAnimation = DF:CreateAnimationHub (button, function() end, function() end)
 			local anim = WorldQuestTracker:CreateAnimation (button.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleMax, animaSettings.scaleMax, 1, 1, "center", 0, 0)
+			anim:SetSmoothing ("IN_OUT")
 			button.OnLeaveAnimation.ScaleAnimation = anim
 		end
-		
 		
 	WorldQuestTracker.CreateStartTrackingAnimation (button, nil, 5)
 	
@@ -443,16 +453,21 @@ local create_worldmap_square = function (mapName, index, parent)
 	flashTexture:SetDrawLayer ("overlay", 7)
 	flashTexture:Hide()
 	flashTexture:SetColorTexture (1, 1, 1)
-	flashTexture:SetAllPoints()
+	flashTexture:SetPoint ("topleft", 1, -1)
+	flashTexture:SetPoint ("bottomright", -1, 1)
 	button.FlashTexture = flashTexture
 	
 	button.QuickFlash = DF:CreateAnimationHub (flashTexture, function() flashTexture:Show() end, function() flashTexture:Hide() end)
-	WorldQuestTracker:CreateAnimation (button.QuickFlash, "Alpha", 1, .15, 0, 1)
-	WorldQuestTracker:CreateAnimation (button.QuickFlash, "Alpha", 2, .15, 1, 0)
+	local anim = WorldQuestTracker:CreateAnimation (button.QuickFlash, "Alpha", 1, .15, 0, 1)
+	anim:SetSmoothing ("IN_OUT")
+	local anim = WorldQuestTracker:CreateAnimation (button.QuickFlash, "Alpha", 2, .15, 1, 0)
+	anim:SetSmoothing ("IN_OUT")
 	
 	button.LoopFlash = DF:CreateAnimationHub (flashTexture, function() flashTexture:Show() end, function() flashTexture:Hide() end)
-	WorldQuestTracker:CreateAnimation (button.LoopFlash, "Alpha", 1, .35, 0, .5)
-	WorldQuestTracker:CreateAnimation (button.LoopFlash, "Alpha", 2, .35, .5, 0)
+	local anim = WorldQuestTracker:CreateAnimation (button.LoopFlash, "Alpha", 1, .35, 0, .5)
+	anim:SetSmoothing ("IN_OUT")
+	local anim = WorldQuestTracker:CreateAnimation (button.LoopFlash, "Alpha", 2, .35, .5, 0)
+	anim:SetSmoothing ("IN_OUT")
 	button.LoopFlash:SetLooping ("REPEAT")
 	
 	local smallFlashOnTrack = button:CreateTexture (nil, "overlay", 7)
@@ -1677,6 +1692,10 @@ if (WorldMapFrame.BorderFrame.MaximizeMinimizeFrame.MaximizeButton) then
 	WorldMapFrame.BorderFrame.MaximizeMinimizeFrame.MaximizeButton:HookScript ("OnClick", function()
 		WorldQuestTracker.UpdateZoneSummaryFrame()
 		WorldQuestTracker.UpdateStatusBarAnchors()
+		
+		if (WorldQuestTracker.MapAnchorButton) then
+			WorldQuestTracker.MapAnchorButton:UpdateButton()
+		end
 	end)
 end
 
@@ -1685,6 +1704,10 @@ if (WorldMapFrame.BorderFrame.MaximizeMinimizeFrame.MinimizeButton) then
 	WorldMapFrame.BorderFrame.MaximizeMinimizeFrame.MinimizeButton:HookScript ("OnClick", function()
 		WorldQuestTracker.UpdateZoneSummaryFrame()
 		WorldQuestTracker.UpdateStatusBarAnchors()
+		
+		if (WorldQuestTracker.MapAnchorButton) then
+			WorldQuestTracker.MapAnchorButton:UpdateButton()
+		end
 	end)
 end
 

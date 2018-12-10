@@ -141,6 +141,8 @@ do
 				scale = 1,
 				quest_icons_scale_offset = 0,
 			},
+			
+			last_news_time = 0,
 
 			filter_always_show_faction_objectives = true,
 			filter_force_show_brokenshore = false, --deprecated at this point, but won't be removed since further expantion might need this back
@@ -320,6 +322,16 @@ do
 		onenterbordercolor = {0, 0, 0, 1},
 	})
 	
+	DF:InstallTemplate ("button", "WQT_NEWS_BUTTON", {
+		backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
+		backdropcolor = {.2, .2, .2, .8},
+		backdropbordercolor = {0, 0, 0, .8},
+		width = 120,
+		height = 20,
+		onenterbordercolor = {0, 0, 0, 1},
+		onentercolor = {.4, .4, .4, 1},
+	}, "WQT_GROUPFINDER_BUTTON")
+	
 	--settings
 	--WorldQuestTracker.Constants.
 	WorldQuestTrackerAddon.Constants = {
@@ -329,6 +341,20 @@ do
 	
 	WorldQuestTrackerAddon.WorldWidgetAlpha = .75
 	WorldQuestTrackerAddon.WorldWidgetSmallAlpha = .75
+	
+	local L = LibStub ("AceLocale-3.0"):GetLocale ("WorldQuestTrackerAddon", true)
+	WorldQuestTracker.ChangeLogTable = {
+		{1544477110, "World Map Changes", "December 13, 2018", "World map is now aligned in the center of the screen. " .. L["S_MAPBAR_OPTIONS"] .. " > '" .. L["S_OPTIONS_MAPFRAME_ALIGN"] .. "' to disable this."},
+		{1544477110, "World Map Changes", "December 13, 2018", "Quest list is now default to quest type, click '" .. L["S_WORLDBUTTONS_SHOW_ZONE"] .. "' to swap."},
+		{1544477110, "World Map Changes", "December 13, 2018", "Added quest locations to world map, click '" .. L["S_WORLDBUTTONS_TOGGLE_QUESTS"] .. "' to hide."},
+		{1544477110, "World Map Changes", "December 13, 2018", "Added an arrow button in the quest list to start tracking all quests in that list."},
+		{1544477110, "World Map Changes", "December 13, 2018", "Added faction indicators, SHIFT + Left Click to track all quests for that faction."},
+		{1544477110, "Zone Map Changes", "December 13, 2018", "The fullscreen quest summary is now available in windowed mode."},
+		{1544477110, "General Settings", "December 13, 2018", "Added quest blacklist, access it throught the options menu."},
+		{1544477110, "General Settings", "December 13, 2018", "Added Map Window Scale settings in the options menu."},
+		{1544477110, "General Settings", "December 13, 2018", "Several options added to World Map and Zone Map at the options menu."},
+		--{1544477110, "", "December 13, 2018", ""},
+	}	
 	
 end
 

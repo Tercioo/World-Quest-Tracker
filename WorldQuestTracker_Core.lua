@@ -29,7 +29,7 @@ local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 WorldQuestTracker.WorldSummary = CreateFrame ("frame", "WorldQuestTrackerWorldSummaryFrame", anchorFrame)
 
 --dev version string
-local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 5  ")
+local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 6  ")
 
 local _
 local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest or QuestUtils_IsQuestWorldQuest
@@ -411,8 +411,11 @@ WorldQuestTracker.UpdateWorldMapFrameAnchor = function (resetLeft)
 		end
 		
 	elseif (WorldQuestTracker.db.profile.map_frame_anchor == "left" and resetLeft) then
-		WorldMapFrame:Hide()
-		C_Timer.After (0.03, function() ToggleWorldMap() end)
+		local mapID = WorldMapFrame.mapID
+		ToggleWorldMap()
+		C_Timer.After (0.03, function() 
+			OpenWorldMap (mapID)
+		end)
 	end
 end
 
@@ -1068,6 +1071,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					else
 						WorldQuestTracker.MapAnchorButton:Hide()
 					end
+					
+					ReloadUI()
 					
 					GameCooltip:Close()
 					return
@@ -1835,6 +1840,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				factionAnchor.Widgets = {}
 				factionAnchor.WidgetsByFactionID = {}
 				worldSummary.FactionAnchor = factionAnchor
+				factionAnchor:SetAlpha (ALPHA_BLEND_AMOUNT)
 				
 				--scripts
 				local buttonOnEnter = function (self)
@@ -3183,7 +3189,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				GameCooltip:Preset (2)
 				GameCooltip:SetOption ("TextSize", 10)
 				GameCooltip:SetOption ("FixedWidth", 180)
-				GameCooltip:SetOption ("FixedWidthSub", 200)
+				GameCooltip:SetOption ("FixedWidthSub", 180)
 				GameCooltip:SetOption ("SubMenuIsTooltip", true)
 				GameCooltip:SetOption ("IgnoreArrows", true)
 				
@@ -3309,7 +3315,12 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					
 				elseif (WorldQuestTracker.db.profile.map_frame_anchor == "left") then
 					mapFrameAnchorButton.Text:SetText (L["S_MAPFRAME_ALIGN_CENTER"])
-					
+				end
+				
+				if (not WorldMapFrame.isMaximized) then
+					WorldQuestTracker.MapAnchorButton:Show()
+				else
+					WorldQuestTracker.MapAnchorButton:Hide()
 				end
 			end
 			
@@ -3323,8 +3334,10 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				
 				mapFrameAnchorButton:UpdateButton()
 				WorldQuestTracker.UpdateWorldMapFrameAnchor (true)
+				
+				ReloadUI()
 			end)
-			
+
 			if (GameCooltip.InjectQuickTooltip) then
 				--testing a way to add tooltips faster to regular frames
 				GameCooltip:InjectQuickTooltip (mapFrameAnchorButton, L["S_MAPFRAME_ALIGN_DESC"])
@@ -3503,7 +3516,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			local BuildOptionsMenu = function() -- õptions ~options
 				GameCooltip:Preset (2)
 				GameCooltip:SetOption ("TextSize", 10)
-				GameCooltip:SetOption ("FixedWidth", 160)
+				GameCooltip:SetOption ("FixedWidth", 180)
 				
 				local IconSize = 14
 				
@@ -4376,31 +4389,38 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				resource_GoldFrame.OnEnterAnimation = DF:CreateAnimationHub (resource_GoldFrame, function() end, function() end)
 				local anim = WorldQuestTracker:CreateAnimation (resource_GoldFrame.OnEnterAnimation, "Scale", 1, animaSettings.speed, 1, 1, animaSettings.scaleMax, animaSettings.scaleMax, "center", 0, 0)
 				anim:SetEndDelay (60) --this fixes the animation going back to 1 after it finishes
-				
+				anim:SetSmoothing ("IN")
 				resource_GoldFrame.OnLeaveAnimation = DF:CreateAnimationHub (resource_GoldFrame, function() end, function() end)
-				WorldQuestTracker:CreateAnimation (resource_GoldFrame.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleMax, animaSettings.scaleMax, 1, 1, "center", 0, 0)
+				local anim = WorldQuestTracker:CreateAnimation (resource_GoldFrame.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleMax, animaSettings.scaleMax, 1, 1, "center", 0, 0)
+				anim:SetSmoothing ("OUT")
 			end
 				--
 			do
 				resource_ResourcesFrame.OnEnterAnimation = DF:CreateAnimationHub (resource_ResourcesFrame, function() end, function() end)
 				local anim = WorldQuestTracker:CreateAnimation (resource_ResourcesFrame.OnEnterAnimation, "Scale", 1, animaSettings.speed, 1, 1, animaSettings.scaleMax, animaSettings.scaleMax, "center", 0, 0)
 				anim:SetEndDelay (60) --this fixes the animation going back to 1 after it finishes
-				
+				anim:SetSmoothing ("IN")
 				resource_ResourcesFrame.OnLeaveAnimation = DF:CreateAnimationHub (resource_ResourcesFrame, function() end, function() end)
-				WorldQuestTracker:CreateAnimation (resource_ResourcesFrame.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleMax, animaSettings.scaleMax, 1, 1, "center", 0, 0)
+				local anim = WorldQuestTracker:CreateAnimation (resource_ResourcesFrame.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleMax, animaSettings.scaleMax, 1, 1, "center", 0, 0)
+				anim:SetSmoothing ("OUT")
 			end
 				--
 			do
 				resource_APowerFrame.OnEnterAnimation = DF:CreateAnimationHub (resource_APowerFrame, function() end, function() end)
 				local anim = WorldQuestTracker:CreateAnimation (resource_APowerFrame.OnEnterAnimation, "Scale", 1, animaSettings.speed, 1, 1, animaSettings.scaleMax, animaSettings.scaleMax, "center", 0, 0)
 				anim:SetEndDelay (60) --this fixes the animation going back to 1 after it finishes
-				
+				anim:SetSmoothing ("IN")
 				resource_APowerFrame.OnLeaveAnimation = DF:CreateAnimationHub (resource_APowerFrame, function() end, function() end)
-				WorldQuestTracker:CreateAnimation (resource_APowerFrame.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleMax, animaSettings.scaleMax, 1, 1, "center", 0, 0)
+				local anim = WorldQuestTracker:CreateAnimation (resource_APowerFrame.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleMax, animaSettings.scaleMax, 1, 1, "center", 0, 0)
+				anim:SetSmoothing ("OUT")
 			end
 			
 			--this function is called when the mouse enters the indicator area, here it handles only the animation
 			local indicatorsAnimationOnEnter = function (self, questType)
+			
+				--play sound
+				WorldQuestTracker.PlayTick (2)
+			
 				if (self.OnLeaveAnimation:IsPlaying()) then
 					self.OnLeaveAnimation:Stop()
 				end
@@ -4642,6 +4662,56 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 		--check for tutorials
 		WorldQuestTracker.ShowTutorialAlert()
 		
+		--news ~news
+			function WorldQuestTracker.OpenNewsWindow()
+				if (not WorldQuestTrackerNewsFrame) then
+					local options = {
+						width = 550,
+						height = 700,
+						line_amount = 13,
+						line_height = 50,
+					}
+					
+					local newsFrame = DF:CreateNewsFrame (UIParent, "WorldQuestTrackerNewsFrame", options, WorldQuestTracker.GetChangelogTable(), WorldQuestTracker.db.profile.news_frame)
+					newsFrame:SetFrameStrata ("FULLSCREEN")
+					
+					local lastNews = WorldQuestTracker.db.profile.last_news_time
+					
+					newsFrame.NewsScroll.OnUpdateLineHook = function (line, lineIndex, data)
+						local thisEntryTime = data [1]
+						if (thisEntryTime > lastNews) then
+							line.backdrop_color = {.4, .4, .4, .6}
+							line.backdrop_color_highlight = {.5, .5, .5, .8}
+							line:SetBackdropColor (.4, .4, .4, .6)
+						end
+					end
+				end
+				
+				WorldQuestTrackerNewsFrame:Show()
+				WorldQuestTrackerNewsFrame.NewsScroll:Refresh()
+				WorldQuestTracker.db.profile.last_news_time = time()
+				WorldQuestTracker.NewsButton:Hide()
+			end
+			
+			function WorldQuestTracker.GetChangelogTable()
+				return WorldQuestTracker.ChangeLogTable
+			end
+			
+			local numNews = DF:GetNumNews (WorldQuestTracker.GetChangelogTable(), WorldQuestTracker.db.profile.last_news_time)
+			if (numNews > 0) then
+				-- /run WorldQuestTrackerAddon.db.profile.last_news_time = 0
+			
+				local openNewsButton = DF:CreateButton (WorldQuestTracker.DoubleTapFrame, WorldQuestTracker.OpenNewsWindow, 120, 20, "What's New?", -1, nil, nil, nil, nil, nil, DF:GetTemplate ("button", "WQT_NEWS_BUTTON"), DF:GetTemplate ("font", "WQT_TOGGLEQUEST_TEXT"))
+				openNewsButton:SetPoint ("bottom", WorldQuestTracker.DoubleTapFrame, "top", -5, 2)
+				WorldQuestTracker.NewsButton = openNewsButton
+
+				local numNews = DF:GetNumNews (WorldQuestTracker.GetChangelogTable(), WorldQuestTracker.db.profile.last_news_time)
+				if (numNews > 0) then
+					WorldQuestTracker.NewsButton:SetText ("What's New? (|cFFFFFF00" .. numNews .."|r)")
+				end
+			end
+			
+		--end news
 	else
 		WorldQuestTracker.NoAutoSwitchToWorldMap = nil
 	end
