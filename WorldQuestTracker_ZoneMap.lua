@@ -1326,7 +1326,7 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 	
 	--update the quest icon
 	local okay, gold, resource, apower = WorldQuestTracker.UpdateWorldWidget (widget, questID, numObjectives, mapID, isCriteria, isNew, isUsingTracker, timeLeft, artifactPowerIcon)
-	widget.texture:SetTexCoord (.05, .95, .05, .95)
+	widget.texture:SetTexCoord (.1, .9, .1, .9)
 	widget:SetAlpha (WQT_ZONEWIDGET_ALPHA)
 	
 	widget.background:Hide()

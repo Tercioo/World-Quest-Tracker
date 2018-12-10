@@ -36,7 +36,7 @@ do
 	--helps blend the icons within the map texture
 	WQT_ZONEWIDGET_ALPHA =		0.83
 	WQT_WORLDWIDGET_ALPHA =	0.845
-	WQT_WORLDWIDGET_BLENDED =	ALPHA_BLEND_AMOUNT - 0.10
+	WQT_WORLDWIDGET_BLENDED =	ALPHA_BLEND_AMOUNT - 0.16
 	
 	--where these came from
 	QUESTTYPE_GOLD = 0x1

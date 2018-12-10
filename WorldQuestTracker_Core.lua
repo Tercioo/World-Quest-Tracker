@@ -29,7 +29,7 @@ local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 WorldQuestTracker.WorldSummary = CreateFrame ("frame", "WorldQuestTrackerWorldSummaryFrame", anchorFrame)
 
 --dev version string
-local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 3  ")
+local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 4  ")
 
 local _
 local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest or QuestUtils_IsQuestWorldQuest
@@ -1702,6 +1702,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					local widget = anchor.Widgets [i]
 					widget:ClearAllPoints()
 					
+					widget.WidgetAnchorID = i
+					
 					if (growDirection == "right") then
 						widget:SetPoint ("topleft", anchor, "topleft", X, Y)
 						X = X + 25
@@ -1878,7 +1880,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 							button.FactionPulseAnimation:Play()
 						end
 					end
-
+					
+					WorldQuestTracker.PlayTick (2)
 				end
 				
 				local buttonOnLeave = function (self)
@@ -2121,6 +2124,9 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				worldSummary.WidgetIndex = worldSummary.WidgetIndex + 1
 				tinsert (anchor.Widgets, widget)
 				
+				widget.WidgetID = worldSummary.WidgetIndex
+				widget.CurrentAnchor = anchor
+				
 				if (not widget) then
 					WorldQuestTracker:Msg ("exception: AddQuest() while cache still loading, close and reopen the map.")
 					return
@@ -2134,7 +2140,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				widget.Y = y
 				
 				local okay, gold, resource, apower = WorldQuestTracker.UpdateWorldWidget (widget, questID, numObjectives, mapID, isCriteria, isNew, isUsingTracker, timeLeft, artifactPowerIcon)
-				widget.texture:SetTexCoord (.05, .95, .05, .95)
+				widget.texture:SetTexCoord (.1, .9, .1, .9)
 				
 				if (widget.FactionID == worldSummary.FactionSelected) then
 					--widget.factionBorder:Show()
