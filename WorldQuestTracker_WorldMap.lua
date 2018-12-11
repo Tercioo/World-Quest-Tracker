@@ -423,12 +423,14 @@ local create_worldmap_square = function (mapName, index, parent)
 			button.OnEnterAnimation = DF:CreateAnimationHub (button, function() end, function() end)
 			local anim = WorldQuestTracker:CreateAnimation (button.OnEnterAnimation, "Scale", 1, animaSettings.speed, 1, 1, animaSettings.scaleMax, animaSettings.scaleMax, "center", 0, 0)
 			anim:SetEndDelay (60) --this fixes the animation going back to 1 after it finishes
-			anim:SetSmoothing ("IN_OUT")
+			--anim:SetSmoothing ("IN_OUT")
+			anim:SetSmoothing ("IN") --looks like OUT smooth has some problems in the PTR
 			button.OnEnterAnimation.ScaleAnimation = anim
 			
 			button.OnLeaveAnimation = DF:CreateAnimationHub (button, function() end, function() end)
 			local anim = WorldQuestTracker:CreateAnimation (button.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleMax, animaSettings.scaleMax, 1, 1, "center", 0, 0)
-			anim:SetSmoothing ("IN_OUT")
+			--anim:SetSmoothing ("IN_OUT")
+			anim:SetSmoothing ("IN")
 			button.OnLeaveAnimation.ScaleAnimation = anim
 		end
 		
@@ -1425,7 +1427,7 @@ local mapRangeValues = {
 	[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = {0.18, .38, 5.2, 3.3},
 	[WorldQuestTracker.MapData.ZoneIDs.ZANDALAR] = {0.18, .38, 5.2, 3.3},
 	[WorldQuestTracker.MapData.ZoneIDs.KULTIRAS] = {0.18, .38, 5.2, 3.3},
-	[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = {0.18/2.5, .38/2.5, 5.2/2.5, 3.3/2.5},
+	[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = {0.18/3.0, .38/3.0, 5.2/3.0, 3.3/3.0},
 	[WorldQuestTracker.MapData.ZoneIDs.ARGUS] = {0.18/2.5, .38/2.5, 5.2/2.5, 3.3/2.5},
 	["default"] = {0.18, .38, 5.2, 3.3},
 }

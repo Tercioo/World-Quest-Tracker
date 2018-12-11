@@ -273,10 +273,12 @@ function WorldQuestTracker.UpdateStatusBarAnchors()
 	
 		if (WorldMapFrame.isMaximized) then
 			WorldQuestTrackerRewardHistoryButton:SetPoint ("bottomleft", statusBar, "bottomleft", 0, 3)
-			WorldQuestTracker.IndicatorsAnchor:SetPoint ("bottomright", WorldQuestTrackerGoToAllianceButton, "bottomleft", -10, 3)
+			--WorldQuestTracker.IndicatorsAnchor:SetPoint ("bottomright", WorldQuestTrackerGoToAllianceButton, "bottomleft", -10, 3) --now is anchored to horde (horde and alliance button got swapped)
+			WorldQuestTracker.IndicatorsAnchor:SetPoint ("bottomright", WorldQuestTrackerGoToHordeButton, "bottomleft", -10, 3)
 		else
 			WorldQuestTrackerRewardHistoryButton:SetPoint ("bottomleft", statusBar, "bottomleft", 0, 2)
-			WorldQuestTracker.IndicatorsAnchor:SetPoint ("bottomright", WorldQuestTrackerGoToAllianceButton, "bottomleft", -10, 2)
+			--WorldQuestTracker.IndicatorsAnchor:SetPoint ("bottomright", WorldQuestTrackerGoToAllianceButton, "bottomleft", -10, 2)
+			WorldQuestTracker.IndicatorsAnchor:SetPoint ("bottomright", WorldQuestTrackerGoToHordeButton, "bottomleft", -10, 2)
 		end
 		
 	elseif (anchor == "top") then

@@ -29,7 +29,7 @@ local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 WorldQuestTracker.WorldSummary = CreateFrame ("frame", "WorldQuestTrackerWorldSummaryFrame", anchorFrame)
 
 --dev version string
-local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "World Quest Tracker 8.1 Release Candidate 6  ")
+local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "")
 
 local _
 local QuestMapFrame_IsQuestWorldQuest = QuestMapFrame_IsQuestWorldQuest or QuestUtils_IsQuestWorldQuest
@@ -774,7 +774,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				local AllianceWorldQuestButton = CreateFrame ("button", "WorldQuestTrackerGoToAllianceButton", anchorFrame)
 				AllianceWorldQuestButton:SetSize (44, 32)
 				AllianceWorldQuestButton:SetFrameLevel (WorldMapFrame.SidePanelToggle.CloseButton:GetFrameLevel())
-				AllianceWorldQuestButton:SetPoint ("right", WorldMapFrame.SidePanelToggle, "left", -48, 0)
+				
 				AllianceWorldQuestButton.Background = AllianceWorldQuestButton:CreateTexture (nil, "background")
 				AllianceWorldQuestButton.Background:SetSize (44, 32)
 				AllianceWorldQuestButton.Background:SetAtlas ("MapCornerShadow-Right")
@@ -807,7 +807,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				local HordeWorldQuestButton = CreateFrame ("button", "WorldQuestTrackerGoToHordeButton", anchorFrame)
 				HordeWorldQuestButton:SetSize (44, 32)
 				HordeWorldQuestButton:SetFrameLevel (WorldMapFrame.SidePanelToggle.CloseButton:GetFrameLevel())
-				HordeWorldQuestButton:SetPoint ("right", WorldMapFrame.SidePanelToggle, "left", -2, 0)
+				
 				HordeWorldQuestButton.Background = HordeWorldQuestButton:CreateTexture (nil, "background")
 				HordeWorldQuestButton.Background:SetSize (44, 32)
 				HordeWorldQuestButton.Background:SetAtlas ("MapCornerShadow-Right")
@@ -835,12 +835,15 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					end
 					WorldQuestTracker.HordeWorldQuestButton_Click = GetTime()
 				end)
-
+				
+			--arrange alliance and horde buttons
+			AllianceWorldQuestButton:SetPoint ("right", WorldMapFrame.SidePanelToggle, "left", -2, 0)
+			HordeWorldQuestButton:SetPoint ("right", WorldMapFrame.SidePanelToggle, "left", -48, 0)
+			
 			--show world quests location button
 			local ToggleQuestsButton = CreateFrame ("button", "WorldQuestTrackerToggleQuestsButton", anchorFrame)
 			ToggleQuestsButton:SetSize (128, 20)
 			ToggleQuestsButton:SetFrameLevel (1025)
-			ToggleQuestsButton:SetPoint ("bottomleft", AllianceWorldQuestButton, "topleft", 0, 1)
 			ToggleQuestsButton.Background = ToggleQuestsButton:CreateTexture (nil, "background")
 			ToggleQuestsButton.Background:SetSize (98, 20)
 			ToggleQuestsButton.Background:SetAtlas ("MapCornerShadow-Right")
@@ -890,7 +893,6 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			local ToggleQuestsSummaryButton = CreateFrame ("button", "WorldQuestTrackerToggleQuestsSummaryButton", anchorFrame)
 			ToggleQuestsSummaryButton:SetSize (128, 20)
 			ToggleQuestsSummaryButton:SetFrameLevel (1025)
-			ToggleQuestsSummaryButton:SetPoint ("bottomleft", ToggleQuestsButton, "topleft", 0, 1)
 			ToggleQuestsSummaryButton.Background = ToggleQuestsSummaryButton:CreateTexture (nil, "background")
 			ToggleQuestsSummaryButton.Background:SetSize (98, 20)
 			ToggleQuestsSummaryButton.Background:SetAtlas ("MapCornerShadow-Right")
@@ -962,6 +964,11 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			end)
 			
 			ToggleQuestsSummaryButton:Hide()
+			
+			--arrange toggle buttons
+			--ToggleQuestsButton:SetPoint ("bottomleft", AllianceWorldQuestButton, "topleft", 0, 1)
+			ToggleQuestsButton:SetPoint ("bottomleft", HordeWorldQuestButton, "topleft", 0, 1)
+			ToggleQuestsSummaryButton:SetPoint ("bottomleft", ToggleQuestsButton, "topleft", 0, 1)
 			
 			-- õptionsfunc ~optionsfunc
 			local options_on_click = function (_, _, option, value, value2, mouseButton)
@@ -1819,7 +1826,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				end
 				
 				factionAnchor:SetSize (anchorWidth, anchorHeight)
-				factionAnchor:SetPoint ("bottomright", WorldQuestTrackerGoToAllianceButton, "topleft", 6, WorldQuestTracker.db.profile.bar_anchor == "top" and -43 or -26)
+				--factionAnchor:SetPoint ("bottomright", WorldQuestTrackerGoToAllianceButton, "topleft", 6, WorldQuestTracker.db.profile.bar_anchor == "top" and -43 or -26)
+				factionAnchor:SetPoint ("bottomright", WorldQuestTrackerGoToHordeButton, "topleft", 6, WorldQuestTracker.db.profile.bar_anchor == "top" and -43 or -26)
 				
 				if (WorldQuestTracker.db.profile.show_faction_frame) then
 					factionAnchor:Show()
@@ -4219,7 +4227,9 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			local resource_APowerText = DF:CreateLabel (resource_APowerFrame, "", ResourceFontTemplate)
 		
 			--resource_APowerText:SetPoint ("bottomright", WorldQuestButton, "bottomleft", -10, 2)
-			resource_APowerText:SetPoint ("bottomright", AllianceWorldQuestButton, "bottomleft", -10, 3)
+			--resource_APowerText:SetPoint ("bottomright", AllianceWorldQuestButton, "bottomleft", -10, 3)
+			--resource_APowerText:SetPoint ("bottomright", HordeWorldQuestButton, "bottomleft", -10, 3)
+			
 			resource_APowerIcon:SetPoint ("right", resource_APowerText, "left", -2, 0)
 			resource_ResourcesText:SetPoint ("right", resource_APowerIcon, "left", -10, 0)
 			resource_ResourcesIcon:SetPoint ("right", resource_ResourcesText, "left", -2, 0)

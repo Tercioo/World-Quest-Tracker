@@ -193,6 +193,10 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 		end
 	
 		button:HookScript ("OnEnter", function (self)
+		
+			button.OriginalFrameLevel = button:GetFrameLevel()
+			button:SetFrameLevel (button.OriginalFrameLevel + 50)
+		
 			if (self.OnEnterAnimation) then
 				if (self.OnLeaveAnimation:IsPlaying()) then
 					self.OnLeaveAnimation:Stop()
@@ -221,6 +225,8 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 				if (self.OnEnterAnimation:IsPlaying()) then
 					self.OnEnterAnimation:Stop()
 				end
+				
+				button:SetFrameLevel (button.OriginalFrameLevel)
 			
 				local currentScale = self.ModifiedScale
 				local originalScale = self.OriginalScale
@@ -488,6 +494,14 @@ function WorldQuestTracker.UpdateZoneWidgetAnchors()
 end
 
 local quest_bugged = {}
+local dazaralor_quests = {
+	{0.441, 0.322},
+	{0.441, 0.362},
+	{0.441, 0.402},
+	{0.441, 0.442},
+	{0.441, 0.482},
+	{0.441, 0.522},
+}
 
 --atualiza as quest do mapa da zona ~updatezone ~zoneupdate
 function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
@@ -560,6 +574,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 	--print (WorldQuestTracker.GetMapName (mapID), #taskInfo) --DEBUG: amount of quests on the map
 	
 	local testCounter = 0
+	local workerQuestIndex = 1
 	local bannedQuests = WorldQuestTracker.db.profile.banned_quests
 
 	if (taskInfo and #taskInfo > 0) then
@@ -643,8 +658,25 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 									widget.Currency_Resources = numRewardItems or 0
 								end
 								
-								widget.PosX = info.x
-								widget.PosY = info.y
+								local xPos, yPos = info.x, info.y
+								
+								--dazralon
+								if (mapID == 1165) then
+									--detect if the quest is a worker quest --0.44248777627945 0.32204276323318
+									if (xPos >= 0.43 and xPos <= 0.45) then
+										if (yPos >= 0.31 and yPos <= 0.33) then
+											local newPos = dazaralor_quests [workerQuestIndex]
+											xPos, yPos = newPos[1], newPos[2]
+											workerQuestIndex = workerQuestIndex + 1
+										end
+									end
+	
+									widget.PosX = xPos
+									widget.PosY = yPos
+								else
+									widget.PosX = info.x
+									widget.PosY = info.y
+								end
 
 								local inProgress
 								
@@ -1531,6 +1563,14 @@ if (bountyBoard) then
 	end)
 	
 	local UpdateBountyBoard = function (self, mapID)
+	
+		if (WorldMapFrame.mapID == 905) then --argus
+			--the bounty board in argus is above the world quest tracker widgets
+			C_Timer.After (0.5, function()
+				bountyBoard:ClearAllPoints()
+				bountyBoard:SetPoint ("bottomright", WorldQuestTrackerToggleQuestsButton, "bottomright", 0, 45)
+			end)
+		end
 	
 		self:SetAlpha (WQT_WORLDWIDGET_ALPHA + 0.02) -- + 0.06
 	
