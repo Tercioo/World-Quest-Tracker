@@ -260,9 +260,9 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 		
 		button.FactionPulseAnimation = DF:CreateAnimationHub (factionPulseAnimationTexture, function() factionPulseAnimationTexture:Show() end, function() factionPulseAnimationTexture:Hide() end)
 		local anim = WorldQuestTracker:CreateAnimation (button.FactionPulseAnimation, "Alpha", 1, .35, 0, .5)
-		anim:SetSmoothing ("IN_OUT")
+		anim:SetSmoothing ("OUT")
 		local anim = WorldQuestTracker:CreateAnimation (button.FactionPulseAnimation, "Alpha", 2, .35, .5, 0)
-		anim:SetSmoothing ("IN_OUT")
+		anim:SetSmoothing ("OUT")
 		button.FactionPulseAnimation:SetLooping ("REPEAT")
 	
 	local onFlashTrackAnimation = DF:CreateAnimationHub (smallFlashOnTrack, nil, function(self) self:GetParent():Hide() end)
@@ -973,7 +973,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 			end
 		end		
 
-		if (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
+		if (worldQuestType == LE_QUEST_TAG_TYPE_PVP or worldQuestType == LE_QUEST_TAG_TYPE_FACTION_ASSAULT) then
 			self.questTypeBlip:Show()
 			self.questTypeBlip:SetTexture ([[Interface\PVPFrame\Icon-Combat]])
 			self.questTypeBlip:SetTexCoord (0, 1, 0, 1)
@@ -1419,6 +1419,10 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 		DF:SetFontColor (summaryWidget.timeLeftText, "white")
 		summaryWidget.timeLeftText:SetAlpha (1)
 		summaryWidget:SetAlpha (alphaAmount)
+	end
+	
+	if (zoneWidget.worldQuestType == LE_QUEST_TAG_TYPE_FACTION_ASSAULT) then
+		summaryWidget:SetAlpha (1)
 	end
 
 	summaryWidget.timeLeftText:SetText (timeLeft > 1440 and floor (timeLeft/1440) .. "d" or timeLeft > 60 and floor (timeLeft/60) .. "h" or timeLeft .. "m")

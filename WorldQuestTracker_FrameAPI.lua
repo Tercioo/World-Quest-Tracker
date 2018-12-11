@@ -219,7 +219,16 @@ function WorldQuestTracker.GetBorderByQuestType (self, rarity, worldQuestType)
 		return "border_zone_browT"
 		
 	elseif (rarity == LE_WORLD_QUEST_QUALITY_COMMON) then
-		if (worldQuestType == LE_QUEST_TAG_TYPE_INVASION) then
+		if (worldQuestType == LE_QUEST_TAG_TYPE_FACTION_ASSAULT) then
+			
+			if (UnitFactionGroup("player") == "Alliance") then
+				return "border_zone_redT"
+				
+			elseif (UnitFactionGroup("player") == "Horde") then
+				return "border_zone_redT"
+			end
+			
+		elseif (worldQuestType == LE_QUEST_TAG_TYPE_INVASION) then
 			return "border_zone_legionT"
 		else
 			return "border_zone_whiteT"
@@ -330,7 +339,7 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID, is
 		self.shineAnimation:Hide()
 		AnimatedShine_Stop (self)
 		
-		if (rarity == LE_WORLD_QUEST_QUALITY_COMMON and worldQuestType ~= LE_QUEST_TAG_TYPE_INVASION) then
+		if (rarity == LE_WORLD_QUEST_QUALITY_COMMON and (worldQuestType ~= LE_QUEST_TAG_TYPE_INVASION and worldQuestType ~= LE_QUEST_TAG_TYPE_FACTION_ASSAULT)) then
 			
 			if (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
 				self.commonBorder:SetVertexColor (1, .7, .2)
@@ -382,7 +391,7 @@ function WorldQuestTracker.UpdateBorder (self, rarity, worldQuestType, mapID, is
 			self.shineAnimation:Show()
 			AnimatedShine_Start (self, 1, 1, 1);
 			
-		elseif (worldQuestType == LE_QUEST_TAG_TYPE_INVASION) then
+		elseif (worldQuestType == LE_QUEST_TAG_TYPE_FACTION_ASSAULT) then
 			self.invasionBorder:Show()
 			
 			if (UnitFactionGroup("player") == "Alliance") then

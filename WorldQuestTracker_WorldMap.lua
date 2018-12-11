@@ -1006,7 +1006,7 @@ function WorldQuestTracker.UpdateWorldWidget (widget, questID, numObjectives, ma
 		widget.questTypeBlip:SetTexCoord (6/32, 26/32, 5/32, 27/32)
 		widget.questTypeBlip:SetAlpha (.89)
 		
-	elseif (worldQuestType == LE_QUEST_TAG_TYPE_INVASION) then
+	elseif (worldQuestType == LE_QUEST_TAG_TYPE_FACTION_ASSAULT) then --LE_QUEST_TAG_TYPE_INVASION (legion)
 		if (UnitFactionGroup("player") == "Alliance") then
 			widget.questTypeBlip:SetTexture ([[Interface\COMMON\icon-alliance]])
 			widget.questTypeBlip:SetTexCoord (20/64, 46/64, 14/64, 48/64)
