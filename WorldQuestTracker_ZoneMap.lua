@@ -226,7 +226,9 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 					self.OnEnterAnimation:Stop()
 				end
 				
-				button:SetFrameLevel (button.OriginalFrameLevel)
+				if (button.OriginalFrameLevel) then
+					button:SetFrameLevel (button.OriginalFrameLevel)
+				end
 			
 				local currentScale = self.ModifiedScale
 				local originalScale = self.OriginalScale

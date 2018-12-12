@@ -146,6 +146,26 @@ WorldQuestTracker.mapTables = {
 				[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = true,
 			},
 		},
+		
+		[WorldQuestTracker.MapData.ZoneIDs.DARKSHORE] = {
+			widgets = {},
+			Anchor_X = 0.01,
+			Anchor_Y = 0.30,
+			GrowRight = true,
+			show_on_map = {
+				[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = true,
+			},
+		},
+		
+		[WorldQuestTracker.MapData.ZoneIDs.ARATHI] = {
+			widgets = {},
+			Anchor_X = 0.01,
+			Anchor_Y = 0.20,
+			GrowRight = true,
+			show_on_map = {
+				[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = true,
+			},
+		},
 
 	--BFA
 		[1161] = { --boralus

@@ -739,10 +739,15 @@ ff:SetScript ("OnEvent", function (self, event, arg1, questID, arg3)
 	
 	elseif (event == "LFG_LIST_APPLICANT_LIST_UPDATED") then
 --		/dump select (5, C_LFGList.GetActiveEntryInfo()):find("k00000|")
-		local active, activityID, ilvl, honorLevel, name, comment, voiceChat, duration, autoAccept, privateGroup, questID = C_LFGList.GetActiveEntryInfo()
+		local a = C_LFGList.GetActiveEntryInfo()
+		for k,v in pairs (a) do
+		
+		end
+		local active, activityID, ilvl, honorLevel, name, comment, voiceChat, duration, autoAccept, privateGroup, questID = a.active, a.activityID, a.ilvl, a.honorLevel, a.name, a.comment, a.voiceChat, a.duration, a.autoAccept, a.privateGroup, a.questID
+		active = false --disabling to fix later
 		
 		--> check if the player has a group listed in the LFG and if is the group leader
-		if (active and ff.CurrentWorldQuest and UnitIsGroupLeader ("player") and (name:find ("k00000|") or name:find ("k000000|"))) then
+		if (active and ff.CurrentWorldQuest and UnitIsGroupLeader ("player") and (name:find ("ks2|") or name:find ("k000000|"))) then
 			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (ff.CurrentWorldQuest)
 			
 			local isInQuest = false
@@ -761,9 +766,13 @@ ff:SetScript ("OnEvent", function (self, event, arg1, questID, arg3)
 					local applicantInfo = C_LFGList.GetApplicants()
 					if (applicantInfo and #applicantInfo > 0) then
 						for i = 1, #applicantInfo do
-							local id, status, pendingStatus, numMembers, isNew, comment = C_LFGList.GetApplicantInfo (applicantInfo [i])
+							local b = C_LFGList.GetApplicantInfo (applicantInfo [i])
+							local id, status, pendingStatus, numMembers, isNew, comment = b.id, b.status, b.pendingStatus, b.numMembers, b.isNew, b.comment
+							--print (id, status, pendingStatus, numMembers, isNew, comment)
 							if (status == "applied") then
-								local name, class, localizedClass, level, itemLevel, honorLevel, tank, healer, damage, assignedRole, relationship = C_LFGList.GetApplicantMemberInfo (applicantInfo [i], 1)
+								local a = C_LFGList.GetApplicantMemberInfo (applicantInfo [i], 1)
+								local name, class, localizedClass, level, itemLevel, honorLevel, tank, healer, damage, assignedRole, relationship = a.name, a.class, a.localizedClass, a.level, a.itemLevel, a.honorLevel, a.tank, a.healer, a.damage, a.assignedRole, a.relationship
+								--print (name, class, localizedClass, level, itemLevel, honorLevel, tank, healer, damage, assignedRole, relationship)
 								if (name) then
 									InviteUnit (name)
 									WorldQuestTracker:Msg ("Auto Inviting " .. name .. " from the LFG apply.")
