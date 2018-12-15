@@ -478,6 +478,13 @@ WorldQuestTracker.MapData.ReplaceIcon = {
 	[2032600] = WorldQuestTracker.MapData.ItemIcons ["BFA_RESOURCE"], --war resource BFA
 }
 
+--when a quest rewards more than 1 reward, sometimes the first reward is a fixed currency
+WorldQuestTracker.MapData.IgnoredRewardTexures = {
+	[2565244] = true, --BFA honorbound service medal
+	[2565243] = true, --BFA 7th legion service medal
+	
+}
+
 WorldQuestTracker.MapData.QuestTypeIcons = {
 	[WQT_QUESTTYPE_APOWER] = {name = L["S_QUESTTYPE_ARTIFACTPOWER"], icon = [[Interface\AddOns\WorldQuestTracker\media\icon_artifactpower_red_roundT]], coords = {0, 1, 0, 1}},
 	[WQT_QUESTTYPE_GOLD] = {name = L["S_QUESTTYPE_GOLD"], icon = [[Interface\GossipFrame\auctioneerGossipIcon]], coords = {0, 1, 0, 1}},

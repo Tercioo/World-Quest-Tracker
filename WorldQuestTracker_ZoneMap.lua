@@ -46,7 +46,6 @@ local UpdateDebug = false
 local ZoneWidgetPool = WorldQuestTracker.ZoneWidgetPool
 
 local clear_widget = function (self)
-	self.Glow:Hide()
 	self.highlight:Hide()
 	self.IsTrackingGlow:Hide()
 	self.IsTrackingRareGlow:Hide()
@@ -94,6 +93,11 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 		anchorFrame.owningMap = WorldQuestTracker.DataProvider:GetMap()
 	end
 	
+	if (anchorFrame.Glow) then
+		anchorFrame.Glow:Hide()
+	end
+	
+	--/dump WorldQuestTrackerZonePOIWidget5Anchor.Glow
 	local button = CreateFrame ("button", name .. index, parent)
 	button:SetPoint ("center", anchorFrame, "center", 0, 0)
 	button.AnchorFrame = anchorFrame
@@ -136,13 +140,6 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 	button.TextureCustom = supportFrame:CreateTexture (button:GetName() .. "TextureCustom", "BACKGROUND")
 	button.TextureCustom:SetPoint ("center", button, "center")
 	button.TextureCustom:Hide()
-	
-	button.Glow = supportFrame:CreateTexture(button:GetName() .. "Glow", "BACKGROUND", -6)
-	button.Glow:SetSize (50, 50)
-	button.Glow:SetPoint ("center", button, "center")
-	button.Glow:SetTexture ([[Interface/WorldMap/UI-QuestPoi-IconGlow]])
-	button.Glow:SetBlendMode ("ADD")
-	button.Glow:Hide()
 	
 	button.highlight = supportFrame:CreateTexture (nil, "highlight")
 	button.highlight:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\highlight_circleT]])
@@ -437,7 +434,6 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 	button.Shadow:SetDrawLayer ("BACKGROUND", -8)
 	button.blackBackground:SetDrawLayer ("BACKGROUND", -7)
 	button.IsTrackingGlow:SetDrawLayer ("BACKGROUND", -6)
-	button.Glow:SetDrawLayer ("BACKGROUND", -6)
 	button.Texture:SetDrawLayer ("BACKGROUND", -5)
 
 	button.IsTrackingRareGlow:SetDrawLayer ("overlay", 0)
@@ -856,7 +852,6 @@ function WorldQuestTracker.ResetWorldQuestZoneButton (self)
 	self.circleBorder:Hide()
 	self.squareBorder:Hide()
 	self.flagText:SetText ("")
-	self.Glow:Hide()
 	self.SelectedGlow:Hide()
 	self.CriteriaMatchGlow:Hide()
 	self.SpellTargetGlow:Hide()

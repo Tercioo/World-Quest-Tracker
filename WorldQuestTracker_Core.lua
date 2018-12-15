@@ -1968,10 +1968,10 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 
 					if (repAmount > 41900) then
 						factionButton:SetAlpha (.75)
-						factionButton.Icon:SetDesaturated (true)
+						--factionButton.Icon:SetDesaturated (true)
 					else
 						factionButton:SetAlpha (1)
-						factionButton.Icon:SetDesaturated (false)
+						--factionButton.Icon:SetDesaturated (false)
 					end
 				end
 				
