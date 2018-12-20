@@ -1596,7 +1596,14 @@ if (bountyBoard) then
 				bountyButton.objectiveCompletedBackground = bountyButton:CreateTexture (nil, "background")
 				bountyButton.objectiveCompletedBackground:SetPoint ("bottom", bountyButton, "top", 0, -1)
 				bountyButton.objectiveCompletedBackground:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT]])
-				bountyButton.objectiveCompletedBackground:SetSize (42, 12)
+				
+				--increasing the height for the background to also fill the time left text
+				bountyButton.objectiveCompletedBackground:SetSize (42, 26) --default height: 12
+				
+				--show the time left for the bounty
+				bountyButton.timeLeftText = bountyButton:CreateFontString (nil, "overlay", "GameFontNormal")
+				bountyButton.timeLeftText:SetPoint ("bottom", bountyButton.objectiveCompletedText, "top", 0, 2)
+				bountyButton.timeLeftText.DefaultColor = {bountyButton.timeLeftText:GetTextColor()}
 				
 				bountyButton.objectiveCompletedText:Hide()
 				bountyButton.objectiveCompletedBackground:Hide()
@@ -1647,23 +1654,57 @@ if (bountyBoard) then
 				local questIndex = GetQuestLogIndexByID (bountyQuestID)
 				local title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isStory = GetQuestLogTitle (questIndex)
 			
+				--attempt to get the time left on this quest
+				local timeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes (questID)
+				if (timeLeftMinutes) then
+					local inHours = floor (timeLeftMinutes/60)
+					bountyButton.timeLeftText:SetText (inHours > 23 and floor (inHours / 24) .. "d" or inHours .. "h")
+					if (inHours < 12) then
+						bountyButton.timeLeftText:SetTextColor (1, .2, .1)
+					elseif (inHours < 24) then
+						bountyButton.timeLeftText:SetTextColor (1, .5, .1)
+					else
+						bountyButton.timeLeftText:SetTextColor (unpack (bountyButton.timeLeftText.DefaultColor))
+					end
+				else
+					bountyButton.timeLeftText:SetText ("?")
+				end
+			
 				if (not HaveQuestRewardData (bountyQuestID)) then
 					C_TaskQuest.RequestPreloadRewardData (bountyQuestID)
 					WorldQuestTracker.ForceRefreshBountyBoard()
 				else
+					
+					--the current priority order is: item > currency with biggest amount
+					--all emisary quests gives gold and artifact power, some gives 400 gold others give 2000
+					--same thing for artifact power
 					
 					local itemName, itemTexture, quantity, quality, isUsable, itemID = GetQuestLogRewardInfo (1, bountyQuestID)
 					if (itemName) then
 						bountyButton.RewardPreview.texture = itemTexture
 						bountyButton.Icon:SetTexture (bounty.icon)
 					else
+						--> currencies
+						local currencies = {}
+						
 						local numQuestCurrencies = GetNumQuestLogRewardCurrencies (bountyQuestID)
 						if (numQuestCurrencies and numQuestCurrencies > 0) then
 							local name, texture, numItems, currencyID = GetQuestLogRewardCurrencyInfo (1, bountyQuestID)
 							if (name and texture) then
-								bountyButton.RewardPreview.texture = texture
-								bountyButton.Icon:SetTexture (bounty.icon)
+								tinsert (currencies, {name, texture, numItems, 0x1}) --0x1 means is a currency
 							end
+						end
+
+						local goldReward = WorldQuestTracker.GetQuestReward_Gold (bountyQuestID)
+						if (goldReward) then
+							local texture, coords = WorldQuestTracker.GetGoldIcon()
+							tinsert (currencies, {"gold", texture, goldReward, 0x2}) --0x2 means is gold
+						end
+
+						if (currencies [1]) then
+							table.sort (currencies, DF.SortOrder3)
+							bountyButton.RewardPreview.texture = currencies [1] [2]
+							bountyButton.Icon:SetTexture (bounty.icon)
 						end
 					end
 
