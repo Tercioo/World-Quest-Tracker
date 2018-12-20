@@ -33,7 +33,6 @@ local GetQuestLogRewardMoney = GetQuestLogRewardMoney
 local GetQuestTagInfo = GetQuestTagInfo
 local GetNumQuestLogRewards = GetNumQuestLogRewards
 local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
-local GetQuestTimeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes
 local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID
 
 local MapRangeClamped = DF.MapRangeClamped
