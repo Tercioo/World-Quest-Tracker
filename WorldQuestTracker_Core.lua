@@ -1382,6 +1382,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				"ANCHORTYPE_GOLD",
 				"ANCHORTYPE_REPUTATION",
 				"ANCHORTYPE_MISC",
+				"ANCHORTYPE_MISC2",
 				"",
 			}
 			
@@ -1392,6 +1393,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				["ANCHORTYPE_GOLD"] = 4,
 				["ANCHORTYPE_REPUTATION"] = 5,
 				["ANCHORTYPE_MISC"] = 6,
+				["ANCHORTYPE_MISC2"] = 7,
 			}
  			
 			function worldSummary.UpdateMaxWidgetsPerRow()
@@ -1792,6 +1794,9 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_REPUTATION]].AnchorOrder = abs (order [WQT_QUESTTYPE_REPUTATION] - (WQT_QUESTTYPE_MAX + 1))
 				--misc
 				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_MISC]].AnchorOrder = 100
+				
+				--7th anchor
+				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_MISC2]].AnchorOrder = 101
 			end
 
 			--reorder widgets within the anchor, sorting by the questID, time left and selected faction
