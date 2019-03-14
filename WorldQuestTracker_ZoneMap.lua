@@ -433,12 +433,10 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 	
 	local colorBlindTrackerIcon = supportFrame:CreateTexture (nil, "overlay")
 	colorBlindTrackerIcon:SetTexture ([[Interface\WORLDSTATEFRAME\ColumnIcon-FlagCapture2]])
-	colorBlindTrackerIcon:SetSize (22, 22)
+	colorBlindTrackerIcon:SetSize (24, 24)
 	colorBlindTrackerIcon:SetPoint ("bottom", button, "top", 0, -5)
-	--colorBlindTrackerIcon:SetBlendMode ("ADD")
 	colorBlindTrackerIcon:SetVertexColor (1, .2, .2)
 	colorBlindTrackerIcon:Hide()
-	--colorBlindTrackerIcon:SetRotation (math.pi / 2)
 	button.colorBlindTrackerIcon = colorBlindTrackerIcon
 	
 	button.Shadow:SetDrawLayer ("BACKGROUND", -8)
