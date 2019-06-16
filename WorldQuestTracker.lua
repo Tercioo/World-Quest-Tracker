@@ -1,5 +1,5 @@
 
-
+ 
 --new 8.1.5 C_TaskQuest.GetQuestTimeLeftSeconds
 
 hooksecurefunc (WorldQuestDataProviderMixin, "RefreshAllData", function (self, fromOnShow)
