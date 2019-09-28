@@ -209,7 +209,7 @@ function WorldQuestTracker.RemoveAllQuestsFromTracker()
 	WorldQuestTracker.RefreshTrackerWidgets()
 end
 
---o cliente não tem o tempo restante da quest na primeira execução
+--o cliente nï¿½o tem o tempo restante da quest na primeira execuï¿½ï¿½o
 function WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load()
 	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
 		local quest = WorldQuestTracker.QuestTrackList [i]
@@ -277,7 +277,7 @@ function WorldQuestTracker.ReorderQuestsOnTracker()
 end
 
 --parent frame na UIParent ~trackerframe
---esse frame é quem vai ser anexado ao tracker da blizzard
+--esse frame ï¿½ quem vai ser anexado ao tracker da blizzard
 --this is the main frame for the quest tracker, every thing on the tracker is parent of this frame
 -- ~trackerframe
 local WorldQuestTrackerFrame = CreateFrame ("frame", "WorldQuestTrackerScreenPanel", UIParent)
@@ -306,7 +306,7 @@ WorldQuestTrackerFrame_QuestHolder.LockButton:Hide()
 
 function WorldQuestTracker.UpdateTrackerScale()
 	WorldQuestTrackerFrame:SetScale (WorldQuestTracker.db.profile.tracker_scale)
-	--WorldQuestTrackerFrame_QuestHolder:SetScale (WorldQuestTracker.db.profile.tracker_scale) --aumenta só as quests sem mexer no cabeçalho
+	--WorldQuestTrackerFrame_QuestHolder:SetScale (WorldQuestTracker.db.profile.tracker_scale) --aumenta sï¿½ as quests sem mexer no cabeï¿½alho
 end
 
 --cria o header
@@ -430,7 +430,7 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 	end
 end
 
---quando um widget for clicado, mostrar painel com opção para parar de trackear
+--quando um widget for clicado, mostrar painel com opï¿½ï¿½o para parar de trackear
 local TrackerFrameOnClick = function (self, button)
 	--ao clicar em cima de uma quest mostrada no tracker
 	--??--
@@ -657,7 +657,7 @@ local TrackerIconButtonOnClick = function (self, button)
 	end
 end
 
--- ãrrow ~arrow
+-- ï¿½rrow ~arrow
 
 --from the user @ilintar on CurseForge
 --Doing that instead of just SetSuperTrackedQuestID(questID) will make the arrow stay. The code also ensures that only the selected world quest is present in the Blizzard window, as to not make it cluttered.
@@ -731,7 +731,7 @@ local TrackerIconButtonOnMouseUp = function (self, button)
 end
 
 
---pega um widget já criado ou cria um novo ~trackercreate ~trackerwidget
+--pega um widget jï¿½ criado ou cria um novo ~trackercreate ~trackerwidget
 function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	if (TrackerWidgetPool [index]) then
 		return TrackerWidgetPool [index]
@@ -948,7 +948,7 @@ local nextPlayerPositionUpdateCooldown = -1
 local currentPlayerX = 0
 local currentPlayerY = 0
 
--- ~trackertick ~trackeronupdate ~tick ~onupdate ~ontick õntick õnupdate
+-- ~trackertick ~trackeronupdate ~tick ~onupdate ~ontick ï¿½ntick ï¿½nupdate
 local TrackerOnTick = function (self, deltaTime)
 	if (self.NextPositionUpdate < 0) then
 		if (Sort_currentMapID ~= WorldQuestTracker.GetCurrentStandingMapAreaID()) then
@@ -981,9 +981,9 @@ local TrackerOnTick = function (self, deltaTime)
 
 	if (self.NextArrowUpdate < 0) then
 		local questYaw = (FindLookAtRotation (_, currentPlayerX, currentPlayerY, self.questX, self.questY) + p)%pipi
-		local playerYaw = GetPlayerFacing()
+		local playerYaw = GetPlayerFacing() or 0
 		local angle = (((questYaw + playerYaw)%pipi)+pi)%pipi
-		local imageIndex = 1+(floor (MapRangeClamped (_, 0, pipi, 1, 144, angle)) + 48)%144 --48º quadro é o que aponta para o norte
+		local imageIndex = 1+(floor (MapRangeClamped (_, 0, pipi, 1, 144, angle)) + 48)%144 --48ï¿½ quadro ï¿½ o que aponta para o norte
 		local line = ceil (imageIndex / 12)
 		local coord = (imageIndex - ((line-1) * 12)) / 12
 		self.Arrow:SetTexCoord (coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line)
@@ -1233,7 +1233,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 		nextWidget = 1
 	end
 	
-	--se não há nenhuma quest sendo mostrada, hidar o cabeçalho
+	--se nï¿½o hï¿½ nenhuma quest sendo mostrada, hidar o cabeï¿½alho
 	if (nextWidget == 1) then
 		WorldQuestTrackerHeader:Hide()
 		minimizeButton:Hide()
@@ -1253,7 +1253,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 		WorldQuestTracker.SortingQuestByDistance = C_Timer.NewTicker (10, WorldQuestTracker.SortTrackerByQuestDistance)
 	end
 	
-	--esconde os widgets não usados
+	--esconde os widgets nï¿½o usados
 	for i = nextWidget, #TrackerWidgetPool do
 		TrackerWidgetPool [i]:SetScript ("OnUpdate", nil)
 		TrackerWidgetPool [i]:Hide()
@@ -1436,7 +1436,7 @@ function WorldQuestTracker.IsQuestOnObjectiveTracker (quest)
 	end
 end
 
---dispara quando o tracker da interface é atualizado, precisa dar refresh na nossa ancora
+--dispara quando o tracker da interface ï¿½ atualizado, precisa dar refresh na nossa ancora
 local On_ObjectiveTracker_Update = function()
 	local tracker = ObjectiveTrackerFrame
 	
@@ -1471,7 +1471,7 @@ local On_ObjectiveTracker_Update = function()
 		end
 	end
 	
-	--usado na função da ancora
+	--usado na funï¿½ï¿½o da ancora
 	if (ObjectiveTrackerFrame.collapsed) then
 		WorldQuestTracker.TrackerHeight = 20
 	else
@@ -1483,11 +1483,11 @@ local On_ObjectiveTracker_Update = function()
 	
 end
 
---quando houver uma atualização no quest tracker, atualizar as ancores do nosso tracker
+--quando houver uma atualizaï¿½ï¿½o no quest tracker, atualizar as ancores do nosso tracker
 hooksecurefunc ("ObjectiveTracker_Update", function (reason, id)
 	On_ObjectiveTracker_Update()
 end)
---quando o jogador clicar no botão de minizar o quest tracker, atualizar as ancores do nosso tracker
+--quando o jogador clicar no botï¿½o de minizar o quest tracker, atualizar as ancores do nosso tracker
 ObjectiveTrackerFrame.HeaderMenu.MinimizeButton:HookScript ("OnClick", function()
 	On_ObjectiveTracker_Update()
 end)

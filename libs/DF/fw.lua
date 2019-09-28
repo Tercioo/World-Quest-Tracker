@@ -1,5 +1,5 @@
 
-local dversion = 141
+local dversion = 153
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary (major, minor)
 
@@ -24,6 +24,94 @@ DF.AuthorInfo = {
 	Name = "Tercioo",
 	Discord = "https://discord.gg/AGSzAZX",
 }
+
+if (not PixelUtil) then
+	--check if is in classic wow, if it is, build a replacement for PixelUtil
+	local gameVersion = GetBuildInfo()
+	if (gameVersion:match("%d") == "1") then
+		PixelUtil = {
+			SetWidth = function (self, width) self:SetWidth (width) end,
+			SetHeight = function (self, height) self:SetHeight (height) end,
+			SetSize = function (self, width, height) self:SetSize (width, height) end,
+			SetPoint = function (self, ...) self:SetPoint (...) end,
+		}
+	end
+end
+
+function DF.IsClassicWow()
+	local gameVersion = GetBuildInfo()
+	if (gameVersion:match ("%d") == "1") then
+		return true
+	end
+	return false
+end
+
+function DF.UnitGroupRolesAssigned (unitId)
+	if (UnitGroupRolesAssigned) then
+		return UnitGroupRolesAssigned (unitId)
+	else
+		--attempt to guess the role by the player spec
+		
+		--at the moment just return none
+		return "NONE"
+	end
+end
+
+--return the specialization of the player it self
+function DF.GetSpecialization()
+	if (GetSpecialization) then
+		return GetSpecialization()
+	end
+	
+	return nil
+end
+
+function DF.GetSpecializationInfoByID (...)
+	if (GetSpecializationInfoByID) then
+		return GetSpecializationInfoByID (...)
+	end
+	
+	return nil
+end
+
+function DF.GetSpecializationInfo (...)
+	if (GetSpecializationInfo) then
+		return GetSpecializationInfo (...)
+	end
+	
+	return nil
+end
+
+function DF.GetSpecializationRole (...)
+	if (GetSpecializationRole) then
+		return GetSpecializationRole (...)
+	end
+	
+	return nil
+end
+
+--build dummy encounter journal functions if they doesn't exists
+--this is done for compatibility with classic and if in the future EJ_ functions are moved to C_
+DF.EncounterJournal = {
+	EJ_GetCurrentInstance = EJ_GetCurrentInstance or function() return nil end,
+	EJ_GetInstanceForMap = EJ_GetInstanceForMap or function() return nil end,
+	EJ_GetInstanceInfo = EJ_GetInstanceInfo or function() return nil end,
+	EJ_SelectInstance = EJ_SelectInstance or function() return nil end,
+	
+	EJ_GetEncounterInfoByIndex = EJ_GetEncounterInfoByIndex or function() return nil end,
+	EJ_GetEncounterInfo = EJ_GetEncounterInfo or function() return nil end,
+	EJ_SelectEncounter = EJ_SelectEncounter or function() return nil end,
+	
+	EJ_GetSectionInfo = EJ_GetSectionInfo or function() return nil end,
+	EJ_GetCreatureInfo = EJ_GetCreatureInfo or function() return nil end,
+	EJ_SetDifficulty = EJ_SetDifficulty or function() return nil end,
+	EJ_GetNumLoot = EJ_GetNumLoot or function() return 0 end,
+	EJ_GetLootInfoByIndex = EJ_GetLootInfoByIndex or function() return nil end,
+}
+
+if (not EJ_GetCurrentInstance) then
+	
+end
 
 --> will always give a very random name for our widgets
 local init_counter = math.random (1, 1000000)
@@ -137,6 +225,8 @@ local embed_functions = {
 	"CreateGlowOverlay",
 	"CreateAnts",
 	"CreateFrameShake",
+	"RegisterScriptComm",
+	"SendScriptComm",
 }
 
 DF.WidgetFunctions = {
@@ -356,6 +446,22 @@ function DF:CommaValue (value)
 	--source http://richard.warburton.it
 	local left, num, right = string_match (value, '^([^%d]*%d)(%d*)(.-)$')
 	return left .. (num:reverse():gsub ('(%d%d%d)','%1,'):reverse()) .. right
+end
+
+function DF:GroupIterator (func, ...)
+	if (IsInRaid()) then
+		for i = 1, GetNumGroupMembers() do
+			DF:QuickDispatch (func, "raid" .. i, ...)
+		end
+	
+	elseif (IsInGroup()) then
+		for i = 1, GetNumGroupMembers() - 1 do
+			DF:QuickDispatch (func, "party" .. i, ...)
+		end
+	
+	else
+		DF:QuickDispatch (func, "player", ...)
+	end
 end
 
 function DF:IntegerToTimer (value)
@@ -2478,9 +2584,9 @@ function DF:ReskinSlider (slider, heightOffset)
 end
 
 function DF:GetCurrentSpec()
-	local specIndex = GetSpecialization()
+	local specIndex = DF.GetSpecialization()
 	if (specIndex) then
-		local specID = GetSpecializationInfo (specIndex)
+		local specID = DF.GetSpecializationInfo (specIndex)
 		if (specID and specID ~= 0) then
 			return specID
 		end
@@ -2768,8 +2874,8 @@ DF.CLEncounterID = {
 function DF:GetPlayerRole()
 	local assignedRole = UnitGroupRolesAssigned ("player")
 	if (assignedRole == "NONE") then
-		local spec = GetSpecialization()
-		return spec and GetSpecializationRole (spec) or "NONE"
+		local spec = DF.GetSpecialization()
+		return spec and DF.GetSpecializationRole (spec) or "NONE"
 	end
 	return assignedRole
 end
@@ -2795,6 +2901,67 @@ function GetWorldDeltaSeconds()
 	return deltaTimeFrame.deltaTime
 end
 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--> build the global script channel for scripts communication
+--send and retrieve data sent by othe users in scripts
+--Usage:
+--DetailsFramework:RegisterScriptComm (ID, function(sourcePlayerName, ...) end)
+--DetailsFramework:SendScriptComm (ID, ...)
+
+	local aceComm = LibStub:GetLibrary ("AceComm-3.0")
+	local LibAceSerializer = LibStub:GetLibrary ("AceSerializer-3.0")
+	local LibDeflate = LibStub:GetLibrary ("LibDeflate")
+	
+	DF.RegisteredScriptsComm = DF.RegisteredScriptsComm or {}
+	
+	function DF.OnReceiveScriptComm (...)
+		local prefix, encodedString, channel, commSource = ...
+		
+		local decodedString = LibDeflate:DecodeForWoWAddonChannel (encodedString)
+		if (decodedString) then
+			local uncompressedString = LibDeflate:DecompressDeflate (decodedString)
+			if (uncompressedString) then
+				local data = {LibAceSerializer:Deserialize (uncompressedString)}
+				if (data[1]) then
+					local ID = data[2]
+					if (ID) then
+						local sourceName = data[4]
+						if (Ambiguate (sourceName, "none") == commSource) then
+							local func = DF.RegisteredScriptsComm [ID]
+							if (func) then
+								DF:Dispatch (func, commSource, select (5, unpack (data))) --this use xpcall
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	
+	function DF:RegisterScriptComm (ID, func)
+		if (ID) then
+			if (type (func) == "function") then
+				DF.RegisteredScriptsComm [ID] = func
+			else
+				DF.RegisteredScriptsComm [ID] = nil
+			end
+		end
+	end
+	
+	function DF:SendScriptComm (ID, ...)
+		if (DF.RegisteredScriptsComm [ID]) then
+			local sourceName = UnitName ("player") .. "-" .. GetRealmName()
+			local data = LibAceSerializer:Serialize (ID, UnitGUID ("player"), sourceName, ...)
+			data = LibDeflate:CompressDeflate (data, {level = 9})
+			data = LibDeflate:EncodeForWoWAddonChannel (data)
+			aceComm:SendCommMessage ("_GSC", data, "PARTY")
+		end
+	end
+	
+	if (aceComm and LibAceSerializer and LibDeflate) then
+		aceComm:RegisterComm ("_GSC", DF.OnReceiveScriptComm)
+	end
+	
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> debug
 
