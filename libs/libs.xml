@@ -1,6 +1,6 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
 	<Script file="LibStub\LibStub.lua"/>
-	
+
 	<Include file="AceGUI-3.0\AceGUI-3.0.xml"/>
 	<Include file="AceDBOptions-3.0\AceDBOptions-3.0.xml"/>
 	<Include file="CallbackHandler-1.0\CallbackHandler-1.0.xml"/>
@@ -18,9 +18,9 @@
 	<Script file="LG\LibGraph-2.0.lua"/>
 	<Script file="LibDataBroker-1.1\LibDataBroker-1.1.lua"/>
 	<Script file="LibDBIcon-1.0\LibDBIcon-1.0.lua"/>
-	
+	<Script file="LibDeflate\LibDeflate.lua"/>
 	<Script file="LibWindow-1.1\LibWindow-1.1.lua" />
-	
+
 	<Include file="HereBeDragons\OpenTheCage.xml"/>
 	<Include file="DF\load.xml"/>
 </Ui>
