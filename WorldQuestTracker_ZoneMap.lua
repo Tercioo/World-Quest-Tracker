@@ -322,7 +322,7 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 	button.rareSerpent:SetHeight (34 * 1.1)
 	button.rareSerpent:SetPoint ("CENTER", 1, -1)
 	
-	-- é a sombra da serpente no fundo, pode ser na cor azul ou roxa
+	-- ï¿½ a sombra da serpente no fundo, pode ser na cor azul ou roxa
 	button.rareGlow = supportFrame:CreateTexture (nil, "background")
 	button.rareGlow:SetPoint ("CENTER", 1, -2)
 	button.rareGlow:SetSize (48, 48)
@@ -339,7 +339,7 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 	button.circleBorder:SetPoint ("bottomright", supportFrame, "bottomright", 1, -1)
 	button.circleBorder:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\border_zone_browT]])
 	button.circleBorder:SetTexCoord (0, 1, 0, 1)
-	--problema das quests de profissão com verde era a circleBorder
+	--problema das quests de profissï¿½o com verde era a circleBorder
 	
 	--borda quadrada
 	button.squareBorder = supportFrame:CreateTexture (nil, "OVERLAY", 1)
@@ -555,7 +555,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 	
 	local index = 1
 
-	--parar a animação de loading
+	--parar a animaï¿½ï¿½o de loading
 	if (WorldQuestTracker.IsPlayingLoadAnimation()) then
 		WorldQuestTracker.StopLoadingAnimation()
 	end	
@@ -1017,6 +1017,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 			self.questTypeBlip:SetTexture (WorldQuestTracker.MapData.QuestTypeIcons [WQT_QUESTTYPE_PETBATTLE].icon)
 			self.questTypeBlip:SetTexCoord (unpack (WorldQuestTracker.MapData.QuestTypeIcons [WQT_QUESTTYPE_PETBATTLE].coords))
 			self.questTypeBlip:SetAlpha (1)
+			self.QuestType = QUESTTYPE_PET
 			
 		elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
 			
@@ -1025,7 +1026,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 		else
 			self.questTypeBlip:Hide()
 		end
-		
+
 		-- tempo restante
 		local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
 		if (timeLeft < 1) then
@@ -1157,6 +1158,10 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 				okay = true
 			end
 			
+			if (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
+				self.QuestType = QUESTTYPE_PET
+			end
+
 			if (not okay) then
 				if (UpdateDebug) then print ("NeedUpdate 4") end
 				WorldQuestTracker.ScheduleZoneMapUpdate()
@@ -1173,7 +1178,7 @@ function WorldQuestTracker.SetupWorldQuestButton (self, worldQuestType, rarity, 
 	end
 end
 
---agenda uma atualização se algum dado de alguma quest não estiver disponível ainda
+--agenda uma atualizaï¿½ï¿½o se algum dado de alguma quest nï¿½o estiver disponï¿½vel ainda
 local do_zonemap_update = function (self)
 	WorldQuestTracker.UpdateZoneWidgets (self.IsForceUpdate)
 end

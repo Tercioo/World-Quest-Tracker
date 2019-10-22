@@ -391,7 +391,7 @@ hooksecurefunc ("WorldMap_CreatePOI", function (index, isObjectIcon, atlasIcon)
 end)
 --]=]
 
---troca a função de click dos botões de quest no mapa da zona
+--troca a funï¿½ï¿½o de click dos botï¿½es de quest no mapa da zona
 --[=[
 hooksecurefunc ("WorldMap_GetOrCreateTaskPOI", function (index)
 	local button = _G ["WorldMapFrameTaskPOI" .. index]
@@ -497,7 +497,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 	WorldQuestTracker.LastMapID = WorldMapFrame.mapID
 	
 	if (WorldMapFrame:IsShown()) then
-		--é a primeira vez que é mostrado?
+		--ï¿½ a primeira vez que ï¿½ mostrado?
 
 		if (not WorldMapFrame.firstRun and not InCombatLockdown()) then
 		
@@ -994,7 +994,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			ToggleQuestsButton:SetPoint ("bottomleft", HordeWorldQuestButton, "topleft", 0, 1)
 			ToggleQuestsSummaryButton:SetPoint ("bottomleft", ToggleQuestsButton, "topleft", 0, 1)
 			
-			-- õptionsfunc ~optionsfunc
+			-- ï¿½ptionsfunc ~optionsfunc
 			local options_on_click = function (_, _, option, value, value2, mouseButton)
 			
 				if (option == "accessibility") then
@@ -1234,7 +1234,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 							--desligou o tracker do tomtom
 							for questID, t in pairs (WorldQuestTracker.db.profile.tomtom.uids) do
 								if (type (questID) == "number" and QuestMapFrame_IsQuestWorldQuest (questID)) then
-									--procura o botão da quest
+									--procura o botï¿½o da quest
 									for _, widget in ipairs (WorldQuestTracker.WorldMapWidgets) do
 										if (widget.questID == questID) then
 											WorldQuestTracker.AddQuestToTracker (widget)
@@ -1321,14 +1321,14 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				end
 			
 				if (option == "tracker_is_locked") then
-					--> só aparece esta opção quando o tracker esta móvel
+					--> sï¿½ aparece esta opï¿½ï¿½o quando o tracker esta mï¿½vel
 					if (WorldQuestTracker.db.profile.tracker_is_movable) then
 						if (value) then
 							--> o tracker agora esta trancado - desliga o mouse
 							WorldQuestTrackerScreenPanel:EnableMouse (false)
 							--LibWindow.MakeDraggable (WorldQuestTrackerScreenPanel)
 						else
-							--> o tracker agora está movel - liga o mouse
+							--> o tracker agora estï¿½ movel - liga o mouse
 							WorldQuestTrackerScreenPanel:EnableMouse (true)
 							LibWindow.MakeDraggable (WorldQuestTrackerScreenPanel)
 						end
@@ -1342,8 +1342,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					end
 				
 					if (value) then
-						--> o tracker agora é móvel
-						--verificar a opção se esta locked
+						--> o tracker agora ï¿½ mï¿½vel
+						--verificar a opï¿½ï¿½o se esta locked
 						if (LibWindow and not WorldQuestTrackerScreenPanel.RegisteredForLibWindow) then
 							LibWindow.RestorePosition (WorldQuestTrackerScreenPanel)
 							WorldQuestTrackerScreenPanel.RegisteredForLibWindow = true
@@ -1491,7 +1491,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				--worldSummary.HideAnimation:Play()
 			end
 
-			-- ãnchorbutton ~anchorbutton
+			-- ï¿½nchorbutton ~anchorbutton
 			local on_click_anchor_button = function (self, button, param1, param2)
 				local anchor = self.MyObject.Anchor
 				local questsToTrack = {}
@@ -2881,7 +2881,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 							end
 							
 							if (type (questInfo.rewardTexture) == "string" and questInfo.rewardTexture:find ("icon_artifactpower")) then
-								--forçando sempre mostrar icone vermelho
+								--forï¿½ando sempre mostrar icone vermelho
 								line.icon:SetTexture ([[Interface\AddOns\WorldQuestTracker\media\icon_artifactpower_blueT]])
 								
 								--format the artifact power amount
@@ -3531,7 +3531,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			statisticsButton:SetScript ("OnClick", function() SummaryFrame.ShowAnimation:Play() end)
 			
 			---------------------------------------------------------
-			-- ~map ~anchor ~ãnchor
+			-- ~map ~anchor ~ï¿½nchor
 			-- WorldQuestTracker.MapAnchorButton - need to remove all references of this button
 			
 			---------------------------------------------------------
@@ -3543,7 +3543,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			
 			--build option menu
 			
-			local BuildOptionsMenu = function() -- õptions ~options
+			local BuildOptionsMenu = function() -- ï¿½ptions ~options
 				GameCooltip:Preset (2)
 				GameCooltip:SetOption ("TextSize", 10)
 				GameCooltip:SetOption ("FixedWidth", 180)
@@ -4230,7 +4230,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			--> party members ~party
 			
 		-----------
-			--recursos disponíveis
+			--recursos disponï¿½veis
 			local xOffset = 35
 			
 			local resource_GoldFrame = CreateFrame ("button", nil, WorldQuestTracker.DoubleTapFrame)
@@ -4346,6 +4346,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 
 				if (mapType == "zone") then
 					local qType = self.QuestType
+
 					if (qType == "gold") then
 						qType = QUESTTYPE_GOLD
 						
@@ -4354,21 +4355,16 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 						
 					elseif (qType == "apower") then
 						qType = QUESTTYPE_ARTIFACTPOWER
-						
+
 					elseif (qType == "petbattle") then
 						qType = QUESTTYPE_PET
-						
 					end
-					
+
 					local widgets = WorldQuestTracker.Cache_ShownWidgetsOnZoneMap
 					for _, widget in ipairs (widgets) do
 						if (widget.QuestType == qType) then
-							--WorldQuestTracker.AddQuestToTracker (widget)
 							tinsert (questTableToTrack, widget)
-							--[=[
-
-							--]=]
-						end
+						end	
 					end
 
 					if (WorldQuestTracker.db.profile.sound_enabled) then
@@ -4739,7 +4735,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			
 			--------------
 			
-			--animação
+			--animaï¿½ï¿½o
 			worldFramePOIs:SetScript ("OnShow", function()
 				worldFramePOIs.fadeInAnimation:Play()
 			end)
