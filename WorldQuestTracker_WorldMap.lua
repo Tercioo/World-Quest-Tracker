@@ -317,7 +317,7 @@ function WorldQuestTracker.HideWorldQuestsOnWorldMap()
 		widget.questID = nil
 	end
 	--faction lines (deprecated)
-	for _, widget in ipairs (extra_widgets) do --linhas e bolas de facções
+	for _, widget in ipairs (extra_widgets) do --hide lines and indicators for factions
 		widget:Hide()
 	end
 	
@@ -829,7 +829,7 @@ function WorldQuestTracker.InitializeWorldWidgets()
 		zoneWidget:Hide()
 	end
 	
-	--cria o primeiro widget no sumário e depois cria os demais lentamente
+	--cria o primeiro widget no sumï¿½rio e depois cria os demais lentamente
 	local i = 1
 	local button = create_worldmap_square ("WorldQuestTrackerWorldSummarySquare", i, WorldQuestTracker.WorldSummary)
 	tinsert (all_widgets, button)
@@ -840,7 +840,7 @@ function WorldQuestTracker.InitializeWorldWidgets()
 	WorldQuestTracker.WorldWidgetsCreationTask = C_Timer.NewTicker (.03, lazyCreateWorldWidget)
 end
 
---agenda uma atualização nos widgets do world map caso os dados das quests estejam indisponíveis
+--agenda uma atualizaï¿½ï¿½o nos widgets do world map caso os dados das quests estejam indisponï¿½veis
 local do_worldmap_update = function (newTimer)
 	if (WorldQuestTracker.IsWorldQuestHub (WorldQuestTracker.GetCurrentMapAreaID())) then
 		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true, false, false, false, newTimer.QuestList) --no cache true
@@ -1302,7 +1302,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap (noCache, showFade, isQue
 							if (sortByTimeLeft) then
 								order = abs (timeLeft - 10000)
 								
-							elseif (timePriority) then --timePriority já multiplicado por 60
+							elseif (timePriority) then --timePriority jï¿½ multiplicado por 60
 								if (timeLeft < timePriority) then
 									order = abs (timeLeft - 1000)
 								end
@@ -1747,7 +1747,7 @@ if (WorldMapFrame.BorderFrame.MaximizeMinimizeFrame.MinimizeButton) then
 	end)
 end
 
---quando clicar no botão de por o world map em fullscreen ou window mode, reajustar a posição dos widgets
+--quando clicar no botï¿½o de por o world map em fullscreen ou window mode, reajustar a posiï¿½ï¿½o dos widgets
 if (WorldMapFrameSizeDownButton) then
 	WorldMapFrameSizeDownButton:HookScript ("OnClick", function() --window mode
 		if (WorldQuestTracker.UpdateWorldQuestsOnWorldMap) then
@@ -1792,7 +1792,7 @@ elseif (MaximizeButton) then
 	end)
 end
 
---atualiza a quantidade de alpha nos widgets que mostram quantas quests ha para a facção
+--atualiza a quantidade de alpha nos widgets que mostram quantas quests ha para a facï¿½ï¿½o
 --deprecated?
 function WorldQuestTracker.UpdateFactionAlpha()
 	for _, factionFrame in ipairs (faction_frames) do

@@ -1,5 +1,5 @@
 
-local dversion = 161
+local dversion = 170
 
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary (major, minor)
@@ -17,6 +17,9 @@ local _type = type
 local _unpack = unpack
 local upper = string.upper
 local string_match = string.match
+
+local UnitPlayerControlled = UnitPlayerControlled
+local UnitIsTapDenied = UnitIsTapDenied
 
 SMALL_NUMBER = 0.000001
 ALPHA_BLEND_AMOUNT = 0.8400251
@@ -130,6 +133,8 @@ DF.SplitBarCounter = DF.SplitBarCounter or init_counter
 
 DF.FRAMELEVEL_OVERLAY = 750
 DF.FRAMELEVEL_BACKGROUND = 150
+
+--/dump DetailsFramework:PrintVersion()
 
 DF.FrameWorkVersion = tostring (dversion)
 function DF:PrintVersion()
@@ -306,6 +311,22 @@ function DF.table.copy (t1, t2)
 			if (type (value) == "table") then
 				t1 [key] = t1 [key] or {}
 				DF.table.copy (t1 [key], t2 [key])
+			else
+				t1 [key] = value
+			end
+		end
+	end
+	return t1
+end
+
+--> copy from table2 to table1 overwriting values but do not copy data that cannot be compressed
+function DF.table.copytocompress (t1, t2)
+	for key, value in pairs (t2) do
+		print (key, value)
+		if (key ~= "__index" and type(value) ~= "function") then
+			if (type (value) == "table") then
+				t1 [key] = t1 [key] or {}
+				DF.table.copytocompress (t1 [key], t2 [key])
 			else
 				t1 [key] = value
 			end
@@ -942,6 +963,10 @@ end
 				label:SetPoint (cur_x, cur_y)
 				tinsert (parent.widget_list, label)
 				line_widgets_created = line_widgets_created + 1
+
+				if (widget_table.id) then
+					parent.widgetids [widget_table.id] = label
+				end
 			
 			elseif (widget_table.type == "select" or widget_table.type == "dropdown") then
 				local dropdown = DF:NewDropDown (parent, nil, "$parentWidget" .. index, nil, 140, 18, widget_table.values, widget_table.get(), dropdown_template)
@@ -962,6 +987,10 @@ end
 					for hookName, hookFunc in pairs (widget_table.hooks) do
 						dropdown:SetHook (hookName, hookFunc)
 					end
+				end
+
+				if (widget_table.id) then
+					parent.widgetids [widget_table.id] = dropdown
 				end
 				
 				local size = label.widget:GetStringWidth() + 140 + 4
@@ -996,8 +1025,17 @@ end
 				end
 				
 				local label = DF:NewLabel (parent, nil, "$parentLabel" .. index, nil, widget_table.name .. (use_two_points and ": " or ""), "GameFontNormal", widget_table.text_template or text_template or 12)
-				switch:SetPoint ("left", label, "right", 2)
-				label:SetPoint (cur_x, cur_y)
+				if (widget_table.boxfirst) then
+					switch:SetPoint (cur_x, cur_y)
+					label:SetPoint ("left", switch, "right", 2)
+				else
+					label:SetPoint (cur_x, cur_y)
+					switch:SetPoint ("left", label, "right", 2)
+				end
+
+				if (widget_table.id) then
+					parent.widgetids [widget_table.id] = switch
+				end
 				
 				local size = label.widget:GetStringWidth() + 60 + 4
 				if (size > max_x) then
@@ -1037,6 +1075,10 @@ end
 				slider:SetPoint ("left", label, "right", 2)
 				label:SetPoint (cur_x, cur_y)
 				
+				if (widget_table.id) then
+					parent.widgetids [widget_table.id] = slider
+				end
+
 				local size = label.widget:GetStringWidth() + 140 + 6
 				if (size > max_x) then
 					max_x = size
@@ -1074,6 +1116,10 @@ end
 				colorpick:SetPoint ("left", label, "right", 2)
 				label:SetPoint (cur_x, cur_y)
 				
+				if (widget_table.id) then
+					parent.widgetids [widget_table.id] = colorpick
+				end
+
 				local size = label.widget:GetStringWidth() + 60 + 4
 				if (size > max_x) then
 					max_x = size
@@ -1102,6 +1148,10 @@ end
 						button:SetHook (hookName, hookFunc)
 					end
 				end				
+
+				if (widget_table.id) then
+					parent.widgetids [widget_table.id] = button
+				end
 				
 				local size = button:GetWidth() + 4
 				if (size > max_x) then
@@ -1132,6 +1182,10 @@ end
 					for hookName, hookFunc in pairs (widget_table.hooks) do
 						textentry:SetHook (hookName, hookFunc)
 					end
+				end
+
+				if (widget_table.id) then
+					parent.widgetids [widget_table.id] = textentry
 				end
 				
 				local size = label.widget:GetStringWidth() + 60 + 4
@@ -1296,9 +1350,15 @@ end
 		end
 	end
 	
+	local get_frame_by_id = function (self, id)
+		return self.widgetids [id]
+	end
+
 	function DF:SetAsOptionsPanel (frame)
 		frame.RefreshOptions = refresh_options
 		frame.widget_list = {}
+		frame.widgetids = {}
+		frame.GetWidgetById = get_frame_by_id
 	end
 	
 	function DF:CreateOptionsFrame (name, title, template)
@@ -2504,28 +2564,31 @@ function DF:ReskinSlider (slider, heightOffset)
 		
 	else
 		--up button
+
+		local offset = 1 --space between the scrollbox and the scrollar
+
 		do
 			local normalTexture = slider.ScrollBar.ScrollUpButton.Normal
 			normalTexture:SetTexture ([[Interface\Buttons\Arrow-Up-Up]])
 			normalTexture:SetTexCoord (0, 1, .2, 1)
 			
-			normalTexture:SetPoint ("topleft", slider.ScrollBar.ScrollUpButton, "topleft", 1, 0)
-			normalTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollUpButton, "bottomright", 1, 0)
+			normalTexture:SetPoint ("topleft", slider.ScrollBar.ScrollUpButton, "topleft", offset, 0)
+			normalTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollUpButton, "bottomright", offset, 0)
 			
 			local pushedTexture = slider.ScrollBar.ScrollUpButton.Pushed
 			pushedTexture:SetTexture ([[Interface\Buttons\Arrow-Up-Down]])
 			pushedTexture:SetTexCoord (0, 1, .2, 1)
 			
-			pushedTexture:SetPoint ("topleft", slider.ScrollBar.ScrollUpButton, "topleft", 1, 0)
-			pushedTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollUpButton, "bottomright", 1, 0)
+			pushedTexture:SetPoint ("topleft", slider.ScrollBar.ScrollUpButton, "topleft", offset, 0)
+			pushedTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollUpButton, "bottomright", offset, 0)
 
 			local disabledTexture = slider.ScrollBar.ScrollUpButton.Disabled
 			disabledTexture:SetTexture ([[Interface\Buttons\Arrow-Up-Disabled]])
 			disabledTexture:SetTexCoord (0, 1, .2, 1)
 			disabledTexture:SetAlpha (.5)
 			
-			disabledTexture:SetPoint ("topleft", slider.ScrollBar.ScrollUpButton, "topleft", 1, 0)
-			disabledTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollUpButton, "bottomright", 1, 0)
+			disabledTexture:SetPoint ("topleft", slider.ScrollBar.ScrollUpButton, "topleft", offset, 0)
+			disabledTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollUpButton, "bottomright", offset, 0)
 			
 			slider.ScrollBar.ScrollUpButton:SetSize (16, 16)
 			slider.ScrollBar.ScrollUpButton:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = "Interface\\Tooltips\\UI-Tooltip-Background"})
@@ -2542,23 +2605,23 @@ function DF:ReskinSlider (slider, heightOffset)
 			normalTexture:SetTexture ([[Interface\Buttons\Arrow-Down-Up]])
 			normalTexture:SetTexCoord (0, 1, 0, .8)
 			
-			normalTexture:SetPoint ("topleft", slider.ScrollBar.ScrollDownButton, "topleft", 1, -4)
-			normalTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollDownButton, "bottomright", 1, -4)
+			normalTexture:SetPoint ("topleft", slider.ScrollBar.ScrollDownButton, "topleft", offset, -4)
+			normalTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollDownButton, "bottomright", offset, -4)
 			
 			local pushedTexture = slider.ScrollBar.ScrollDownButton.Pushed
 			pushedTexture:SetTexture ([[Interface\Buttons\Arrow-Down-Down]])
 			pushedTexture:SetTexCoord (0, 1, 0, .8)
 			
-			pushedTexture:SetPoint ("topleft", slider.ScrollBar.ScrollDownButton, "topleft", 1, -4)
-			pushedTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollDownButton, "bottomright", 1, -4)
+			pushedTexture:SetPoint ("topleft", slider.ScrollBar.ScrollDownButton, "topleft", offset, -4)
+			pushedTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollDownButton, "bottomright", offset, -4)
 			
 			local disabledTexture = slider.ScrollBar.ScrollDownButton.Disabled
 			disabledTexture:SetTexture ([[Interface\Buttons\Arrow-Down-Disabled]])
 			disabledTexture:SetTexCoord (0, 1, 0, .8)
 			disabledTexture:SetAlpha (.5)
 			
-			disabledTexture:SetPoint ("topleft", slider.ScrollBar.ScrollDownButton, "topleft", 1, -4)
-			disabledTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollDownButton, "bottomright", 1, -4)
+			disabledTexture:SetPoint ("topleft", slider.ScrollBar.ScrollDownButton, "topleft", offset, -4)
+			disabledTexture:SetPoint ("bottomright", slider.ScrollBar.ScrollDownButton, "bottomright", offset, -4)
 			
 			slider.ScrollBar.ScrollDownButton:SetSize (16, 16)
 			slider.ScrollBar.ScrollDownButton:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = "Interface\\Tooltips\\UI-Tooltip-Background"})
@@ -2569,11 +2632,16 @@ function DF:ReskinSlider (slider, heightOffset)
 			--slider.ScrollBar.ScrollDownButton:SetPoint ("top", slider.ScrollBar, "bottom", 0, 0)
 		end
 		
-		--
-		
-		slider.ScrollBar:SetPoint ("TOPLEFT", slider, "TOPRIGHT", 6, -16)
-		slider.ScrollBar:SetPoint ("BOTTOMLEFT", slider, "BOTTOMRIGHT", 6, 16 + (heightOffset and heightOffset*-1 or 0))
-		
+		--if the parent has a editbox, this is a code editor
+		if (slider:GetParent().editbox) then
+			slider.ScrollBar:SetPoint ("TOPLEFT", slider, "TOPRIGHT", 12 + offset, -6)
+			slider.ScrollBar:SetPoint ("BOTTOMLEFT", slider, "BOTTOMRIGHT", 12 + offset, 6 + (heightOffset and heightOffset*-1 or 0))
+
+		else
+			slider.ScrollBar:SetPoint ("TOPLEFT", slider, "TOPRIGHT", 6, -16)
+			slider.ScrollBar:SetPoint ("BOTTOMLEFT", slider, "BOTTOMRIGHT", 6, 16 + (heightOffset and heightOffset*-1 or 0))
+		end
+
 		slider.ScrollBar.ThumbTexture:SetColorTexture (.5, .5, .5, .3)
 		slider.ScrollBar.ThumbTexture:SetSize (12, 8)
 		
@@ -2886,6 +2954,157 @@ function DF:GetCLEncounterIDs()
 	return DF.CLEncounterID
 end
 
+DF.ClassSpecs = {
+	["DEMONHUNTER"] = {
+		[577] = true, 
+		[581] = true,
+	},
+	["DEATHKNIGHT"] = {
+		[250] = true,
+		[251] = true,
+		[252] = true,
+	},
+	["WARRIOR"] = {
+		[71] = true,
+		[72] = true,
+		[73] = true,
+	},
+	["MAGE"] = {
+		[62] = true,
+		[63] = true,
+		[64] = true,
+	},
+	["ROGUE"] = {
+		[259] = true,
+		[260] = true,		
+		[261] = true,
+	},
+	["DRUID"] = {
+		[102] = true,
+		[103] = true,
+		[104] = true,
+		[105] = true,
+	},
+	["HUNTER"] = {
+		[253] = true,
+		[254] = true,		
+		[255] = true,
+	},
+	["SHAMAN"] = {
+		[262] = true,
+		[263] = true,
+		[264] = true,
+	},
+	["PRIEST"] = {
+		[256] = true,
+		[257] = true,
+		[258] = true,
+	},
+	["WARLOCK"] = {
+		[265] = true,
+		[266] = true,
+		[267] = true,
+	},
+	["PALADIN"] = {
+		[65] = true,
+		[66] = true,
+		[70] = true,
+	},
+	["MONK"] = {
+		[268] = true, 
+		[269] = true, 
+		[270] = true, 
+	},
+}
+
+DF.SpecListByClass = {
+	["DEMONHUNTER"] = {
+		577, 
+		581,
+	},
+	["DEATHKNIGHT"] = {
+		250,
+		251,
+		252,
+	},
+	["WARRIOR"] = {
+		71,
+		72,
+		73,
+	},
+	["MAGE"] = {
+		62,
+		63,
+		64,
+	},
+	["ROGUE"] = {
+		259,
+		260,		
+		261,
+	},
+	["DRUID"] = {
+		102,
+		103,
+		104,
+		105,
+	},
+	["HUNTER"] = {
+		253,
+		254,		
+		255,
+	},
+	["SHAMAN"] = {
+		262,
+		263,
+		264,
+	},
+	["PRIEST"] = {
+		256,
+		257,
+		258,
+	},
+	["WARLOCK"] = {
+		265,
+		266,
+		267,
+	},
+	["PALADIN"] = {
+		65,
+		66,
+		70,
+	},
+	["MONK"] = {
+		268, 
+		269, 
+		270, 
+	},
+}
+
+--given a class and a  specId, return if the specId is a spec from the class passed
+function DF:IsSpecFromClass(class, specId)
+	return DF.ClassSpecs[class] and DF.ClassSpecs[class][specId]
+end
+
+--return a has table where specid is the key and 'true' is the value
+function DF:GetClassSpecs(class)
+	return DF.ClassSpecs [class]
+end
+
+--return a numeric table with spec ids
+function DF:GetSpecListFromClass(class)
+	return DF.SpecListByClass [class]
+end
+
+--return a list with specIds as keys and spellId as value
+function DF:GetSpellsForRangeCheck()
+	return SpellRangeCheckListBySpec
+end
+
+--return a list with specIds as keys and spellId as value
+function DF:GetRangeCheckSpellForSpec(specId)
+	return SpellRangeCheckListBySpec[specId]
+end
+
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> delta seconds reader
@@ -2995,5 +3214,11 @@ DF.DebugMixin = {
 	
 }
 
---doo elsee 
---was doing double loops due to not enought height
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+	
+--> returns if the unit is tapped (gray health color when another player hit the unit first) 
+function DF:IsUnitTapDenied (unitId)
+	return unitId and not UnitPlayerControlled (unitId) and UnitIsTapDenied (unitId)
+end
+
+
