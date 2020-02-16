@@ -359,17 +359,14 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 	if (not WorldQuestTracker.db.profile.tracker_is_movable) then
 		WorldQuestTrackerScreenPanel:ClearAllPoints()
 
-		for i = 1, ObjectiveTrackerFrame:GetNumPoints() do
-			local point, relativeTo, relativePoint, xOfs, yOfs = ObjectiveTrackerFrame:GetPoint (i)
-			WorldQuestTrackerScreenPanel:SetPoint (point, ObjectiveTrackerFrame, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
+		WorldQuestTrackerScreenPanel:SetPoint ("TOP", ObjectiveTrackerFrame, "TOP", -10, -20 - WorldQuestTracker.TrackerHeight)
 
-			--print where the frame is setting its potision
-			--print ("SETTING POS ON:", point, ObjectiveTrackerFrame:GetName(), relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
-		end
-
-		--print where the frame was anchored, weird thing happens if we set the anchor to a MoveAnything frame
+		--print where the frame is setting its potision
+		--print ("SETTING POS ON:", "TOP", ObjectiveTrackerFrame:GetName(), "TOP", -10, -20 - WorldQuestTracker.TrackerHeight)
+		
+		--print where the frame was anchored
 		--local point, relativeTo, relativePoint, xOfs, yOfs = WorldQuestTrackerScreenPanel:GetPoint (1)
-		--print ("SETTED AT", point, ObjectiveTrackerFrame:GetName(), relativePoint, xOfs, yOfs)
+		--print ("SETTED AT", point, relativeTo:GetName(), relativePoint, xOfs, yOfs)
 
 		WorldQuestTrackerHeader:ClearAllPoints()
 		WorldQuestTrackerHeader:SetPoint ("bottom", WorldQuestTrackerFrame, "top", 0, -20)
