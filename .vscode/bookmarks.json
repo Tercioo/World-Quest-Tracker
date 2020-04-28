@@ -1,0 +1,47 @@
+[
+	{
+		"path": "$ROOTPATH$\\WorldQuestTracker_Core.lua",
+		"bookmarks": [
+			{
+				"line": 2005,
+				"column": 23,
+				"label": ""
+			},
+			{
+				"line": 2040,
+				"column": 41,
+				"label": ""
+			},
+			{
+				"line": 2119,
+				"column": 30,
+				"label": ""
+			},
+			{
+				"line": 2205,
+				"column": 35,
+				"label": ""
+			},
+			{
+				"line": 2261,
+				"column": 15,
+				"label": ""
+			}
+		]
+	},
+	{
+		"path": "$ROOTPATH$\\WorldQuestTracker_IDs.lua",
+		"bookmarks": [
+			{
+				"line": 45,
+				"column": 0,
+				"label": ""
+			},
+			{
+				"line": 534,
+				"column": 0,
+				"label": ""
+			}
+		]
+	}
+]
