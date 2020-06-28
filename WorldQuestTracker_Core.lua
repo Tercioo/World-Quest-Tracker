@@ -1503,7 +1503,7 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 					worldSummary.CreateFactionButtons()
 					worldSummary.BuiltFactionWidgets = true
 				end
-				
+
 				worldSummary.UpdateFactionAnchor()
 			end
 			
@@ -1990,7 +1990,6 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			
 			--update anchors for the faction button in the topleft or topright corners
 			function worldSummary.UpdateFactionAnchor()
-			
 				local factionAnchor = worldSummary.FactionAnchor
 				local anchorSide = worldSummary.GetAnchorSide (true)
 				factionAnchor:ClearAllPoints()
@@ -2570,7 +2569,6 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 			--it only exists when it's not a full update and it carry a small list of quests to update
 			--the list is equal to questList but is hash with true values
 			function worldSummary.Update (questList, questsToUpdate)
-			
 				if (not WorldQuestTracker.db.profile.world_map_config.summary_show) then
 					worldSummary.HideSummary()
 					return
