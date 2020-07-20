@@ -196,6 +196,8 @@ function WorldQuestTracker:OnInit()
 		WorldQuestTracker.db.profile.map_frame_scale_enabled = false
 	end)
 
+	WorldQuestTracker.TomTomUIDs = {}
+
 	if (LibWindow) then
 		if (WorldQuestTracker.db:GetCurrentProfile() == "Default") then
 			LibWindow.RegisterConfig (WorldQuestTrackerScreenPanel, WorldQuestTracker.db.profile)
@@ -370,12 +372,12 @@ function WorldQuestTracker:OnInit()
 			local dateString = WorldQuestTracker.GetDateString (arg1)
 			
 			if (type (dateString) == "table") then --mais de 1 dia
-				--quer saber da some total ou quer dia a dia para fazer um gráfico
+				--quer saber da some total ou quer dia a dia para fazer um grï¿½fico
 				local result = {}
 				local total = 0
 				local dayTable = dateString
 
-				for i = 1, #dayTable do --table com várias strings representando dias
+				for i = 1, #dayTable do --table com vï¿½rias strings representando dias
 					local day = db [dayTable [i]]
 					if (day) then
 						if (arg2) then
@@ -441,7 +443,7 @@ function WorldQuestTracker:OnInit()
 				--print ("WQT", itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable)
 				--WQT Blood of Sargeras 1417744 110 1 3 true 124124 false 0 true
 				
-				--quanto de gold recursos e poder de artefato ganho na conta e no personagem (é o total)
+				--quanto de gold recursos e poder de artefato ganho na conta e no personagem (ï¿½ o total)
 				local rewardHistory = questHistory.reward
 					local _global = rewardHistory.global
 					local _local = rewardHistory.character [guid]
@@ -514,7 +516,7 @@ function WorldQuestTracker:OnInit()
 					_global ["total"] = (_global ["total"] or 0) + 1
 					_local ["total"] = (_local ["total"] or 0) + 1
 				
-				--estatísticas dia a dia
+				--estatï¿½sticas dia a dia
 				local periodHistory = questHistory.period
 					local _global = periodHistory.global
 					local _local = periodHistory.character [guid]
@@ -661,15 +663,15 @@ end
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --saved quests on other characters
 	
-	--pega a lista de quests que o jogador tem disponível
+	--pega a lista de quests que o jogador tem disponï¿½vel
 	function WorldQuestTracker.SavedQuestList_GetList()
 		return WorldQuestTracker.dbChr.ActiveQuests
 	end
-	-- ~saved ~pool ~data ~allquests ãll
+	-- ~saved ~pool ~data ~allquests ï¿½ll
 	local map_seasons = {}
 	function WorldQuestTracker.SavedQuestList_IsNew (questID)
 		if (WorldQuestTracker.MapSeason == 0) then
-			--o mapa esta carregando e não mandou o primeiro evento ainda
+			--o mapa esta carregando e nï¿½o mandou o primeiro evento ainda
 			return false
 		end
 
@@ -677,19 +679,19 @@ end
 		
 		if (ActiveQuests [questID]) then --a quest esta armazenada
 			if (map_seasons [questID] == WorldQuestTracker.MapSeason) then
-				--a quest já esta na lista porém foi adicionada nesta season do mapa
+				--a quest jï¿½ esta na lista porï¿½m foi adicionada nesta season do mapa
 				return true
 			else
-				--apenas retornar que não é nova
+				--apenas retornar que nï¿½o ï¿½ nova
 				return false
 			end
-		else --a quest não esta na lista
+		else --a quest nï¿½o esta na lista
 			local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
 			if (timeLeft and timeLeft > 0) then
 				--adicionar a quest a lista de quets
 				ActiveQuests [questID] = time() + (timeLeft*60)
 				map_seasons [questID] = WorldQuestTracker.MapSeason
-				--retornar que a quest é nova
+				--retornar que a quest ï¿½ nova
 				return true
 			else
 				--o tempo da quest expirou.
@@ -1187,7 +1189,7 @@ hooksecurefunc (WorldMapFrame, "AddOverlayFrame", function (...)
 end)
 
 
---coloca a quantidade de quests completas para cada facção em cima do icone da facção
+--coloca a quantidade de quests completas para cada facï¿½ï¿½o em cima do icone da facï¿½ï¿½o
 function WorldQuestTracker.SetBountyAmountCompleted (self, numCompleted, numTotal)
 	if (not self.objectiveCompletedText) then
 		self.objectiveCompletedText = self:CreateFontString (nil, "overlay", "GameFontNormal")
@@ -1206,7 +1208,7 @@ function WorldQuestTracker.SetBountyAmountCompleted (self, numCompleted, numTota
 	end
 end
 
---quando selecionar uma facção, atualizar todas as quests no world map para que seja atualiza a quiantidade de quests que ha em cada mapa para esta facçao
+--quando selecionar uma facï¿½ï¿½o, atualizar todas as quests no world map para que seja atualiza a quiantidade de quests que ha em cada mapa para esta facï¿½ao
 hooksecurefunc (WorldMapFrame.UIElementsFrame.BountyBoard, "SetSelectedBountyIndex", function (self)
 	if (WorldQuestTracker.IsWorldQuestHub (WorldMapFrame.mapID)) then
 		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (false, false, false, true)
@@ -1242,6 +1244,6 @@ hooksecurefunc (WorldMapFrame.UIElementsFrame.BountyBoard, "AnchorBountyTab", fu
 end)
 --]=]
 
--- stop auto complete doq dow endf thena ends thenç
+-- stop auto complete doq dow endf thena ends thenï¿½
 
 
