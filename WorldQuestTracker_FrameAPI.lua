@@ -28,7 +28,6 @@ local GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
 local GetQuestLogRewardInfo = GetQuestLogRewardInfo
 local GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
 local GetQuestLogRewardMoney = GetQuestLogRewardMoney
-local GetQuestTagInfo = GetQuestTagInfo
 local GetNumQuestLogRewards = GetNumQuestLogRewards
 local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
 
@@ -185,7 +184,7 @@ function WorldQuestTracker.GetArtifactPowerIcon (artifactPower, rounded, questID
 		return WorldQuestTracker.MapData.ItemIcons ["BFA_ARTIFACT"]
 	end
 
-	if (true or artifactPower >= 250) then --forçando sempre o mesmo icone
+	if (true or artifactPower >= 250) then --forï¿½ando sempre o mesmo icone
 		if (rounded) then
 			return [[Interface\AddOns\WorldQuestTracker\media\icon_artifactpower_red_roundT]]
 		else
@@ -574,7 +573,7 @@ end
 
 --when a button is clicked check if it can add or remove the quest on the tracker
 function WorldQuestTracker.CheckAddToTracker (self, button, onlyTrack)
-	--button é o frame que foi precionado
+	--button ï¿½ o frame que foi precionado
 	local questID = self.questID
 	local mapID = self.mapID
 	
@@ -639,7 +638,7 @@ function WorldQuestTracker.CreateStartTrackingAnimation (button, speed, offset)
 	DF:CreateAnimation (button.AddedToTrackerAnimation, "translation", 2, speed, 0, -offset)
 end
 
---when the user clicks on a quest button -- õnclick ~onclick ~click
+--when the user clicks on a quest button -- ï¿½nclick ~onclick ~click
 function WorldQuestTracker.OnQuestButtonClick (self, button)
 
 	if (not self.questID) then

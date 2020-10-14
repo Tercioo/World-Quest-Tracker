@@ -28,7 +28,6 @@ local GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
 local GetQuestLogRewardInfo = GetQuestLogRewardInfo
 local GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
 local GetQuestLogRewardMoney = GetQuestLogRewardMoney
-local GetQuestTagInfo = GetQuestTagInfo
 local GetNumQuestLogRewards = GetNumQuestLogRewards
 local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
 
@@ -45,8 +44,8 @@ local taxyMapWidgets = {}
 
 --fazer os blips para o mapa sem zoom
 --fazer os blips deseparecerem quando o mapa tiver zoom
---quando pasasr o mouse no blip, mostrar qual quest que é
---quando dar zoom mostrar o icone do reward no lugar da exclamação
+--quando pasasr o mouse no blip, mostrar qual quest que ï¿½
+--quando dar zoom mostrar o icone do reward no lugar da exclamaï¿½ï¿½o
 
 function WorldQuestTracker:GetQuestFullInfo (questID)
 
@@ -70,7 +69,7 @@ function WorldQuestTracker:GetQuestFullInfo (questID)
 	local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 	--tempo restante
 	local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
-	--se é da faction selecionada
+	--se ï¿½ da faction selecionada
 	
 	local bountyQuestID = WorldQuestTracker.GetCurrentBountyQuest()
 	local isCriteria = IsQuestCriteriaForBounty (questID, bountyQuestID)
@@ -132,9 +131,9 @@ local onTaxyWidgetClick = function (self, button)
 	if (WorldQuestTracker.TaxyFrameHasZoom()) then
 		WorldQuestTracker.CheckAddToTracker (self, button)
 	else
-		--se não tiver zoom, ver se a quest esta sendo trackeada
+		--se nï¿½o tiver zoom, ver se a quest esta sendo trackeada
 		if (not WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
-			--se não estiver, adicionar ela ao tracker
+			--se nï¿½o estiver, adicionar ela ao tracker
 			WorldQuestTracker.CheckAddToTracker (self, button)
 		else
 			--se ela ja estaver sendo trackeada, verificar se foi clique com o botao direito
@@ -214,7 +213,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 		_G ["topright"] = nil
 	
 		--tracking options
-		FlightMapFrame.WorldQuestTrackerOptions = CreateFrame ("frame", "WorldQuestTrackerTaxyMapFrame", FlightMapFrame.BorderFrame)
+		FlightMapFrame.WorldQuestTrackerOptions = CreateFrame ("frame", "WorldQuestTrackerTaxyMapFrame", FlightMapFrame.BorderFrame, "BackdropTemplate")
 		FlightMapFrame.WorldQuestTrackerOptions:SetSize (1, 1)
 		FlightMapFrame.WorldQuestTrackerOptions:SetPoint ("bottomleft", FlightMapFrame.BorderFrame, "bottomleft", 3, 3)
 		local doubleTapBackground = FlightMapFrame.WorldQuestTrackerOptions:CreateTexture (nil, "overlay")
@@ -244,17 +243,19 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 		local checkboxShowTrackedOnlyString = DF:CreateLabel (checkboxShowTrackedOnly, L["S_FLYMAP_SHOWTRACKEDONLY"], 12, "orange", nil, "checkboxShowTrackedOnlyLabel", nil, "overlay")
 		checkboxShowTrackedOnlyString:SetPoint ("left", checkboxShowTrackedOnly, "right", 2, 0)
 		
+		--[[
 		if (not WorldQuestTracker.db.profile.TutorialTaxyMap) then
-			local alert = CreateFrame ("frame", "WorldQuestTrackerTaxyTutorial", checkboxShowTrackedOnly.widget, "MicroButtonAlertTemplate")
+			local alert = CreateFrame ("frame", "WorldQuestTrackerTaxyTutorial", checkboxShowTrackedOnly.widget, "MicroButtonAlertTemplate_BFA")
 			alert:SetFrameLevel (302)
 			alert.label = "Options are here, show all quests or only those being tracked"
 			alert.Text:SetSpacing (4)
 			MicroButtonAlert_SetText (alert, alert.label)
 			alert:SetPoint ("bottom", checkboxShowTrackedOnly.widget, "top", 0, 30)
 			alert:Show()
-			WorldQuestTracker.db.profile.TutorialTaxyMap = true
+			--WorldQuestTracker.db.profile.TutorialTaxyMap = true
 		end
-		
+		--]]
+
 		local filters = WorldQuestTracker.db.profile.filters
 		
 		hooksecurefunc (FlightMapFrame.ScrollContainer, "ZoomIn", function()
@@ -387,7 +388,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			local isShowingOnlyTracked = WorldQuestTracker.db.profile.taxy_trackedonly
 			local hasZoom = WorldQuestTracker.TaxyFrameHasZoom()
 			
-			--não esta mostrando as quests e o mapa não tem zoom
+			--nï¿½o esta mostrando as quests e o mapa nï¿½o tem zoom
 			if (not isShowingQuests) then -- and not hasZoom
 				pin._WQT_Twin:Hide()
 				WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = nil
@@ -396,7 +397,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				return
 			end
 			
-			--esta mostrando apenas quests que estão sendo trackeadas
+			--esta mostrando apenas quests que estï¿½o sendo trackeadas
 			if (isShowingOnlyTracked) then
 				if ((not WorldQuestTracker.IsQuestBeingTracked (pin.questID) and not WorldQuestTracker.IsQuestOnObjectiveTracker (pin.questID))) then -- and not hasZoom
 					pin._WQT_Twin:Hide()
@@ -411,10 +412,10 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			
 			WorldQuestTracker.Taxy_CurrentShownBlips [pin._WQT_Twin] = true
 			
-			--esta linha esta dando problemas de travamento, a dica de ferramenta começa a dar altos problemas
+			--esta linha esta dando problemas de travamento, a dica de ferramenta comeï¿½a a dar altos problemas
 			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker:GetQuestFullInfo (pin.questID)
 			
-			--não mostrar quests que foram filtradas
+			--nï¿½o mostrar quests que foram filtradas
 			local filter = WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, quantity, numRewardItems, rewardTexture)
 			
 			if (not filters [filter] and rarity ~= LE_WORLD_QUEST_QUALITY_EPIC) then
@@ -454,7 +455,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 
 			--FlightMapFrame:ZoomOut()
 			if (scale < 0.3) then
-				--não tem zoom
+				--nï¿½o tem zoom
 				if (isShowingOnlyTracked) then
 					if (questIDChanged or pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
 						WorldQuestTracker.SetupWorldQuestButton (pin._WQT_Twin, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget)
