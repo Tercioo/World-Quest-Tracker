@@ -195,6 +195,8 @@ function WorldQuestTracker:OnInit()
 		WorldQuestTracker.db.profile.map_frame_scale_enabled = false
 	end)
 
+	WorldQuestTracker.TomTomUIDs = {}
+
 	if (LibWindow) then
 		if (WorldQuestTracker.db:GetCurrentProfile() == "Default") then
 			LibWindow.RegisterConfig (WorldQuestTrackerScreenPanel, WorldQuestTracker.db.profile)
