@@ -828,7 +828,7 @@ local tutorial_one = function()
 
 	local widget = WorldQuestTracker.WorldSummaryQuestsSquares [1]
 
-	local alert = CreateFrame ("frame", "WorldQuestTrackerTutorialAlert1", worldFramePOIs, "MicroButtonAlertTemplate")
+	local alert = CreateFrame ("frame", "WorldQuestTrackerTutorialAlert1", worldFramePOIs, "MicroButtonAlertTemplate_BFA")
 	alert:SetFrameLevel (302)
 	alert.label = L["S_TUTORIAL_CLICKTOTRACK"]
 	alert.Text:SetSpacing (4)
@@ -848,7 +848,7 @@ end
 
 local tutorial_two = function()
 	if (WorldQuestTrackerToggleQuestsSummaryButton and WorldQuestTrackerToggleQuestsSummaryButton:IsShown()) then
-		local alert = CreateFrame ("frame", "WorldQuestTrackerTutorialAlert2", worldFramePOIs, "MicroButtonAlertTemplate")
+		local alert = CreateFrame ("frame", "WorldQuestTrackerTutorialAlert2", worldFramePOIs, "MicroButtonAlertTemplate_BFA")
 		alert:SetFrameLevel (302)
 		alert.label = L["S_TUTORIAL_WORLDBUTTONS"]
 		alert.Text:SetSpacing (4)
@@ -869,7 +869,7 @@ local tutorial_two = function()
 end
 
 local tutorial_three = function()
-	local alert = CreateFrame ("frame", "WorldQuestTrackerTutorialAlert3", worldFramePOIs, "MicroButtonAlertTemplate")
+	local alert = CreateFrame ("frame", "WorldQuestTrackerTutorialAlert3", worldFramePOIs, "MicroButtonAlertTemplate_BFA")
 	alert:SetFrameLevel (302)
 	alert.label = L["S_TUTORIAL_STATISTICS_BUTTON"]
 	alert.Text:SetSpacing (4)
