@@ -915,22 +915,22 @@ function WorldQuestTracker.ShowTutorialAlert()
 		
 		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
 		
-		C_Timer.After (4, tutorial_one)
+		--C_Timer.After (4, tutorial_one)
 		return
 		
 	elseif (WorldQuestTracker.db.profile.TutorialPopupID == 2) then
 	
-		C_Timer.After (.5, tutorial_two)
+		--C_Timer.After (.5, tutorial_two)
 		return
 
 	elseif (WorldQuestTracker.db.profile.TutorialPopupID == 3) then
 	
-		C_Timer.After (.5, tutorial_three)
+		--C_Timer.After (.5, tutorial_three)
 		return
 		
 	elseif (WorldQuestTracker.db.profile.TutorialPopupID == 4) then
 	
-		C_Timer.After (.5, tutorial_four)
+		--C_Timer.After (.5, tutorial_four)
 		return
 		
 	end

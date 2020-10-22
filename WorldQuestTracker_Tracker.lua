@@ -486,8 +486,9 @@ local buildTooltip = function (self)
 	end
 
 	local title, factionID, capped = C_TaskQuest.GetQuestInfoByQuestID (questID)
+	local tagInfo = C_QuestLog.GetQuestTagInfo(questID)
+	local rarity = tagInfo.rarity --não existe mais?
 
-	local tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = C_QuestLog.GetQuestTagInfo (questID)
 	local color = WORLD_QUEST_QUALITY_COLORS [rarity]
 	GameTooltip:SetText (title, color.r, color.g, color.b)
 
