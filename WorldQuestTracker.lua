@@ -649,10 +649,14 @@ end
 		local title, factionID = GetQuestInfoByQuestID(questID)
 
 		local tagInfo = C_QuestLog.GetQuestTagInfo(questID)
+		if (not tagInfo) then
+			WorldQuestTracker:Msg("no tag info for quest:", questID, title)
+		end
+		
 		local tagID = tagInfo.tagID
 		local tagName = tagInfo.tagName
 		local worldQuestType = tagInfo.worldQuestType
-		local rarity = tagInfo.rarity
+		local rarity = tagInfo.quality
 		local isElite = tagInfo.isElite
 		--local quality = tagInfo.quality
 
@@ -906,13 +910,8 @@ function WorldQuestTracker.ShowTutorialAlert()
 			WorldQuestTracker.TutorialAlertOnHold = true
 			return
 		end
-		
-		if (GetExpansionLevel() == 6 or UnitLevel ("player") == 110) then --legion
-			WorldMapFrame:SetMapID (WorldQuestTracker.MapData.ZoneIDs.BROKENISLES)
-		elseif (GetExpansionLevel() == 7 or UnitLevel ("player") == 120) then --bfa
-			WorldMapFrame:SetMapID (WorldQuestTracker.MapData.ZoneIDs.KULTIRAS)
-		end
-		
+
+		WorldMapFrame:SetMapID (WorldQuestTracker.MapData.ZoneIDs.KULTIRAS)
 		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
 		
 		--C_Timer.After (4, tutorial_one)
