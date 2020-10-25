@@ -821,12 +821,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				AllianceWorldQuestButton.Highlight:SetPoint ("center")
 				
 				AllianceWorldQuestButton:SetScript ("OnClick", function()
-					if (GetExpansionLevel() == 6 or UnitLevel ("player") <= 50) then --legion
-						WorldMapFrame:SetMapID (WorldQuestTracker.MapData.ZoneIDs.BROKENISLES)
-						
-					elseif (GetExpansionLevel() == 7 or UnitLevel ("player") <= 60) then --bfa
+					if (UnitLevel("player") <= 50) then --bfa
 						WorldMapFrame:SetMapID (WorldQuestTracker.MapData.ZoneIDs.KULTIRAS)
-						--WorldQuestTracker.DoAnimationsOnWorldMapWidgets = true
 						WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
 					end
 					WorldQuestTracker.AllianceWorldQuestButton_Click = GetTime()
@@ -854,12 +850,8 @@ WorldQuestTracker.OnToggleWorldMap = function (self)
 				HordeWorldQuestButton.Highlight:SetPoint ("center")
 				
 				HordeWorldQuestButton:SetScript ("OnClick", function()
-					if (GetExpansionLevel() == 6 or UnitLevel ("player") <= 50) then --legion
-						WorldMapFrame:SetMapID (WorldQuestTracker.MapData.ZoneIDs.BROKENISLES)
-						
-					elseif (GetExpansionLevel() == 7 or UnitLevel ("player") <= 60) then --bfa
+					if (UnitLevel("player") <= 50) then --bfa
 						WorldMapFrame:SetMapID (WorldQuestTracker.MapData.ZoneIDs.ZANDALAR)
-						--WorldQuestTracker.DoAnimationsOnWorldMapWidgets = true
 						WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
 					end
 					WorldQuestTracker.HordeWorldQuestButton_Click = GetTime()

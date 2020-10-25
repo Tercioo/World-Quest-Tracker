@@ -3,32 +3,32 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_Core.lua",
 		"bookmarks": [
 			{
-				"line": 1977,
+				"line": 1969,
 				"column": 23,
 				"label": ""
 			},
 			{
-				"line": 2012,
+				"line": 2004,
 				"column": 41,
 				"label": ""
 			},
 			{
-				"line": 2086,
+				"line": 2078,
 				"column": 30,
 				"label": ""
 			},
 			{
-				"line": 2182,
+				"line": 2174,
 				"column": 35,
 				"label": ""
 			},
 			{
-				"line": 2238,
+				"line": 2230,
 				"column": 15,
 				"label": ""
 			},
 			{
-				"line": 2543,
+				"line": 2535,
 				"column": 24,
 				"label": ""
 			}
@@ -103,7 +103,7 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_ZoneMap.lua",
 		"bookmarks": [
 			{
-				"line": 625,
+				"line": 626,
 				"column": 6,
 				"label": ""
 			}
