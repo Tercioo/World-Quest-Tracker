@@ -3,33 +3,33 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_Core.lua",
 		"bookmarks": [
 			{
-				"line": 1969,
-				"column": 23,
-				"label": ""
-			},
-			{
-				"line": 2004,
-				"column": 41,
-				"label": ""
-			},
-			{
-				"line": 2078,
+				"line": 953,
 				"column": 30,
 				"label": ""
 			},
 			{
-				"line": 2174,
-				"column": 35,
+				"line": 1982,
+				"column": 23,
 				"label": ""
 			},
 			{
-				"line": 2230,
-				"column": 15,
+				"line": 2100,
+				"column": 0,
 				"label": ""
 			},
 			{
-				"line": 2535,
-				"column": 24,
+				"line": 2213,
+				"column": 96,
+				"label": ""
+			},
+			{
+				"line": 2302,
+				"column": 25,
+				"label": ""
+			},
+			{
+				"line": 2633,
+				"column": 4,
 				"label": ""
 			}
 		]
@@ -38,28 +38,28 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_IDs.lua",
 		"bookmarks": [
 			{
-				"line": 45,
+				"line": 46,
 				"column": 0,
 				"label": ""
 			},
 			{
-				"line": 105,
+				"line": 106,
 				"column": 6,
 				"label": ""
 			},
 			{
-				"line": 145,
+				"line": 155,
 				"column": 14,
 				"label": ""
 			},
 			{
-				"line": 465,
+				"line": 475,
 				"column": 15,
 				"label": ""
 			},
 			{
-				"line": 634,
-				"column": 0,
+				"line": 572,
+				"column": 17,
 				"label": ""
 			}
 		]
@@ -68,8 +68,18 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_GroupFinder.lua",
 		"bookmarks": [
 			{
-				"line": 926,
-				"column": 25,
+				"line": 307,
+				"column": 34,
+				"label": ""
+			},
+			{
+				"line": 461,
+				"column": 0,
+				"label": ""
+			},
+			{
+				"line": 785,
+				"column": 0,
 				"label": ""
 			}
 		]
@@ -78,23 +88,13 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_Tracker.lua",
 		"bookmarks": [
 			{
-				"line": 489,
+				"line": 778,
+				"column": 41,
+				"label": ""
+			},
+			{
+				"line": 825,
 				"column": 1,
-				"label": ""
-			},
-			{
-				"line": 922,
-				"column": 22,
-				"label": ""
-			},
-			{
-				"line": 1078,
-				"column": 63,
-				"label": ""
-			},
-			{
-				"line": 1098,
-				"column": 123,
 				"label": ""
 			}
 		]
@@ -103,8 +103,23 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_ZoneMap.lua",
 		"bookmarks": [
 			{
-				"line": 626,
-				"column": 6,
+				"line": 443,
+				"column": 15,
+				"label": ""
+			},
+			{
+				"line": 1128,
+				"column": 59,
+				"label": ""
+			},
+			{
+				"line": 1174,
+				"column": 4,
+				"label": ""
+			},
+			{
+				"line": 1492,
+				"column": 97,
 				"label": ""
 			}
 		]
@@ -113,8 +128,63 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_MapAPI.lua",
 		"bookmarks": [
 			{
-				"line": 279,
-				"column": 108,
+				"line": 262,
+				"column": 132,
+				"label": ""
+			},
+			{
+				"line": 738,
+				"column": 0,
+				"label": ""
+			},
+			{
+				"line": 793,
+				"column": 4,
+				"label": ""
+			}
+		]
+	},
+	{
+		"path": "$ROOTPATH$\\WorldQuestTracker_WorldMap.lua",
+		"bookmarks": [
+			{
+				"line": 358,
+				"column": 41,
+				"label": ""
+			},
+			{
+				"line": 660,
+				"column": 31,
+				"label": ""
+			},
+			{
+				"line": 886,
+				"column": 18,
+				"label": ""
+			},
+			{
+				"line": 1058,
+				"column": 0,
+				"label": ""
+			}
+		]
+	},
+	{
+		"path": "f:\\World of Warcraft\\_retail_\\Interface\\AddOns\\WorldQuestsList\\WorldQuestsList.lua",
+		"bookmarks": [
+			{
+				"line": 7920,
+				"column": 2,
+				"label": ""
+			},
+			{
+				"line": 8063,
+				"column": 42,
+				"label": ""
+			},
+			{
+				"line": 8118,
+				"column": 29,
 				"label": ""
 			}
 		]
