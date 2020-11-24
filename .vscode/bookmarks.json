@@ -68,6 +68,11 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_GroupFinder.lua",
 		"bookmarks": [
 			{
+				"line": 133,
+				"column": 27,
+				"label": ""
+			},
+			{
 				"line": 308,
 				"column": 34,
 				"label": ""
