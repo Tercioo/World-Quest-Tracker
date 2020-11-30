@@ -3,32 +3,32 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_Core.lua",
 		"bookmarks": [
 			{
-				"line": 953,
+				"line": 942,
 				"column": 30,
 				"label": ""
 			},
 			{
-				"line": 1982,
+				"line": 1971,
 				"column": 23,
 				"label": ""
 			},
 			{
-				"line": 2100,
+				"line": 2089,
 				"column": 0,
 				"label": ""
 			},
 			{
-				"line": 2213,
+				"line": 2202,
 				"column": 96,
 				"label": ""
 			},
 			{
-				"line": 2302,
+				"line": 2291,
 				"column": 25,
 				"label": ""
 			},
 			{
-				"line": 2633,
+				"line": 2622,
 				"column": 4,
 				"label": ""
 			}
@@ -98,22 +98,22 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_ZoneMap.lua",
 		"bookmarks": [
 			{
-				"line": 443,
+				"line": 434,
 				"column": 15,
 				"label": ""
 			},
 			{
-				"line": 1128,
+				"line": 1115,
 				"column": 59,
 				"label": ""
 			},
 			{
-				"line": 1174,
+				"line": 1161,
 				"column": 4,
 				"label": ""
 			},
 			{
-				"line": 1492,
+				"line": 1479,
 				"column": 97,
 				"label": ""
 			}
@@ -123,17 +123,17 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_MapAPI.lua",
 		"bookmarks": [
 			{
-				"line": 262,
+				"line": 268,
 				"column": 132,
 				"label": ""
 			},
 			{
-				"line": 738,
+				"line": 747,
 				"column": 0,
 				"label": ""
 			},
 			{
-				"line": 796,
+				"line": 805,
 				"column": 4,
 				"label": ""
 			}
@@ -143,22 +143,22 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_WorldMap.lua",
 		"bookmarks": [
 			{
-				"line": 358,
+				"line": 347,
 				"column": 41,
 				"label": ""
 			},
 			{
-				"line": 660,
+				"line": 649,
 				"column": 31,
 				"label": ""
 			},
 			{
-				"line": 886,
+				"line": 883,
 				"column": 18,
 				"label": ""
 			},
 			{
-				"line": 1058,
+				"line": 1055,
 				"column": 0,
 				"label": ""
 			}
@@ -167,6 +167,11 @@
 	{
 		"path": "f:\\World of Warcraft\\_retail_\\Interface\\AddOns\\WorldQuestsList\\WorldQuestsList.lua",
 		"bookmarks": [
+			{
+				"line": 4858,
+				"column": 19,
+				"label": ""
+			},
 			{
 				"line": 7920,
 				"column": 2,
