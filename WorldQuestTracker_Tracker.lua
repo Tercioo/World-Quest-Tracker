@@ -1206,14 +1206,14 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 
 				if (WorldQuestTracker.db.profile.TutorialTracker == 1) then
 					WorldQuestTracker.db.profile.TutorialTracker = WorldQuestTracker.db.profile.TutorialTracker + 1
-					local alert = CreateFrame ("frame", "WorldQuestTrackerTrackerTutorialAlert1", worldFramePOIs, "AlertContainerTemplate")
-					alert:SetFrameLevel (302)
-					alert.label = "Tracked quests are shown here!"
-					alert.Text:SetSpacing (4)
-					alert:SetPoint ("bottom", widget, "top", 0, 28)
-					
-					MicroButtonAlert_SetText (alert, alert.label)
-					alert:Show()
+				--	local alert = CreateFrame ("frame", "WorldQuestTrackerTrackerTutorialAlert1", worldFramePOIs, "AlertContainerTemplate")
+				--	alert:SetFrameLevel (302)
+				--	alert.label = "Tracked quests are shown here!"
+				--	alert.Text:SetSpacing (4)
+				--	alert:SetPoint ("bottom", widget, "top", 0, 28)
+				--	
+				--	MicroButtonAlert_SetText (alert, alert.label)
+				--	alert:Show()
 				end
 				
 				if (WorldQuestTracker.JustAddedToTracker [quest.questID]) then
