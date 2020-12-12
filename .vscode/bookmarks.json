@@ -188,5 +188,15 @@
 				"label": ""
 			}
 		]
+	},
+	{
+		"path": "$ROOTPATH$\\WorldQuestTracker.lua",
+		"bookmarks": [
+			{
+				"line": 1065,
+				"column": 2,
+				"label": ""
+			}
+		]
 	}
 ]

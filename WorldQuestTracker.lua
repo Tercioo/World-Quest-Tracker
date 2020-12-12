@@ -1058,6 +1058,20 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 		end)
 		b:SetPoint ("center", UIParent, "center", 0, 0)
 
+	elseif (msg == "test") then
+		local playerLevel = UnitLevel("player")
+		if (playerLevel < 51) then
+			WorldQuestTracker:Msg("Character level too low for shadowlands, minimum is 51 for alts.")
+		end
+
+		local bastionQuests = C_TaskQuest.GetQuestsForPlayerByMapID(1533, 1533)
+		WorldQuestTracker:Msg("Finding quests on Bastion Map")
+		if (bastionQuests and type(bastionQuests) == "table") then
+			WorldQuestTracker:Msg("Found quests, amount:", #bastionQuests)
+		else
+			WorldQuestTracker:Msg("Blizzard's GetQuestsForPlayerByMapID() returned invalid data.")
+		end
+
 	elseif (msg == "debug") then
 		WorldQuestTracker.__debug = not WorldQuestTracker.__debug
 		if (WorldQuestTracker.__debug) then
