@@ -1,6 +1,6 @@
 
 
-local dversion = 223
+local dversion = 230
 
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary (major, minor)
@@ -486,6 +486,7 @@ function DF:GroupIterator (func, ...)
 		for i = 1, GetNumGroupMembers() - 1 do
 			DF:QuickDispatch (func, "party" .. i, ...)
 		end
+		DF:QuickDispatch (func, "player", ...)
 	
 	else
 		DF:QuickDispatch (func, "player", ...)
@@ -3549,7 +3550,7 @@ function DF:GetCharacterRaceList (fullList)
 		
 		local alliedRaceInfo = C_AlliedRaces.GetRaceInfoByID (i)
 		if (alliedRaceInfo and DF.AlliedRaceList [alliedRaceInfo.raceID]) then
-			tinsert (DF.RaceCache, {Name = alliedRaceInfo.name, FileString = alliedRaceInfo.raceFileString})
+			tinsert (DF.RaceCache, {Name = alliedRaceInfo.maleName, FileString = alliedRaceInfo.raceFileString})
 		end
 	end
 	
@@ -4237,3 +4238,5 @@ end
 		_G.setfenv(func, newEnvironment)
 	end
 
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------

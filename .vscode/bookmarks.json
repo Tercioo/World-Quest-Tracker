@@ -83,12 +83,12 @@
 		"path": "$ROOTPATH$\\WorldQuestTracker_Tracker.lua",
 		"bookmarks": [
 			{
-				"line": 778,
+				"line": 783,
 				"column": 41,
 				"label": ""
 			},
 			{
-				"line": 825,
+				"line": 830,
 				"column": 1,
 				"label": ""
 			}
@@ -195,6 +195,11 @@
 			{
 				"line": 1065,
 				"column": 2,
+				"label": ""
+			},
+			{
+				"line": 1242,
+				"column": 6,
 				"label": ""
 			}
 		]

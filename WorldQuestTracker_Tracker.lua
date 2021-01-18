@@ -318,6 +318,10 @@ local WorldQuestTrackerHeader = CreateFrame ("frame", "WorldQuestTrackerQuestsHe
 WorldQuestTrackerHeader.Text:SetText ("World Quest Tracker")
 local minimizeButton = CreateFrame ("button", "WorldQuestTrackerQuestsHeaderMinimizeButton", WorldQuestTrackerFrame, "BackdropTemplate")
 local minimizeButtonText = minimizeButton:CreateFontString (nil, "overlay", "GameFontNormal")
+
+--hide the default minimize button from the blizz template
+WorldQuestTrackerHeader.MinimizeButton:Hide()
+
 minimizeButtonText:SetText (L["S_WORLDQUESTS"])
 minimizeButtonText:SetPoint ("right", minimizeButton, "left", -3, 1)
 minimizeButtonText:Hide()
@@ -343,6 +347,7 @@ minimizeButton:SetScript ("OnClick", function()
 		minimizeButtonText:SetText ("World Quest Tracker")
 	end
 end)
+
 minimizeButton:SetNormalTexture ([[Interface\Buttons\UI-Panel-QuestHideButton]])
 minimizeButton:GetNormalTexture():SetTexCoord (0, 0.5, 0.5, 1)
 minimizeButton:SetPushedTexture ([[Interface\Buttons\UI-Panel-QuestHideButton]])

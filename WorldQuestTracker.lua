@@ -1235,6 +1235,20 @@ end
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+local p = CreateFrame("frame")
+p:RegisterEvent("TALKINGHEAD_REQUESTED")
+p:SetScript("OnEvent", function (self, event, arg1)
+	if (event == "TALKINGHEAD_REQUESTED") then
+		local displayInfo, cameraID, vo, duration, lineNumber, numLines, name, text, isNewTalkingHead = C_TalkingHead.GetCurrentLineInfo()
+		if (WorldQuestTracker.db.profile.talking_heads[vo]) then
+			C_Timer.After(0.1, TalkingHeadFrame_CloseImmediately)
+		else
+			WorldQuestTracker.db.profile.talking_heads[vo] = true
+		end
+	end
+end)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> faction bounty
 
 --function WorldMapMixin:AddOverlayFrame(templateName, templateType, anchorPoint, relativeTo, relativePoint, offsetX, offsetY)
