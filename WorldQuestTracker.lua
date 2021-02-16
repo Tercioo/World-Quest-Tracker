@@ -76,7 +76,7 @@ if (not LibWindow) then
 	print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
 end
 
-local ARROW_UPDATE_FREQUENCE = 0.016
+
 
 local WorldMapScrollFrame = WorldMapFrame.ScrollContainer
 
@@ -145,6 +145,10 @@ function WorldQuestTracker:OnInit()
 	local SharedMedia = LibStub:GetLibrary ("LibSharedMedia-3.0")
 	SharedMedia:Register ("statusbar", "Iskar Serenity", [[Interface\AddOns\WorldQuestTracker\media\bar_serenity]])
 	
+	C_Timer.After (5, function()
+		WorldQuestTracker.InitiateFlyMasterTracker()
+	end)
+
 	C_Timer.After (2, function()
 		if (WorldQuestTracker.db:GetCurrentProfile() ~= "Default") then
 			WorldQuestTracker.db:SetProfile ("Default")
@@ -1274,6 +1278,101 @@ p:SetScript("OnEvent", function (self, event, arg1)
 	end
 end)
 
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+function WorldQuestTracker.InitiateFlyMasterTracker()
+	--flymaster npc location
+	local flymasterX = 0.60903662443161 -- -1906.8000488281
+	local flymasterY = 0.6869769692421 -- 1210.3000488281
+	--upper oribos map id
+	local secondFloormapId = 1671
+	local isFlymasterTrakcerEnabled = false
+
+	local currentPlayerX = 0
+	local currentPlayerY = 0
+
+	local oribosFlyMasterFrame = CreateFrame("frame", "WorldQuestTrackerOribosFlyMasterFrame", UIParent, "BackdropTemplate")
+	oribosFlyMasterFrame:SetPoint("center", "UIParent", "center", 0, 0)
+	oribosFlyMasterFrame:SetSize(140, 60)
+	DetailsFramework:ApplyStandardBackdrop(oribosFlyMasterFrame)
+	oribosFlyMasterFrame:Hide()
+
+	oribosFlyMasterFrame.Arrow = oribosFlyMasterFrame:CreateTexture(nil, "overlay")
+	oribosFlyMasterFrame.Arrow:SetPoint("center", oribosFlyMasterFrame, "center", 4, -14)
+	oribosFlyMasterFrame.Arrow:SetSize(32, 32)
+	oribosFlyMasterFrame.Arrow:SetAlpha(.6)
+	oribosFlyMasterFrame.Arrow:SetTexture([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]])
+
+	oribosFlyMasterFrame.Title = DF:CreateLabel(oribosFlyMasterFrame, "World Quest Tracker\nFlight Master")
+	oribosFlyMasterFrame.Title:SetPoint("center", oribosFlyMasterFrame, "top", 0, -16)
+	oribosFlyMasterFrame.Title.align =  "|"
+
+	local trackerOnTick = function(self, deltaTime)
+		--update the player position
+		local mapPosition = C_Map.GetPlayerMapPosition(WorldQuestTracker.GetCurrentStandingMapAreaID(), "player")
+		if (not mapPosition) then
+			return
+		end
+		currentPlayerX, currentPlayerY = mapPosition.x, mapPosition.y
+
+		local questYaw = (DF.FindLookAtRotation (_, currentPlayerX, currentPlayerY, flymasterX, flymasterY) + (math.pi/2)) % (math.pi*2)
+		local playerYaw = GetPlayerFacing() or 0
+		local angle = (((questYaw + playerYaw)%(math.pi*2))+math.pi)%(math.pi*2)
+		local imageIndex = 1+(floor (DF.MapRangeClamped (_, 0, (math.pi*2), 1, 144, angle)) + 48)%144 --48� quadro � o que aponta para o norte
+		local line = ceil (imageIndex / 12)
+		local coord = (imageIndex - ((line-1) * 12)) / 12
+		self.Arrow:SetTexCoord (coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line)
+
+		local distance = CalculateDistance(currentPlayerX, currentPlayerY, flymasterX, flymasterY)
+		if (distance < 0.1) then
+			local alpha = DF:GetRangePercent(0, 0.1, distance)
+			oribosFlyMasterFrame:SetAlpha(alpha)
+		else
+			oribosFlyMasterFrame:SetAlpha(1)
+		end
+	end
+
+	local LibWindow = LibStub("LibWindow-1.1")
+	LibWindow.RegisterConfig(oribosFlyMasterFrame, WorldQuestTracker.db.profile.flymaster_tracker_frame_pos)
+	LibWindow.MakeDraggable(oribosFlyMasterFrame)
+	LibWindow.RestorePosition(oribosFlyMasterFrame)
+	oribosFlyMasterFrame:EnableMouse(true)
+
+	local enableFlymasterTracker = function()
+		oribosFlyMasterFrame:Show()
+		oribosFlyMasterFrame:SetScript("OnUpdate", trackerOnTick)
+		isFlymasterTrakcerEnabled = true
+	end
+
+	local disableFlymasterTracker = function()
+		oribosFlyMasterFrame:Hide()
+		oribosFlyMasterFrame:SetScript("OnUpdate", nil)
+		isFlymasterTrakcerEnabled = false
+	end
+
+	local checkIfIsInOribosSecondFloor = function()
+		local currentMapId = C_Map.GetBestMapForUnit("player")
+		if (currentMapId == secondFloormapId) then
+			if (not isFlymasterTrakcerEnabled) then
+				enableFlymasterTracker()
+			end
+		else
+			if (isFlymasterTrakcerEnabled) then
+				disableFlymasterTracker()
+			end
+		end
+	end
+
+	local oribosFlyMasterEventFrame = CreateFrame("frame", "WorldQuestTrackerOribosFlyMasterEventFrame")
+	oribosFlyMasterEventFrame:SetScript("OnEvent", function(self, event, ...)
+		C_Timer.After(1, checkIfIsInOribosSecondFloor)
+	end)
+	oribosFlyMasterEventFrame:RegisterEvent("ZONE_CHANGED_INDOORS")
+	oribosFlyMasterEventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+
+	C_Timer.After(0.1, checkIfIsInOribosSecondFloor)
+end
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> faction bounty
 

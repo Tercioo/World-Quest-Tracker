@@ -1,212 +1,219 @@
-[
-	{
-		"path": "$ROOTPATH$\\WorldQuestTracker_Core.lua",
-		"bookmarks": [
-			{
-				"line": 942,
-				"column": 30,
-				"label": ""
-			},
-			{
-				"line": 1984,
-				"column": 23,
-				"label": ""
-			},
-			{
-				"line": 2102,
-				"column": 0,
-				"label": ""
-			},
-			{
-				"line": 2215,
-				"column": 96,
-				"label": ""
-			},
-			{
-				"line": 2304,
-				"column": 25,
-				"label": ""
-			},
-			{
-				"line": 2635,
-				"column": 4,
-				"label": ""
-			},
-			{
-				"line": 4202,
-				"column": 5,
-				"label": ""
-			}
-		]
-	},
-	{
-		"path": "$ROOTPATH$\\WorldQuestTracker_IDs.lua",
-		"bookmarks": [
-			{
-				"line": 46,
-				"column": 0,
-				"label": ""
-			},
-			{
-				"line": 106,
-				"column": 6,
-				"label": ""
-			},
-			{
-				"line": 155,
-				"column": 14,
-				"label": ""
-			},
-			{
-				"line": 475,
-				"column": 15,
-				"label": ""
-			},
-			{
-				"line": 572,
-				"column": 17,
-				"label": ""
-			}
-		]
-	},
-	{
-		"path": "$ROOTPATH$\\WorldQuestTracker_GroupFinder.lua",
-		"bookmarks": [
-			{
-				"line": 76,
-				"column": 0,
-				"label": ""
-			},
-			{
-				"line": 474,
-				"column": 1,
-				"label": ""
-			}
-		]
-	},
-	{
-		"path": "$ROOTPATH$\\WorldQuestTracker_Tracker.lua",
-		"bookmarks": [
-			{
-				"line": 783,
-				"column": 41,
-				"label": ""
-			},
-			{
-				"line": 830,
-				"column": 1,
-				"label": ""
-			}
-		]
-	},
-	{
-		"path": "$ROOTPATH$\\WorldQuestTracker_ZoneMap.lua",
-		"bookmarks": [
-			{
-				"line": 434,
-				"column": 15,
-				"label": ""
-			},
-			{
-				"line": 1115,
-				"column": 59,
-				"label": ""
-			},
-			{
-				"line": 1161,
-				"column": 4,
-				"label": ""
-			},
-			{
-				"line": 1479,
-				"column": 97,
-				"label": ""
-			}
-		]
-	},
-	{
-		"path": "$ROOTPATH$\\WorldQuestTracker_MapAPI.lua",
-		"bookmarks": [
-			{
-				"line": 268,
-				"column": 132,
-				"label": ""
-			},
-			{
-				"line": 747,
-				"column": 0,
-				"label": ""
-			},
-			{
-				"line": 805,
-				"column": 4,
-				"label": ""
-			}
-		]
-	},
-	{
-		"path": "$ROOTPATH$\\WorldQuestTracker_WorldMap.lua",
-		"bookmarks": [
-			{
-				"line": 347,
-				"column": 41,
-				"label": ""
-			},
-			{
-				"line": 649,
-				"column": 31,
-				"label": ""
-			},
-			{
-				"line": 883,
-				"column": 18,
-				"label": ""
-			},
-			{
-				"line": 1055,
-				"column": 0,
-				"label": ""
-			}
-		]
-	},
-	{
-		"path": "f:\\World of Warcraft\\_retail_\\Interface\\AddOns\\WorldQuestsList\\WorldQuestsList.lua",
-		"bookmarks": [
-			{
-				"line": 4858,
-				"column": 19,
-				"label": ""
-			},
-			{
-				"line": 7920,
-				"column": 2,
-				"label": ""
-			},
-			{
-				"line": 8063,
-				"column": 42,
-				"label": ""
-			},
-			{
-				"line": 8118,
-				"column": 29,
-				"label": ""
-			}
-		]
-	},
-	{
-		"path": "$ROOTPATH$\\WorldQuestTracker.lua",
-		"bookmarks": [
-			{
-				"line": 1065,
-				"column": 2,
-				"label": ""
-			},
-			{
-				"line": 1268,
-				"column": 6,
-				"label": ""
-			}
-		]
-	}
-]
+{
+	"files": [
+		{
+			"path": "WorldQuestTracker_Core.lua",
+			"bookmarks": [
+				{
+					"line": 942,
+					"column": 30,
+					"label": ""
+				},
+				{
+					"line": 1984,
+					"column": 23,
+					"label": ""
+				},
+				{
+					"line": 2102,
+					"column": 0,
+					"label": ""
+				},
+				{
+					"line": 2215,
+					"column": 96,
+					"label": ""
+				},
+				{
+					"line": 2304,
+					"column": 25,
+					"label": ""
+				},
+				{
+					"line": 2635,
+					"column": 4,
+					"label": ""
+				},
+				{
+					"line": 4202,
+					"column": 5,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "WorldQuestTracker_IDs.lua",
+			"bookmarks": [
+				{
+					"line": 46,
+					"column": 0,
+					"label": ""
+				},
+				{
+					"line": 106,
+					"column": 6,
+					"label": ""
+				},
+				{
+					"line": 155,
+					"column": 14,
+					"label": ""
+				},
+				{
+					"line": 475,
+					"column": 15,
+					"label": ""
+				},
+				{
+					"line": 572,
+					"column": 17,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "WorldQuestTracker_GroupFinder.lua",
+			"bookmarks": [
+				{
+					"line": 76,
+					"column": 0,
+					"label": ""
+				},
+				{
+					"line": 474,
+					"column": 1,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "WorldQuestTracker_Tracker.lua",
+			"bookmarks": [
+				{
+					"line": 783,
+					"column": 41,
+					"label": ""
+				},
+				{
+					"line": 830,
+					"column": 1,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "WorldQuestTracker_ZoneMap.lua",
+			"bookmarks": [
+				{
+					"line": 434,
+					"column": 15,
+					"label": ""
+				},
+				{
+					"line": 1115,
+					"column": 59,
+					"label": ""
+				},
+				{
+					"line": 1161,
+					"column": 4,
+					"label": ""
+				},
+				{
+					"line": 1479,
+					"column": 97,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "WorldQuestTracker_MapAPI.lua",
+			"bookmarks": [
+				{
+					"line": 268,
+					"column": 132,
+					"label": ""
+				},
+				{
+					"line": 747,
+					"column": 0,
+					"label": ""
+				},
+				{
+					"line": 805,
+					"column": 4,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "WorldQuestTracker_WorldMap.lua",
+			"bookmarks": [
+				{
+					"line": 347,
+					"column": 41,
+					"label": ""
+				},
+				{
+					"line": 649,
+					"column": 31,
+					"label": ""
+				},
+				{
+					"line": 883,
+					"column": 18,
+					"label": ""
+				},
+				{
+					"line": 1055,
+					"column": 0,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "f:/World of Warcraft/_retail_/Interface/AddOns/WorldQuestsList/WorldQuestsList.lua",
+			"bookmarks": [
+				{
+					"line": 4858,
+					"column": 19,
+					"label": ""
+				},
+				{
+					"line": 7920,
+					"column": 2,
+					"label": ""
+				},
+				{
+					"line": 8063,
+					"column": 42,
+					"label": ""
+				},
+				{
+					"line": 8118,
+					"column": 29,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "WorldQuestTracker.lua",
+			"bookmarks": [
+				{
+					"line": 148,
+					"column": 2,
+					"label": ""
+				},
+				{
+					"line": 1282,
+					"column": 1,
+					"label": ""
+				},
+				{
+					"line": 1337,
+					"column": 1,
+					"label": ""
+				}
+			]
+		}
+	]
+}
