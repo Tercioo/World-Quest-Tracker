@@ -214,6 +214,7 @@ do
 			talking_heads_openworld = true,
 
 			flymaster_tracker_frame_pos = {},
+			flymaster_tracker_enabled = true,
 			
 			show_faction_frame = true,
 			

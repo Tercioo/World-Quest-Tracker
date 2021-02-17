@@ -1294,19 +1294,31 @@ function WorldQuestTracker.InitiateFlyMasterTracker()
 
 	local oribosFlyMasterFrame = CreateFrame("frame", "WorldQuestTrackerOribosFlyMasterFrame", UIParent, "BackdropTemplate")
 	oribosFlyMasterFrame:SetPoint("center", "UIParent", "center", 0, 0)
-	oribosFlyMasterFrame:SetSize(140, 60)
+	oribosFlyMasterFrame:SetSize(86, 50)
 	DetailsFramework:ApplyStandardBackdrop(oribosFlyMasterFrame)
 	oribosFlyMasterFrame:Hide()
 
 	oribosFlyMasterFrame.Arrow = oribosFlyMasterFrame:CreateTexture(nil, "overlay")
-	oribosFlyMasterFrame.Arrow:SetPoint("center", oribosFlyMasterFrame, "center", 4, -14)
+	oribosFlyMasterFrame.Arrow:SetPoint("center", oribosFlyMasterFrame, "center", 4, -9)
 	oribosFlyMasterFrame.Arrow:SetSize(32, 32)
-	oribosFlyMasterFrame.Arrow:SetAlpha(.6)
+	oribosFlyMasterFrame.Arrow:SetAlpha(1)
 	oribosFlyMasterFrame.Arrow:SetTexture([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]])
 
-	oribosFlyMasterFrame.Title = DF:CreateLabel(oribosFlyMasterFrame, "World Quest Tracker\nFlight Master")
-	oribosFlyMasterFrame.Title:SetPoint("center", oribosFlyMasterFrame, "top", 0, -16)
+	local onCloseButton = function()
+		oribosFlyMasterFrame:Hide()
+		WorldQuestTracker.db.profile.flymaster_tracker_enabled = false
+	end
+	oribosFlyMasterFrame.CloseButton = DF:CreateButton(oribosFlyMasterFrame, onCloseButton, 20, 20, "X", -1, nil, nil, nil, nil, nil, DF:GetTemplate ("button", "WQT_NEWS_BUTTON"), DF:GetTemplate ("font", "WQT_TOGGLEQUEST_TEXT"))
+	oribosFlyMasterFrame.CloseButton:SetPoint("bottomleft", oribosFlyMasterFrame, "bottomleft", 5, 7)
+	oribosFlyMasterFrame.CloseButton:SetSize(20, 20)
+	oribosFlyMasterFrame.CloseButton:SetAlpha(.2)
+
+	oribosFlyMasterFrame.CloseButton.have_tooltip = "Disable this window, can be enabled again in the World Quest Tracker options."
+
+	oribosFlyMasterFrame.Title = DF:CreateLabel(oribosFlyMasterFrame, "Flight Master")
+	oribosFlyMasterFrame.Title:SetPoint("center", oribosFlyMasterFrame, "top", 0, -10)
 	oribosFlyMasterFrame.Title.align =  "|"
+	oribosFlyMasterFrame.Title.textcolor = {1, 1, 1, .7}
 
 	local trackerOnTick = function(self, deltaTime)
 		--update the player position
@@ -1340,9 +1352,11 @@ function WorldQuestTracker.InitiateFlyMasterTracker()
 	oribosFlyMasterFrame:EnableMouse(true)
 
 	local enableFlymasterTracker = function()
-		oribosFlyMasterFrame:Show()
-		oribosFlyMasterFrame:SetScript("OnUpdate", trackerOnTick)
-		isFlymasterTrakcerEnabled = true
+		if (WorldQuestTracker.db.profile.flymaster_tracker_enabled) then
+			oribosFlyMasterFrame:Show()
+			oribosFlyMasterFrame:SetScript("OnUpdate", trackerOnTick)
+			isFlymasterTrakcerEnabled = true
+		end
 	end
 
 	local disableFlymasterTracker = function()
