@@ -1266,7 +1266,6 @@ p:SetScript("OnEvent", function (self, event, arg1)
 			if (not WorldQuestTracker.db.profile.talking_heads_torgast) then
 				return
 			end
-			
 		end
 
 		local displayInfo, cameraID, vo, duration, lineNumber, numLines, name, text, isNewTalkingHead = C_TalkingHead.GetCurrentLineInfo()
@@ -1343,6 +1342,11 @@ function WorldQuestTracker.InitiateFlyMasterTracker()
 		else
 			oribosFlyMasterFrame:SetAlpha(1)
 		end
+		
+		if (UnitOnTaxi("player")) then
+			oribosFlyMasterFrame.disableFlymasterTracker()
+			return
+		end
 	end
 
 	local LibWindow = LibStub("LibWindow-1.1")
@@ -1358,18 +1362,22 @@ function WorldQuestTracker.InitiateFlyMasterTracker()
 			isFlymasterTrakcerEnabled = true
 		end
 	end
+	oribosFlyMasterFrame.enableFlymasterTracker = enableFlymasterTracker
 
 	local disableFlymasterTracker = function()
 		oribosFlyMasterFrame:Hide()
 		oribosFlyMasterFrame:SetScript("OnUpdate", nil)
 		isFlymasterTrakcerEnabled = false
 	end
+	oribosFlyMasterFrame.disableFlymasterTracker = disableFlymasterTracker
 
 	local checkIfIsInOribosSecondFloor = function()
 		local currentMapId = C_Map.GetBestMapForUnit("player")
 		if (currentMapId == secondFloormapId) then
-			if (not isFlymasterTrakcerEnabled) then
-				enableFlymasterTracker()
+			if (not UnitOnTaxi("player")) then
+				if (not isFlymasterTrakcerEnabled) then
+					enableFlymasterTracker()
+				end
 			end
 		else
 			if (isFlymasterTrakcerEnabled) then
