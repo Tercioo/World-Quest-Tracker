@@ -1590,3 +1590,91 @@ end
 		end
 		GameCooltip:AddMenu (2, ff.SetGroupLeaveTimeoutFunc, 60)
 	end
+
+--> anti spam
+
+local kspam = CreateFrame("frame")
+
+function kspam.OnSortResults(results)
+	--check if the feature is enabled
+	if (not WorldQuestTracker.db.profile.groupfinder.kfilter.enabled) then
+		return
+	end
+
+	--check if the result received is from the dungeon section
+	local selectedCategory = LFGListFrame.SearchPanel.categoryID
+	if (selectedCategory ~= 2) then
+		return
+	end
+
+	return kspam.FilterSortedResult(results)
+end
+
+function kspam.FilterSortedResult(results)
+	for i = #results, 1, -1 do
+		--get the result id
+		local resultId = results[i]
+		--get the search result info
+		local searchResultInfo1 = C_LFGList.GetSearchResultInfo(resultId)
+		--get the leader name
+		local leaderName = searchResultInfo1.leaderName
+		local leaderLevel = searchResultInfo1.leaderLevel
+
+		local canAdd = true
+
+		--cut immediatelly if the leader isn't at level 60
+		if (leaderLevel and leaderLevel < 60) then
+			tremove(results, i)
+			canAdd = false
+		end
+
+		--check if this character isn't in the black list
+		if (WorldQuestTracker.db.profile.groupfinder.kfilter.leaders_ignored[leaderName]) then
+			tremove(results, i)
+			canAdd = false
+		end
+
+		if (searchResultInfo1 and not searchResultInfo1.isDelisted and canAdd) then
+			--cut by age (30 minutes)
+			if (searchResultInfo1.age > 1800) then
+				canAdd = false
+			
+			elseif (searchResultInfo1.voiceChat ~= "") then
+				canAdd = false
+			end
+
+			if (not canAdd) then
+				tremove(results, i)
+				if (searchResultInfo1.leaderName) then
+					WorldQuestTracker.db.profile.groupfinder.kfilter.leaders_ignored[searchResultInfo1.leaderName] = true
+				end
+			end
+
+			--[[ searchResultInfo1 members
+				.name
+				.autoAccept
+				.age
+				.comment
+				.numGuildMates
+				.leaderName
+				.leaderLevel
+				.activityID
+				.numBNetFriends
+				.numMembers
+				.requiredItemLevel
+				.searchResultID
+				.voiceChat
+				.requiredHonorLevel
+				.isDelisted
+				.numCharFriends
+			--]]
+		end
+	end
+end
+
+hooksecurefunc("LFGListUtil_SortSearchResults", kspam.OnSortResults)
+
+
+
+
+

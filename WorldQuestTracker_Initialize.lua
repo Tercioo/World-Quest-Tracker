@@ -123,6 +123,11 @@ do
 				ignored_quests = {},
 				send_whispers = false,
 				dont_open_in_group = true,
+
+				kfilter = { --anti spam on pre-made dungeons
+					enabled = true,
+					leaders_ignored = {},
+				},
 			},
 
 			rarescan = {
@@ -170,7 +175,7 @@ do
 				extra_tracking_indicator = false,
 				use_bounty_ring = false,
 			},
-			
+
 			last_news_time = 0,
 
 			hoverover_animations = true, --hover and shown slider animations
