@@ -126,7 +126,9 @@ do
 
 				kfilter = { --anti spam on pre-made dungeons
 					enabled = true,
+					ignore_leaders_enabled = true,
 					leaders_ignored = {},
+					ignore_by_time = 30,
 				},
 			},
 
