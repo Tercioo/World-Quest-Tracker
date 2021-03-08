@@ -1629,8 +1629,8 @@ function kspam.OnClickConfigButton()
 			set = function (self, fixedparam, value)
 				WorldQuestTracker.db.profile.groupfinder.kfilter.enabled = value
 			end,
-			name = "Filter #Ads",
-			desc = "Filter #Ads.",
+			name = "Ad-Blocker Enabled",
+			desc = "Ad-Blocker Enabled",
 		},
 
 		--auto ignore leader
@@ -1640,8 +1640,8 @@ function kspam.OnClickConfigButton()
 			set = function (self, fixedparam, value)
 				WorldQuestTracker.db.profile.groupfinder.kfilter.ignore_leaders_enabled = value
 			end,
-			name = "Ignore Leader From #Ads",
-			desc = "Ignore Leader From #Ads",
+			name = "Ignore Leader From Ads",
+			desc = "Ignore Leader From Ads",
 		},
 
 		--purge list of banned leaders
