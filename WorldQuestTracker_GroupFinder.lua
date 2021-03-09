@@ -210,7 +210,7 @@ local GetDistance_Point = DF.GetDistance_Point
 			end
 
 			--hook onclick from the start group button
-			LFGListSearchPanelScrollFrame.StartGroupButton:HookScript("OnClick", function(self)
+			LFGListSearchPanelScrollFrameScrollChild.StartGroupButton:HookScript("OnClick", function(self)
 				--only work for category quest
 				local selectedCategory = LFGListFrame.SearchPanel.categoryID
 				if (selectedCategory ~= 1 and selectedCategory ~= 6) then
@@ -368,7 +368,7 @@ local GetDistance_Point = DF.GetDistance_Point
 				restoreFrames()
 			end)
 
-			LFGListSearchPanelScrollFrame.StartGroupButton:HookScript("OnClick", function()
+			LFGListSearchPanelScrollFrameScrollChild.StartGroupButton:HookScript("OnClick", function()
 
 				--hide the ff
 				ff.WasLFGWindowOpened = true
@@ -1619,7 +1619,7 @@ function kspam.OnClickConfigButton()
 	DF:ApplyStandardBackdrop(kspamOptions)
 
 	--title
-	kspamOptions.titleBar = DF:CreateTitleBar(kspamOptions, "Dungeon Pre-Made Options")
+	kspamOptions.titleBar = DF:CreateTitleBar(kspamOptions, "World  Quest Tracker Dungeon")
 
 	local options = {
 		--filter #ads (default enabled)
@@ -1673,6 +1673,19 @@ function kspam.OnClickConfigButton()
 		},
 
 		{type = "blank"},
+
+		--[=[]]
+		{
+			type = "toggle",
+			get = function() return WorldQuestTracker.db.profile.groupfinder.kfilter.show_button end,
+			set = function (self, fixedparam, value)
+				WorldQuestTracker.db.profile.groupfinder.kfilter.show_button = value
+			end,
+			name = "Show Options Button",
+			desc = "Show Options Button",
+		},
+		--]=]
+		
 	}
 
 	local options_text_template = DF:GetTemplate ("font", "OPTIONS_FONT_TEMPLATE")
@@ -1689,7 +1702,12 @@ local options_button_template = DF.table.copy({}, DF:GetTemplate ("button", "OPT
 options_button_template.backdropcolor = {.2, .2, .2, .6}
 options_button_template.backdropbordercolor = {0, 0, 0, 1}
 configButton:SetTemplate(options_button_template)
-configButton:SetPoint("right", LFGListFrame.SearchPanel.RefreshButton, "left", -5, 0)
+
+if (UsePFGButton) then
+	configButton:SetPoint("right", UsePFGButton, "left", -8, 0)
+else
+	configButton:SetPoint("right", LFGListFrame.SearchPanel.RefreshButton, "left", -5, 0)
+end
 configButton:Hide()
 
 kspam:SetScript("OnUpdate", function()

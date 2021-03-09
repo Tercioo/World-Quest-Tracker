@@ -129,6 +129,7 @@ do
 					ignore_leaders_enabled = true,
 					leaders_ignored = {},
 					ignore_by_time = 30,
+					show_button = true,
 				},
 			},
 
