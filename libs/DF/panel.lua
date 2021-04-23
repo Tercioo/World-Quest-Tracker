@@ -14,6 +14,8 @@ local _type = type --> lua local
 local _math_floor = math.floor --> lua local
 local loadstring = loadstring --> lua local
 
+local PixelUtil = PixelUtil or DFPixelUtil
+
 local UnitGroupRolesAssigned = DetailsFramework.UnitGroupRolesAssigned
 
 local cleanfunction = function() end
@@ -6004,11 +6006,15 @@ local default_load_conditions_frame_options = {
 function DF:CreateLoadFilterParser (callback)
 	local f = CreateFrame ("frame")
 	f:RegisterEvent ("PLAYER_ENTERING_WORLD")
-	f:RegisterEvent ("PLAYER_SPECIALIZATION_CHANGED")
-	f:RegisterEvent ("PLAYER_TALENT_UPDATE")
+	if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+		f:RegisterEvent ("PLAYER_SPECIALIZATION_CHANGED")
+		f:RegisterEvent ("PLAYER_TALENT_UPDATE")
+	end
 	f:RegisterEvent ("PLAYER_ROLES_ASSIGNED")
 	f:RegisterEvent ("ZONE_CHANGED_NEW_AREA")
-	f:RegisterEvent ("CHALLENGE_MODE_START")
+	if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+		f:RegisterEvent ("CHALLENGE_MODE_START")
+	end
 	f:RegisterEvent ("ENCOUNTER_START")
 	f:RegisterEvent ("PLAYER_REGEN_ENABLED")
 	
@@ -7189,15 +7195,15 @@ DF.StatusBarFunctions = {
 		Width = 100,
 		Height = 20,
 	}
-	
+
 	healthBarMetaFunctions.HealthBarEvents = {
 		{"PLAYER_ENTERING_WORLD"},
 		{"UNIT_HEALTH", true},
 		{"UNIT_MAXHEALTH", true},
 		--{"UNIT_HEALTH_FREQUENT", true},
-		{"UNIT_HEAL_PREDICTION", true},
-		{"UNIT_ABSORB_AMOUNT_CHANGED", true},
-		{"UNIT_HEAL_ABSORB_AMOUNT_CHANGED", true},
+		{(WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) and "UNIT_HEAL_PREDICTION", true},
+		{(WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) and "UNIT_ABSORB_AMOUNT_CHANGED", true},
+		{(WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) and "UNIT_HEAL_ABSORB_AMOUNT_CHANGED", true},
 	}
 	
 	--> setup the castbar to be used by another unit
@@ -7215,22 +7221,28 @@ DF.StatusBarFunctions = {
 				for _, eventTable in ipairs (self.HealthBarEvents) do
 					local event = eventTable [1]
 					local isUnitEvent = eventTable [2]
-					if (isUnitEvent) then
-						self:RegisterUnitEvent (event, self.displayedUnit, self.unit)
-					else
-						self:RegisterEvent (event)
+					if event then
+						if (isUnitEvent) then
+							self:RegisterUnitEvent (event, self.displayedUnit, self.unit)
+						else
+							self:RegisterEvent (event)
+						end
 					end
 				end
 				
 				--> check for settings and update some events
 				if (not self.Settings.ShowHealingPrediction) then
-					self:UnregisterEvent ("UNIT_HEAL_PREDICTION")
-					self:UnregisterEvent ("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
+					if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+						self:UnregisterEvent ("UNIT_HEAL_PREDICTION")
+						self:UnregisterEvent ("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
+					end
 					self.incomingHealIndicator:Hide()
 					self.healAbsorbIndicator:Hide()
 				end
 				if (not self.Settings.ShowShields) then
-					self:UnregisterEvent ("UNIT_ABSORB_AMOUNT_CHANGED")
+					if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+						self:UnregisterEvent ("UNIT_ABSORB_AMOUNT_CHANGED")
+					end
 					self.shieldAbsorbIndicator:Hide()
 					self.shieldAbsorbGlow:Hide()
 				end
@@ -7247,7 +7259,9 @@ DF.StatusBarFunctions = {
 				--> remove all registered events
 				for _, eventTable in ipairs (self.HealthBarEvents) do
 					local event = eventTable [1]
-					self:UnregisterEvent (event)
+					if event then
+						self:UnregisterEvent (event)
+					end
 				end
 				
 				--> remove scripts
@@ -7319,6 +7333,7 @@ DF.StatusBarFunctions = {
 	
 	--health and absorbs prediction
 	healthBarMetaFunctions.UpdateHealPrediction = function (self)
+		if WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE then return end
 		local currentHealth = self.currentHealth
 		local currentHealthMax = self.currentHealthMax
 		local healthPercent = currentHealth / currentHealthMax
@@ -7774,8 +7789,8 @@ DF.CastFrameFunctions = {
 		{"UNIT_SPELLCAST_CHANNEL_START"},
 		{"UNIT_SPELLCAST_CHANNEL_UPDATE"},
 		{"UNIT_SPELLCAST_CHANNEL_STOP"},
-		{"UNIT_SPELLCAST_INTERRUPTIBLE"},
-		{"UNIT_SPELLCAST_NOT_INTERRUPTIBLE"},
+		{(WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) and "UNIT_SPELLCAST_INTERRUPTIBLE"},
+		{(WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) and "UNIT_SPELLCAST_NOT_INTERRUPTIBLE"},
 		{"PLAYER_ENTERING_WORLD"},
 		{"UNIT_SPELLCAST_START", true},
 		{"UNIT_SPELLCAST_STOP", true},
@@ -7975,10 +7990,12 @@ DF.CastFrameFunctions = {
 					local event = eventTable [1]
 					local isUnitEvent = eventTable [2]
 					
-					if (isUnitEvent) then
-						self:RegisterUnitEvent (event, unit)
-					else
-						self:RegisterEvent (event)
+					if event then
+						if (isUnitEvent) then
+							self:RegisterUnitEvent (event, unit)
+						else
+							self:RegisterEvent (event)
+						end
 					end
 				end
 				
@@ -8007,7 +8024,9 @@ DF.CastFrameFunctions = {
 			else
 				for _, eventTable in ipairs (self.CastBarEvents) do
 					local event = eventTable [1]
-					self:UnregisterEvent (event)
+					if event then
+						self:UnregisterEvent (event)
+					end
 				end
 				
 				--> register main events
@@ -8302,6 +8321,11 @@ DF.CastFrameFunctions = {
 	UNIT_SPELLCAST_START = function (self, unit)
 
 		local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo (unit)
+		if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+			name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo (unit)
+		else
+			name, text, texture, startTime, endTime, isTradeSkill, castID, spellID = UnitCastingInfo (unit)
+		end
 		
 		--> is valid?
 		if (not self:IsValid (unit, name, isTradeSkill, true)) then
@@ -8357,7 +8381,12 @@ DF.CastFrameFunctions = {
 	end,
 	
 	UNIT_SPELLCAST_CHANNEL_START = function (self, unit, ...)
-		local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID = UnitChannelInfo (unit)
+		local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID
+		if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+			name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID = UnitChannelInfo (unit)
+		else
+			name, text, texture, startTime, endTime, isTradeSkill, spellID = UnitChannelInfo (unit)
+		end
 
 		--> is valid?
 		if (not self:IsValid (unit, name, isTradeSkill, true)) then
@@ -8964,7 +8993,7 @@ end
 		--> todo: see what 'UnitTargetsVehicleInRaidUI' is, there's a call for this in the CompactUnitFrame.lua but zero documentation
 		CheckVehiclePossession = function (self)
 			--> this unit is possessing a vehicle?
-			local unitPossessVehicle = UnitHasVehicleUI (self.unit)			
+			local unitPossessVehicle = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) and UnitHasVehicleUI (self.unit)	or false
 			if (unitPossessVehicle) then
 				if (not self.unitInVehicle) then
 					if (UnitIsUnit ("player", self.unit)) then
@@ -9194,6 +9223,7 @@ end
 	}
 
 -- ~unitframe
+local globalBaseFrameLevel = 1 -- to be increased + used across each new plate
 function DF:CreateUnitFrame (parent, name, unitFrameSettingsOverride, healthBarSettingsOverride, castBarSettingsOverride, powerBarSettingsOverride)
 	
 	local parentName = name or ("DetailsFrameworkUnitFrame" .. tostring (math.random (1, 100000000)))
@@ -9202,7 +9232,11 @@ function DF:CreateUnitFrame (parent, name, unitFrameSettingsOverride, healthBarS
 	local f = CreateFrame ("button", parentName, parent, "BackdropTemplate")
 	
 	--> base level
-	local baseFrameLevel = f:GetFrameLevel()
+	--local baseFrameLevel = f:GetFrameLevel()
+	local baseFrameLevel = globalBaseFrameLevel
+	globalBaseFrameLevel = globalBaseFrameLevel + 50
+	
+	f:SetFrameLevel (baseFrameLevel)
 	
 	--> create the healthBar
 	local healthBar = DF:CreateHealthBar (f, false, healthBarSettingsOverride)
