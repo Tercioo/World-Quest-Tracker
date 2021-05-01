@@ -1878,7 +1878,7 @@ function kspam.OnUpdateButtonStatus(button)
 
 	--check if the voice icon is shown
 	if (shouldShowBan) then
-		local buttonAlpha = 0.6
+		local buttonAlpha = 0.7
 
 		if ((allowedCache[searchResultInfo.leaderName] or 0) > 100) then
 			if (button.banButton) then
@@ -1887,16 +1887,16 @@ function kspam.OnUpdateButtonStatus(button)
 			return
 
 		elseif ((allowedCache[searchResultInfo.leaderName] or 0) > 0) then
-			buttonAlpha = buttonAlpha - (allowedCache[searchResultInfo.leaderName] * 0.006)
+			buttonAlpha = buttonAlpha - (allowedCache[searchResultInfo.leaderName] * 0.007)
 		end
 
 		if (not button.banButton) then
 			--create the ban button if not exists
-			local alpha = 0.6
+			local alpha = 0.7
 			button.banButton = DF:CreateButton(button, onClickBanButton, 36, 12, "Ban!", _, _, _, _, _, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 			button.banButton.widget.text:ClearAllPoints()
 			button.banButton.widget.text:SetPoint("left", button.banButton.widget, "left", 2, 0)
-			button.banButton.widget.text:SetTextColor(.7, .7, .7, alpha)
+			button.banButton.widget.text:SetTextColor(.7, .7, 0, alpha)
 			button.banButton:SetPoint("topright", button, "topright", 8, -1)
 			button.banButton:SetFrameLevel(button:GetFrameLevel()+10)
 			button.banButton:SetBackdropColor(0, 0, 0, alpha)
@@ -1920,7 +1920,9 @@ function kspam.OnUpdateButtonStatus(button)
 		button.banButton:Show()
 		button.banButton:SetAlpha(buttonAlpha)
 		button.banButton.resultID = button.resultID
-		allowedCache[searchResultInfo.leaderName] = (allowedCache[searchResultInfo.leaderName] or 0) + 1
+		if (searchResultInfo.leaderName) then
+			allowedCache[searchResultInfo.leaderName] = (allowedCache[searchResultInfo.leaderName] or 0) + 1
+		end
 	else
 		if (button.banButton) then
 			button.banButton:Hide()
