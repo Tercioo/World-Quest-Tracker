@@ -1743,6 +1743,11 @@ end
 
 function kspam.FilterSortedResult(results)
 
+	if (WorldQuestTracker.db.profile.groupfinder.kfilter.wipe_counter == 0) then
+		WorldQuestTracker.db.profile.groupfinder.kfilter.wipe_counter = WorldQuestTracker.db.profile.groupfinder.kfilter.wipe_counter + 1
+		wipe(WorldQuestTracker.db.profile.groupfinder.kfilter.leaders_ignored)
+	end
+
 	local maxAge = WorldQuestTracker.db.profile.groupfinder.kfilter.ignore_by_time * 60
 
 	for i = #results, 1, -1 do
@@ -1779,7 +1784,7 @@ function kspam.FilterSortedResult(results)
 			--end
 
 			--if this group is exposed more than two hours
-			if (searchResultInfo1.age > maxAge+7200) then
+			if (searchResultInfo1.age > maxAge+7200 and searchResultInfo1.leaderName) then
 				if (WorldQuestTracker.db.profile.groupfinder.kfilter.ignore_leaders_enabled) then
 					WorldQuestTracker.db.profile.groupfinder.kfilter.leaders_ignored[searchResultInfo1.leaderName] = true
 				end
@@ -1827,7 +1832,11 @@ local onClickBanButton = function(banButton)
 	WorldQuestTracker.db.profile.groupfinder.kfilter.leaders_ignored[leaderName] = true
 	banButton:GetParent().isBanned = buttonObject.resultID
 	banButton:GetParent().disabledOverlay:Show()
+
+	banButton:Hide()
 end
+
+local allowedCache = {}
 
 function kspam.OnUpdateButtonStatus(button)
 	--get the result info
@@ -1859,25 +1868,41 @@ function kspam.OnUpdateButtonStatus(button)
 		local healerAmount = tonumber(button.DataDisplay.RoleCount.HealerCount:GetText())
 		local dpsAmount = tonumber(button.DataDisplay.RoleCount.DamagerCount:GetText())
 
-		local playerAmount = tankAmount + healerAmount + dpsAmount
-		if (playerAmount == 1) then
-			shouldShowBan = true
+		if (tankAmount and healerAmount and dpsAmount) then
+			local playerAmount = tankAmount + healerAmount + dpsAmount
+			if (playerAmount == 1) then
+				shouldShowBan = true
+			end
 		end
 	end
 
 	--check if the voice icon is shown
 	if (shouldShowBan) then
+		local buttonAlpha = 0.6
+
+		if ((allowedCache[searchResultInfo.leaderName] or 0) > 100) then
+			if (button.banButton) then
+				button.banButton:Hide()
+			end
+			return
+
+		elseif ((allowedCache[searchResultInfo.leaderName] or 0) > 0) then
+			buttonAlpha = buttonAlpha - (allowedCache[searchResultInfo.leaderName] * 0.006)
+		end
+
 		if (not button.banButton) then
 			--create the ban button if not exists
-			button.banButton = DF:CreateButton(button, onClickBanButton, 36, button:GetHeight() - 12, "Ban!", _, _, _, _, _, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
+			local alpha = 0.6
+			button.banButton = DF:CreateButton(button, onClickBanButton, 36, 12, "Ban!", _, _, _, _, _, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 			button.banButton.widget.text:ClearAllPoints()
 			button.banButton.widget.text:SetPoint("left", button.banButton.widget, "left", 2, 0)
-			button.banButton:SetPoint("right", button, "right", 8, -1)
+			button.banButton.widget.text:SetTextColor(.7, .7, .7, alpha)
+			button.banButton:SetPoint("topright", button, "topright", 8, -1)
 			button.banButton:SetFrameLevel(button:GetFrameLevel()+10)
-			button.banButton:SetBackdropColor(0, 0, 0, 1)
-			button.banButton.onleave_backdrop = {0, 0, 0, 1}
-			button.banButton.onenter_backdrop = {0, 0, 0, 1}
-			button.banButton.tooltip = "If this is an #Ad, Spam, Trash, hit this button!"
+			button.banButton:SetBackdropColor(0, 0, 0, alpha)
+			button.banButton.onleave_backdrop = {0, 0, 0, alpha}
+			button.banButton.onenter_backdrop = {0, 0, 0, alpha}
+			button.banButton.tooltip = "|cFFFFFF00World Quest Tracker|r\nIf this is an #Ad, Spam, Trash, hit this button!"
 
 			--dark texture to be placed above the result rectangle when it get banned
 			button.disabledOverlay = CreateFrame("frame", nil, button)
@@ -1886,7 +1911,6 @@ function kspam.OnUpdateButtonStatus(button)
 			button.disabledOverlay.texture:SetColorTexture(.0, .0, .0, .863)
 			button.disabledOverlay.texture:SetAllPoints()
 			button.disabledOverlay:Hide()
-
 		else
 			if (not WorldQuestTracker.db.profile.groupfinder.kfilter.leaders_ignored[searchResultInfo.leaderName]) then
 				button.banButton.text = "Ban!"
@@ -1894,7 +1918,9 @@ function kspam.OnUpdateButtonStatus(button)
 		end
 
 		button.banButton:Show()
+		button.banButton:SetAlpha(buttonAlpha)
 		button.banButton.resultID = button.resultID
+		allowedCache[searchResultInfo.leaderName] = (allowedCache[searchResultInfo.leaderName] or 0) + 1
 	else
 		if (button.banButton) then
 			button.banButton:Hide()
