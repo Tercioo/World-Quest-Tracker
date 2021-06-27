@@ -1269,10 +1269,12 @@ p:SetScript("OnEvent", function (self, event, arg1)
 		end
 
 		local displayInfo, cameraID, vo, duration, lineNumber, numLines, name, text, isNewTalkingHead = C_TalkingHead.GetCurrentLineInfo()
-		if (WorldQuestTracker.db.profile.talking_heads_heard[vo]) then
-			C_Timer.After(0.1, TalkingHeadFrame_CloseImmediately)
-		else
-			WorldQuestTracker.db.profile.talking_heads_heard[vo] = true
+		if(not vo == nil) then
+			if (WorldQuestTracker.db.profile.talking_heads_heard[vo]) then
+				C_Timer.After(0.1, TalkingHeadFrame_CloseImmediately)
+			else
+				WorldQuestTracker.db.profile.talking_heads_heard[vo] = true
+			end
 		end
 	end
 end)
