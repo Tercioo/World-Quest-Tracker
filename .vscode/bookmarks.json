@@ -54,7 +54,12 @@
 			"path": "WorldQuestTracker_GroupFinder.lua",
 			"bookmarks": [
 				{
-					"line": 1679,
+					"line": 841,
+					"column": 1,
+					"label": ""
+				},
+				{
+					"line": 1686,
 					"column": 1,
 					"label": ""
 				}
@@ -63,6 +68,11 @@
 		{
 			"path": "WorldQuestTracker_Tracker.lua",
 			"bookmarks": [
+				{
+					"line": 530,
+					"column": 0,
+					"label": ""
+				},
 				{
 					"line": 783,
 					"column": 41,
@@ -84,17 +94,17 @@
 					"label": ""
 				},
 				{
-					"line": 1117,
+					"line": 1119,
 					"column": 59,
 					"label": ""
 				},
 				{
-					"line": 1163,
+					"line": 1165,
 					"column": 4,
 					"label": ""
 				},
 				{
-					"line": 1481,
+					"line": 1483,
 					"column": 97,
 					"label": ""
 				}
@@ -186,6 +196,16 @@
 				{
 					"line": 1353,
 					"column": 1,
+					"label": ""
+				}
+			]
+		},
+		{
+			"path": "WorldQuestTracker_FrameAPI.lua",
+			"bookmarks": [
+				{
+					"line": 413,
+					"column": 46,
 					"label": ""
 				}
 			]
