@@ -54,13 +54,13 @@
 			"path": "WorldQuestTracker_GroupFinder.lua",
 			"bookmarks": [
 				{
-					"line": 841,
-					"column": 1,
+					"line": 1296,
+					"column": 5,
 					"label": ""
 				},
 				{
-					"line": 1686,
-					"column": 1,
+					"line": 1355,
+					"column": 37,
 					"label": ""
 				}
 			]
@@ -189,12 +189,12 @@
 					"label": ""
 				},
 				{
-					"line": 1282,
+					"line": 1284,
 					"column": 1,
 					"label": ""
 				},
 				{
-					"line": 1405,
+					"line": 1437,
 					"column": 1,
 					"label": ""
 				}
