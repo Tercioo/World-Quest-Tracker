@@ -1982,7 +1982,7 @@ local SimplePanel_frame_backdrop_border_color = {0, 0, 0, 1}
 
 --with_label was making the frame stay in place while its parent moves
 --the slider was anchoring to with_label and here here were anchoring the slider again
-function DF:CreateScaleBar(frame, config)
+function DF:CreateScaleBar(frame, config) --~scale
 	local scaleBar, text = DF:CreateSlider(frame, 120, 14, 0.6, 1.6, 0.1, config.scale, true, "ScaleBar", nil, "Scale:", DF:GetTemplate ("slider", "OPTIONS_SLIDER_TEMPLATE"), DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE"))
 	scaleBar.thumb:SetWidth(24)
 	scaleBar:SetValueStep(0.1)
@@ -2056,6 +2056,14 @@ function DF:CreateScaleBar(frame, config)
 	editbox.defaultValue = config.scale
 	editbox:SetFocus(false)
 	editbox:SetAutoFocus(false)
+	editbox:ClearFocus()
+
+	C_Timer.After(1, function()
+		editbox:SetFocus(false)
+		editbox:SetAutoFocus(false)
+		editbox:ClearFocus()
+	end)
+
 	return scaleBar
 end
 
@@ -3964,6 +3972,10 @@ DF.TabContainerFunctions.SelectIndex = function (self, fixedParam, menuIndex)
 		mainFrame.AllButtons[menuIndex].selectedUnderlineGlow:Show()
 	end
 	mainFrame.CurrentIndex = menuIndex
+
+	if (mainFrame.hookList.OnSelectIndex) then
+		DF:QuickDispatch(mainFrame.hookList.OnSelectIndex, mainFrame, mainFrame.AllButtons[menuIndex])
+	end
 end
 
 DF.TabContainerFunctions.SetIndex = function (self, index)
@@ -3975,7 +3987,7 @@ local tab_container_on_show = function (self)
 	self.SelectIndex (self.AllButtons[index], nil, index)
 end
 
-function DF:CreateTabContainer (parent, title, frame_name, frame_list, options_table)
+function DF:CreateTabContainer (parent, title, frame_name, frameList, options_table, hookList)
 	
 	local options_text_template = DF:GetTemplate ("font", "OPTIONS_FONT_TEMPLATE")
 	local options_dropdown_template = DF:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE")
@@ -3984,18 +3996,19 @@ function DF:CreateTabContainer (parent, title, frame_name, frame_list, options_t
 	local options_button_template = DF:GetTemplate ("button", "OPTIONS_BUTTON_TEMPLATE")
 	
 	options_table = options_table or {}
-	local frame_width = parent:GetWidth()
+	local frameWidth = parent:GetWidth()
 	local frame_height = parent:GetHeight()
 	local y_offset = options_table.y_offset or 0
 	local button_width = options_table.button_width or 160
 	local button_height = options_table.button_height or 20
-	local button_anchor_x = options_table.button_x or 230
-	local button_anchor_y = options_table.button_y or -32
+	local buttonAnchorX = options_table.button_x or 230
+	local buttonAnchorY = options_table.button_y or -32
 	local button_text_size = options_table.button_text_size or 10
 	
 	local mainFrame = CreateFrame ("frame", frame_name, parent.widget or parent, "BackdropTemplate")
 	mainFrame:SetAllPoints()
 	DF:Mixin (mainFrame, DF.TabContainerFunctions)
+	mainFrame.hookList = hookList
 	
 	local mainTitle = DF:CreateLabel (mainFrame, title, 24, "white")
 	mainTitle:SetPoint ("topleft", mainFrame, "topleft", 10, -30 + y_offset)
@@ -4015,7 +4028,7 @@ function DF:CreateTabContainer (parent, title, frame_name, frame_list, options_t
 		mainFrame.CanCloseWithRightClick = true
 	end
 	
-	for i, frame in ipairs (frame_list) do
+	for i, frame in ipairs (frameList) do
 		local f = CreateFrame ("frame", "$parent" .. frame.name, mainFrame, "BackdropTemplate")
 		f:SetAllPoints()
 		f:SetFrameLevel (210)
@@ -4024,7 +4037,7 @@ function DF:CreateTabContainer (parent, title, frame_name, frame_list, options_t
 		local title = DF:CreateLabel (f, frame.title, 16, "silver")
 		title:SetPoint ("topleft", mainTitle, "bottomleft", 0, 0)
 		
-		local tabButton = DF:CreateButton (mainFrame, DF.TabContainerFunctions.SelectIndex, button_width, button_height, frame.title, i, nil, nil, nil, nil, false, button_tab_template)
+		local tabButton = DF:CreateButton (mainFrame, DF.TabContainerFunctions.SelectIndex, button_width, button_height, frame.title, i, nil, nil, nil, "$parentTabButton" .. frame.name, false, button_tab_template)
 		PixelUtil.SetSize (tabButton, button_width, button_height)
 		tabButton:SetFrameLevel (220)
 		tabButton.textsize = button_text_size
@@ -4059,10 +4072,13 @@ function DF:CreateTabContainer (parent, title, frame_name, frame_list, options_t
 	end
 	
 	--order buttons
-	local x = button_anchor_x
-	local y = button_anchor_y
-	local space_for_buttons = frame_width - (#frame_list*3) - button_anchor_x
+	local x = buttonAnchorX
+	local y = buttonAnchorY
+	local spaceBetweenButtons = 3
+
+	local space_for_buttons = frameWidth - (#frameList * spaceBetweenButtons) - buttonAnchorX
 	local amount_buttons_per_row = floor (space_for_buttons / button_width)
+
 	local last_button = mainFrame.AllButtons[1]
 	
 	mainFrame.AllButtons[1]:SetPoint ("topleft", mainTitle, "topleft", x, y)
@@ -4074,7 +4090,7 @@ function DF:CreateTabContainer (parent, title, frame_name, frame_list, options_t
 		x = x + button_width + 2
 		
 		if (i % amount_buttons_per_row == 0) then
-			x = button_anchor_x
+			x = buttonAnchorX
 			y = y - button_height - 1
 		end
 	end
@@ -5202,6 +5218,7 @@ DF.IconRowFunctions = {
 		
 		if (not iconFrame) then
 			local newIconFrame = CreateFrame ("frame", "$parentIcon" .. self.NextIcon, self, "BackdropTemplate")
+			newIconFrame.parentIconRow = self
 			
 			newIconFrame.Texture = newIconFrame:CreateTexture (nil, "artwork")
 			PixelUtil.SetPoint (newIconFrame.Texture, "topleft", newIconFrame, "topleft", 1, -1)
@@ -5247,7 +5264,7 @@ DF.IconRowFunctions = {
 		
 		local anchor = self.options.anchor
 		local anchorTo = self.NextIcon == 1 and self or self.IconPool [self.NextIcon - 1]
-		local xPadding = self.NextIcon == 1 and self.options.left_padding or self.options.icon_padding
+		local xPadding = self.NextIcon == 1 and self.options.left_padding or self.options.icon_padding or 1
 		local growDirection = self.options.grow_direction
 
 		if (growDirection == 1) then --grow to right
@@ -5272,15 +5289,28 @@ DF.IconRowFunctions = {
 		return iconFrame
 	end,
 	
-	SetIcon = function (self, spellId, borderColor, startTime, duration, forceTexture, descText, count, debuffType, caster, canStealOrPurge)
+	--adds only if not existing already in the cache
+	AddSpecificIcon = function (self, identifierKey, spellId, borderColor, startTime, duration, forceTexture, descText, count, debuffType, caster, canStealOrPurge, spellName, isBuff)
+		if not identifierKey or identifierKey == "" then
+			return
+		end
+		
+		if not self.AuraCache[identifierKey] then
+			local icon = self:SetIcon (spellId, borderColor, startTime, duration, forceTexture, descText, count, debuffType, caster, canStealOrPurge, spellName, isBuff or false)
+			icon.identifierKey = identifierKey
+			self.AuraCache[identifierKey] = true
+		end
+	end,
 	
-		local spellName, _, spellIcon
+	SetIcon = function (self, spellId, borderColor, startTime, duration, forceTexture, descText, count, debuffType, caster, canStealOrPurge, spellName, isBuff)
 	
-		if (not forceTexture) then
-			spellName, _, spellIcon = GetSpellInfo (spellId)
-		else
+		local actualSpellName, _, spellIcon = GetSpellInfo (spellId)
+	
+		if forceTexture then
 			spellIcon = forceTexture
 		end
+		
+		spellName = spellName or actualSpellName or "unknown_aura"
 		
 		if (spellIcon) then
 			local iconFrame = self:GetIcon()
@@ -5299,30 +5329,37 @@ DF.IconRowFunctions = {
 				if (self.options.show_text) then
 					iconFrame.CountdownText:Show()
 					
-					local formattedTime = floor (startTime + duration - GetTime())
+					local now = GetTime()
 					
-					if (formattedTime >= 3600) then
-						formattedTime = floor (formattedTime / 3600) .. "h"
-						
-					elseif (formattedTime >= 60) then
-						formattedTime = floor (formattedTime / 60) .. "m"
-						
-					else
-						formattedTime = floor (formattedTime)
-					end
+					iconFrame.timeRemaining = startTime + duration - now
+					iconFrame.expirationTime = startTime + duration
+					
+					local formattedTime = (iconFrame.timeRemaining > 0) and self.options.decimal_timer and iconFrame.parentIconRow.FormatCooldownTimeDecimal(iconFrame.timeRemaining) or iconFrame.parentIconRow.FormatCooldownTime(iconFrame.timeRemaining) or ""
+					iconFrame.CountdownText:SetText (formattedTime)
 					
 					iconFrame.CountdownText:SetPoint (self.options.text_anchor or "center", iconFrame, self.options.text_rel_anchor or "center", self.options.text_x_offset or 0, self.options.text_y_offset or 0)
 					DF:SetFontSize (iconFrame.CountdownText, self.options.text_size)
 					DF:SetFontFace (iconFrame.CountdownText, self.options.text_font)
 					DF:SetFontOutline (iconFrame.CountdownText, self.options.text_outline)
-					iconFrame.CountdownText:SetText (formattedTime)
+					
+					if self.options.on_tick_cooldown_update then
+						iconFrame.lastUpdateCooldown = now
+						iconFrame:SetScript("OnUpdate", self.OnIconTick)
+					else
+						iconFrame:SetScript("OnUpdate", nil)
+					end
 					
 				else
+					iconFrame:SetScript("OnUpdate", nil)
 					iconFrame.CountdownText:Hide()
 				end
 				
+				iconFrame.Cooldown:SetReverse (self.options.cooldown_reverse)
 				iconFrame.Cooldown:SetHideCountdownNumbers (self.options.surpress_blizzard_cd_timer)
 			else
+				iconFrame.timeRemaining = nil
+				iconFrame.expirationTime = nil
+				iconFrame:SetScript("OnUpdate", nil)
 				iconFrame.CountdownText:Hide()
 			end
 			
@@ -5365,6 +5402,16 @@ DF.IconRowFunctions = {
 			iconFrame.debuffType = debuffType
 			iconFrame.caster = caster
 			iconFrame.canStealOrPurge = canStealOrPurge
+			iconFrame.isBuff = isBuff
+			iconFrame.spellName = spellName
+			
+			iconFrame.identifierKey = nil -- only used for "specific" add/remove
+			
+			--add the spell into the cache
+			self.AuraCache [spellId or -1] = true
+			self.AuraCache [spellName] = true
+			self.AuraCache.canStealOrPurge = self.AuraCache.canStealOrPurge or canStealOrPurge
+			self.AuraCache.hasEnrage = self.AuraCache.hasEnrage or debuffType == "" --yes, enrages are empty-string...
 
 			--> show the frame
 			self:Show()
@@ -5373,12 +5420,149 @@ DF.IconRowFunctions = {
 		end
 	end,
 	
-	ClearIcons = function (self)
-		for i = 1, self.NextIcon -1 do
-			self.IconPool [i]:Hide()
+	OnIconTick = function (self, deltaTime)
+		local now = GetTime()
+		if (self.lastUpdateCooldown + 0.05) <= now then
+			self.timeRemaining = self.expirationTime - now
+			if self.timeRemaining > 0 then
+				if self.parentIconRow.options.decimal_timer then
+					self.CountdownText:SetText (self.parentIconRow.FormatCooldownTimeDecimal(self.timeRemaining))
+				else
+					self.CountdownText:SetText (self.parentIconRow.FormatCooldownTime(self.timeRemaining))
+				end
+			else
+				self.CountdownText:SetText ("")
+			end
+			self.lastUpdateCooldown = now
 		end
-		self.NextIcon = 1
-		self:Hide()
+	end,
+	
+	FormatCooldownTime = function (formattedTime)
+		if (formattedTime >= 3600) then
+			formattedTime = floor (formattedTime / 3600) .. "h"
+			
+		elseif (formattedTime >= 60) then
+			formattedTime = floor (formattedTime / 60) .. "m"
+			
+		else
+			formattedTime = floor (formattedTime)
+		end
+		return formattedTime
+	end,
+	
+	FormatCooldownTimeDecimal = function (formattedTime)
+        if formattedTime < 10 then
+            return ("%.1f"):format(formattedTime)
+        elseif formattedTime < 60 then
+            return ("%d"):format(formattedTime)
+        elseif formattedTime < 3600 then
+            return ("%d:%02d"):format(formattedTime/60%60, formattedTime%60)
+        elseif formattedTime < 86400 then
+            return ("%dh %02dm"):format(formattedTime/(3600), formattedTime/60%60)
+        else
+            return ("%dd %02dh"):format(formattedTime/86400, (formattedTime/3600) - (floor(formattedTime/86400) * 24))
+        end
+	end,
+	
+	RemoveSpecificIcon = function (self, identifierKey)
+		if not identifierKey or identifierKey == "" then
+			return
+		end
+	
+		table.wipe (self.AuraCache)
+	
+		local iconPool = self.IconPool
+		local countStillShown = 0
+		for i = 1, self.NextIcon -1 do
+			local iconFrame = iconPool[i]
+			if iconFrame.identifierKey and iconFrame.identifierKey == identifierKey then
+				iconFrame:Hide()
+				iconFrame:ClearAllPoints()
+				iconFrame.identifierKey = nil
+			else
+				self.AuraCache [iconFrame.spellId] = true
+				self.AuraCache [iconFrame.spellName] = true
+				self.AuraCache.canStealOrPurge = self.AuraCache.canStealOrPurge or iconFrame.canStealOrPurge
+				self.AuraCache.hasEnrage = self.AuraCache.hasEnrage or iconFrame.debuffType == "" --yes, enrages are empty-string...
+				countStillShown = countStillShown + 1
+			end
+		end
+		
+		self:AlignAuraIcons()
+		
+	end,
+	
+	ClearIcons = function (self, resetBuffs, resetDebuffs)
+		resetBuffs = resetBuffs ~= false
+		resetDebuffs = resetDebuffs ~= false
+		table.wipe (self.AuraCache)
+		
+		local iconPool = self.IconPool
+		for i = 1, self.NextIcon -1 do
+			local iconFrame = iconPool[i]
+			if iconFrame.isBuff == nil then
+				iconFrame:Hide()
+				iconFrame:ClearAllPoints()
+			elseif resetBuffs and iconFrame.isBuff then
+				iconFrame:Hide()
+				iconFrame:ClearAllPoints()
+			elseif resetDebuffs and not iconFrame.isBuff then
+				iconFrame:Hide()
+				iconFrame:ClearAllPoints()
+			else
+				self.AuraCache [iconFrame.spellId] = true
+				self.AuraCache [iconFrame.spellName] = true
+				self.AuraCache.canStealOrPurge = self.AuraCache.canStealOrPurge or iconFrame.canStealOrPurge
+				self.AuraCache.hasEnrage = self.AuraCache.hasEnrage or iconFrame.debuffType == "" --yes, enrages are empty-string...
+			end
+		end
+		
+		self:AlignAuraIcons()
+		
+	end,
+	
+	AlignAuraIcons = function (self)
+		
+		local iconPool = self.IconPool
+		local iconAmount = #iconPool
+		local countStillShown = 0
+		
+		table.sort (iconPool, function(i1, i2) return i1:IsShown() and not i2:IsShown() end)
+		
+		if iconAmount == 0 then
+			self:Hide()
+		else
+			-- re-anchor not hidden
+			for i = 1, iconAmount do
+				local iconFrame = iconPool[i]
+				local anchor = self.options.anchor
+				local anchorTo = i == 1 and self or self.IconPool [i - 1]
+				local xPadding = i == 1 and self.options.left_padding or self.options.icon_padding or 1
+				local growDirection = self.options.grow_direction
+				
+				countStillShown = countStillShown + (iconFrame:IsShown() and 1 or 0)
+				
+				iconFrame:ClearAllPoints()
+				if (growDirection == 1) then --grow to right
+					if (i == 1) then
+						PixelUtil.SetPoint (iconFrame, "left", anchorTo, "left", xPadding, 0)
+					else
+						PixelUtil.SetPoint (iconFrame, "left", anchorTo, "right", xPadding, 0)
+					end
+					
+				elseif (growDirection == 2) then --grow to left
+					if (i == 1) then
+						PixelUtil.SetPoint (iconFrame, "right", anchorTo, "right", xPadding, 0)
+					else
+						PixelUtil.SetPoint (iconFrame, "right", anchorTo, "left", xPadding, 0)
+					end
+					
+				end
+			end
+		end
+		
+		self.NextIcon = countStillShown + 1
+		
 	end,
 	
 	GetIconGrowDirection = function (self)
@@ -5460,12 +5644,16 @@ local default_icon_row_options = {
 	grow_direction = 1, --1 = to right 2 = to left
 	surpress_blizzard_cd_timer = false,
 	surpress_tulla_omni_cc = false,
+	on_tick_cooldown_update = true,
+	decimal_timer = false,
+	cooldown_reverse = false,
 }
 
 function DF:CreateIconRow (parent, name, options)
 	local f = CreateFrame("frame", name, parent, "BackdropTemplate")
 	f.IconPool = {}
 	f.NextIcon = 1
+	f.AuraCache = {}
 	
 	DF:Mixin (f, DF.IconRowFunctions)
 	DF:Mixin (f, DF.OptionsFunctions)
@@ -8425,13 +8613,7 @@ DF.CastFrameFunctions = {
 	end,
 	
 	UpdateCastingInfo = function (self, unit)
-		local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID
-		if not IS_WOW_PROJECT_CLASSIC_TBC then
-			name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo (unit)
-		else
-			name, text, texture, startTime, endTime, isTradeSkill, castID, spellID = UnitCastingInfo (unit)
-			notInterruptible = false
-		end
+		local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo (unit)
 		
 		--> is valid?
 		if (not self:IsValid (unit, name, isTradeSkill, true)) then

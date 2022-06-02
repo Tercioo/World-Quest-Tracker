@@ -1,6 +1,6 @@
 
 
-local dversion = 287
+local dversion = 314
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary (major, minor)
 
@@ -340,14 +340,14 @@ function DF.table.reverse (t)
 end
 
 --> copy from table2 to table1 overwriting values
-function DF.table.copy (t1, t2)
-	for key, value in pairs (t2) do 
-		if (key ~= "__index") then
+function DF.table.copy(t1, t2)
+	for key, value in pairs(t2) do
+		if (key ~= "__index" and key ~= "__newindex") then
 			if (type (value) == "table") then
-				t1 [key] = t1 [key] or {}
-				DF.table.copy (t1 [key], t2 [key])
+				t1[key] = t1[key] or {}
+				DF.table.copy(t1[key], t2[key])
 			else
-				t1 [key] = value
+				t1[key] = value
 			end
 		end
 	end
@@ -355,13 +355,13 @@ function DF.table.copy (t1, t2)
 end
 
 --> copy from table2 to table1 overwriting values but do not copy data that cannot be compressed
-function DF.table.copytocompress (t1, t2)
-	for key, value in pairs (t2) do
+function DF.table.copytocompress(t1, t2)
+	for key, value in pairs(t2) do
 		if (key ~= "__index" and type(value) ~= "function") then
 			if (type(value) == "table") then
 				if (not value.GetObjectType) then
-					t1 [key] = t1 [key] or {}
-					DF.table.copytocompress(t1 [key], t2 [key])
+					t1[key] = t1[key] or {}
+					DF.table.copytocompress(t1[key], t2[key])
 				end
 			else
 				t1 [key] = value
@@ -697,6 +697,28 @@ function DF:trim (s)
 	return from > #s and "" or s:match(".*%S", from)
 end
 
+--truncated revoming at a maximum of 10 character from the string
+function DF:TruncateTextSafe(fontString, maxWidth)
+	local text = fontString:GetText()
+	local numIterations = 10
+
+	while (fontString:GetStringWidth() > maxWidth) do
+		text = strsub(text, 1, #text-1)
+		fontString:SetText(text)
+		if (#text <= 1) then
+			break
+		end
+
+		numIterations = numIterations - 1
+		if (numIterations <= 0) then
+			break
+		end
+	end
+
+	text = DF:CleanTruncateUTF8String(text)
+	fontString:SetText(text)
+end
+
 function DF:TruncateText (fontString, maxWidth)
 	local text = fontString:GetText()
 	
@@ -759,6 +781,48 @@ function DF.SortOrder3R (t1, t2)
 	return t1[3] < t2[3]
 end
 
+--return a list of spells from the player spellbook
+function DF:GetSpellBookSpells()
+    local spellNamesInSpellBook = {}
+
+    for i = 1, GetNumSpellTabs() do
+        local tabName, tabTexture, offset, numSpells, isGuild, offspecId = GetSpellTabInfo(i)
+
+        if (offspecId == 0) then
+            offset = offset + 1
+            local tabEnd = offset + numSpells
+
+            for j = offset, tabEnd - 1 do
+                local spellType, spellId = GetSpellBookItemInfo(j, "player")
+
+                if (spellId) then
+                    if (spellType ~= "FLYOUT") then
+                        local spellName = GetSpellInfo(spellId)
+                        if (spellName) then
+                            spellNamesInSpellBook[spellName] = true
+                        end
+                    else
+                        local _, _, numSlots, isKnown = GetFlyoutInfo(spellId)
+                        if (isKnown and numSlots > 0) then
+                            for k = 1, numSlots do
+                                local spellID, overrideSpellID, isKnown = GetFlyoutSlotInfo(spellId, k)
+                                if (isKnown) then
+                                    local spellName = GetSpellInfo(spellID)
+                                    spellNamesInSpellBook[spellName] = true
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return spellNamesInSpellBook
+end
+
+------------------------------
+--flash animation
 local onFinish = function (self)
 	if (self.showWhenDone) then
 		self.frame:SetAlpha (1)
