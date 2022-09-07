@@ -1,6 +1,6 @@
 
 
-local dversion = 319
+local dversion = 347
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary (major, minor)
 
@@ -39,9 +39,9 @@ DF.AuthorInfo = {
 
 local PixelUtil = PixelUtil or DFPixelUtil
 if (not PixelUtil) then
-	--check if is in classic or TBC wow, if it is, build a replacement for PixelUtil
+	--check if is in classic, TBC, or WotLK wow, if it is, build a replacement for PixelUtil
 	local gameVersion = GetBuildInfo()
-	if (gameVersion:match("%d") == "1" or gameVersion:match("%d") == "2") then
+	if (gameVersion:match("%d") == "1" or gameVersion:match("%d") == "2" or gameVersion:match("%d") == "3") then
 		PixelUtil = {
 			SetWidth = function (self, width) self:SetWidth (width) end,
 			SetHeight = function (self, height) self:SetHeight (height) end,
@@ -51,24 +51,36 @@ if (not PixelUtil) then
 	end
 end
 
+function DF.IsDragonflight()
+	return select(4, GetBuildInfo()) >= 100000
+end
+
 function DF.IsTimewalkWoW()
-	return DF.IsClassicWow() or DF.IsTBCWow()
+    local _, _, _, buildInfo = GetBuildInfo()
+    if (buildInfo < 40000) then
+        return true
+    end
 end
 
 function DF.IsClassicWow()
-	local gameVersion = GetBuildInfo()
-	if (gameVersion:match ("%d") == "1") then
-		return true
-	end
-	return false
+    local _, _, _, buildInfo = GetBuildInfo()
+    if (buildInfo < 20000) then
+        return true
+    end
 end
 
 function DF.IsTBCWow()
-	local gameVersion = GetBuildInfo()
-	if (gameVersion:match ("%d") == "2") then
-		return true
-	end
-	return false
+    local _, _, _, buildInfo = GetBuildInfo()
+    if (buildInfo < 30000 and buildInfo >= 20000) then
+        return true
+    end
+end
+
+function DF.IsWotLKWow()
+    local _, _, _, buildInfo = GetBuildInfo()
+    if (buildInfo < 40000 and buildInfo >= 30000) then
+        return true
+    end
 end
 
 local roleBySpecTextureName = {
@@ -108,6 +120,10 @@ local roleBySpecTextureName = {
 	WarriorArms = "DAMAGER",
 	WarriorFury = "DAMAGER",
 	WarriorProtection = "TANK",
+
+	DeathKnightBlood = "TANK",
+	DeathKnightFrost = "DAMAGER",
+	DeathKnightUnholy = "DAMAGER",
 }
 
 --classic, tbc and wotlk role guesser based on the weights of each talent tree
@@ -147,6 +163,7 @@ function DF:GetRoleByClassicTalentTree()
 		local role = roleBySpecTextureName[specTexture]
 		return role or "NONE"
 	end
+	return "DAMAGER"
 end
 
 function DF.UnitGroupRolesAssigned(unitId)
@@ -426,6 +443,26 @@ function DF.table.reverse (t)
 	return new
 end
 
+function DF.table.duplicate(t1, t2)
+	for key, value in pairs(t2) do
+		if (key ~= "__index" and key ~= "__newindex") then
+			--preserve a wowObject passing it to the new table with copying it
+			if (type(value) == "table" and table.GetObjectType and table:GetObjectType()) then
+				t1[key] = value
+
+			elseif (type (value) == "table") then
+				t1[key] = t1[key] or {}
+				DF.table.copy(t1[key], t2[key])
+
+			else
+				t1[key] = value
+			end
+		end
+	end
+
+	return t1
+end
+
 --> copy from table2 to table1 overwriting values
 function DF.table.copy(t1, t2)
 	for key, value in pairs(t2) do
@@ -454,6 +491,14 @@ function DF.table.copytocompress(t1, t2)
 				t1 [key] = value
 			end
 		end
+	end
+	return t1
+end
+
+--add the indexes of table2 into table1
+function DF.table.append(t1, t2)
+	for i = 1, #t2 do
+		t1[#t1+1] = t2[i]
 	end
 	return t1
 end
@@ -681,6 +726,20 @@ function DF:SetFontShadow (fontString, r, g, b, a, x, y)
 	fontString:SetShadowOffset (x, y)
 end
 
+function DF:SetFontRotation(fontString, degrees)
+	if (type(degrees) == "number") then
+		if (not fontString.__rotationAnimation) then
+			fontString.__rotationAnimation = DF:CreateAnimationHub(fontString)
+			fontString.__rotationAnimation.rotator = DF:CreateAnimation(fontString.__rotationAnimation, "rotation", 1, 0, 0)
+			fontString.__rotationAnimation.rotator:SetEndDelay(10^8)
+			fontString.__rotationAnimation.rotator:SetSmoothProgress(1)
+		end
+		fontString.__rotationAnimation.rotator:SetDegrees(degrees)
+		fontString.__rotationAnimation:Play()
+		fontString.__rotationAnimation:Pause()
+	end
+end
+
 function DF:AddClassColorToText (text, class)
 	if (type (class) ~= "string") then
 		return DF:RemoveRealName (text)
@@ -761,10 +820,16 @@ local ValidOutlines = {
 function DF:SetFontOutline (fontString, outline)
 	local fonte, size = fontString:GetFont()
 	if (outline) then
-		if (ValidOutlines [outline]) then
+		if (type(outline) == "string") then
+			outline = outline:upper()
+		end
+
+		if (ValidOutlines[outline]) then
 			outline = outline
-		elseif (_type (outline) == "boolean" and outline) then
+		elseif (type(outline) == "boolean" and outline) then
 			outline = "OUTLINE"
+		elseif (type(outline) == "boolean" and not outline) then
+			outline = "NONE"
 		elseif (outline == 1) then
 			outline = "OUTLINE"
 		elseif (outline == 2) then
@@ -837,6 +902,21 @@ function DF:CleanTruncateUTF8String(text)
 	return text
 end
 
+--DF:TruncateNumber(number, fractionDigits): truncate the amount of numbers used to show fraction.
+function DF:TruncateNumber(number, fractionDigits)
+	fractionDigits = fractionDigits or 2
+	--local truncatedNumber = format("%." .. fractionDigits .. "f", number) --4x slower than:
+	--http://lua-users.org/wiki/SimpleRound
+	local mult = 10 ^ fractionDigits
+	if (number >= 0) then
+		truncatedNumber = floor(number * mult + 0.5) / mult
+	else
+		truncatedNumber = ceil(number * mult + 0.5) / mult
+	end
+
+	return truncatedNumber
+end
+
 function DF:Msg (msg, ...)
 	print ("|cFFFFFFAA" .. (self.__name or "FW Msg:") .. "|r ", msg, ...)
 end
@@ -871,11 +951,12 @@ end
 --return a list of spells from the player spellbook
 function DF:GetSpellBookSpells()
     local spellNamesInSpellBook = {}
+	local spellIdsInSpellBook = {}
 
     for i = 1, GetNumSpellTabs() do
         local tabName, tabTexture, offset, numSpells, isGuild, offspecId = GetSpellTabInfo(i)
 
-        if (offspecId == 0) then
+        if (offspecId == 0 and tabTexture ~= 136830) then --don't add spells found in the General tab
             offset = offset + 1
             local tabEnd = offset + numSpells
 
@@ -887,6 +968,7 @@ function DF:GetSpellBookSpells()
                         local spellName = GetSpellInfo(spellId)
                         if (spellName) then
                             spellNamesInSpellBook[spellName] = true
+							spellIdsInSpellBook[#spellIdsInSpellBook+1] = spellId
                         end
                     else
                         local _, _, numSlots, isKnown = GetFlyoutInfo(spellId)
@@ -896,6 +978,7 @@ function DF:GetSpellBookSpells()
                                 if (isKnown) then
                                     local spellName = GetSpellInfo(spellID)
                                     spellNamesInSpellBook[spellName] = true
+									spellIdsInSpellBook[#spellIdsInSpellBook+1] = spellID
                                 end
                             end
                         end
@@ -905,7 +988,7 @@ function DF:GetSpellBookSpells()
         end
     end
 
-    return spellNamesInSpellBook
+    return spellNamesInSpellBook, spellIdsInSpellBook
 end
 
 ------------------------------
@@ -1138,7 +1221,37 @@ end
 		
 		IsColorTable = true,
 	}
-	
+
+	--convert a any format of color to any other format of color
+	function DF:FormatColor(newFormat, r, g, b, a, decimalsAmount)
+		r, g, b, a = DF:ParseColors(r, g, b, a)
+		decimalsAmount = decimalsAmount or 4
+
+		r = DF:TruncateNumber(r, decimalsAmount)
+		g = DF:TruncateNumber(g, decimalsAmount)
+		b = DF:TruncateNumber(b, decimalsAmount)
+		a = DF:TruncateNumber(a, decimalsAmount)
+
+		if (newFormat == "commastring") then
+			return r .. ", " .. g .. ", " .. b .. ", " .. a
+
+		elseif (newFormat == "tablestring") then
+			return "{" .. r .. ", " .. g .. ", " .. b .. ", " .. a .. "}"
+
+		elseif (newFormat == "table") then
+			return {r, g, b, a}
+
+		elseif (newFormat == "tablemembers") then
+			return {["r"] = r, ["g"] = g, ["b"] = b, ["a"] = 1}
+
+		elseif (newFormat == "numbers") then
+			return r, g, b, a
+
+		elseif (newFormat == "hex") then
+			return format("%.2x%.2x%.2x%.2x", a * 255, r * 255, g * 255, b * 255)
+		end
+	end
+
 	function DF:CreateColorTable (r, g, b, a)
 		local t  = {
 			r = r or 1, 
@@ -1154,53 +1267,69 @@ end
 		return DF.alias_text_colors [color]
 	end
 
-	local tn = tonumber
-	function DF:ParseColors (_arg1, _arg2, _arg3, _arg4)
-		if (_type (_arg1) == "table") then
-			if (_arg1.IsColorTable) then
-				return _arg1:GetColor()
-				
-			elseif (not _arg1[1] and _arg1.r) then
-				_arg1, _arg2, _arg3, _arg4 = _arg1.r, _arg1.g, _arg1.b, _arg1.a
-				
+	function DF:ParseColors (red, green, blue, alpha)
+		local firstParameter = red
+
+		--the first value passed is a table?
+		if (type(firstParameter) == "table") then
+			local colorTable = red
+
+			if (colorTable.IsColorTable) then
+				--using colorTable mixin
+				return colorTable:GetColor()
+
+			elseif (not colorTable[1] and colorTable.r) then
+				--{["r"] = 1, ["g"] = 1, ["b"] = 1}
+				red, green, blue, alpha = colorTable.r, colorTable.g, colorTable.b, colorTable.a
+
 			else
-				_arg1, _arg2, _arg3, _arg4 = _unpack (_arg1)
+				--{1, .7, .2, 1}
+				red, green, blue, alpha = unpack(colorTable)
 			end
-		
-		elseif (_type (_arg1) == "string") then
-		
-			if (string.find (_arg1, "#")) then
-				_arg1 = _arg1:gsub ("#","")
-				if (string.len (_arg1) == 8) then --alpha
-					_arg1, _arg2, _arg3, _arg4 = tn ("0x" .. _arg1:sub (3, 4))/255, tn ("0x" .. _arg1:sub (5, 6))/255, tn ("0x" .. _arg1:sub (7, 8))/255, tn ("0x" .. _arg1:sub (1, 2))/255
+
+		--the first value passed is a string?
+		elseif (type(firstParameter) == "string") then
+			local colorString = red
+			--hexadecimal
+			if (string.find(colorString, "#")) then
+				colorString = colorString:gsub("#","")
+				if (string.len(colorString) == 8) then --with alpha
+					red, green, blue, alpha = tonumber("0x" .. colorString:sub(3, 4))/255, tonumber("0x" .. colorString:sub(5, 6))/255, tonumber("0x" .. colorString:sub(7, 8))/255, tonumber("0x" .. colorString:sub(1, 2))/255
 				else
-					_arg1, _arg2, _arg3, _arg4 = tn ("0x" .. _arg1:sub (1, 2))/255, tn ("0x" .. _arg1:sub (3, 4))/255, tn ("0x" .. _arg1:sub (5, 6))/255, 1
+					red, green, blue, alpha = tonumber("0x" .. colorString:sub(1, 2))/255, tonumber("0x" .. colorString:sub(3, 4))/255, tonumber("0x" .. colorString:sub(5, 6))/255, 1
 				end
-			
 			else
-				local color = DF.alias_text_colors [_arg1]
-				if (color) then
-					_arg1, _arg2, _arg3, _arg4 = _unpack (color)
+				--name of the color
+				local colorTable = DF.alias_text_colors[colorString]
+				if (colorTable) then
+					red, green, blue, alpha = unpack(colorTable)
+
+				--string with number separated by comma
+				elseif (colorString:find(",")) then
+					local r, g, b, a = strsplit(",", colorString)
+					red, green, blue, alpha = tonumber(r), tonumber(g), tonumber(b), tonumber(a)
+
 				else
-					_arg1, _arg2, _arg3, _arg4 = _unpack (DF.alias_text_colors.none)
+					--no color found within the string, return default color
+					red, green, blue, alpha = unpack(DF.alias_text_colors.none)
 				end
 			end
 		end
-		
-		if (not _arg1) then
-			_arg1 = 1
+
+		if (not red or type(red) ~= "number") then
+			red = 1
 		end
-		if (not _arg2) then
-			_arg2 = 1
+		if (not green) or type(green) ~= "number" then
+			green = 1
 		end
-		if (not _arg3) then
-			_arg3 = 1
+		if (not blue or type(blue) ~= "number") then
+			blue = 1
 		end
-		if (not _arg4) then
-			_arg4 = 1
+		if (not alpha or type(alpha) ~= "number") then
+			alpha = 1
 		end
-		
-		return _arg1, _arg2, _arg3, _arg4
+
+		return red, green, blue, alpha
 	end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1560,6 +1689,7 @@ end
 
 						colorpick.color_callback = widget_table.set --callback
 						colorpick:SetTemplate(button_template)
+						colorpick:SetSize(18, 18)
 
 						colorpick.tooltip = widget_table.desc
 						colorpick._get = widget_table.get
@@ -1583,17 +1713,24 @@ end
 							end
 						end
 
-						colorpick.hasLabel.text = widget_table.name .. (use_two_points and ": " or "")
-						colorpick.hasLabel:SetTemplate(widget_table.text_template or text_template)
-						
-						colorpick:SetPoint ("left", colorpick.hasLabel, "right", 2)
-						colorpick.hasLabel:SetPoint (cur_x, cur_y)
-						
+						local label = colorpick.hasLabel
+						label.text = widget_table.name .. (use_two_points and ": " or "")
+						label:SetTemplate(widget_table.text_template or text_template)
+
+						if (widget_table.boxfirst) then
+							label:SetPoint("left", colorpick, "right", 2)
+							colorpick:SetPoint(cur_x, cur_y)
+							extraPaddingY = 1
+						else
+							colorpick:SetPoint("left", label, "right", 2)
+							label:SetPoint(cur_x, cur_y)
+						end
+
 						if (widget_table.id) then
 							parent.widgetids [widget_table.id] = colorpick
 						end
 
-						local size = colorpick.hasLabel:GetStringWidth() + 32
+						local size = label:GetStringWidth() + 32
 						if (size > max_x) then
 							max_x = size
 						end
@@ -1740,6 +1877,21 @@ end
 		height = abs ((height or parent:GetHeight()) - abs (y_offset) + 20)
 		height = height*-1
 
+		--normalize format types
+		for index, widgetTable in ipairs(menu) do
+			if (widgetTable.type == "space") then
+				widgetTable.type = "blank"
+			elseif (widgetTable.type == "dropdown") then
+				widgetTable.type = "select"
+			elseif (widgetTable.type == "switch") then
+				widgetTable.type = "toggle"
+			elseif (widgetTable.type == "slider") then
+				widgetTable.type = "range"
+			elseif (widgetTable.type == "button") then
+				widgetTable.type = "execute"
+			end
+		end
+
 		for index, widget_table in ipairs (menu) do
 			if (not widget_table.hidden) then
 
@@ -1751,7 +1903,9 @@ end
 					end
 				end
 
-				if (widget_table.type == "blank" or widget_table.type == "space") then
+				local extraPaddingY = 0
+
+				if (widget_table.type == "blank") then
 					-- do nothing
 
 				elseif (widget_table.type == "label" or widget_table.type == "text") then
@@ -1770,7 +1924,7 @@ end
 						parent.widgetids [widget_table.id] = label
 					end
 				
-				elseif (widget_table.type == "select" or widget_table.type == "dropdown") then
+				elseif (widget_table.type == "select") then
 					local dropdown = DF:NewDropDown (parent, nil, "$parentWidget" .. index, nil, 140, 18, widget_table.values, widget_table.get(), dropdown_template)
 					dropdown.tooltip = widget_table.desc
 					dropdown._get = widget_table.get
@@ -1809,7 +1963,7 @@ end
 					widget_created = dropdown
 					line_widgets_created = line_widgets_created + 1
 					
-				elseif (widget_table.type == "toggle" or widget_table.type == "switch") then
+				elseif (widget_table.type == "toggle") then
 					local switch = DF:NewSwitch (parent, nil, "$parentWidget" .. index, nil, 60, 20, nil, nil, widget_table.get(), nil, nil, nil, nil, switch_template)
 					switch.tooltip = widget_table.desc
 					switch._get = widget_table.get
@@ -1842,6 +1996,13 @@ end
 					if (widget_table.boxfirst) then
 						switch:SetPoint (cur_x, cur_y)
 						label:SetPoint ("left", switch, "right", 2)
+
+						local nextWidgetTable = menu[index+1]
+						if (nextWidgetTable) then
+							if (nextWidgetTable.type ~= "blank" and nextWidgetTable.type ~= "breakline" and nextWidgetTable.type ~= "toggle" and nextWidgetTable.type ~= "color") then
+								extraPaddingY = 3
+							end
+						end
 					else
 						label:SetPoint (cur_x, cur_y)
 						switch:SetPoint ("left", label, "right", 2)
@@ -1864,7 +2025,7 @@ end
 					widget_created = switch
 					line_widgets_created = line_widgets_created + 1
 					
-				elseif (widget_table.type == "range" or widget_table.type == "slider") then
+				elseif (widget_table.type == "range") then
 					local is_decimanls = widget_table.usedecimals
 					local slider = DF:NewSlider (parent, nil, "$parentWidget" .. index, nil, 140, 20, widget_table.min, widget_table.max, widget_table.step, widget_table.get(),  is_decimanls, nil, nil, slider_template)
 					slider.tooltip = widget_table.desc
@@ -1910,11 +2071,12 @@ end
 					widget_created = slider
 					line_widgets_created = line_widgets_created + 1
 					
-				elseif (widget_table.type == "color" or widget_table.type == "color") then
+				elseif (widget_table.type == "color") then
 					local colorpick = DF:NewColorPickButton (parent, "$parentWidget" .. index, nil, widget_table.set, nil, button_template)
 					colorpick.tooltip = widget_table.desc
 					colorpick._get = widget_table.get
 					colorpick.widget_type = "color"
+					colorpick:SetSize(18, 18)
 
 					local default_value, g, b, a = widget_table.get()
 					if (type (default_value) == "table") then
@@ -1935,8 +2097,15 @@ end
 					end
 					
 					local label = DF:NewLabel (parent, nil, "$parentLabel" .. index, nil, widget_table.name .. (use_two_points and ": " or ""), "GameFontNormal", widget_table.text_template or text_template or 12)
-					colorpick:SetPoint ("left", label, "right", 2)
-					label:SetPoint (cur_x, cur_y)
+					if (widget_table.boxfirst) then
+						label:SetPoint("left", colorpick, "right", 2)
+						colorpick:SetPoint(cur_x, cur_y)
+						extraPaddingY = 1
+					else
+						colorpick:SetPoint("left", label, "right", 2)
+						label:SetPoint(cur_x, cur_y)
+					end
+
 					colorpick.hasLabel = label
 					
 					if (widget_table.id) then
@@ -1955,7 +2124,7 @@ end
 					widget_created = colorpick
 					line_widgets_created = line_widgets_created + 1
 					
-				elseif (widget_table.type == "execute" or widget_table.type == "button") then
+				elseif (widget_table.type == "execute") then
 				
 					local button = DF:NewButton (parent, nil, "$parentWidget" .. index, nil, 120, 18, widget_table.func, widget_table.param1, widget_table.param2, nil, widget_table.name, nil, button_template, text_template)
 					if (not button_template) then
@@ -2065,6 +2234,10 @@ end
 					else
 						cur_y = cur_y - 20
 					end
+				end
+
+				if (extraPaddingY > 0) then
+					cur_y = cur_y - extraPaddingY
 				end
 
 				if (widget_table.type == "breakline" or cur_y < height) then
@@ -2378,7 +2551,7 @@ function DF:GetBestFontForLanguage (language, western, cyrillic, china, korean, 
 	end
 
 	if (language == "enUS" or language == "deDE" or language == "esES" or language == "esMX" or language == "frFR" or language == "itIT" or language == "ptBR") then
-		return western or "Accidental Presidency"
+		return western or "Friz Quadrata TT"
 		
 	elseif (language == "ruRU") then
 		return cyrillic or "Arial Narrow"
@@ -2397,8 +2570,8 @@ end
 
 --DF.font_templates ["ORANGE_FONT_TEMPLATE"] = {color = "orange", size = 11, font = "Accidental Presidency"}
 --DF.font_templates ["OPTIONS_FONT_TEMPLATE"] = {color = "yellow", size = 12, font = "Accidental Presidency"}
-DF.font_templates ["ORANGE_FONT_TEMPLATE"] = {color = "orange", size = 11, font = DF:GetBestFontForLanguage()}
-DF.font_templates ["OPTIONS_FONT_TEMPLATE"] = {color = "yellow", size = 12, font = DF:GetBestFontForLanguage()}
+DF.font_templates ["ORANGE_FONT_TEMPLATE"] = {color = "orange", size = 10, font = DF:GetBestFontForLanguage()}
+DF.font_templates ["OPTIONS_FONT_TEMPLATE"] = {color = "yellow", size = 9.6, font = DF:GetBestFontForLanguage()}
 
 -- dropdowns
 
@@ -2660,11 +2833,29 @@ end
 function DF:OpenInterfaceProfile()
 	-- OptionsFrame1/2 should be registered if created with DF:CreateAddOn, so open to them directly
 	if self.OptionsFrame1 then
-		InterfaceOptionsFrame_OpenToCategory (self.OptionsFrame1)
-		if self.OptionsFrame2 then
-			InterfaceOptionsFrame_OpenToCategory (self.OptionsFrame2)
+		if SettingsPanel then
+			--SettingsPanel:OpenToCategory(self.OptionsFrame1.name)
+			local category = SettingsPanel:GetCategoryList():GetCategory(self.OptionsFrame1.name)
+			if category then
+				SettingsPanel:Open()
+				SettingsPanel:SelectCategory(category)
+				if self.OptionsFrame2 and category:HasSubcategories() then
+					for _, subcategory in pairs(category:GetSubcategories()) do
+						if subcategory:GetName() == self.OptionsFrame2.name then
+							SettingsPanel:SelectCategory(subcategory)
+							break
+						end
+					end
+				end
+			end
+			return
+		elseif InterfaceOptionsFrame_OpenToCategory then
+			InterfaceOptionsFrame_OpenToCategory (self.OptionsFrame1)
+			if self.OptionsFrame2 then
+				InterfaceOptionsFrame_OpenToCategory (self.OptionsFrame2)
+			end
+			return
 		end
-		return
 	end
 	
 	-- fallback (broken as of ElvUI Skins in version 12.18+... maybe fix/change will come)
@@ -2736,8 +2927,14 @@ function DF:CreateAnimation (animation, type, order, duration, arg1, arg2, arg3,
 		anim:SetToAlpha (arg2)
 	
 	elseif (type == "SCALE") then
-		anim:SetFromScale (arg1, arg2)
-		anim:SetToScale (arg3, arg4)
+		if (DF.IsDragonflight()) then
+			anim:SetScaleFrom (arg1, arg2)
+			anim:SetScaleTo (arg3, arg4)
+		else
+			anim:SetFromScale (arg1, arg2)
+			anim:SetToScale (arg3, arg4)
+		end
+
 		anim:SetOrigin (arg5 or "center", arg6 or 0, arg7 or 0) --point, x, y
 	
 	elseif (type == "ROTATION") then
@@ -3139,6 +3336,7 @@ function DF:CreateGlowOverlay (parent, antsColor, glowColor)
 	glowFrame.GlowColor = {r, g, b, a}
 	
 	glowFrame.outerGlow:SetScale (1.2)
+	glowFrame:EnableMouse(false)
 	return glowFrame
 end
 
@@ -3680,6 +3878,10 @@ function DF:GetCurrentSpec()
 	end
 end
 
+function DF:GetCurrentSpecId()
+	return DF:GetCurrentSpec()
+end
+
 local specs_per_class = {
 	["DEMONHUNTER"] = {577, 581},
 	["DEATHKNIGHT"] = {250, 251, 252},
@@ -3693,6 +3895,7 @@ local specs_per_class = {
 	["WARLOCK"] = {265, 266, 267},
 	["PALADIN"] = {65, 66, 70},
 	["MONK"] = {268, 269, 270},
+	["EVOKER"] = {1467, 1468},
 }
 
 function DF:GetClassSpecIDs (class)
@@ -3720,18 +3923,21 @@ function DF:QuickDispatch (func, ...)
 	return true
 end
 
-function DF:Dispatch (func, ...)
+function DF:Dispatch(func, ...)
 	if (type (func) ~= "function") then
-		return dispatch_error (_, "Dispatch required a function.")
+		return dispatch_error (_, "DF:Dispatch expect a function as parameter 1.")
 	end
 
-	local okay, result1, result2, result3, result4 = xpcall (func, geterrorhandler(), ...)
-	
+	local dispatchResult = {xpcall (func, geterrorhandler(), ...)}
+	local okay = dispatchResult[1]
+
 	if (not okay) then
 		return nil
 	end
-	
-	return result1, result2, result3, result4
+
+	tremove(dispatchResult, 1)
+
+	return unpack(dispatchResult)
 end
 
 --[=[
@@ -3789,6 +3995,7 @@ DF.ClassIndexToFileName = {
 	[11] = "DRUID",
 	[10] = "MONK",
 	[2] = "PALADIN",
+	[13] = "EVOKER",
 }
 
 
@@ -3805,6 +4012,7 @@ DF.ClassFileNameToIndex = {
 	["DRUID"] = 11,
 	["MONK"] = 10,
 	["PALADIN"] = 2,
+	["EVOKER"] = 13,
 }
 DF.ClassCache = {}
 
@@ -3887,7 +4095,7 @@ end
 
 --> store and return a list of character races, always return the non-localized value
 DF.RaceCache = {}
-function DF:GetCharacterRaceList (fullList)
+function DF:GetCharacterRaceList()
 	if (next (DF.RaceCache)) then
 		return DF.RaceCache
 	end
@@ -3895,13 +4103,13 @@ function DF:GetCharacterRaceList (fullList)
 	for i = 1, 100 do
 		local raceInfo = C_CreatureInfo.GetRaceInfo (i)
 		if (raceInfo and DF.RaceList [raceInfo.raceID]) then
-			tinsert (DF.RaceCache, {Name = raceInfo.raceName, FileString = raceInfo.clientFileString})
+			tinsert (DF.RaceCache, {Name = raceInfo.raceName, FileString = raceInfo.clientFileString, ID = raceInfo.raceID})
 		end
 		
 		if IS_WOW_PROJECT_MAINLINE then
 			local alliedRaceInfo = C_AlliedRaces.GetRaceInfoByID (i)
 			if (alliedRaceInfo and DF.AlliedRaceList [alliedRaceInfo.raceID]) then
-				tinsert (DF.RaceCache, {Name = alliedRaceInfo.maleName, FileString = alliedRaceInfo.raceFileString})
+				tinsert (DF.RaceCache, {Name = alliedRaceInfo.maleName, FileString = alliedRaceInfo.raceFileString, ID = alliedRaceInfo.raceID})
 			end
 		end
 	end
@@ -4033,6 +4241,11 @@ function DF:AddRoleIconToText(text, role, size)
 	return text
 end
 
+function DF:GetRoleTCoordsAndTexture(roleID)
+	local texture, l, r, t, b = DF:GetRoleIconAndCoords(roleID)
+	return l, r, t, b, texture
+end
+
 -- TODO: maybe make this auto-generaded some day?...
 DF.CLEncounterID = {
 	{ID = 2423, Name = "The Tarragrue"},
@@ -4121,6 +4334,10 @@ DF.ClassSpecs = {
 		[269] = true, 
 		[270] = true, 
 	},
+	["EVOKER"] = {
+		[1467] = true,
+		[1468] = true,
+	},
 }
 
 DF.SpecListByClass = {
@@ -4184,6 +4401,10 @@ DF.SpecListByClass = {
 		269, 
 		270, 
 	},
+	["EVOKER"] = {
+		1467,
+		1468,
+	},
 }
 
 --given a class and a  specId, return if the specId is a spec from the class passed
@@ -4229,6 +4450,10 @@ DF.BattlegroundSizes = {
 	[1191] = 25, --Ashran
 	[1803] = 10, --Seething Shore
 }
+
+function DF:GetBattlegroundSize(instanceInfoMapId)
+	return DF.BattlegroundSizes[instanceInfoMapId]
+end
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> execute range
@@ -4327,6 +4552,10 @@ function GetWorldDeltaSeconds()
 	return deltaTimeFrame.deltaTime
 end
 
+function DF:GetWorldDeltaSeconds()
+	return deltaTimeFrame.deltaTime
+end
+
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> build the global script channel for scripts communication
 --send and retrieve data sent by othe users in scripts
@@ -4355,6 +4584,7 @@ end
 						if (Ambiguate (sourceName, "none") == commSource) then
 							local func = DF.RegisteredScriptsComm [ID]
 							if (func) then
+								DF:MakeFunctionSecure(func)
 								DF:Dispatch (func, commSource, select (5, unpack (data))) --this use xpcall
 							end
 						end
@@ -4436,7 +4666,7 @@ do
         if (object) then
             tinsert(self.inUse, object)
 			if (self.onAcquire) then
-				local result, errortext = pcall(self.onAcquire, object)
+				DF:QuickDispatch(self.onAcquire, object)
 			end
 			return object, false
         else
@@ -4445,7 +4675,7 @@ do
             if (newObject) then
 				tinsert(self.inUse, newObject)
 				if (self.onAcquire) then
-					local result, errortext = pcall(self.onAcquire, object)
+					DF:QuickDispatch(self.onAcquire, object)
 				end
 				return newObject, true
             end
@@ -4461,6 +4691,10 @@ do
             if (self.inUse[i] == object) then
                 tremove(self.inUse, i)
                 tinsert(self.notUse, object)
+
+				if (self.onRelease) then
+					DF:QuickDispatch(self.onRelease, object)
+				end
                 break
             end
         end
@@ -4472,7 +4706,7 @@ do
             tinsert(self.notUse, object)
 
 			if (self.onReset) then
-				local result, errortext = pcall(self.onReset, object)
+				DF:QuickDispatch(self.onReset, object)
 			end
         end
 	end
@@ -4506,10 +4740,22 @@ do
 		Hide = hide,
 		Show = show,
 		GetAmount = getamount,
+
+		SetCallbackOnRelease = function(self, func)
+			self.onRelease = func
+		end,
+
 		SetOnReset = function(self, func)
 			self.onReset = func
 		end,
+		SetCallbackOnReleaseAll = function(self, func)
+			self.onReset = func
+		end,
+
 		SetOnAcquire = function(self, func)
+			self.onAcquire = func
+		end,
+		SetCallbackOnGet = function(self, func)
 			self.onAcquire = func
 		end,
     }
@@ -4560,7 +4806,7 @@ end
 		--block run code inside code
 		["RunScript"] = true,
 		["securecall"] = true,
-		["getfenv"] = true,
+		["setfenv"] = true,
 		["getfenv"] = true,
 		["loadstring"] = true,
 		["pcall"] = true,
@@ -4647,6 +4893,10 @@ end
 
 		setmetatable(newEnvironment, environmentHandle)
 		_G.setfenv(func, newEnvironment)
+	end
+
+	function DF:MakeFunctionSecure(func)
+		return DF:SetEnvironment(func)
 	end
 
 
