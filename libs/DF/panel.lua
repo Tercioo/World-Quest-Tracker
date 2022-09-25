@@ -1495,18 +1495,17 @@ function DF:IconPick (callback, close_when_select, param1, param2)
 	
 		DF.IconPickFrame = CreateFrame ("frame", "DetailsFrameworkIconPickFrame", UIParent, "BackdropTemplate")
 		tinsert (UISpecialFrames, "DetailsFrameworkIconPickFrame")
-		DF.IconPickFrame:SetFrameStrata ("TOOLTIP")
+		DF.IconPickFrame:SetFrameStrata ("FULLSCREEN")
 		
 		DF.IconPickFrame:SetPoint ("center", UIParent, "center")
-		DF.IconPickFrame:SetWidth (350)
-		DF.IconPickFrame:SetHeight (277)
+		DF.IconPickFrame:SetWidth (416)
+		DF.IconPickFrame:SetHeight (350)
 		DF.IconPickFrame:EnableMouse (true)
 		DF.IconPickFrame:SetMovable (true)
 		
-		DF:CreateTitleBar (DF.IconPickFrame, "Icon Picker")
+		DF:CreateTitleBar (DF.IconPickFrame, "Details! Framework Icon Picker")
 		
 		DF.IconPickFrame:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
-
 		DF.IconPickFrame:SetBackdropBorderColor (0, 0, 0)
 		DF.IconPickFrame:SetBackdropColor (24/255, 24/255, 24/255, .8)
 		DF.IconPickFrame:SetFrameLevel (5000)
@@ -1559,12 +1558,12 @@ function DF:IconPick (callback, close_when_select, param1, param2)
 			if (DF.IconPickFrame.searching == "") then
 				DF.IconPickFrameScroll:Show()
 				DF.IconPickFrame.searching = nil
-				DF.IconPickFrame.updateFunc()
+				DF.IconPickFrameScroll.RefreshIcons()
 			else
 				DF.IconPickFrameScroll:Hide()
 				FauxScrollFrame_SetOffset (DF.IconPickFrame, 1)
 				DF.IconPickFrame.last_filter_index = 1
-				DF.IconPickFrame.updateFunc()
+				DF.IconPickFrameScroll.RefreshIcons()
 			end
 		end)
 		
@@ -1611,51 +1610,46 @@ function DF:IconPick (callback, close_when_select, param1, param2)
 		DF.IconPickFrame.customIconAccept:SetPoint ("left", DF.IconPickFrame.customIconEntry, "right", 2, 0)
 		
 		--fill with icons
-		
 		local MACRO_ICON_FILENAMES = {}
 		local SPELLNAMES_CACHE = {}
-		
-		local texturePathGetter = DF.IconPickFrame:CreateTexture(nil, "overlay")
 
-		DF.IconPickFrame:SetScript ("OnShow", function()
-			
-			MACRO_ICON_FILENAMES [1] = "INV_MISC_QUESTIONMARK"
+		DF.IconPickFrame:SetScript("OnShow", function()
+			MACRO_ICON_FILENAMES[1] = "INV_MISC_QUESTIONMARK"
 			local index = 2
 	
 			for i = 1, GetNumSpellTabs() do
-				local tab, tabTex, offset, numSpells, _ = GetSpellTabInfo (i)
+				local tab, tabTex, offset, numSpells, _ = GetSpellTabInfo(i)
 				offset = offset + 1
 				local tabEnd = offset + numSpells
 				
 				for j = offset, tabEnd - 1 do
 					--to get spell info by slot, you have to pass in a pet argument
-					local spellType, ID = GetSpellBookItemInfo (j, "player")
+					local spellType, ID = GetSpellBookItemInfo(j, "player")
 					if (spellType ~= "FLYOUT") then
-						MACRO_ICON_FILENAMES [index] = GetSpellBookItemTexture (j, "player") or 0
-						SPELLNAMES_CACHE [index] = GetSpellInfo (ID)
+						MACRO_ICON_FILENAMES [index] = GetSpellBookItemTexture(j, "player") or 0
+						SPELLNAMES_CACHE [index] = GetSpellInfo(ID)
 						index = index + 1
-						
+
 					elseif (spellType == "FLYOUT") then
-						local _, _, numSlots, isKnown = GetFlyoutInfo (ID)
+						local _, _, numSlots, isKnown = GetFlyoutInfo(ID)
 						if (isKnown and numSlots > 0) then
 							for k = 1, numSlots do 
-								local spellID, overrideSpellID, isKnown = GetFlyoutSlotInfo (ID, k)
+								local spellID, overrideSpellID, isKnown = GetFlyoutSlotInfo(ID, k)
 								if (isKnown) then
-									MACRO_ICON_FILENAMES [index] = GetSpellTexture (spellID) or 0
-									SPELLNAMES_CACHE [index] = GetSpellInfo (spellID)
+									MACRO_ICON_FILENAMES [index] = GetSpellTexture(spellID) or 0
+									SPELLNAMES_CACHE [index] = GetSpellInfo(spellID)
 									index = index + 1
 								end
 							end
 						end
-						
 					end
 				end
 			end
 			
-			GetLooseMacroItemIcons (MACRO_ICON_FILENAMES)
-			GetLooseMacroIcons (MACRO_ICON_FILENAMES)
-			GetMacroIcons (MACRO_ICON_FILENAMES)
-			GetMacroItemIcons (MACRO_ICON_FILENAMES)
+			GetLooseMacroItemIcons(MACRO_ICON_FILENAMES)
+			GetLooseMacroIcons(MACRO_ICON_FILENAMES)
+			GetMacroIcons(MACRO_ICON_FILENAMES)
+			GetMacroItemIcons(MACRO_ICON_FILENAMES)
 
 			--reset the custom icon text entry
 			DF.IconPickFrame.customIconEntry:SetText ("")
@@ -1663,16 +1657,16 @@ function DF:IconPick (callback, close_when_select, param1, param2)
 			DF.IconPickFrame.search:SetText ("")
 		end)
 		
-		DF.IconPickFrame:SetScript ("OnHide", function()
-			wipe (MACRO_ICON_FILENAMES)
-			wipe (SPELLNAMES_CACHE)
+		DF.IconPickFrame:SetScript("OnHide", function()
+			wipe(MACRO_ICON_FILENAMES)
+			wipe(SPELLNAMES_CACHE)
 			DF.IconPickFrame.preview:Hide()
 			collectgarbage()
 		end)
 		
 		DF.IconPickFrame.buttons = {}
 		
-		local OnClickFunction = function (self) 
+		local onClickFunction = function(self) 
 		
 			DF:QuickDispatch (DF.IconPickFrame.callback, self.icon:GetTexture(), DF.IconPickFrame.param1, DF.IconPickFrame.param2)
 			
@@ -1681,208 +1675,158 @@ function DF:IconPick (callback, close_when_select, param1, param2)
 			end
 		end
 		
-		local onenter = function (self)
+		local onEnter = function (self)
 			DF.IconPickFrame.preview:SetPoint ("bottom", self, "top", 0, 2)
-			DF.IconPickFrame.preview.icon:SetTexture (self.icon:GetTexture())
+			DF.IconPickFrame.preview.icon:SetTexture(self.icon:GetTexture())
 			DF.IconPickFrame.preview:Show()
 			self.icon:SetBlendMode ("ADD")
 		end
-		local onleave = function (self)
+		local onLeave = function (self)
 			DF.IconPickFrame.preview:Hide()
 			self.icon:SetBlendMode ("BLEND")
 		end
 		
 		local backdrop = {bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tile = true, tileSize = 16,
 		insets = {left = 0, right = 0, top = 0, bottom = 0}, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1}
-		
-		for i = 0, 9 do 
-			local newcheck = CreateFrame ("Button", "DetailsFrameworkIconPickFrameButton"..(i+1), DF.IconPickFrame, "BackdropTemplate")
-			local image = newcheck:CreateTexture ("DetailsFrameworkIconPickFrameButton"..(i+1).."Icon", "overlay")
-			newcheck.icon = image
-			image:SetPoint ("topleft", newcheck, "topleft", 2, -2) image:SetPoint ("bottomright", newcheck, "bottomright", -2, 2)
-			newcheck:SetSize (30, 28)
-			newcheck:SetBackdrop (backdrop)
-			
-			newcheck:SetScript ("OnClick", OnClickFunction)
-			newcheck.param1 = i+1
-			
-			newcheck:SetPoint ("topleft", DF.IconPickFrame, "topleft", 12 + (i*30), -60)
-			newcheck:SetID (i+1)
-			DF.IconPickFrame.buttons [#DF.IconPickFrame.buttons+1] = newcheck
-			newcheck:SetScript ("OnEnter", onenter)
-			newcheck:SetScript ("OnLeave", onleave)
-		end
-		for i = 11, 20 do
-			local newcheck = CreateFrame ("Button", "DetailsFrameworkIconPickFrameButton"..i, DF.IconPickFrame, "BackdropTemplate")
-			local image = newcheck:CreateTexture ("DetailsFrameworkIconPickFrameButton"..i.."Icon", "overlay")
-			newcheck.icon = image
-			image:SetPoint ("topleft", newcheck, "topleft", 2, -2) image:SetPoint ("bottomright", newcheck, "bottomright", -2, 2)
-			newcheck:SetSize (30, 28)
-			newcheck:SetBackdrop (backdrop)
-			
-			newcheck:SetScript ("OnClick", OnClickFunction)
-			newcheck.param1 = i
-			
-			newcheck:SetPoint ("topleft", "DetailsFrameworkIconPickFrameButton"..(i-10), "bottomleft", 0, -1)
-			newcheck:SetID (i)
-			DF.IconPickFrame.buttons [#DF.IconPickFrame.buttons+1] = newcheck
-			newcheck:SetScript ("OnEnter", onenter)
-			newcheck:SetScript ("OnLeave", onleave)
-		end
-		for i = 21, 30 do 
-			local newcheck = CreateFrame ("Button", "DetailsFrameworkIconPickFrameButton"..i, DF.IconPickFrame, "BackdropTemplate")
-			local image = newcheck:CreateTexture ("DetailsFrameworkIconPickFrameButton"..i.."Icon", "overlay")
-			newcheck.icon = image
-			image:SetPoint ("topleft", newcheck, "topleft", 2, -2) image:SetPoint ("bottomright", newcheck, "bottomright", -2, 2)
-			newcheck:SetSize (30, 28)
-			newcheck:SetBackdrop (backdrop)
-			
-			newcheck:SetScript ("OnClick", OnClickFunction)
-			newcheck.param1 = i
-			
-			newcheck:SetPoint ("topleft", "DetailsFrameworkIconPickFrameButton"..(i-10), "bottomleft", 0, -1)
-			newcheck:SetID (i)
-			DF.IconPickFrame.buttons [#DF.IconPickFrame.buttons+1] = newcheck
-			newcheck:SetScript ("OnEnter", onenter)
-			newcheck:SetScript ("OnLeave", onleave)
-		end
-		for i = 31, 40 do 
-			local newcheck = CreateFrame ("Button", "DetailsFrameworkIconPickFrameButton"..i, DF.IconPickFrame, "BackdropTemplate")
-			local image = newcheck:CreateTexture ("DetailsFrameworkIconPickFrameButton"..i.."Icon", "overlay")
-			newcheck.icon = image
-			image:SetPoint ("topleft", newcheck, "topleft", 2, -2) image:SetPoint ("bottomright", newcheck, "bottomright", -2, 2)
-			newcheck:SetSize (30, 28)
-			newcheck:SetBackdrop (backdrop)
-			
-			newcheck:SetScript ("OnClick", OnClickFunction)
-			newcheck.param1 = i
-			
-			newcheck:SetPoint ("topleft", "DetailsFrameworkIconPickFrameButton"..(i-10), "bottomleft", 0, -1)
-			newcheck:SetID (i)
-			DF.IconPickFrame.buttons [#DF.IconPickFrame.buttons+1] = newcheck
-			newcheck:SetScript ("OnEnter", onenter)
-			newcheck:SetScript ("OnLeave", onleave)
-		end
-		for i = 41, 50 do 
-			local newcheck = CreateFrame ("Button", "DetailsFrameworkIconPickFrameButton"..i, DF.IconPickFrame, "BackdropTemplate")
-			local image = newcheck:CreateTexture ("DetailsFrameworkIconPickFrameButton"..i.."Icon", "overlay")
-			newcheck.icon = image
-			image:SetPoint ("topleft", newcheck, "topleft", 2, -2) image:SetPoint ("bottomright", newcheck, "bottomright", -2, 2)
-			newcheck:SetSize (30, 28)
-			newcheck:SetBackdrop (backdrop)
-			
-			newcheck:SetScript ("OnClick", OnClickFunction)
-			newcheck.param1 = i
-			
-			newcheck:SetPoint ("topleft", "DetailsFrameworkIconPickFrameButton"..(i-10), "bottomleft", 0, -1)
-			newcheck:SetID (i)
-			DF.IconPickFrame.buttons [#DF.IconPickFrame.buttons+1] = newcheck
-			newcheck:SetScript ("OnEnter", onenter)
-			newcheck:SetScript ("OnLeave", onleave)
-		end
-		for i = 51, 60 do 
-			local newcheck = CreateFrame ("Button", "DetailsFrameworkIconPickFrameButton"..i, DF.IconPickFrame, "BackdropTemplate")
-			local image = newcheck:CreateTexture ("DetailsFrameworkIconPickFrameButton"..i.."Icon", "overlay")
-			newcheck.icon = image
-			image:SetPoint ("topleft", newcheck, "topleft", 2, -2) image:SetPoint ("bottomright", newcheck, "bottomright", -2, 2)
-			newcheck:SetSize (30, 28)
-			newcheck:SetBackdrop (backdrop)
-			
-			newcheck:SetScript ("OnClick", OnClickFunction)
-			newcheck.param1 = i
-			
-			newcheck:SetPoint ("topleft", "DetailsFrameworkIconPickFrameButton"..(i-10), "bottomleft", 0, -1)
-			newcheck:SetID (i)
-			DF.IconPickFrame.buttons [#DF.IconPickFrame.buttons+1] = newcheck
-			newcheck:SetScript ("OnEnter", onenter)
-			newcheck:SetScript ("OnLeave", onleave)
-		end
 
 		for _, button in ipairs(DF.IconPickFrame.buttons) do
 			button:SetBackdropBorderColor(0, 0, 0, 1)
 		end
 		
-		local scroll = CreateFrame ("ScrollFrame", "DetailsFrameworkIconPickFrameScroll", DF.IconPickFrame, "ListScrollFrameTemplate", "BackdropTemplate")
-		DF:ReskinSlider (scroll)
+		local width = 412
+		local height = 248
+		local linesAmount = 6
+		local lineHeight = 40
 
-		local ChecksFrame_Update = function (self)
-
-			local numMacroIcons = #MACRO_ICON_FILENAMES
-			local macroPopupIcon, macroPopupButton
-			local macroPopupOffset = FauxScrollFrame_GetOffset (scroll)
-			local index
-
-			local texture
-			local filter
-			if (DF.IconPickFrame.searching) then
-				filter = string_lower (DF.IconPickFrame.searching)
-			end
-
-			local pool
-			local shown = 0
-			
-			if (filter and filter ~= "") then
-				--do the filter
-				pool = {}
-				for i = 1, #SPELLNAMES_CACHE do
-					if (SPELLNAMES_CACHE [i] and SPELLNAMES_CACHE [i]:lower():find (filter)) then
-						pool [#pool+1] = MACRO_ICON_FILENAMES [i]
-						shown = shown + 1
+		local updateIconScroll = function(self, data, offset, totalLines)
+            for i = 1, totalLines do
+                local index = i + offset
+                local iconsInThisLine = data[index]
+				if (iconsInThisLine) then
+					local line = self:GetLine(i)
+                    for o = 1, #iconsInThisLine do
+						local _, _, texture = GetSpellInfo(iconsInThisLine[o])
+						if (texture) then
+							line.buttons[o].icon:SetTexture(texture)
+							line.buttons[o].texture = texture
+						else
+							line.buttons[o].icon:SetTexture(iconsInThisLine[o])
+							line.buttons[o].texture = iconsInThisLine[o]
+						end
 					end
 				end
-			else
-				shown = nil
 			end
-			
-			if (not pool) then
-				pool = MACRO_ICON_FILENAMES
-			end
-			
-			for i = 1, 60 do
-				macroPopupIcon = _G ["DetailsFrameworkIconPickFrameButton"..i.."Icon"]
-				macroPopupButton = _G ["DetailsFrameworkIconPickFrameButton"..i]
-				index = (macroPopupOffset * 10) + i
-				texture = pool [index]
-				if ( index <= numMacroIcons and texture ) then
-
-					if (type (texture) == "number") then
-						macroPopupIcon:SetTexture (texture)
-					else
-						macroPopupIcon:SetTexture ("INTERFACE\\ICONS\\" .. texture)
-					end
-
-					macroPopupIcon:SetTexCoord (4/64, 60/64, 4/64, 60/64)
-					macroPopupButton.IconID = index
-					macroPopupButton:Show()
-				else
-					macroPopupButton:Hide()
-				end
-			end
-
-			pool = nil
-			
-			-- Scrollbar stuff
-			FauxScrollFrame_Update (scroll, ceil ((shown or numMacroIcons) / 10) , 5, 20 )
 		end
 
-		DF.IconPickFrame.updateFunc = ChecksFrame_Update
-		
-		scroll:SetPoint ("topleft", DF.IconPickFrame, "topleft", -18, -58)
-		scroll:SetWidth (330)
-		scroll:SetHeight (178)
-		scroll:SetScript ("OnVerticalScroll", function (self, offset) FauxScrollFrame_OnVerticalScroll (scroll, offset, 20, ChecksFrame_Update) end)
-		scroll.update = ChecksFrame_Update
+		local lower = string.lower
+
+		local scroll = DF:CreateScrollBox(DF.IconPickFrame, "DetailsFrameworkIconPickFrameScroll", updateIconScroll, {}, width, height, linesAmount, lineHeight)
+		DF:ReskinSlider(scroll)
+		scroll:SetPoint ("topleft", DF.IconPickFrame, "topleft", 2, -58)
+
+		function scroll.RefreshIcons()
+			--build icon list
+			local iconList = {}
+			local numMacroIcons = #MACRO_ICON_FILENAMES
+
+			local filter
+			if (DF.IconPickFrame.searching) then
+				filter = lower(DF.IconPickFrame.searching)
+			end
+
+			if (filter and filter ~= "") then
+				local index
+				local currentTable
+				for i = 1, #SPELLNAMES_CACHE do
+					if (SPELLNAMES_CACHE[i] and SPELLNAMES_CACHE[i]:lower():find(filter)) then
+						if (not index) then
+							index = 1
+							local t = {}
+							iconList[#iconList+1] = t
+							currentTable = t
+						end
+
+						currentTable[index] = SPELLNAMES_CACHE[i]
+
+						index = index + 1
+						if (index == 11) then
+							index = nil
+						end
+					end
+
+				end
+			else
+				for i = 1, #SPELLNAMES_CACHE, 10 do
+					local t = {}
+					iconList[#iconList+1] = t
+					for o = i, i+9 do
+						if (SPELLNAMES_CACHE[o]) then
+							t[#t+1] = SPELLNAMES_CACHE[o]
+						end
+					end
+				end
+
+				for i = 1, #MACRO_ICON_FILENAMES, 10 do
+					local t = {}
+					iconList[#iconList+1] = t
+					for o = i, i+9 do
+						if (MACRO_ICON_FILENAMES[o]) then
+							t[#t+1] = MACRO_ICON_FILENAMES[o]
+						end
+					end
+				end
+			end
+
+			--set data and refresh
+			scroll:SetData(iconList)
+			scroll:Refresh()
+		end
+
+		--create the lines and button of the scroll box
+		for i = 1, linesAmount do
+			scroll:CreateLine(function(self, index)
+				local line = CreateFrame("button", "$parentLine" .. index, self, "BackdropTemplate")
+				line:SetPoint("topleft", self, "topleft", 1, -((index-1)*(lineHeight+1)) - 1)
+				line:SetSize(width - 2, lineHeight)
+				line:SetBackdrop({bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
+				line:SetBackdropColor(.2, .2, .2, .5)
+				line.buttons = {}
+			
+				local lastButton
+
+				for o = 1, 10 do
+					local button = CreateFrame("button", "$parentIcon" .. o, line)
+					if (not lastButton) then
+						button:SetPoint("left", line, "left", 0, 0)
+					else
+						button:SetPoint("left", lastButton, "right", 1, 0)
+					end
+					button:SetSize(lineHeight, lineHeight)
+					button.icon = button:CreateTexture("$parentIcon", "overlay")
+					button.icon:SetAllPoints()
+					button.icon:SetTexCoord(.1, .9, .1, .9)
+					line.buttons[o] = button
+
+					button:SetScript("OnEnter", onEnter)
+					button:SetScript("OnLeave", onLeave)
+					button:SetScript("OnClick", onClickFunction)
+
+					lastButton = button
+				end
+
+				return line
+			end)
+		end
+
 		DF.IconPickFrameScroll = scroll
 		DF.IconPickFrame:Hide()
-		
 	end
 	
 	DF.IconPickFrame.param1, DF.IconPickFrame.param2 = param1, param2
-	
 	DF.IconPickFrame:Show()
-	DF.IconPickFrameScroll.update (DF.IconPickFrameScroll)
 	DF.IconPickFrame.callback = callback or DF.IconPickFrame.emptyFunction
 	DF.IconPickFrame.click_close = close_when_select
+	DF.IconPickFrameScroll.RefreshIcons()
 	
 end	
 
@@ -4287,196 +4231,28 @@ end
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- ~scrollbox
 
-DF.SortFunctions = {}
-
-local SortMember = ""
-local SortByMember = function (t1, t2)
-	return t1[SortMember] > t2[SortMember]
-end
-local SortByMemberReverse = function (t1, t2)
-	return t1[SortMember] < t2[SortMember]
-end
-
-DF.SortFunctions.Sort = function (self, t, by, is_reverse)
-	SortMember = by
-	if (not is_reverse) then
-		table.sort (t, SortByMember)
-	else
-		table.sort (t, SortByMemberReverse)
-	end
-end
-
-
-DF.ScrollBoxFunctions = {}
-
-DF.ScrollBoxFunctions.Refresh = function (self)
-	for _, frame in ipairs (self.Frames) do 
-		frame:Hide()
-		frame._InUse = nil
-	end
+function DF:CreateScrollBox (parent, name, refreshFunc, data, width, height, lineAmount, lineHeight, createLineFunc, autoAmount, noScroll)
+	local scroll = CreateFrame("scrollframe", name, parent, "FauxScrollFrameTemplate, BackdropTemplate")
 	
-	local offset = 0
-	if (self.IsFauxScroll) then
-		FauxScrollFrame_Update (self, #self.data, self.LineAmount, self.LineHeight)
-		offset = FauxScrollFrame_GetOffset (self)
-	end	
-	
-	DF:CoreDispatch ((self:GetName() or "ScrollBox") .. ":Refresh()", self.refresh_func, self, self.data, offset, self.LineAmount)
-
-	for _, frame in ipairs (self.Frames) do 
-		if (not frame._InUse) then
-			frame:Hide()
-		else
-			frame:Show()
-		end
-	end
-	
-	self:Show()
-	
-	if (self.HideScrollBar) then
-		local frameName = self:GetName()
-		if (frameName) then
-			local scrollBar = _G [frameName .. "ScrollBar"]
-			if (scrollBar) then
-				scrollBar:Hide()
-			end
-		else
-		
-		end
-		
-	end
-	
-	return self.Frames
-end
-
-DF.ScrollBoxFunctions.OnVerticalScroll = function (self, offset)
-	FauxScrollFrame_OnVerticalScroll (self, offset, self.LineHeight, self.Refresh)
-	return true
-end
-
-DF.ScrollBoxFunctions.CreateLine = function (self, func)
-	if (not func) then
-		func = self.CreateLineFunc
-	end
-	local okay, newLine = pcall (func, self, #self.Frames+1)
-	if (okay) then
-		tinsert (self.Frames, newLine)
-		newLine.Index = #self.Frames
-		return newLine
-	else
-		error ("Details! FrameWork: CreateLine(): " .. newLine)
-	end
-end
-
-DF.ScrollBoxFunctions.GetLine = function (self, line_index)
-	local line = self.Frames [line_index]
-	if (line) then
-		line._InUse = true
-	end
-	return line
-end
-
-DF.ScrollBoxFunctions.SetData = function (self, data)
-	self.data = data
-end
-DF.ScrollBoxFunctions.GetData = function (self)
-	return self.data
-end
-
-DF.ScrollBoxFunctions.GetFrames = function (self)
-	return self.Frames
-end
-
-DF.ScrollBoxFunctions.GetLines = function (self) --alias of GetFrames
-	return self.Frames
-end
-
-DF.ScrollBoxFunctions.GetNumFramesCreated = function (self)
-	return #self.Frames
-end
-
-DF.ScrollBoxFunctions.GetNumFramesShown = function (self)
-	return self.LineAmount
-end
-
-DF.ScrollBoxFunctions.SetNumFramesShown = function (self, new_amount)
-	--> hide frames which won't be used
-	if (new_amount < #self.Frames) then
-		for i = new_amount+1, #self.Frames do
-			self.Frames [i]:Hide()
-		end
-	end
-	
-	--> set the new amount
-	self.LineAmount = new_amount
-end
-
-DF.ScrollBoxFunctions.SetFramesHeight = function (self, new_height)
-	self.LineHeight = new_height
-	self:OnSizeChanged()
-	self:Refresh()
-end
-
-DF.ScrollBoxFunctions.OnSizeChanged = function (self)
-	if (self.ReajustNumFrames) then
-		--> how many lines the scroll can show
-		local amountOfFramesToShow = floor (self:GetHeight() / self.LineHeight)
-		
-		--> how many lines the scroll already have
-		local totalFramesCreated = self:GetNumFramesCreated()
-		
-		--> how many lines are current shown
-		local totalFramesShown = self:GetNumFramesShown()
-
-		--> the amount of frames increased
-		if (amountOfFramesToShow > totalFramesShown) then
-			for i = totalFramesShown+1, amountOfFramesToShow do
-				--> check if need to create a new line
-				if (i > totalFramesCreated) then
-					self:CreateLine (self.CreateLineFunc)
-				end
-			end
-			
-		--> the amount of frames decreased
-		elseif (amountOfFramesToShow < totalFramesShown) then
-			--> hide all frames above the new amount to show
-			for i = totalFramesCreated, amountOfFramesToShow, -1 do
-				if (self.Frames [i]) then
-					self.Frames [i]:Hide()
-				end
-			end
-		end
-
-		--> set the new amount of frames
-		self:SetNumFramesShown (amountOfFramesToShow)
-		
-		--> refresh lines
-		self:Refresh()
-	end
-end
-
-function DF:CreateScrollBox (parent, name, refresh_func, data, width, height, line_amount, line_height, create_line_func, auto_amount, no_scroll)
-	local scroll = CreateFrame ("scrollframe", name, parent, "FauxScrollFrameTemplate,BackdropTemplate")
-	
-	DF:ApplyStandardBackdrop (scroll)
+	DF:ApplyStandardBackdrop(scroll)
 	
 	scroll:SetSize (width, height)
-	scroll.LineAmount = line_amount
-	scroll.LineHeight = line_height
+	scroll.LineAmount = lineAmount
+	scroll.LineHeight = lineHeight
 	scroll.IsFauxScroll = true
-	scroll.HideScrollBar = no_scroll
+	scroll.HideScrollBar = noScroll
 	scroll.Frames = {}
-	scroll.ReajustNumFrames = auto_amount
-	scroll.CreateLineFunc = create_line_func
+	scroll.ReajustNumFrames = autoAmount
+	scroll.CreateLineFunc = createLineFunc
 	
-	DF:Mixin (scroll, DF.SortFunctions)
-	DF:Mixin (scroll, DF.ScrollBoxFunctions)
+	DF:Mixin(scroll, DF.SortFunctions)
+	DF:Mixin(scroll, DF.ScrollBoxFunctions)
 	
-	scroll.refresh_func = refresh_func
+	scroll.refresh_func = refreshFunc
 	scroll.data = data
 	
-	scroll:SetScript ("OnVerticalScroll", scroll.OnVerticalScroll)
-	scroll:SetScript ("OnSizeChanged", DF.ScrollBoxFunctions.OnSizeChanged)
+	scroll:SetScript("OnVerticalScroll", scroll.OnVerticalScroll)
+	scroll:SetScript("OnSizeChanged", DF.ScrollBoxFunctions.OnSizeChanged)
 	
 	return scroll
 end
@@ -7344,15 +7120,30 @@ end
 --]=]
 
 DF.StatusBarFunctions = {
-	
-	GetTexture = function (self)
-		return self.barTexture:GetTexture()
-	end,
-	
 	SetTexture = function (self, texture)
 		self.barTexture:SetTexture (texture)
 	end,
-	
+
+	GetTexture = function (self)
+		return self.barTexture:GetTexture()
+	end,
+
+	SetAtlas = function(self, atlasName)
+		self.barTexture:SetAtlas(atlasName)
+	end,
+
+	GetAtlas = function(self)
+		self.barTexture:GetAtlas()
+	end,
+
+	SetTexCoord = function(self, ...)
+		return self.barTexture:SetTexCoord(...)
+	end,
+
+	GetTexCoord = function(self)
+		return self.barTexture:GetTexCoord()
+	end,
+
 	SetColor = function (self, r, g, b, a)
 		r, g, b, a = DF:ParseColors (r, g, b, a)
 		self:SetStatusBarColor (r, g, b, a)
@@ -7361,7 +7152,151 @@ DF.StatusBarFunctions = {
 	GetColor = function (self)
 		return self:GetStatusBarColor()
 	end,
-	
+
+	SetMaskTexture = function(self, ...)
+		if (not self:HasTextureMask()) then
+			return
+		end
+		self.barTextureMask:SetTexture(...)
+	end,
+
+	GetMaskTexture = function(self)
+		if (not self:HasTextureMask()) then
+			return
+		end
+		self.barTextureMask:GetTexture()
+	end,
+
+	--SetMaskTexCoord = function(self, ...) --MaskTexture doesn't not support texcoord
+	--	if (not self:HasTextureMask()) then
+	--		return
+	--	end
+	--	self.barTextureMask:SetTexCoord(...)
+	--end,
+
+	--GetMaskTexCoord = function(self, ...)
+	--	if (not self:HasTextureMask()) then
+	--		return
+	--	end
+	--	self.barTextureMask:GetTexCoord()
+	--end,
+
+	SetMaskAtlas = function(self, atlasName)
+		if (not self:HasTextureMask()) then
+			return
+		end
+		self.barTextureMask:SetAtlas(atlasName)
+	end,
+
+	GetMaskAtlas = function(self)
+		if (not self:HasTextureMask()) then
+			return
+		end
+		self.barTextureMask:GetAtlas()
+	end,
+
+	AddMaskTexture = function(self, object)
+		if (not self:HasTextureMask()) then
+			return
+		end
+		if (object.GetObjectType and object:GetObjectType() == "Texture") then
+			object:AddMaskTexture(self.barTextureMask)
+		else
+			DF:Msg("Invalid 'Texture' to object:AddMaskTexture(Texture)", debugstack())
+		end
+	end,
+
+	CreateTextureMask = function(self)
+		local barTexture = self:GetStatusBarTexture() or self.barTexture
+		if (not barTexture) then
+			DF:Msg("Object doesn't not have a statubar texture, create one and object:SetStatusBarTexture(textureObject)", debugstack())
+			return
+		end
+
+		if (self.barTextureMask) then
+			return self.barTextureMask
+		end
+
+		--statusbar texture mask
+		self.barTextureMask = self:CreateMaskTexture(nil, "artwork")
+		self.barTextureMask:SetAllPoints()
+		self.barTextureMask:SetTexture([[Interface\CHATFRAME\CHATFRAMEBACKGROUND]])
+
+		--border texture
+		self.barBorderTextureForMask = self:CreateTexture(nil, "artwork", nil, 7)
+		self.barBorderTextureForMask:SetAllPoints()
+		self.barBorderTextureForMask:Hide()
+
+		barTexture:AddMaskTexture(self.barTextureMask)
+
+		return self.barTextureMask
+	end,
+
+	HasTextureMask = function(self)
+		if (not self.barTextureMask) then
+			DF:Msg("Object doesn't not have a texture mask, create one using object:CreateTextureMask()", debugstack())
+			return false
+		end
+		return true
+	end,
+
+	SetBorderTexture = function(self, texture)
+		if (not self:HasTextureMask()) then
+			return
+		end
+
+		texture = texture or ""
+
+		self.barBorderTextureForMask:SetTexture(texture)
+
+		if (texture == "") then
+			self.barBorderTextureForMask:Hide()
+		else
+			self.barBorderTextureForMask:Show()
+		end
+	end,
+
+	GetBorderTexture = function(self)
+		if (not self:HasTextureMask()) then
+			return
+		end
+		return self.barBorderTextureForMask:GetTexture()
+	end,
+
+	SetBorderColor = function(self, r, g, b, a)
+		r, g, b, a = DF:ParseColors(r, g, b, a)
+
+		if (self.barBorderTextureForMask and self.barBorderTextureForMask:IsShown()) then
+			self.barBorderTextureForMask:SetVertexColor(r, g, b, a)
+
+			--if there's a square border on the widget, remove its color
+			if (self.border and self.border.UpdateSizes and self.border.SetVertexColor) then
+				self.border:SetVertexColor(0, 0, 0, 0)
+			end
+
+			return
+		end
+
+		if (self.border and self.border.UpdateSizes and self.border.SetVertexColor) then
+			self.border:SetVertexColor(r, g, b, a)
+
+			--adjust the mask border texture ask well in case the user set the mask color texture before setting a texture on it
+			if (self.barBorderTextureForMask) then
+				self.barBorderTextureForMask:SetVertexColor(r, g, b, a)
+			end
+			return
+		end
+	end,
+
+	GetBorderColor = function(self)
+		if (self.barBorderTextureForMask and self.barBorderTextureForMask:IsShown()) then
+			return self.barBorderTextureForMask:GetVertexColor()
+		end
+
+		if (self.border and self.border.UpdateSizes and self.border.GetVertexColor) then
+			return self.border:GetVertexColor()
+		end
+	end,
 }
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -7772,6 +7707,8 @@ function DF:CreateHealthBar (parent, name, settingsOverride)
 	--> mixins
 	DF:Mixin (healthBar, healthBarMetaFunctions)
 	DF:Mixin (healthBar, DF.StatusBarFunctions)
+
+	healthBar:CreateTextureMask()
 	
 	--> settings and hooks
 	local settings = DF.table.copy ({}, healthBarMetaFunctions.Settings)
@@ -8028,7 +7965,7 @@ function DF:CreatePowerBar (parent, name, settingsOverride)
 			--artwork
 			powerBar.barTexture = powerBar:CreateTexture (nil, "artwork")
 			powerBar:SetStatusBarTexture (powerBar.barTexture)
-			
+
 			--overlay
 			powerBar.percentText = powerBar:CreateFontString (nil, "overlay", "GameFontNormal")
 		end
@@ -8036,6 +7973,8 @@ function DF:CreatePowerBar (parent, name, settingsOverride)
 	--> mixins
 	DF:Mixin (powerBar, DF.PowerFrameFunctions)
 	DF:Mixin (powerBar, DF.StatusBarFunctions)
+
+	powerBar:CreateTextureMask()
 	
 	--> settings and hooks
 	local settings = DF.table.copy ({}, DF.PowerFrameFunctions.Settings)
@@ -9002,27 +8941,21 @@ function DF:CreateCastBar (parent, name, settingsOverride)
 			--this should make Plater core and Plater scripts made by users compatible with the new unit frame made on the framework
 		
 			--background
-			castBar.background = castBar:CreateTexture (nil, "background")
-			castBar.background:SetDrawLayer ("background", -6)
-			
-			castBar.extraBackground = castBar:CreateTexture (nil, "background")
-			castBar.extraBackground:SetDrawLayer ("background", -5)
+			castBar.background = castBar:CreateTexture (nil, "background", nil, -6)
+			castBar.extraBackground = castBar:CreateTexture (nil, "background", nil, -5)
 			
 			--overlay
 			castBar.Text = castBar:CreateFontString (nil, "overlay", "SystemFont_Shadow_Small")
-			castBar.Text:SetPoint ("center", 0, 0)
 			castBar.Text:SetDrawLayer ("overlay", 1)
+			castBar.Text:SetPoint ("center", 0, 0)
 			
-			castBar.BorderShield = castBar:CreateTexture (nil, "overlay")
-			castBar.BorderShield:SetDrawLayer ("overlay", 5)
+			castBar.BorderShield = castBar:CreateTexture (nil, "overlay", nil, 5)
 			castBar.BorderShield:Hide()
 			
-			castBar.Icon = castBar:CreateTexture (nil, "overlay")
-			castBar.Icon:SetDrawLayer ("overlay", 4)
+			castBar.Icon = castBar:CreateTexture (nil, "overlay", nil, 4)
 			castBar.Icon:Hide()
 			
-			castBar.Spark = castBar:CreateTexture (nil, "overlay")
-			castBar.Spark:SetDrawLayer ("overlay", 3)
+			castBar.Spark = castBar:CreateTexture (nil, "overlay", nil, 3)
 			castBar.Spark:SetBlendMode ("ADD")
 			
 			--time left on the cast
@@ -9030,7 +8963,7 @@ function DF:CreateCastBar (parent, name, settingsOverride)
 			castBar.percentText:SetDrawLayer ("overlay", 7)
 			
 			--statusbar texture
-			castBar.barTexture = castBar:CreateTexture (nil, "artwork")
+			castBar.barTexture = castBar:CreateTexture (nil, "artwork", nil, -6)
 			castBar:SetStatusBarTexture (castBar.barTexture)
 			
 			--animations fade in and out
@@ -9043,8 +8976,7 @@ function DF:CreateCastBar (parent, name, settingsOverride)
 			castBar.fadeInAnimation = fadeInAnimationHub
 			
 			--animatios flash
-			local flashTexture = castBar:CreateTexture (nil, "overlay")
-			flashTexture:SetDrawLayer ("overlay", 7)
+			local flashTexture = castBar:CreateTexture (nil, "overlay", nil, 7)
 			flashTexture:SetColorTexture (1, 1, 1, 1)
 			flashTexture:SetAllPoints()
 			flashTexture:SetAlpha (0)
@@ -9061,6 +8993,11 @@ function DF:CreateCastBar (parent, name, settingsOverride)
 	--> mixins
 	DF:Mixin (castBar, DF.CastFrameFunctions)
 	DF:Mixin (castBar, DF.StatusBarFunctions)
+
+	castBar:CreateTextureMask()
+	castBar:AddMaskTexture(castBar.flashTexture)
+	castBar:AddMaskTexture(castBar.background)
+	castBar:AddMaskTexture(castBar.extraBackground)
 	
 	--> settings and hooks
 	local settings = DF.table.copy ({}, DF.CastFrameFunctions.Settings)
