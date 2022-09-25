@@ -455,9 +455,13 @@ local ButtonMetaFunctions = _G[DF.GlobalWidgetControlNames ["button"]]
 			self.widget.text:SetPoint ("left", self.icon, "right", textDistance or 2, 0 + (textHeight or 0))
 		end
 
-		local isAtlas = C_Texture.GetAtlasInfo(texture)
-		if (isAtlas) then
-			self.icon:SetAtlas(texture)
+		if (type(texture) == "string") then
+			local isAtlas = C_Texture.GetAtlasInfo(texture)
+			if (isAtlas) then
+				self.icon:SetAtlas(texture)
+			else
+				self.icon:SetTexture(texture)
+			end
 		else
 			self.icon:SetTexture(texture)
 		end
