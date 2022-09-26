@@ -6,6 +6,55 @@ end
 
 local _
 
+DF.DefaultMetaFunctionsGet = {
+	parent = function(object)
+		return object:GetParent()
+	end,
+}
+
+DF.DefaultMetaFunctionsSet = {
+	parent = function(object, value)
+		return object:SetParent(value)
+	end,
+}
+
+DF.SetPointMixin = {
+	SetPoint = function(object, achorName1, anchorObject, anchorName2, xOffset, yOffset)
+		xOffset = xOffset or 0
+		yOffset = yOffset or 0
+
+		--offset always inset to inner
+		if (achorName1 == "lefts") then
+			object:SetAllPoints()
+			object:SetPoint("topleft", anchorObject, "topleft", xOffset, -yOffset)
+			object:SetPoint("bottomleft", anchorObject, "bottomleft", xOffset, yOffset)
+			return
+
+		elseif (achorName1 == "rights") then
+			object:SetPoint("topright", anchorObject, "topright", xOffset, -yOffset)
+			object:SetPoint("bottomright", anchorObject, "bottomright", xOffset, yOffset)
+			return
+
+		elseif (achorName1 == "tops") then
+			object:SetPoint("topleft", anchorObject, "topleft", xOffset, -yOffset)
+			object:SetPoint("topright", anchorObject, "topright", -xOffset, -yOffset)
+			return
+
+		elseif (achorName1 == "bottoms") then
+			object:SetPoint("bottomleft", anchorObject, "bottomleft", xOffset, yOffset)
+			object:SetPoint("bottomright", anchorObject, "bottomright", -xOffset, yOffset)
+			return
+		end
+
+		achorName1, anchorObject, anchorName2, xOffset, yOffset = DF:CheckPoints(achorName1, anchorObject, anchorName2, xOffset, yOffset, object)
+		if (not achorName1) then
+			error("SetPoint: Invalid parameter.")
+			return
+		end
+		return object.widget:SetPoint(achorName1, anchorObject, anchorName2, xOffset, yOffset)
+	end,
+}
+
 --mixin for options functions
 DF.OptionsFunctions = {
 	SetOption = function (self, optionName, optionValue)

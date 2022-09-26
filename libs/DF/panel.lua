@@ -4858,34 +4858,36 @@ end
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- ~standard backdrop
 
-function DF:ApplyStandardBackdrop (f, darkTheme, alphaScale)
+function DF:ApplyStandardBackdrop(frame, darkTheme, alphaScale)
 	alphaScale = alphaScale or 1.0
 
-	if(not f.SetBackdrop)then
+	if (not frame.SetBackdrop)then
 		--print(debugstack(1,2,1))
-		Mixin(f, BackdropTemplateMixin)
+		Mixin(frame, BackdropTemplateMixin)
 	end
 
 	if (darkTheme) then
-		f:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Cooldown\cooldown2]], tileSize = 32, tile = true})
-		f:SetBackdropBorderColor (0, 0, 0, 1)
-		f:SetBackdropColor (.54, .54, .54, .54 * alphaScale)
+		frame:SetBackdrop({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Cooldown\cooldown2]], tileSize = 32, tile = true})
+		frame:SetBackdropBorderColor(0, 0, 0, 1)
+		frame:SetBackdropColor(.54, .54, .54, .54 * alphaScale)
+
 	else
-		f:SetBackdrop ({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
-		f:SetBackdropBorderColor (0, 0, 0, 1)
-		f:SetBackdropColor (0, 0, 0, 0.2 * alphaScale)
+		frame:SetBackdrop({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
+		frame:SetBackdropBorderColor(0, 0, 0, 1)
+		frame:SetBackdropColor(0.1215, 0.1176, 0.1294, 0.2 * alphaScale)
 	end
 	
-	if (not f.__background) then
-		f.__background = f:CreateTexture (nil, "background")
+	if (not frame.__background) then
+		frame.__background = frame:CreateTexture(nil, "background")
+		frame.__background:SetColorTexture(0.1215, 0.1176, 0.1294, 0.99)
+		frame.__background:SetAllPoints()
 	end
-	
-	f.__background:SetColorTexture (0.2317647, 0.2317647, 0.2317647)
-	f.__background:SetVertexColor (0.27, 0.27, 0.27)
-	f.__background:SetAlpha (0.8 * alphaScale)
-	f.__background:SetVertTile (true)
-	f.__background:SetHorizTile (true)
-	f.__background:SetAllPoints()
+
+	--frame.innerBorderTexture = frame:CreateTexture(nil, "overlay")
+	--frame.innerBorderTexture:SetAllPoints()
+	--frame.innerBorderTexture:SetAtlas("Options_InnerFrame")
+
+	frame.__background:SetAlpha(0.8 * alphaScale)
 end
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -7062,9 +7064,9 @@ function DF:BuildStatusbarAuthorInfo (f, addonBy, authorsNameString)
 	discordTextEntry:SetPoint ("left", discordLabel, "right", 2, 0)
 	
 	--format
-	authorName:SetAlpha (.4)
-	discordLabel:SetAlpha (.4)
-	discordTextEntry:SetAlpha (.4)
+	authorName:SetAlpha (.6)
+	discordLabel:SetAlpha (.6)
+	discordTextEntry:SetAlpha (.6)
 	discordTextEntry:SetBackdropBorderColor (1, 1, 1, 0)
 	
 	discordTextEntry:SetHook ("OnEditFocusGained", function()
