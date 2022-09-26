@@ -3905,7 +3905,6 @@ local tab_container_on_show = function (self)
 end
 
 function DF:CreateTabContainer (parent, title, frame_name, frameList, options_table, hookList)
-	
 	local options_text_template = DF:GetTemplate ("font", "OPTIONS_FONT_TEMPLATE")
 	local options_dropdown_template = DF:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE")
 	local options_switch_template = DF:GetTemplate ("switch", "OPTIONS_CHECKBOX_TEMPLATE")
@@ -3913,14 +3912,14 @@ function DF:CreateTabContainer (parent, title, frame_name, frameList, options_ta
 	local options_button_template = DF:GetTemplate ("button", "OPTIONS_BUTTON_TEMPLATE")
 	
 	options_table = options_table or {}
-	local frameWidth = parent:GetWidth()
-	local frame_height = parent:GetHeight()
+	local parentFrameWidth = parent:GetWidth()
 	local y_offset = options_table.y_offset or 0
-	local button_width = options_table.button_width or 160
-	local button_height = options_table.button_height or 20
+	local buttonWidth = options_table.button_width or 160
+	local buttonHeight = options_table.button_height or 20
 	local buttonAnchorX = options_table.button_x or 230
 	local buttonAnchorY = options_table.button_y or -32
 	local button_text_size = options_table.button_text_size or 10
+	local containerWidthOffset = options_table.container_width_offset or 0
 	
 	local mainFrame = CreateFrame ("frame", frame_name, parent.widget or parent, "BackdropTemplate")
 	mainFrame:SetAllPoints()
@@ -3954,8 +3953,8 @@ function DF:CreateTabContainer (parent, title, frame_name, frameList, options_ta
 		local title = DF:CreateLabel (f, frame.title, 16, "silver")
 		title:SetPoint ("topleft", mainTitle, "bottomleft", 0, 0)
 		
-		local tabButton = DF:CreateButton (mainFrame, DF.TabContainerFunctions.SelectIndex, button_width, button_height, frame.title, i, nil, nil, nil, "$parentTabButton" .. frame.name, false, button_tab_template)
-		PixelUtil.SetSize (tabButton, button_width, button_height)
+		local tabButton = DF:CreateButton (mainFrame, DF.TabContainerFunctions.SelectIndex, buttonWidth, buttonHeight, frame.title, i, nil, nil, nil, "$parentTabButton" .. frame.name, false, button_tab_template)
+		PixelUtil.SetSize (tabButton, buttonWidth, buttonHeight)
 		tabButton:SetFrameLevel (220)
 		tabButton.textsize = button_text_size
 		tabButton.mainFrame = mainFrame
@@ -3993,22 +3992,20 @@ function DF:CreateTabContainer (parent, title, frame_name, frameList, options_ta
 	local y = buttonAnchorY
 	local spaceBetweenButtons = 3
 
-	local space_for_buttons = frameWidth - (#frameList * spaceBetweenButtons) - buttonAnchorX
-	local amount_buttons_per_row = floor (space_for_buttons / button_width)
-
-	local last_button = mainFrame.AllButtons[1]
+	local allocatedSpaceForButtons = parentFrameWidth - ((#frameList - 2) * spaceBetweenButtons) - buttonAnchorX + containerWidthOffset
+	local amountButtonsPerRow = floor(allocatedSpaceForButtons / buttonWidth)
 	
-	mainFrame.AllButtons[1]:SetPoint ("topleft", mainTitle, "topleft", x, y)
-	x = x + button_width + 2
+	mainFrame.AllButtons[1]:SetPoint("topleft", mainTitle, "topleft", x, y)
+	x = x + buttonWidth + 2
 	
 	for i = 2, #mainFrame.AllButtons do
-		local button = mainFrame.AllButtons [i]
-		PixelUtil.SetPoint (button, "topleft", mainTitle, "topleft", x, y)
-		x = x + button_width + 2
+		local button = mainFrame.AllButtons[i]
+		PixelUtil.SetPoint(button, "topleft", mainTitle, "topleft", x, y)
+		x = x + buttonWidth + 2
 		
-		if (i % amount_buttons_per_row == 0) then
+		if (i % amountButtonsPerRow == 0) then
 			x = buttonAnchorX
-			y = y - button_height - 1
+			y = y - buttonHeight - 1
 		end
 	end
 	
