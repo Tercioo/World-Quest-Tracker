@@ -1,8 +1,30 @@
 ## Interface: 90207
+## Interface-Mainline: 90207
+## Interface-BCC: 20504
+## Interface-Wrath: 30400
+## Interface-Classic: 11403
+
 ## Title: World Quest Tracker
-## Notes: An addon by Terciob. Make more easy to see world quests.
+## Notes: An addon by Terciob. Make more easy to see world quests
 ## SavedVariables: WQTrackerDB
 ## SavedVariablesPerCharacter: WQTrackerDBChr
+
+#@version-retail@
+## Version: @project-version@-Retail
+#@end-version-retail@
+#@version-bcc@
+## Version: @project-version@-BCC
+#@end-version-bcc@
+#@version-wrath@
+## Version: @project-version@-Wrath
+#@end-version-wrath@
+#@version-classic@
+## Version: @project-version@-Classic
+#@end-version-classic@
+
+## X-Curse-Project-ID: 100610
+## X-Wago-ID: lQNlrEKe
+
 
 #@no-lib-strip@
 libs\libs.xml

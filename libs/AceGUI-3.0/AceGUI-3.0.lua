@@ -808,7 +808,7 @@ AceGUI:RegisterLayout("Flow",
 	end)
 
 -- Get alignment method and value. Possible alignment methods are a callback, a number, "start", "middle", "end", "fill" or "TOPLEFT", "BOTTOMRIGHT" etc.
-local GetCellAlign = function (dir, tableObj, colObj, cellObj, cell, child)
+local GetCellAlign = function(dir, tableObj, colObj, cellObj, cell, child)
 	local fn = cellObj and (cellObj["align" .. dir] or cellObj.align)
 			or colObj and (colObj["align" .. dir] or colObj.align)
 			or tableObj["align" .. dir] or tableObj.align
@@ -831,7 +831,7 @@ local GetCellAlign = function (dir, tableObj, colObj, cellObj, cell, child)
 end
 
 -- Get width or height for multiple cells combined
-local GetCellDimension = function (dir, laneDim, from, to, space)
+local GetCellDimension = function(dir, laneDim, from, to, space)
 	local dim = 0
 	for cell=from,to do
 		dim = dim + (laneDim[cell] or 0)
