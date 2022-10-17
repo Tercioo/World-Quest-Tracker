@@ -193,14 +193,24 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 
 				if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
 					self.ModifiedScale = self.OriginalScale + animaSettings.scaleZone
-					self.OnEnterAnimation.ScaleAnimation:SetScaleFrom (self.OriginalScale, self.OriginalScale)
-					self.OnEnterAnimation.ScaleAnimation:SetScaleTo (self.ModifiedScale, self.ModifiedScale)
+					if (self.OnEnterAnimation.ScaleAnimation.SetScaleFrom) then
+						self.OnEnterAnimation.ScaleAnimation:SetScaleFrom (self.OriginalScale, self.OriginalScale)
+						self.OnEnterAnimation.ScaleAnimation:SetScaleTo (self.ModifiedScale, self.ModifiedScale)
+					else
+						self.OnEnterAnimation.ScaleAnimation:SetFromScale (self.OriginalScale, self.OriginalScale)
+						self.OnEnterAnimation.ScaleAnimation:SetToScale (self.ModifiedScale, self.ModifiedScale)
+					end
 					self.OnEnterAnimation:Play()
 
 				elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
 					self.ModifiedScale = 1 + animaSettings.scaleWorld
-					self.OnEnterAnimation.ScaleAnimation:SetScaleFrom (1, 1)
-					self.OnEnterAnimation.ScaleAnimation:SetScaleTo (self.ModifiedScale, self.ModifiedScale)
+					if (self.OnEnterAnimation.ScaleAnimation.SetScaleFrom) then
+						self.OnEnterAnimation.ScaleAnimation:SetScaleFrom (1, 1)
+						self.OnEnterAnimation.ScaleAnimation:SetScaleTo (self.ModifiedScale, self.ModifiedScale)
+					else
+						self.OnEnterAnimation.ScaleAnimation:SetFromScale (1, 1)
+						self.OnEnterAnimation.ScaleAnimation:SetToScale (self.ModifiedScale, self.ModifiedScale)
+					end
 					self.OnEnterAnimation:Play()
 				end
 
@@ -227,12 +237,22 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 
 				if (currentScale and originalScale) then
 					if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
-						self.OnLeaveAnimation.ScaleAnimation:SetScaleFrom (currentScale, currentScale)
-						self.OnLeaveAnimation.ScaleAnimation:SetScaleTo (originalScale, originalScale)
+						if (self.OnLeaveAnimation.ScaleAnimation.SetScaleFrom) then
+							self.OnLeaveAnimation.ScaleAnimation:SetScaleFrom (currentScale, currentScale)
+							self.OnLeaveAnimation.ScaleAnimation:SetScaleTo (originalScale, originalScale)
+						else
+							self.OnLeaveAnimation.ScaleAnimation:SetFromScale (currentScale, currentScale)
+							self.OnLeaveAnimation.ScaleAnimation:SetToScale (originalScale, originalScale)							
+						end
 
 					elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
-						self.OnLeaveAnimation.ScaleAnimation:SetScaleFrom (currentScale, currentScale)
-						self.OnLeaveAnimation.ScaleAnimation:SetScaleTo (1, 1)
+						if (self.OnLeaveAnimation.ScaleAnimation.SetScaleFrom) then
+							self.OnLeaveAnimation.ScaleAnimation:SetScaleFrom (currentScale, currentScale)
+							self.OnLeaveAnimation.ScaleAnimation:SetScaleTo (1, 1)
+						else
+							self.OnLeaveAnimation.ScaleAnimation:SetFromScale (currentScale, currentScale)
+							self.OnLeaveAnimation.ScaleAnimation:SetToScale (1, 1)
+						end
 					end
 				end
 

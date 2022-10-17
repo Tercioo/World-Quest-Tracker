@@ -164,8 +164,14 @@ local onenter_scale_animation = function(self, scale)
 
 	self.OriginalScale = self:GetScale()
 	self.ModifiedScale = self.OriginalScale + scale
-	self.OnEnterAnimation.ScaleAnimation:SetScaleFrom (self.OriginalScale, self.OriginalScale)
-	self.OnEnterAnimation.ScaleAnimation:SetScaleTo (self.ModifiedScale, self.ModifiedScale)
+
+	if (self.OnEnterAnimation.ScaleAnimation.SetScaleFrom) then
+		self.OnEnterAnimation.ScaleAnimation:SetScaleFrom(self.OriginalScale, self.OriginalScale)
+		self.OnEnterAnimation.ScaleAnimation:SetScaleTo(self.ModifiedScale, self.ModifiedScale)
+	else
+		self.OnEnterAnimation.ScaleAnimation:SetFromScale(self.OriginalScale, self.OriginalScale)
+		self.OnEnterAnimation.ScaleAnimation:SetToScale(self.ModifiedScale, self.ModifiedScale)
+	end
 	self.OnEnterAnimation:Play()
 end
 
@@ -181,8 +187,13 @@ local onleave_scale_animation = function(self, scale)
 	local currentScale = self.ModifiedScale
 	local originalScale = self.OriginalScale
 
-	self.OnLeaveAnimation.ScaleAnimation:SetScaleFrom (currentScale, currentScale)
-	self.OnLeaveAnimation.ScaleAnimation:SetScaleTo (originalScale, originalScale)
+	if (self.OnLeaveAnimation.ScaleAnimation.SetScaleFrom) then
+		self.OnLeaveAnimation.ScaleAnimation:SetScaleFrom (currentScale, currentScale)
+		self.OnLeaveAnimation.ScaleAnimation:SetScaleTo (originalScale, originalScale)
+	else
+		self.OnLeaveAnimation.ScaleAnimation:SetFromScale (currentScale, currentScale)
+		self.OnLeaveAnimation.ScaleAnimation:SetToScale (originalScale, originalScale)
+	end
 
 	self.OnLeaveAnimation:Play()
 end
