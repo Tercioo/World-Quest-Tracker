@@ -14,7 +14,7 @@
 					"label": ""
 				},
 				{
-					"line": 4207,
+					"line": 4209,
 					"column": 5,
 					"label": ""
 				}
@@ -29,22 +29,22 @@
 					"label": ""
 				},
 				{
-					"line": 108,
+					"line": 123,
 					"column": 6,
 					"label": ""
 				},
 				{
-					"line": 157,
+					"line": 174,
 					"column": 14,
 					"label": ""
 				},
 				{
-					"line": 502,
+					"line": 572,
 					"column": 15,
 					"label": ""
 				},
 				{
-					"line": 606,
+					"line": 715,
 					"column": 17,
 					"label": ""
 				}
@@ -54,12 +54,12 @@
 			"path": "WorldQuestTracker_GroupFinder.lua",
 			"bookmarks": [
 				{
-					"line": 1305,
+					"line": 1309,
 					"column": 5,
 					"label": ""
 				},
 				{
-					"line": 1364,
+					"line": 1368,
 					"column": 37,
 					"label": ""
 				}
@@ -119,12 +119,12 @@
 					"label": ""
 				},
 				{
-					"line": 747,
+					"line": 568,
 					"column": 0,
 					"label": ""
 				},
 				{
-					"line": 805,
+					"line": 608,
 					"column": 4,
 					"label": ""
 				}
@@ -194,7 +194,7 @@
 					"label": ""
 				},
 				{
-					"line": 1444,
+					"line": 1446,
 					"column": 1,
 					"label": ""
 				}
