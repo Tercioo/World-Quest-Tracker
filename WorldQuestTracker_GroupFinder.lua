@@ -172,7 +172,9 @@ local GetDistance_Point = DF.GetDistance_Point
 					end
 
 					createGroupFrame:SetParent(LFGListFrame.SearchPanel)
-					createGroupFrame:SetPoint("top", LFGListSearchPanelScrollFrame.StartGroupButton, "bottom", 0, -5)
+					if LFGListSearchPanelScrollFrame then
+						createGroupFrame:SetPoint("top", LFGListSearchPanelScrollFrame.StartGroupButton, "bottom", 0, -5)
+					end
 					createGroupFrame:Show()
 
 				else
