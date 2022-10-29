@@ -789,7 +789,7 @@ end
 local playerEnteredWorldQuestZone = function(questID, npcID, npcName)
 
 	if (true) then
-		return
+		--return
 	end
 
 	if (ff.buttonAcquired) then

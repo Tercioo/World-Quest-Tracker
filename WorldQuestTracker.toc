@@ -9,6 +9,9 @@
 ## SavedVariables: WQTrackerDB
 ## SavedVariablesPerCharacter: WQTrackerDBChr
 
+## X-Curse-Project-ID: 100610
+## X-Wago-ID: lQNlrEKe
+
 #@version-retail@
 ## Version: @project-version@-Retail
 #@end-version-retail@
@@ -21,9 +24,6 @@
 #@version-classic@
 ## Version: @project-version@-Classic
 #@end-version-classic@
-
-## X-Curse-Project-ID: 100610
-## X-Wago-ID: lQNlrEKe
 
 
 #@no-lib-strip@
