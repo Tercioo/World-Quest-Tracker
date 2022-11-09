@@ -309,6 +309,8 @@ end
 
 --atualiza a borda nas squares do world map e no mapa da zona ~border
 function WorldQuestTracker.UpdateBorder(self, rarity, worldQuestType, mapID, isCriteria, isElite, conduitType, borderTexture, borderColor, itemLink)
+	borderColor = borderColor or {1, 1, 1, 1}
+
 	if (self.isWorldMapWidget) then
 	
 		rarity = rarity or self.Rarity
@@ -323,8 +325,6 @@ function WorldQuestTracker.UpdateBorder(self, rarity, worldQuestType, mapID, isC
 
 		self.overlayBorder:Hide()
 		self.overlayBorder2:Hide()
-
-		borderColor = borderColor or {1, 1, 1, 1}
 
 		if (conduitType) then
 			self.overlayBorder:Show()
