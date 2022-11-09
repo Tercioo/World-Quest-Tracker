@@ -324,6 +324,8 @@ function WorldQuestTracker.UpdateBorder(self, rarity, worldQuestType, mapID, isC
 		self.overlayBorder:Hide()
 		self.overlayBorder2:Hide()
 
+		borderColor = borderColor or {1, 1, 1, 1}
+
 		if (conduitType) then
 			self.overlayBorder:Show()
 			self.overlayBorder2:Show()
