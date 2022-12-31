@@ -540,7 +540,6 @@ local dazaralor_quests = {
 
 --atualiza as quest do mapa da zona ~updatezone ~zoneupdate
 function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
-
 	--get the map shown in the map frame
 	local mapID = WorldQuestTracker.GetCurrentMapAreaID()
 
