@@ -1314,8 +1314,6 @@ ff:SetScript("OnEvent", function (self, event, questID, arg2, arg3)
 				ff.CheckForQuestsInTheArea()
 			else
 				ff.GroupMembers = GetNumGroupMembers (LE_PARTY_CATEGORY_HOME) + 1
-				--> tell the rare finder the group has been modified
-				rf.ScheduleGroupShareRares()
 			end
 		else
 			if (IsInGroup()) then
@@ -1358,6 +1356,58 @@ ff:SetScript("OnEvent", function (self, event, questID, arg2, arg3)
 					end
 				end
 			end
+		end
+
+		if (not ff.RegisteredApplicationViewerHook) then
+			ff.RegisteredApplicationViewerHook = true
+
+			if (UnitLevel("player") < 70) then
+				return
+			end
+
+			C_Timer.After(3, function()
+				if (not ff.PVEFrameHooked) then
+					ff.PVEFrameHooked = true
+
+					PVEFrame:HookScript("OnShow", function()
+						if (not ff.ApplicationsHookCreated) then
+							ff.ApplicationsHookCreated = true
+							local eventFrame = CreateFrame("frame")
+								LFGListFrame.ApplicationViewer.ScrollBox:HookScript("OnShow", function()
+
+								eventFrame:RegisterEvent("LFG_LIST_APPLICANT_LIST_UPDATED")
+								eventFrame:SetScript("OnEvent", function()
+									local scrollTartet = LFGListFrame.ApplicationViewer.ScrollBox.ScrollTarget
+									local playerApplications = C_LFGList.GetApplicants()
+									if (playerApplications and #playerApplications > 0) then
+										for i = 1, #playerApplications do
+											local appInfo = C_LFGList.GetApplicantInfo(playerApplications[i])
+											if (appInfo and appInfo.applicationStatus == "applied") then
+
+												local playerName, _, _, playerLevel = C_LFGList.GetApplicantMemberInfo(playerApplications[i], 1)
+												if (playerLevel < 70) then
+													local applicantNameWithoutRealm = strsplit("-", playerName)
+													local applicantID = appInfo.applicantID
+
+													local applicantFrames = {LFGListFrame.ApplicationViewer.ScrollBox.ScrollTarget:GetChildren()}
+													for frameIndex, appFrame in ipairs(applicantFrames) do
+														if (appFrame.Member1.Name:GetText() == applicantNameWithoutRealm) then
+															appFrame.Member1.Name:SetText(applicantNameWithoutRealm .. "  |cFFFF0000[" .. playerLevel .. "]|r")
+														end
+													end
+												end
+											end
+										end
+									end
+								end)
+							end)
+							LFGListFrame.ApplicationViewer.ScrollBox:HookScript("OnHide", function()
+								eventFrame:UnregisterEvent("LFG_LIST_APPLICANT_LIST_UPDATED")
+							end)
+						end
+					end)
+				end
+			end)
 		end
 
 	elseif (event == "PLAYER_LOGIN") then

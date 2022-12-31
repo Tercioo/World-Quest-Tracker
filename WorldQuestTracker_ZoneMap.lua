@@ -110,12 +110,10 @@ function WorldQuestTracker.CreateZoneWidget (index, name, parent, pinTemplate) -
 	button.worldQuest = true
 	button.ClearWidget = clear_widget
 
-	button.RareOverlay = CreateFrame ("button", button:GetName() .. "RareOverlay", button, "BackdropTemplate")
-	button.RareOverlay:SetAllPoints()
-	button.RareOverlay:SetScript("OnEnter", WorldQuestTracker.RareWidgetOnEnter)
-	button.RareOverlay:SetScript("OnLeave", WorldQuestTracker.RareWidgetOnLeave)
-	button.RareOverlay:SetScript("OnClick", WorldQuestTracker.RareWidgetOnClick)
-	button.RareOverlay:RegisterForClicks("LeftButtonDown", "RightButtonDown")
+	button.RareOverlay = CreateFrame ("button", button:GetName() .. "RareOverlay", button, "BackdropTemplate")  --deprecated
+	button.RareOverlay:EnableMouse(false) --disable the button
+	--button.RareOverlay:SetAllPoints()
+	--button.RareOverlay:RegisterForClicks("LeftButtonDown", "RightButtonDown")
 	button.RareOverlay:Hide()
 
 	button.Texture = supportFrame:CreateTexture(button:GetName() .. "Texture", "BACKGROUND")
@@ -545,8 +543,6 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 
 	--get the map shown in the map frame
 	local mapID = WorldQuestTracker.GetCurrentMapAreaID()
-
-	WorldQuestTracker.UpdateRareIcons (mapID)
 
 	if (WorldQuestTracker.IsWorldQuestHub (mapID)) then
 		return WorldQuestTracker.HideZoneWidgets()

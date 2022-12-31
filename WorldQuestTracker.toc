@@ -46,6 +46,7 @@ WorldQuestTracker_Initialize.lua
 WorldQuestTracker_IDs.lua
 
 WorldQuestTracker.lua
+WorldQuestTracker_Tracker.lua
 
 WorldQuestTracker_Core.lua
 
@@ -55,7 +56,6 @@ WorldQuestTracker_GroupFinder.lua
 WorldQuestTracker_RareFinder.lua
 WorldQuestTracker_ZoneMap.lua
 WorldQuestTracker_WorldMap.lua
-WorldQuestTracker_Tracker.lua
 WorldQuestTracker_Taxi.lua
 
 WorldQuestTrackerMixin.xml

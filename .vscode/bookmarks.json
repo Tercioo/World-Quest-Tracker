@@ -19,7 +19,12 @@
 					"label": ""
 				},
 				{
-					"line": 4439,
+					"line": 2446,
+					"column": 41,
+					"label": ""
+				},
+				{
+					"line": 4448,
 					"column": 0,
 					"label": ""
 				}
@@ -64,8 +69,8 @@
 					"label": ""
 				},
 				{
-					"line": 1368,
-					"column": 37,
+					"line": 1380,
+					"column": 6,
 					"label": ""
 				}
 			]
@@ -94,22 +99,22 @@
 			"path": "WorldQuestTracker_ZoneMap.lua",
 			"bookmarks": [
 				{
-					"line": 456,
+					"line": 454,
 					"column": 15,
 					"label": ""
 				},
 				{
-					"line": 1139,
+					"line": 1135,
 					"column": 59,
 					"label": ""
 				},
 				{
-					"line": 1185,
+					"line": 1181,
 					"column": 4,
 					"label": ""
 				},
 				{
-					"line": 1503,
+					"line": 1499,
 					"column": 97,
 					"label": ""
 				}
@@ -194,12 +199,12 @@
 					"label": ""
 				},
 				{
-					"line": 1289,
+					"line": 1287,
 					"column": 1,
 					"label": ""
 				},
 				{
-					"line": 1450,
+					"line": 1448,
 					"column": 1,
 					"label": ""
 				}
