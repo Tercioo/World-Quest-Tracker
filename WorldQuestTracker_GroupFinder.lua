@@ -1120,21 +1120,13 @@ function WorldQuestTracker.InviteFromGroupApply()
 	--print (name, type (name))
 
 	local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (ff.CurrentWorldQuest)
-	local mapName, shortName, activityCategoryID, groupID, iLevel, filters, minLevel, maxPlayers, displayType = C_LFGList.GetActivityInfo (activityID)
+	local activityTable = C_LFGList.GetActivityInfoTable(activityID)
+
+	local mapName, shortName, activityCategoryID, groupID, iLevel, filters, minLevel, maxPlayers, displayType = activityTable.fullName, activityTable.shortName, activityTable.categoryID, activityTable.groupFinderActivityGroupID, activityTable.ilvlSuggestion, activityTable.filters, activityTable.minLevel, activityTable.maxNumPlayers, activityTable.displayType
+
 	local standingMapID = WorldQuestTracker.GetCurrentStandingMapAreaID()
 	local playerStandingMapName = WorldQuestTracker.GetMapName (standingMapID)
 	local activityID, categoryID, filters, questName = LFGListUtil_GetQuestCategoryData (ff.CurrentWorldQuest)
-
-	--Details:Dump ({C_LFGList.GetActivityInfo (activityID)})
-
-	--print ("name = questid", tostring (ff.CurrentWorldQuest) == name)
-	--[=[
-	for i = 1, #name do
-	    local letter = name:sub(i,i)
-	    --print (letter)
-	end
-	--strings inside the lfg system seems to be upvalued and bridget by a escape sequence which increments every new group shown
-	--]=]
 
 	if (not LFGListUtil_GetQuestCategoryData) then
 		WorldQuestTracker:Msg ("LFGListUtil_GetQuestCategoryData isn't accessible anymore.")

@@ -547,16 +547,16 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 		return WorldQuestTracker.HideZoneWidgets()
 
 	elseif (not WorldQuestTracker.ZoneHaveWorldQuest (mapID)) then
-		--print (2)
 		return WorldQuestTracker.HideZoneWidgets()
 	end
 
 	WorldQuestTracker.RefreshStatusBarVisibility()
 
-	WorldQuestTracker.lastZoneWidgetsUpdate = GetTime() --why there's two timers?
+	local timeNow = GetTime()
+	WorldQuestTracker.lastZoneWidgetsUpdate = timeNow --why there's two timers?
 
 	--stop the update if it already updated on this tick
-	if (WorldQuestTracker.LastZoneUpdate and WorldQuestTracker.LastZoneUpdate == GetTime()) then
+	if (WorldQuestTracker.LastZoneUpdate and WorldQuestTracker.LastZoneUpdate == timeNow) then
 		--print (4)
 		return
 	end
@@ -570,7 +570,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 
 	local index = 1
 
-	--parar a anima��o de loading
+	--stop the animation if it's playing
 	if (WorldQuestTracker.IsPlayingLoadAnimation()) then
 		WorldQuestTracker.StopLoadingAnimation()
 	end
@@ -585,7 +585,7 @@ function WorldQuestTracker.UpdateZoneWidgets (forceUpdate)
 	local scale = WorldQuestTracker.db.profile.zone_map_config.scale
 
 	local questFailed = false
-	local showBlizzardWidgets = WorldQuestTracker.Temp_HideZoneWidgets > GetTime()
+	local showBlizzardWidgets = WorldQuestTracker.Temp_HideZoneWidgets > timeNow
 	if (not showBlizzardWidgets) then
 		--if not suppresss regular widgets, see if not showing from the profile
 		showBlizzardWidgets = not WorldQuestTracker.db.profile.zone_map_config.show_widgets
