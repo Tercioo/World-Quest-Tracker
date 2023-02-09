@@ -1971,16 +1971,25 @@ function detailsFramework:CreateScaleBar(frame, config) --~scale
 end
 
 local no_options = {}
---[=[
-	options available to panel_options:
-	NoScripts = false, --if true, won't set OnMouseDown and OnMouseUp (won't be movable)
-	NoTUISpecialFrame = false, --if true, won't add the frame to 'UISpecialFrames'
-	DontRightClickClose = false, --if true, won't make the frame close when clicked with the right mouse button
-	UseScaleBar = false, --if true, will create a scale bar in the top left corner (require a table on 'db' to save the scale)
-	UseStatusBar = false, --if true, creates a status bar at the bottom of the frame (frame.StatusBar)
-	NoCloseButton = false, --if true, won't show the close button
-	NoTitleBar = false, --if true, don't create the title bar
-]=]
+
+---create a simple panel with a title bar, a close button and a background
+---already has onmousedown and onmouseup scripts to make it movable
+---the panelOptions table can be used to set some options:
+---NoScripts = false, --if true, won't set OnMouseDown and OnMouseUp (won't be movable)
+---NoTUISpecialFrame = false, --if true, won't add the frame to 'UISpecialFrames'
+---DontRightClickClose = false, --if true, won't make the frame close when clicked with the right mouse button
+---UseScaleBar = false, --if true, will create a scale bar in the top left corner (require a table on 'db' to save the scale)
+---UseStatusBar = false, --if true, creates a status bar at the bottom of the frame (frame.StatusBar)
+---NoCloseButton = false, --if true, won't show the close button
+---NoTitleBar = false, --if true, don't create the title bar
+---@param parent table
+---@param width number|nil
+---@param height number|nil
+---@param title string|nil
+---@param frameName string|nil
+---@param panelOptions table|nil
+---@param savedVariableTable table|nil
+---@return table
 function detailsFramework:CreateSimplePanel(parent, width, height, title, frameName, panelOptions, savedVariableTable)
 	if (savedVariableTable and frameName and not savedVariableTable[frameName]) then
 		savedVariableTable[frameName] = {
@@ -3780,62 +3789,77 @@ local simple_list_box_SetData = function(self, t)
 	self.list_table = t
 end
 
-function detailsFramework:CreateSimpleListBox (parent, name, title, empty_text, list_table, onclick, options)
-	local f = CreateFrame("frame", name, parent, "BackdropTemplate")
+function detailsFramework:CreateSimpleListBox(parent, name, title, emptyText, listTable, onClick, options)
+	local scroll = CreateFrame("frame", name, parent, "BackdropTemplate")
 
-	f.ResetWidgets = simple_list_box_ResetWidgets
-	f.GetOrCreateWidget = simple_list_box_GetOrCreateWidget
-	f.Refresh = simple_list_box_RefreshWidgets
-	f.SetData = simple_list_box_SetData
-	f.nextWidget = 1
-	f.list_table = list_table
-	f.func = function(self, button, value)
-		--onclick (value)
-		detailsFramework:QuickDispatch(onclick, value)
-		f:Refresh()
+	scroll.ResetWidgets = simple_list_box_ResetWidgets
+	scroll.GetOrCreateWidget = simple_list_box_GetOrCreateWidget
+	scroll.Refresh = simple_list_box_RefreshWidgets
+	scroll.SetData = simple_list_box_SetData
+	scroll.nextWidget = 1
+	scroll.list_table = listTable
+
+	scroll.func = function(self, button, value)
+		detailsFramework:QuickDispatch(onClick, value)
+		scroll:Refresh()
 	end
-	f.widgets = {}
+	scroll.widgets = {}
 
-	detailsFramework:ApplyStandardBackdrop(f)
+	detailsFramework:ApplyStandardBackdrop(scroll)
 
-	f.options = options or {}
-	self.table.deploy(f.options, default_options)
+	scroll.options = options or {}
+	self.table.deploy(scroll.options, default_options)
 
-	if (f.options.x_button_func) then
-		local original_X_function = f.options.x_button_func
-		f.options.x_button_func = function(self, button, value)
+	if (scroll.options.x_button_func) then
+		local original_X_function = scroll.options.x_button_func
+		scroll.options.x_button_func = function(self, button, value)
 			detailsFramework:QuickDispatch(original_X_function, value)
-			f:Refresh()
+			scroll:Refresh()
 		end
 	end
 
-	f:SetBackdropBorderColor(unpack(f.options.panel_border_color))
+	scroll:SetBackdropBorderColor(unpack(scroll.options.panel_border_color))
 
-	f:SetSize(f.options.width + 2, f.options.height)
+	scroll:SetSize(scroll.options.width + 2, scroll.options.height)
 
-	local name = detailsFramework:CreateLabel(f, title, 12, "silver")
+	local name = detailsFramework:CreateLabel(scroll, title, 12, "silver")
 	name:SetTemplate(detailsFramework:GetTemplate("font", "OPTIONS_FONT_TEMPLATE"))
-	name:SetPoint("bottomleft", f, "topleft", 0, 2)
-	f.Title = name
+	name:SetPoint("bottomleft", scroll, "topleft", 0, 2)
+	scroll.Title = name
 
-	local emptyLabel = detailsFramework:CreateLabel(f, empty_text, 12, "gray")
+	local emptyLabel = detailsFramework:CreateLabel(scroll, emptyText, 12, "gray")
 	emptyLabel:SetAlpha(.6)
-	emptyLabel:SetSize(f.options.width-10, f.options.height)
+	emptyLabel:SetSize(scroll.options.width-10, scroll.options.height)
 	emptyLabel:SetPoint("center", 0, 0)
 	emptyLabel:Hide()
 	emptyLabel.align = "center"
-	f.EmptyLabel = emptyLabel
+	scroll.EmptyLabel = emptyLabel
 
-	return f
+	return scroll
 end
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- ~scrollbox
 
-function detailsFramework:CreateScrollBox (parent, name, refreshFunc, data, width, height, lineAmount, lineHeight, createLineFunc, autoAmount, noScroll)
+---create a scrollbox with the methods :Refresh() :SetData() :CreateLine()
+---@param parent table
+---@param name string
+---@param refreshFunc function
+---@param data table
+---@param width number
+---@param height number
+---@param lineAmount number
+---@param lineHeight number
+---@param createLineFunc function|nil
+---@param autoAmount boolean|nil
+---@param noScroll boolean|nil
+---@return table
+function detailsFramework:CreateScrollBox(parent, name, refreshFunc, data, width, height, lineAmount, lineHeight, createLineFunc, autoAmount, noScroll)
+	--create the scrollframe, it is the base of the scrollbox
 	local scroll = CreateFrame("scrollframe", name, parent, "FauxScrollFrameTemplate, BackdropTemplate")
 
+	--apply the standard background color
 	detailsFramework:ApplyStandardBackdrop(scroll)
 
 	scroll:SetSize(width, height)
@@ -4459,8 +4483,11 @@ end
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- ~standard backdrop
-
-function detailsFramework:ApplyStandardBackdrop(frame, solidColor, alphaScale)
+---this is the standard backdrop for detailsframework, it's a dark-ish color semi transparent with a thin opaque black border
+---@param frame table
+---@param bUseSolidColor any
+---@param alphaScale number
+function detailsFramework:ApplyStandardBackdrop(frame, bUseSolidColor, alphaScale)
 	alphaScale = alphaScale or 0.95
 
 	if (not frame.SetBackdrop)then
@@ -4470,7 +4497,7 @@ function detailsFramework:ApplyStandardBackdrop(frame, solidColor, alphaScale)
 
 	local red, green, blue, alpha = detailsFramework:GetDefaultBackdropColor()
 
-	if (solidColor) then
+	if (bUseSolidColor) then
 		local colorDeviation = 0.05
 		frame:SetBackdrop({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Buttons\WHITE8X8]], tileSize = 32, tile = true})
 		frame:SetBackdropColor(red, green, blue, 0.872)
@@ -7289,7 +7316,6 @@ detailsFramework.StatusBarFunctions = {
 			self:UpdateHealPrediction()
 		end
 
-
 -- ~healthbar
 function detailsFramework:CreateHealthBar (parent, name, settingsOverride)
 
@@ -8566,7 +8592,7 @@ detailsFramework.CastFrameFunctions = {
 		self.value = self.empowered and (GetTime() - self.spellStartTime) or (self.spellEndTime - GetTime())
 		self.maxValue = self.spellEndTime - self.spellStartTime
 
-		if (self.value < 0 or self.value >= self.maxValue) then
+		if (self.value < 0 or self.value > self.maxValue) then
 			self.value = 0
 		end
 

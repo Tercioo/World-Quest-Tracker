@@ -1,5 +1,5 @@
 
- 
+
 --new 8.1.5 C_TaskQuest.GetQuestTimeLeftSeconds
 
 hooksecurefunc (WorldQuestDataProviderMixin, "RefreshAllData", function (self, fromOnShow)
@@ -99,21 +99,21 @@ function WorldQuestTracker.GetTrackedQuestsOnDB()
 		WorldQuestTracker.db.profile.quests_tracked [GUID] = questList
 	end
 	WorldQuestTracker.QuestTrackList = questList
-	
+
 	--> faz o cliente carregar as quests antes de realmente verificar o tempo restante
-	
+
 	if (not WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load) then
-		
+
 		print ("WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load MISSING")
 		return
-		
+
 	end
-	
+
 	C_Timer.After (3, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load)
 	C_Timer.After (4, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load)
 	C_Timer.After (6, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load)
 	C_Timer.After (10, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker)
-	
+
 	WorldQuestTracker.RefreshTrackerWidgets()
 end
 
@@ -133,18 +133,18 @@ function WorldQuestTracker:OnInit()
 	WorldQuestTracker.InitAt = GetTime()
 	WorldQuestTracker.LastMapID = WorldQuestTracker.GetCurrentMapAreaID()
 	WorldQuestTracker.GetTrackedQuestsOnDB()
-	
+
 	WorldQuestTracker.CreateLoadingIcon()
-	
+
 	C_Timer.After (.5, WorldQuestTracker.InitializeWorldWidgets)
-	
+
 	WQTrackerDBChr = WQTrackerDBChr or {}
 	WorldQuestTracker.dbChr = WQTrackerDBChr
 	WorldQuestTracker.dbChr.ActiveQuests = WorldQuestTracker.dbChr.ActiveQuests or {}
-	
+
 	local SharedMedia = LibStub:GetLibrary ("LibSharedMedia-3.0")
 	SharedMedia:Register ("statusbar", "Iskar Serenity", [[Interface\AddOns\WorldQuestTracker\media\bar_serenity]])
-	
+
 	C_Timer.After (5, function()
 		WorldQuestTracker.InitiateFlyMasterTracker()
 	end)
@@ -162,7 +162,7 @@ function WorldQuestTracker:OnInit()
 				end
 			end
 		end
-		
+
 		-- ~review disabling scale since it have some issues for some users
 		WorldQuestTracker.db.profile.map_frame_scale_enabled = false
 
@@ -179,24 +179,24 @@ function WorldQuestTracker:OnInit()
 				LibWindow.RestorePosition (WorldQuestTrackerScreenPanel)
 				WorldQuestTrackerScreenPanel.RegisteredForLibWindow = true
 			end
-			
+
 			if (not WorldQuestTrackerFinderFrame.IsRegistered) then
 				WorldQuestTracker.RegisterGroupFinderFrameOnLibWindow()
 			end
 		end
 	end
-	
+
 	if (WorldQuestTracker.db.profile.raredetected and WorldQuestTracker.MapData.RaresToScan) then
 		for npcId, _ in pairs (WorldQuestTracker.db.profile.raredetected) do
 			WorldQuestTracker.MapData.RaresToScan [npcId] = true
 		end
 	end
-	
+
 	function WorldQuestTracker:CleanUpJustBeforeGoodbye()
 		WorldQuestTracker.AllCharactersQuests_CleanUp()
 	end
 	WorldQuestTracker.db.RegisterCallback (WorldQuestTracker, "OnDatabaseShutdown", "CleanUpJustBeforeGoodbye") --more info at https://www.youtube.com/watch?v=GXFnT4YJLQo
-	
+
 	local save_player_name = function()
 		local guid = UnitGUID ("player")
 		local name = UnitName ("player")
@@ -212,28 +212,28 @@ function WorldQuestTracker:OnInit()
 			playerTable.class = playerTable.class or select (2, UnitClass ("player"))
 		end
 	end
-	
+
 	C_Timer.After (3, save_player_name)
 	C_Timer.After (10, save_player_name)
-	
+
 	local canLoad = C_QuestLog.IsQuestFlaggedCompleted(WORLD_QUESTS_AVAILABLE_QUEST_ID)
-	
+
 	local re_ZONE_CHANGED_NEW_AREA = function()
 		WorldQuestTracker:ZONE_CHANGED_NEW_AREA()
 	end
-	
+
 	function WorldQuestTracker.IsInvasionPoint()
 		if (ff:IsShown()) then
 			return
 		end
-		
+
 		local mapInfo = WorldQuestTracker.GetMapInfo()
 		local mapFileName = mapInfo and mapInfo.name
-		
+
 		--> we are using where the map file name which always start with "InvasionPoint"
 		--> this makes easy to localize group between different languages on the group finder
 		--> this won't work with greater invasions which aren't scenarios
-		
+
 		if (mapFileName and mapFileName:find ("InvasionPoint")) then
 			--the player is inside a invasion
 			local invasionName = C_Scenario.GetInfo()
@@ -256,23 +256,23 @@ function WorldQuestTracker:OnInit()
 			end
 		end
 	end
-	
+
 	function WorldQuestTracker:ZONE_CHANGED_NEW_AREA()
 		if (IsInInstance()) then
 			WorldQuestTracker:FullTrackerUpdate()
 		else
 			WorldQuestTracker:FullTrackerUpdate()
-			
+
 			if (WorldMapFrame:IsShown()) then
 				return WorldQuestTracker:WaitUntilWorldMapIsClose()
 			else
 				C_Timer.After (.5, WorldQuestTracker.UpdateCurrentStandingZone)
 			end
 		end
-		
+
 		local mapInfo = WorldQuestTracker.GetMapInfo()
 		local mapFileName = mapInfo and mapInfo.name
-		
+
 		if (not mapFileName) then
 			C_Timer.After (3, WorldQuestTracker.IsInvasionPoint)
 		else
@@ -282,7 +282,7 @@ function WorldQuestTracker:OnInit()
 			C_Timer.After (2, WorldQuestTracker.IsInvasionPoint)
 		end
 	end
-	
+
 	-- ~reward ~questcompleted
 	local oneday = 60*60*24
 	local days_amount = {
@@ -290,7 +290,7 @@ function WorldQuestTracker:OnInit()
 		[WQT_DATE_2WEEK] = 15,
 		[WQT_DATE_MONTH] = 30,
 	}
-	
+
 	function WorldQuestTracker.GetDateString (t)
 		if (t == WQT_DATE_TODAY) then
 			return date ("%y%m%d")
@@ -307,7 +307,7 @@ function WorldQuestTracker:OnInit()
 			return t
 		end
 	end
-	
+
 	function WorldQuestTracker.GetCharInfo (guid)
 		local t = WorldQuestTracker.db.profile.player_names [guid]
 		if (t) then
@@ -316,7 +316,7 @@ function WorldQuestTracker:OnInit()
 			return "Unknown", "Unknown", "PRIEST"
 		end
 	end
-	
+
 	function WorldQuestTracker.QueryHistory (queryType, dbLevel, arg1, arg2, arg3)
 		local db = WorldQuestTracker.db.profile.history
 		db = db [queryType]
@@ -328,21 +328,21 @@ function WorldQuestTracker:OnInit()
 				return
 			end
 		end
-		
+
 		if (not arg1) then
 			return db
 		end
-		
+
 		if (queryType == WQT_QUERYTYPE_REWARD) then
 			return db [arg1] --arg1 = the reward type (gold, resource, artifact)
-			
+
 		elseif (queryType == WQT_QUERYTYPE_QUEST) then
 			return db [arg1] --arg1 = the questID
-			
+
 		elseif (queryType == WQT_QUERYTYPE_PERIOD) then
-			
+
 			local dateString = WorldQuestTracker.GetDateString (arg1)
-			
+
 			if (type (dateString) == "table") then --mais de 1 dia
 				--quer saber da some total ou quer dia a dia para fazer um gr�fico
 				local result = {}
@@ -359,13 +359,13 @@ function WorldQuestTracker:OnInit()
 						end
 					end
 				end
-				
+
 				if (arg2) then
 					return total
 				else
 					return result
 				end
-				
+
 			else --um unico dia
 				if (arg2) then --pediu apenas 1 reward
 					db = db [dateString] --tabela do dia
@@ -377,144 +377,124 @@ function WorldQuestTracker:OnInit()
 				return db [dateString] --arg1 = data0 / retorna a tabela do dia com todos os rewards
 			end
 		end
-	
-	end
-	
-	-- ~completed ~questdone
-	function WorldQuestTracker:QUEST_TURNED_IN (event, questID, XP, gold)
 
-		--> Court of Farondis 42420
-		--> The Dreamweavers 42170
-		--print ("world quest:", questID, isWorldQuest(questID), XP, gold)
-	
+	end
+
+	-- ~completed ~questdone
+	function WorldQuestTracker:QUEST_TURNED_IN(event, questID, XP, gold)
 		if (isWorldQuest(questID)) then
-			--print (event, questID, XP, gold)
-			--QUEST_TURNED_IN 44300 0 772000
-			-- QINFO: 0 nil nil Petrified Axe Haft true 370
-			
-			WorldQuestTracker.AllCharactersQuests_Remove (questID)
-			WorldQuestTracker.RemoveQuestFromTracker (questID)
-			
-			FlashClientIcon()
-			
+			WorldQuestTracker.AllCharactersQuests_Remove(questID)
+			WorldQuestTracker.RemoveQuestFromTracker(questID)
+
+			--FlashClientIcon()
+
 			if (isWorldQuest(questID)) then --wait, is this inception?
 				local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData (questID)
-				
-				--print (title, questType, texture, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex)
-				--Retake the Skyhorn 8 Interface\AddOns\WorldQuestTracker\media\icon_artifactpower_redT_round 1828 109 World Quest 3 1 false nil				
-				
-				--print ("QINFO:", goldFormated, rewardName, numRewardItems, itemName, isArtifact, artifactPower)
-				
 				local questHistory = WorldQuestTracker.db.profile.history
-				
-				local guid = UnitGUID ("player")
-				local today = date ("%y%m%d") -- YYMMDD
-				
+
+				local guid = UnitGUID("player")
+				local today = date("%y%m%d") --YYMMDD
+
 				local itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker.GetQuestReward_Item (questID)
-				--print ("WQT", itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable)
-				--WQT Blood of Sargeras 1417744 110 1 3 true 124124 false 0 true
-				
-				--quanto de gold recursos e poder de artefato ganho na conta e no personagem (� o total)
+
+				--store reward amount
 				local rewardHistory = questHistory.reward
 					local _global = rewardHistory.global
-					local _local = rewardHistory.character [guid]
+					local _local = rewardHistory.character[guid]
 					if (not _local) then
 						_local = {}
-						rewardHistory.character [guid] = _local
+						rewardHistory.character[guid] = _local
 					end
-					
+
 					if (gold and gold > 0) then
-						_global ["gold"] = _global ["gold"] or 0
-						_local ["gold"] = _local ["gold"] or 0
-						_global ["gold"] = _global ["gold"] + gold
-						_local ["gold"] = _local ["gold"] + gold
-						
-						--print ("Gold added:", _global ["gold"], _local ["gold"])
+						_global["gold"] = _global["gold"] or 0
+						_local["gold"] = _local["gold"] or 0
+						_global["gold"] = _global["gold"] + gold
+						_local["gold"] = _local["gold"] + gold
+
+						--print ("Gold added:", _global["gold"], _local["gold"])
 					end
-					
+
 					if (isArtifact) then
-						_global ["artifact"] = _global ["artifact"] or 0
-						_local ["artifact"] = _local ["artifact"] or 0
-						_global ["artifact"] = _global ["artifact"] + artifactPower
-						_local ["artifact"] = _local ["artifact"] + artifactPower
-						
-						--print ("Artifact added:", _global ["artifact"], _local ["artifact"])
+						_global["artifact"] = _global["artifact"] or 0
+						_local["artifact"] = _local["artifact"] or 0
+						_global["artifact"] = _global["artifact"] + artifactPower
+						_local["artifact"] = _local["artifact"] + artifactPower
+
+						--print ("Artifact added:", _global["artifact"], _local["artifact"])
 					end
-					
+
 					if (rewardName) then --class hall resource
-						_global ["resource"] = _global ["resource"] or 0
-						_local ["resource"] = _local ["resource"] or 0
-						_global ["resource"] = _global ["resource"] + numRewardItems
-						_local ["resource"] = _local ["resource"] + numRewardItems
-						
-						--print ("Resource added:", _global ["resource"], _local ["resource"])
+						_global["resource"] = _global["resource"] or 0
+						_local["resource"] = _local["resource"] or 0
+						_global["resource"] = _global["resource"] + numRewardItems
+						_local["resource"] = _local["resource"] + numRewardItems
+
+						--print ("Resource added:", _global["resource"], _local["resource"])
 					end
-					
+
 					--trade skill - blood of sargeras
 					if (itemID == 124124) then
-						_global ["blood"] = (_global ["blood"] or 0) + quantity
-						_local ["blood"] = (_local ["blood"] or 0) + quantity
+						_global["blood"] = (_global["blood"] or 0) + quantity
+						_local["blood"] = (_local["blood"] or 0) + quantity
 					end
-					
+
 					--professions
-					--print ("itemID:", itemID)
 					if (tradeskillLineIndex) then
-						--print ("eh profissao 1", tradeskillLineIndex)
 						local tradeskillLineID = tradeskillLineIndex and select (7, GetProfessionInfo(tradeskillLineIndex))
 						if (tradeskillLineID) then
-							--print ("eh profissao 2", tradeskillLineID)
 							if (itemID) then
 								--print ("eh profissao 3", itemID)
-								_global ["profession"] = _global ["profession"] or {}
-								_local ["profession"] = _local ["profession"] or {}
-								_global ["profession"] [itemID] = (_global ["profession"] [itemID] or 0) + 1
-								_local ["profession"] [itemID] = (_local ["profession"] [itemID] or 0) + 1
-								--print ("local global 3", _local ["profession"] [itemID], _global ["profession"] [itemID])
+								_global["profession"] = _global["profession"] or {}
+								_local["profession"] = _local["profession"] or {}
+								_global["profession"][itemID] = (_global["profession"][itemID] or 0) + 1
+								_local["profession"][itemID] = (_local["profession"][itemID] or 0) + 1
+								--print ("local global 3", _local["profession"][itemID], _global["profession"][itemID])
 							end
 						end
 					end
-				
+
 				--quais quest ja foram completadas e quantas vezes
 				local questDoneHistory = questHistory.quest
 					local _global = questDoneHistory.global
-					local _local = questDoneHistory.character [guid]
+					local _local = questDoneHistory.character[guid]
 					if (not _local) then
 						_local = {}
-						questDoneHistory.character [guid] = _local
+						questDoneHistory.character[guid] = _local
 					end
-					_global [questID] = (_global [questID] or 0) + 1
-					_local [questID] = (_local [questID] or 0) + 1
-					_global ["total"] = (_global ["total"] or 0) + 1
-					_local ["total"] = (_local ["total"] or 0) + 1
-				
+					_global[questID] = (_global[questID] or 0) + 1
+					_local[questID] = (_local[questID] or 0) + 1
+					_global["total"] = (_global["total"] or 0) + 1
+					_local["total"] = (_local["total"] or 0) + 1
+
 				--estat�sticas dia a dia
 				local periodHistory = questHistory.period
 					local _global = periodHistory.global
-					local _local = periodHistory.character [guid]
+					local _local = periodHistory.character[guid]
 					if (not _local) then
 						_local = {}
-						periodHistory.character [guid] = _local
+						periodHistory.character[guid] = _local
 					end
-					
-					local _globalToday = _global [today]
-					local _localToday = _local [today]
+
+					local _globalToday = _global[today]
+					local _localToday = _local[today]
 					if (not _globalToday) then
 						_globalToday = {}
-						_global [today] = _globalToday
+						_global[today] = _globalToday
 					end
 					if (not _localToday) then
 						_localToday = {}
-						_local [today] = _localToday
+						_local[today] = _localToday
 					end
-					
-					_globalToday ["quest"] = (_globalToday ["quest"] or 0) + 1
-					_localToday ["quest"] = (_localToday ["quest"] or 0) + 1
-					
+
+					_globalToday["quest"] = (_globalToday["quest"] or 0) + 1
+					_localToday["quest"] = (_localToday["quest"] or 0) + 1
+
 					if (itemID == 124124) then
-						_globalToday ["blood"] = (_globalToday ["blood"] or 0) + quantity
-						_localToday ["blood"] = (_localToday ["blood"] or 0) + quantity
+						_globalToday["blood"] = (_globalToday["blood"] or 0) + quantity
+						_localToday["blood"] = (_localToday["blood"] or 0) + quantity
 					end
-					
+
 					if (tradeskillLineIndex) then
 						--print ("eh profissao today 4", tradeskillLineIndex)
 						local tradeskillLineID = tradeskillLineIndex and select (7, GetProfessionInfo (tradeskillLineIndex))
@@ -522,71 +502,72 @@ function WorldQuestTracker:OnInit()
 							--print ("eh profissao today 5", tradeskillLineID)
 							if (itemID) then
 								--print ("eh profissao today 6", itemID)
-								_globalToday ["profession"] = _globalToday ["profession"] or {}
-								_localToday ["profession"] = _localToday ["profession"] or {}
-								_globalToday ["profession"] [itemID] = (_globalToday ["profession"] [itemID] or 0) + 1
-								_localToday ["profession"] [itemID] = (_localToday ["profession"] [itemID] or 0) + 1
-								--print ("local global today 6", _localToday ["profession"] [itemID], _globalToday ["profession"] [itemID])
+								_globalToday["profession"] = _globalToday["profession"] or {}
+								_localToday["profession"] = _localToday["profession"] or {}
+								_globalToday["profession"][itemID] = (_globalToday["profession"][itemID] or 0) + 1
+								_localToday["profession"][itemID] = (_localToday["profession"][itemID] or 0) + 1
+								--print ("local global today 6", _localToday["profession"][itemID], _globalToday["profession"][itemID])
 							end
 						end
 					end
-					
+
 					if (gold and gold > 0) then
-						_globalToday ["gold"] = _globalToday ["gold"] or 0
-						_localToday ["gold"] = _localToday ["gold"] or 0
-						_globalToday ["gold"] = _globalToday ["gold"] + gold
-						_localToday ["gold"] = _localToday ["gold"] + gold
+						_globalToday["gold"] = _globalToday["gold"] or 0
+						_localToday["gold"] = _localToday["gold"] or 0
+						_globalToday["gold"] = _globalToday["gold"] + gold
+						_localToday["gold"] = _localToday["gold"] + gold
 					end
 					if (isArtifact) then
-						_globalToday ["artifact"] = _globalToday ["artifact"] or 0
-						_localToday ["artifact"] = _localToday ["artifact"] or 0
-						_globalToday ["artifact"] = _globalToday ["artifact"] + artifactPower
-						_localToday ["artifact"] = _localToday ["artifact"] + artifactPower
+						_globalToday["artifact"] = _globalToday["artifact"] or 0
+						_localToday["artifact"] = _localToday["artifact"] or 0
+						_globalToday["artifact"] = _globalToday["artifact"] + artifactPower
+						_localToday["artifact"] = _localToday["artifact"] + artifactPower
 					end
 					if (rewardName) then --class hall resource
-						_globalToday ["resource"] = _globalToday ["resource"] or 0
-						_localToday ["resource"] = _localToday ["resource"] or 0
-						_globalToday ["resource"] = _globalToday ["resource"] + numRewardItems
-						_localToday ["resource"] = _localToday ["resource"] + numRewardItems
+						_globalToday["resource"] = _globalToday["resource"] or 0
+						_localToday["resource"] = _localToday["resource"] or 0
+						_globalToday["resource"] = _globalToday["resource"] + numRewardItems
+						_localToday["resource"] = _localToday["resource"] + numRewardItems
 					end
-				
+
 			end
 		end
 	end
-	
-	function WorldQuestTracker:QUEST_LOOT_RECEIVED (event, questID, item, amount, ...)
-		--print ("LOOT", questID, item, amount, ...)
+
+	function WorldQuestTracker:QUEST_LOOT_RECEIVED(event, questID, item, amount, ...)
 		if (isWorldQuest(questID)) then
 		--	local title, questType, texture, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, selected, isSpellTarget, timeLeft, isCriteria, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker:GetQuestFullInfo (questID)
 		--	print ("QINFO:", goldFormated, rewardName, numRewardItems, itemName, isArtifact, artifactPower)
 		end
 	end
-	
-	WorldQuestTracker:RegisterEvent ("TAXIMAP_OPENED")
-	WorldQuestTracker:RegisterEvent ("TAXIMAP_CLOSED")
-	WorldQuestTracker:RegisterEvent ("ZONE_CHANGED_NEW_AREA")
-	WorldQuestTracker:RegisterEvent ("QUEST_TURNED_IN")
-	WorldQuestTracker:RegisterEvent ("QUEST_LOOT_RECEIVED")
-	WorldQuestTracker:RegisterEvent ("PLAYER_STARTED_MOVING")
-	WorldQuestTracker:RegisterEvent ("PLAYER_STOPPED_MOVING")
-	
-	C_Timer.After (.5, WorldQuestTracker.ZONE_CHANGED_NEW_AREA)
-	C_Timer.After (.5, WorldQuestTracker.UpdateArrowFrequence)
-	C_Timer.After (5, WorldQuestTracker.UpdateArrowFrequence)
-	C_Timer.After (10, WorldQuestTracker.UpdateArrowFrequence)
+
+	WorldQuestTracker:RegisterEvent("TAXIMAP_OPENED")
+	WorldQuestTracker:RegisterEvent("TAXIMAP_CLOSED")
+	WorldQuestTracker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+	WorldQuestTracker:RegisterEvent("QUEST_TURNED_IN")
+	WorldQuestTracker:RegisterEvent("QUEST_LOOT_RECEIVED")
+	WorldQuestTracker:RegisterEvent("PLAYER_STARTED_MOVING")
+	WorldQuestTracker:RegisterEvent("PLAYER_STOPPED_MOVING")
+
+	C_Timer.After(.5, WorldQuestTracker.ZONE_CHANGED_NEW_AREA)
+	C_Timer.After(.5, WorldQuestTracker.UpdateArrowFrequence)
+	C_Timer.After(5, WorldQuestTracker.UpdateArrowFrequence)
+	C_Timer.After(10, WorldQuestTracker.UpdateArrowFrequence)
 end
 
 local onStartClickAnimation = function(self)
 	self:GetParent():Show()
 end
+
 local onEndClickAnimation = function(self)
 	self:GetParent():Hide()
 end
 
 
-	--formata o tempo restante que a quest tem
+	--format the quest time left
 	local D_HOURS = "%dH"
 	local D_DAYS = "%dD"
+
 	function WorldQuestTracker.GetQuest_TimeLeft(questID, formated)
 		local timeLeftMinutes = GetQuestTimeLeftMinutes(questID)
 		if (timeLeftMinutes) then
@@ -601,7 +582,7 @@ end
 				else
 					timeString = D_DAYS:format(math.floor(timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) / 1440)
 				end
-				
+
 				return timeString
 			else
 				return timeLeftMinutes
@@ -647,11 +628,9 @@ end
 	end
 
 
-
-	
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --saved quests on other characters
-	
+
 	--pega a lista de quests que o jogador tem dispon�vel
 	function WorldQuestTracker.SavedQuestList_GetList()
 		if (type(WorldQuestTracker.dbChr) ~= "table") then
@@ -669,7 +648,7 @@ end
 		end
 
 		local ActiveQuests = WorldQuestTracker.SavedQuestList_GetList()
-		
+
 		if (ActiveQuests [questID]) then --a quest esta armazenada
 			if (map_seasons [questID] == WorldQuestTracker.MapSeason) then
 				--a quest j� esta na lista por�m foi adicionada nesta season do mapa
@@ -712,13 +691,13 @@ end
 			t = {}
 			WorldQuestTracker.db.profile.quests_all_characters [guid] = t
 		end
-		
+
 		local questInfo = t [questID]
 		if (not questInfo) then
 			questInfo = {}
 			t [questID] = questInfo
 		end
-		
+
 		questInfo.expireAt = time() + (timeLeft*60) --timeLeft = minutes left
 		questInfo.rewardTexture = iconTexture or ""
 		questInfo.rewardAmount = iconText or ""
@@ -727,7 +706,7 @@ end
 	function WorldQuestTracker.AllCharactersQuests_Remove (questID)
 		local guid = UnitGUID ("player")
 		local t = WorldQuestTracker.db.profile.quests_all_characters [guid]
-		
+
 		if (t) then
 			t [questID] = nil
 		end
@@ -736,7 +715,7 @@ end
 	function WorldQuestTracker.AllCharactersQuests_CleanUp()
 		local guid = UnitGUID ("player")
 		local t = WorldQuestTracker.db.profile.quests_all_characters [guid]
-		
+
 		if (t) then
 			local now = time()
 			for questID, questInfo in pairs (t) do
@@ -801,7 +780,7 @@ end)
 local re_ShowTutorialAlert = function()
 	WorldQuestTracker ["ShowTutorialAlert"]()
 end
-local hook_AlertCloseButton = function(self) 
+local hook_AlertCloseButton = function(self)
 	re_ShowTutorialAlert()
 end
 local wait_ShowTutorialAlert = function()
@@ -818,16 +797,16 @@ local tutorial_one = function()
 	alert.label = L["S_TUTORIAL_CLICKTOTRACK"]
 	alert.Text:SetSpacing (4)
 	MicroButtonAlert_SetText2 (alert, alert.label)
-	
+
 	if (widget and widget:IsShown()) then
 		alert:SetPoint("bottom", widget, "top", 0, 28)
 	else
 		alert:SetPoint("topleft", worldFramePOIs, "topleft", 64, -270)
 	end
-	
+
 	alert.CloseButton:HookScript ("OnClick", hook_AlertCloseButton)
 	alert:Show()
-	
+
 	WorldQuestTracker.db.profile.TutorialPopupID = WorldQuestTracker.db.profile.TutorialPopupID + 1
 end
 
@@ -838,17 +817,17 @@ local tutorial_two = function()
 		alert.label = L["S_TUTORIAL_WORLDBUTTONS"]
 		alert.Text:SetSpacing (4)
 		MicroButtonAlert_SetText2 (alert, alert.label)
-		
+
 		alert:SetPoint("bottom", WorldQuestTrackerToggleQuestsSummaryButton, "top", 0, 28)
-		
+
 		alert.CloseButton:HookScript ("OnClick", hook_AlertCloseButton)
 		alert.Arrow:ClearAllPoints()
 		alert.Arrow:SetPoint("topleft", alert, "bottomleft", 70, 0)
 		alert:Show()
-		
+
 		WorldQuestTracker.db.profile.TutorialPopupID = WorldQuestTracker.db.profile.TutorialPopupID + 1
-		
-	else	
+
+	else
 		C_Timer.After (2, WorldQuestTracker.ShowTutorialAlert)
 	end
 end
@@ -864,7 +843,7 @@ local tutorial_three = function()
 	alert.Arrow:SetPoint("topleft", alert, "bottomleft", 10, 0)
 	alert.CloseButton:HookScript ("OnClick", hook_AlertCloseButton)
 	alert:Show()
-	
+
 	WorldQuestTracker.db.profile.TutorialPopupID = WorldQuestTracker.db.profile.TutorialPopupID + 1
 end
 
@@ -882,15 +861,15 @@ function WorldQuestTracker.ShowTutorialAlert()
 	end
 
 	WorldQuestTracker.db.profile.TutorialPopupID = WorldQuestTracker.db.profile.TutorialPopupID or 1
-	
+
 	--WorldQuestTracker.db.profile.TutorialPopupID = 3
-	
+
 	if (WorldQuestTracker.db.profile.TutorialPopupID == 1) then
-	
+
 		if (WorldQuestTracker.TutorialAlertOnHold) then
 			return
 		end
-	
+
 		if (not WorldMapFrame:IsShown() or not C_QuestLog.IsQuestFlaggedCompleted (WORLD_QUESTS_AVAILABLE_QUEST_ID or 1) or InCombatLockdown()) then
 			C_Timer.After (10, wait_ShowTutorialAlert)
 			WorldQuestTracker.TutorialAlertOnHold = true
@@ -899,25 +878,25 @@ function WorldQuestTracker.ShowTutorialAlert()
 
 		WorldMapFrame:SetMapID (WorldQuestTracker.MapData.ZoneIDs.KULTIRAS)
 		WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
-		
+
 		--C_Timer.After (4, tutorial_one)
 		return
-		
+
 	elseif (WorldQuestTracker.db.profile.TutorialPopupID == 2) then
-	
+
 		--C_Timer.After (.5, tutorial_two)
 		return
 
 	elseif (WorldQuestTracker.db.profile.TutorialPopupID == 3) then
-	
+
 		--C_Timer.After (.5, tutorial_three)
 		return
-		
+
 	elseif (WorldQuestTracker.db.profile.TutorialPopupID == 4) then
-	
+
 		--C_Timer.After (.5, tutorial_four)
 		return
-		
+
 	end
 end
 
@@ -932,7 +911,7 @@ function WorldQuestTracker.UpdateLoadingIconAnchor()
 			adjust_anchor = true
 		end
 	end
-	
+
 	if (adjust_anchor) then
 		WorldQuestTracker.LoadingAnimation:SetPoint("bottom", WorldMapScrollFrame, "top", 0, -75)
 	else
@@ -961,7 +940,7 @@ function WorldQuestTracker.CreateLoadingIcon()
 	f:SetSize(48, 48)
 	f:SetPoint("bottom", WorldMapScrollFrame, "top", 0, -75) --289/2 = 144
 	f:SetFrameLevel(3000)
-	
+
 	local animGroup1 = f:CreateAnimationGroup()
 	local anim1 = animGroup1:CreateAnimation ("Alpha")
 	anim1:SetOrder (1)
@@ -969,7 +948,7 @@ function WorldQuestTracker.CreateLoadingIcon()
 	anim1:SetToAlpha (1)
 	anim1:SetDuration (2)
 	f.FadeIN = animGroup1
-	
+
 	local animGroup2 = f:CreateAnimationGroup()
 	local anim2 = animGroup2:CreateAnimation ("Alpha")
 	f.FadeOUT = animGroup2
@@ -980,7 +959,7 @@ function WorldQuestTracker.CreateLoadingIcon()
 	animGroup2:SetScript("OnFinished", function()
 		f:Hide()
 	end)
-	
+
 	f.Text = f:CreateFontString (nil, "overlay", "GameFontNormal")
 	f.Text:SetText ("please wait...")
 	f.Text:SetPoint("left", f, "right", -5, 1)
@@ -988,10 +967,10 @@ function WorldQuestTracker.CreateLoadingIcon()
 	f.TextBackground:SetPoint("left", f, "right", -20, 0)
 	f.TextBackground:SetSize(160, 14)
 	f.TextBackground:SetTexture([[Interface\COMMON\ShadowOverlay-Left]])
-	
+
 	f.Text:Hide()
 	f.TextBackground:Hide()
-	
+
 	f.CircleAnimStatic = CreateFrame ("frame", nil, f, "BackdropTemplate")
 	f.CircleAnimStatic:SetAllPoints()
 	f.CircleAnimStatic.Alpha = f.CircleAnimStatic:CreateTexture(nil, "overlay")
@@ -1000,7 +979,7 @@ function WorldQuestTracker.CreateLoadingIcon()
 	f.CircleAnimStatic.Background = f.CircleAnimStatic:CreateTexture(nil, "background")
 	f.CircleAnimStatic.Background:SetTexture([[Interface\COMMON\StreamBackground]])
 	f.CircleAnimStatic.Background:SetAllPoints()
-	
+
 	f.CircleAnim = CreateFrame ("frame", nil, f, "BackdropTemplate")
 	f.CircleAnim:SetAllPoints()
 	f.CircleAnim.Spinner = f.CircleAnim:CreateTexture(nil, "artwork")
@@ -1019,10 +998,10 @@ function WorldQuestTracker.CreateLoadingIcon()
 	animLoop:SetDuration (6)
 	animLoop:SetDegrees (-360)
 	animLoop:SetTarget (f.CircleAnim)
-	
+
 	WorldQuestTracker.LoadingAnimation = f
 	WorldQuestTracker.UpdateLoadingIconAnchor()
-	
+
 	f:Hide()
 end
 
@@ -1055,10 +1034,10 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 		local b = CreateFrame("button", "WQTResetConfigButton", UIParent)
 		DetailsFramework:ApplyStandardBackdrop(b)
 		tinsert(UISpecialFrames, "WQTResetConfigButton")
-		
+
 		b:SetSize(250, 40)
 		b:SetText ("REINSTALL")
-		b:SetScript("OnClick", function() 
+		b:SetScript("OnClick", function()
 			WQTrackerDB = {}
 			WQTrackerDBChr = {}
 			ReloadUI()
@@ -1094,41 +1073,41 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 
 	elseif (msg == "info") then
 		local widget = GetMouseFocus()
-		
+
 		if (widget) then
 			local info = {}
-			
+
 			--quest info
 			tinsert (info, "Name: " .. (widget.GetName and widget:GetName() or "-No Name-"))
-			
+
 			if (widget.questID) then
 				local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData (widget.questID)
 				tinsert (info, "QuestID: " .. widget.questID .. " Quest Name: " .. (title or "-No Name-"))
 			else
 				tinsert (info, "QuestID: no questID found")
 			end
-			
+
 			--flags
 			tinsert (info, "Is Rounded 'Zone' World: " .. (widget.IsWorldZoneQuestButton and "true" or "false"))
 			tinsert (info, "Is Zone Summary: " .. (widget.IsZoneSummaryQuestButton and "true" or "false"))
 			tinsert (info, "")
-			
+
 
 			--is on tracker
 			tinsert (info, "Is on Tracker: " .. (WorldQuestTracker.IsQuestBeingTracked (widget.questID) and "true" or "false"))
-			
+
 			--zone caches
 			tinsert (info, "Is in Zone QuestID Cache: " .. (WorldQuestTracker.CurrentZoneQuests [widget.questID or 0] and "true" or "false"))
-			
+
 			local inZoneWidgetsCache = false
 			for _, cachedElement in ipairs (WorldQuestTracker.Cache_ShownWidgetsOnZoneMap) do
 				if (cachedElement == widget) then
 					inZoneWidgetsCache = true
 				end
 			end
-			
+
 			tinsert (info, "Is in Zone Widget Cache: " .. (inZoneWidgetsCache and "true" or "false"))
-			
+
 			--world caches
 			local inWorldWidgetsCache = false
 			for _, cachedElement in pairs (WorldQuestTracker.WorldMapSmallWidgets) do
@@ -1137,12 +1116,12 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 				end
 			end
 			tinsert (info, "Is in World Widget Cache: " .. (inWorldWidgetsCache and "true" or "false"))
-			
+
 			--pin data provider
 			tinsert (info, "")
-			
+
 			local map = WorldQuestTrackerDataProvider:GetMap()
-			
+
 			local dataProviderPinInUse = false
 			for pin in map:EnumeratePinsByTemplate ("WorldQuestTrackerWorldMapPinTemplate") do
 				if (pin.Child == widget) then
@@ -1150,7 +1129,7 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 				end
 			end
 			tinsert (info, "Pin Data Provider Widget has a Pin: " .. (dataProviderPinInUse and "true" or "false"))
-			
+
 			local dataProviderValidParenting1 = false
 			local dataProviderValidParenting2 = false
 			for _, cachedElement in pairs (WorldQuestTracker.WorldMapSmallWidgets) do
@@ -1164,22 +1143,22 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 					end
 				end
 			end
-			
+
 			tinsert (info, "Pin Data Provider Valid Parent: " .. (dataProviderValidParenting1 and "true" or "false"))
 			tinsert (info, "Pin Data Provider Is Shown: " .. (dataProviderValidParenting2 and "true" or "false"))
-			
+
 			--parent data
 			tinsert (info, "")
-			
+
 			local parent = widget:GetParent()
 			if (parent) then
 				tinsert (info, "Parent: " .. (parent.GetName and parent:GetName() or "-No Name-"))
 				tinsert (info, "Parent Is Shown: " .. (parent:IsShown() and "true" or "false"))
-				
+
 			else
 				tinsert (info, "Parent: -no parent-")
 			end
-			
+
 			--anchor
 			tinsert (info, "")
 			for i = 1, widget:GetNumPoints() do
@@ -1190,15 +1169,15 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 				tinsert (info, "Point: " .. (type (d) == "table" and (d:GetName() or "-no name-") or d))
 				tinsert (info, "Point: " .. (type (e) == "table" and (e:GetName() or "-no name-") or e))
 			end
-			
-			
+
+
 			Details:DumpTable (info)
-			
+
 		end
-		
+
 	else
 		WorldQuestTracker:Msg("version:", WQT_VERSION)
-		
+
 	end
 end
 
@@ -1259,7 +1238,7 @@ p:SetScript("OnEvent", function (self, event, arg1)
 			if (not WorldQuestTracker.db.profile.talking_heads_dungeon) then
 				return
 			end
-			
+
 		elseif (zoneType == "raid") then
 			if (not WorldQuestTracker.db.profile.talking_heads_raid) then
 				return
@@ -1458,7 +1437,7 @@ function WorldQuestTracker.InitiateFlyMasterTracker()
 			oribosFlyMasterFrame:Show()
 			oribosFlyMasterFrame:SetScript("OnUpdate", trackerOnTick)
 			isFlymasterTrakcerEnabled = true
-			
+
 			if (not IsPlayerMoving()) then
 				oribosFlyMasterFrame:SetAlpha(0)
 				oribosFlyMasterFrame:EnableMouse(false)

@@ -1,6 +1,6 @@
-## Interface: 100002
-## Interface-Mainline: 100002
-## Interface-Wrath: 30400
+## Interface: 100005
+## Interface-Mainline: 100005
+## Interface-Wrath: 30401
 
 ## Title: World Quest Tracker
 ## Notes: An addon by Terciob. Make more easy to see world quests
