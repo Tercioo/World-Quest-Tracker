@@ -3,7 +3,7 @@
 
 -- ~review
 
-local thisAddonName, WQTAddon = ...
+local addonId, wqtInternal = ...
 
 --world quest tracker object
 local WorldQuestTracker = WorldQuestTrackerAddon
@@ -19,10 +19,7 @@ if (not DF) then
 end
 
 --localization
-local L = LibStub ("AceLocale-3.0"):GetLocale ("WorldQuestTrackerAddon", true)
-if (not L) then
-	return
-end
+local L = DF.Language.GetLanguageTable(addonId)
 
 local ff = WorldQuestTrackerFinderFrame
 
@@ -30,9 +27,6 @@ local anchorFrame = WorldMapFrame.ScrollContainer
 local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 
 WorldQuestTracker.WorldSummary = CreateFrame ("frame", "WorldQuestTrackerWorldSummaryFrame", anchorFrame, "BackdropTemplate")
-
---dev version string
-local DEV_VERSION_STR = DF:CreateLabel (worldFramePOIs, "")
 
 local _
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
@@ -1399,40 +1393,27 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				end
 
 				if (option == "tracker_is_locked") then
-					--> s� aparece esta op��o quando o tracker esta m�vel
-					if (WorldQuestTracker.db.profile.tracker_is_movable) then
+					if (not WorldQuestTracker.db.profile.tracker_attach_to_questlog) then
 						if (value) then
-							--> o tracker agora esta trancado - desliga o mouse
-							WorldQuestTrackerScreenPanel:EnableMouse (false)
-							--LibWindow.MakeDraggable (WorldQuestTrackerScreenPanel)
+							--locked, disable mouse
+							WorldQuestTrackerScreenPanel:EnableMouse(false)
 						else
-							--> o tracker agora est� movel - liga o mouse
-							WorldQuestTrackerScreenPanel:EnableMouse (true)
-							LibWindow.MakeDraggable (WorldQuestTrackerScreenPanel)
+							--unlocked, enable mouse
+							WorldQuestTrackerScreenPanel:EnableMouse(true)
 						end
 					end
 				end
 
-				if (option == "tracker_is_movable") then
-
-					if (not LibWindow) then
-						print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
-					end
-
+				if (option == "tracker_attach_to_questlog") then
 					if (value) then
-						--> o tracker agora � m�vel
-						--verificar a op��o se esta locked
-						if (LibWindow and not WorldQuestTrackerScreenPanel.RegisteredForLibWindow) then
-							LibWindow.RestorePosition (WorldQuestTrackerScreenPanel)
-							WorldQuestTrackerScreenPanel.RegisteredForLibWindow = true
-						end
-						if (not WorldQuestTracker.db.profile.tracker_is_locked) then
-							WorldQuestTrackerScreenPanel:EnableMouse (true)
-							LibWindow.MakeDraggable (WorldQuestTrackerScreenPanel)
-						end
+						WorldQuestTrackerScreenPanel:EnableMouse(false)
 					else
-						--> o tracker agora auto alinha com o objective tracker
-						WorldQuestTrackerScreenPanel:EnableMouse (false)
+						LibWindow.RestorePosition(WorldQuestTrackerScreenPanel)
+
+						if (not WorldQuestTracker.db.profile.tracker_is_locked) then
+							WorldQuestTrackerScreenPanel:EnableMouse(true)
+							
+						end
 					end
 
 					WorldQuestTracker.RefreshTrackerAnchor()
@@ -1443,7 +1424,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				end
 
 				if (option ~= "show_timeleft" and option ~= "alpha_time_priority" and option ~= "force_sort_by_timeleft") then
-					GameCooltip:ExecFunc (WorldQuestTrackerOptionsButton)
+					--GameCooltip:ExecFunc (WorldQuestTrackerOptionsButton)
 				else
 					--> se for do painel de tempo, dar refresh no world map
 					if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
@@ -1451,6 +1432,10 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					end
 					GameCooltip:Close()
 				end
+			end
+
+			WorldQuestTracker.SetSetting = function(...)
+				options_on_click(nil, nil, ...)
 			end
 
 			--path frame based on where do we go now addon which i co-wrote with my dear friend yakumile
@@ -3502,6 +3487,9 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			--options button
 			local optionsButton = CreateFrame ("button", "WorldQuestTrackerOptionsButton", WorldQuestTracker.DoubleTapFrame, "BackdropTemplate")
 			optionsButton:SetPoint("bottomleft", WorldQuestTracker.DoubleTapFrame, "bottomleft", 0, 2)
+			optionsButton:SetScript("OnClick", function()
+				WorldQuestTracker.OpenOptionsPanel()
+			end)
 			setup_button (optionsButton, L["S_MAPBAR_OPTIONS"]) --~options
 
 			---------------------------------------------------------
@@ -3997,22 +3985,22 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				-- tracker movable
 				--automatic
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_AUTO"], "", 2)
-				if (not WorldQuestTracker.db.profile.tracker_is_movable) then
+				if (not WorldQuestTracker.db.profile.tracker_attach_to_questlog) then
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 				else
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 				end
-				GameCooltip:AddMenu (2, options_on_click, "tracker_is_movable", false)
+				GameCooltip:AddMenu (2, options_on_click, "tracker_attach_to_questlog", false)
 				--manual
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_CUSTOM"], "", 2)
-				if (WorldQuestTracker.db.profile.tracker_is_movable) then
+				if (WorldQuestTracker.db.profile.tracker_attach_to_questlog) then
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
 				else
 					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
 				end
-				GameCooltip:AddMenu (2, options_on_click, "tracker_is_movable", true)
+				GameCooltip:AddMenu (2, options_on_click, "tracker_attach_to_questlog", true)
 				--locked
-				if (WorldQuestTracker.db.profile.tracker_is_movable) then
+				if (WorldQuestTracker.db.profile.tracker_is_locked) then
 					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED"], "", 2)
 				else
 					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED"], "", 2, "gray")
@@ -4027,10 +4015,10 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				--reset pos
 				GameCooltip:AddLine (L["S_OPTIONS_TRACKER_RESETPOSITION"], "", 2)
 				GameCooltip:AddMenu (2, function()
-					options_on_click (_, _, "tracker_is_movable", false)
+					options_on_click (_, _, "tracker_attach_to_questlog", false)
 					C_Timer.After (0.5, function()
-						options_on_click (_, _, "tracker_is_movable", true)
-						LibWindow.SavePosition (WorldQuestTrackerScreenPanel)
+						options_on_click (_, _, "tracker_attach_to_questlog", true)
+						LibWindow.SavePosition(WorldQuestTrackerScreenPanel)
 					end)
 				end)
 

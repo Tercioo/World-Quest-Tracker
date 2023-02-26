@@ -58,4 +58,6 @@ WorldQuestTracker_ZoneMap.lua
 WorldQuestTracker_WorldMap.lua
 WorldQuestTracker_Taxi.lua
 
+WorldQuestTracker_OptionsPanel.lua
+
 WorldQuestTrackerMixin.xml

@@ -176,10 +176,10 @@ do
 				quest_icons_scale_offset = 0,
 			},
 
-			accessibility = {
-				extra_tracking_indicator = false,
-				use_bounty_ring = false,
-			},
+			accessibility = {--a
+				extra_tracking_indicator = false,--a
+				use_bounty_ring = false,--a
+			},--a
 
 			last_news_time = 0,
 
@@ -208,30 +208,30 @@ do
 			taxy_tracked_scale = 3,
 			arrow_update_frequence = 0.016,
 			map_lock = false,
-			sound_enabled = true,
+			sound_enabled = true,--a
 			use_tracker = true,
-			tracker_is_movable = false,
+			tracker_attach_to_questlog = true,
 			tracker_is_locked = false,
 			tracker_only_currentmap = false,
 			tracker_scale = 1,
 			tracker_show_time = false,
 			tracker_textsize = 12,
 
-			talking_heads_heard = {},
-			talking_heads_torgast = true,
-			talking_heads_dungeon = true,
-			talking_heads_raid = true,
-			talking_heads_openworld = false,
+			talking_heads_heard = {},--a
+			talking_heads_torgast = true,--a
+			talking_heads_dungeon = true,--a
+			talking_heads_raid = true,--a
+			talking_heads_openworld = false,--a
 
-			flymaster_tracker_frame_pos = {},
-			flymaster_tracker_enabled = true,
+			flymaster_tracker_frame_pos = {},--a
+			flymaster_tracker_enabled = true,--a
 
-			show_faction_frame = true,
+			show_faction_frame = true,--a
 
-			map_frame_anchor = "center",
+			map_frame_anchor = "center",--a
 
-			map_frame_scale_enabled = false,
-			map_frame_scale_mod = 1,
+			map_frame_scale_enabled = false,--a
+			map_frame_scale_mod = 1,--a
 
 			use_quest_summary = true,
 			quest_summary_minimized = false,
@@ -246,10 +246,10 @@ do
 			is_BFA_version = false, --if is false, reset the tutorial
 
 			zone_only_tracked = false,
-			low_level_tutorial = false, --
+			low_level_tutorial = false,
 			bar_anchor = "bottom",
-			bar_visible = true,
-			use_old_icons = false,
+			bar_visible = true,--a
+			use_old_icons = false,--a
 			history = {
 				reward = {
 					global = {},

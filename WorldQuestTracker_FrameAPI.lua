@@ -1,4 +1,5 @@
 
+local addonId, wqtInternal = ...
 
 --world quest tracker object
 local WorldQuestTracker = WorldQuestTrackerAddon
@@ -14,10 +15,7 @@ if (not DF) then
 end
 
 --localization
-local L = LibStub ("AceLocale-3.0"):GetLocale ("WorldQuestTrackerAddon", true)
-if (not L) then
-	return
-end
+local L = DF.Language.GetLanguageTable(addonId)
 
 local ff = WorldQuestTrackerFinderFrame
 

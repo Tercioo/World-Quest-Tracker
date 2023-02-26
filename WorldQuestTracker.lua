@@ -1,5 +1,5 @@
 
-
+local addonId, wqtInternal = ...
 --new 8.1.5 C_TaskQuest.GetQuestTimeLeftSeconds
 
 hooksecurefunc (WorldQuestDataProviderMixin, "RefreshAllData", function (self, fromOnShow)
@@ -20,13 +20,7 @@ if (not DF) then
 	return
 end
 
-local L = LibStub ("AceLocale-3.0"):GetLocale ("WorldQuestTrackerAddon", true)
-if (not L) then
-	print ("|cFFFFAA00World Quest Tracker|r: Reopen your client to finish updating the addon.|r")
-	print ("|cFFFFAA00World Quest Tracker|r: Reopen your client to finish updating the addon.|r")
-	print ("|cFFFFAA00World Quest Tracker|r: Reopen your client to finish updating the addon.|r")
-	return
-end
+local L = DF.Language.GetLanguageTable(addonId)
 
 if (true) then
 	--return - nah, not today
@@ -132,7 +126,6 @@ end
 function WorldQuestTracker:OnInit()
 	WorldQuestTracker.InitAt = GetTime()
 	WorldQuestTracker.LastMapID = WorldQuestTracker.GetCurrentMapAreaID()
-	WorldQuestTracker.GetTrackedQuestsOnDB()
 
 	WorldQuestTracker.CreateLoadingIcon()
 
@@ -149,23 +142,16 @@ function WorldQuestTracker:OnInit()
 		WorldQuestTracker.InitiateFlyMasterTracker()
 	end)
 
-	C_Timer.After (2, function()
-		if (WorldQuestTracker.db:GetCurrentProfile() ~= "Default") then
-			WorldQuestTracker.db:SetProfile ("Default")
-			if (LibWindow) then
-				if (WorldQuestTracker.db:GetCurrentProfile() == "Default") then
-					LibWindow.RegisterConfig (WorldQuestTrackerScreenPanel, WorldQuestTracker.db.profile)
-					if (WorldQuestTracker.db.profile.tracker_is_movable) then
-						LibWindow.RestorePosition (WorldQuestTrackerScreenPanel)
-						WorldQuestTrackerScreenPanel.RegisteredForLibWindow = true
-					end
-				end
-			end
-		end
+	if (WorldQuestTracker.db:GetCurrentProfile() ~= "Default") then
+		WorldQuestTracker.db:SetProfile("Default")
+	end
 
+	WorldQuestTracker.TrackerFrameOnInit()
+	WorldQuestTracker.GetTrackedQuestsOnDB()
+
+	C_Timer.After(2, function()
 		-- ~review disabling scale since it have some issues for some users
 		WorldQuestTracker.db.profile.map_frame_scale_enabled = false
-
 		--this options is deprecated, switching it to false for all users
 		WorldQuestTracker.db.profile.disable_world_map_widgets = false
 	end)
@@ -174,12 +160,6 @@ function WorldQuestTracker:OnInit()
 
 	if (LibWindow) then
 		if (WorldQuestTracker.db:GetCurrentProfile() == "Default") then
-			LibWindow.RegisterConfig (WorldQuestTrackerScreenPanel, WorldQuestTracker.db.profile)
-			if (WorldQuestTracker.db.profile.tracker_is_movable) then
-				LibWindow.RestorePosition (WorldQuestTrackerScreenPanel)
-				WorldQuestTrackerScreenPanel.RegisteredForLibWindow = true
-			end
-
 			if (not WorldQuestTrackerFinderFrame.IsRegistered) then
 				WorldQuestTracker.RegisterGroupFinderFrameOnLibWindow()
 			end
