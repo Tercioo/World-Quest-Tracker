@@ -1551,7 +1551,6 @@ function ff.WorldQuestFinished (questID, fromCustomSeearch)
 	ff.GroupDone()
 end
 
-
 --options
 	ff.SetEnabledFunc = function(_, _, value)
 		WorldQuestTracker.db.profile.groupfinder.enabled = value

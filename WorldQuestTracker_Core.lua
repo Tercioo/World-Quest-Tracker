@@ -995,26 +995,26 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			ToggleQuestsSummaryButton.TextLabel:SetPoint("center", ToggleQuestsSummaryButton, "center")
 
 			function ToggleQuestsSummaryButton:UpdateText()
-				if (WorldQuestTracker.db.profile.world_map_config.summary_showbyzone) then
+				if (WorldQuestTracker.db.profile.world_map_config.summary_showby == "byzone") then
 					--show by type
 					ToggleQuestsSummaryButton.TextLabel:SetText (L["S_WORLDBUTTONS_SHOW_TYPE"])
 
-				elseif (not WorldQuestTracker.db.profile.world_map_config.summary_showbyzone) then
+				elseif (WorldQuestTracker.db.profile.world_map_config.summary_showby == "bytype") then
 					--show by zone
 					ToggleQuestsSummaryButton.TextLabel:SetText (L["S_WORLDBUTTONS_SHOW_ZONE"])
 				end
 			end
 
 			ToggleQuestsSummaryButton:SetScript("OnClick", function()
-				if (WorldQuestTracker.db.profile.world_map_config.summary_showbyzone) then
+				if (WorldQuestTracker.db.profile.world_map_config.summary_showby == "byzone") then
 					--show by type
 					WorldQuestTracker.db.profile.world_map_config.summary_show = true
-					WorldQuestTracker.db.profile.world_map_config.summary_showbyzone = false
+					WorldQuestTracker.db.profile.world_map_config.summary_showby = "bytype"
 
-				elseif (not WorldQuestTracker.db.profile.world_map_config.summary_showbyzone) then
+				elseif (WorldQuestTracker.db.profile.world_map_config.summary_showby == "bytype") then
 					--show by zone
 					WorldQuestTracker.db.profile.world_map_config.summary_show = true
-					WorldQuestTracker.db.profile.world_map_config.summary_showbyzone = true
+					WorldQuestTracker.db.profile.world_map_config.summary_showby = "byzone"
 				end
 
 				if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
@@ -1146,7 +1146,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 					WorldQuestTracker.UpdateWorldQuestsOnWorldMap()
 
-					if (value == "onmap_show" or value == "summary_show" or value == "summary_anchor" or value == "summary_showbyzone" or value == "summary_widgets_per_row") then
+					if (value == "onmap_show" or value == "summary_show" or value == "summary_anchor" or value == "summary_widgets_per_row") then
 						WorldQuestTracker.OnMapHasChanged()
 						GameCooltip:Close()
 					end
@@ -1668,7 +1668,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				if (isRaw) then
 					return WorldQuestTracker.db.profile.world_map_config.summary_anchor
 				else
-					if (WorldQuestTracker.db.profile.world_map_config.summary_showbyzone) then
+					if (WorldQuestTracker.db.profile.world_map_config.summary_showby) then
 						local mapID = anchor.mapID
 						local mapTable = WorldQuestTracker.mapTables [mapID]
 						if (mapTable) then
@@ -1904,7 +1904,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				return anchor1.AnchorOrder < anchor2.AnchorOrder
 			end
 			function worldSummary.ReAnchor()
-				if (WorldQuestTracker.db.profile.world_map_config.summary_showbyzone) then
+				if (WorldQuestTracker.db.profile.world_map_config.summary_showby == "byzone") then
 					for index, anchor in pairs (worldSummary.Anchors) do
 						local mapID = anchor.mapID
 						local mapTable = WorldQuestTracker.mapTables [mapID]
@@ -1932,7 +1932,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 						end
 					end
 
-				else
+				elseif (WorldQuestTracker.db.profile.world_map_config.summary_showby == "bytype") then
 					local Y = -24
 
 					--reorder the widgets of this anchor by the order set under the UpdateOrder function
@@ -1984,7 +1984,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			--it also checks if the world map are showing quests by the zone and returns the anchor for that particular zone
 			function worldSummary.GetAnchor (filterType, worldQuestType, questName, mapID)
 				local anchor, anchorTitle
-				local isShowingByZone = WorldQuestTracker.db.profile.world_map_config.summary_showbyzone
+				local isShowingByZone = WorldQuestTracker.db.profile.world_map_config.summary_showby == "byzone"
 
 				if (not isShowingByZone) then
 					--if not showing by the zone, get the anchor based on the type of the quest
@@ -2071,7 +2071,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			function worldSummary.ReorderAnchorWidgets(anchor)
 
 				local isSortByTime = WorldQuestTracker.db.profile.force_sort_by_timeleft
-				local isShowingByZone = WorldQuestTracker.db.profile.world_map_config.summary_showbyzone
+				local isShowingByZone = WorldQuestTracker.db.profile.world_map_config.summary_showby == "byzone"
 
 				--calculate the weight of the quest to give to the sort function
 				if (not isShowingByZone) then
@@ -3938,570 +3938,6 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 				local IconSize = 14
 
-				--all tracker options ~tracker config
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERCONFIG"])
-				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowGridT]], 1, 1, IconSize, IconSize, 944/1024, 993/1024, 272/1024, 324/1024)
-
-				--use quest tracker
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_QUESTTRACKER"], "", 2)
-				if (WorldQuestTracker.db.profile.use_tracker) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (2, options_on_click, "use_tracker", not WorldQuestTracker.db.profile.use_tracker)
-				--
-				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
-				--
-
-				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "0.8"), "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 0.8)
-				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.0"), "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1)
-				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.1"), "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1.1)
-				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.2"), "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1.2)
-				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.3"), "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1.3)
-				GameCooltip:AddLine (format (L["S_MAPBAR_OPTIONSMENU_TRACKER_SCALE"], "1.5"), "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "tracker_scale", 1.5)
-
-				--
-				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
-				--
-
-				GameCooltip:AddLine ("Small Text Size", "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "tracker_textsize", 12)
-				GameCooltip:AddLine ("Medium Text Size", "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "tracker_textsize", 13)
-				GameCooltip:AddLine ("Large Text Size", "", 2)
-				GameCooltip:AddMenu (2, options_on_click, "tracker_textsize", 14)
-
-				--
-				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
-				--
-
-				-- tracker movable
-				--automatic
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_AUTO"], "", 2)
-				if (not WorldQuestTracker.db.profile.tracker_attach_to_questlog) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (2, options_on_click, "tracker_attach_to_questlog", false)
-				--manual
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_CUSTOM"], "", 2)
-				if (WorldQuestTracker.db.profile.tracker_attach_to_questlog) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (2, options_on_click, "tracker_attach_to_questlog", true)
-				--locked
-				if (WorldQuestTracker.db.profile.tracker_is_locked) then
-					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED"], "", 2)
-				else
-					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED"], "", 2, "gray")
-				end
-				if (WorldQuestTracker.db.profile.tracker_is_locked) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (2, options_on_click, "tracker_is_locked", not WorldQuestTracker.db.profile.tracker_is_locked)
-
-				--reset pos
-				GameCooltip:AddLine (L["S_OPTIONS_TRACKER_RESETPOSITION"], "", 2)
-				GameCooltip:AddMenu (2, function()
-					options_on_click (_, _, "tracker_attach_to_questlog", false)
-					C_Timer.After (0.5, function()
-						options_on_click (_, _, "tracker_attach_to_questlog", true)
-						LibWindow.SavePosition(WorldQuestTrackerScreenPanel)
-					end)
-				end)
-
-				--
-				GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
-				--
-
-				--show yards distance on the tracker
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_YARDSDISTANCE"], "", 2)
-				if (WorldQuestTracker.db.profile.show_yards_distance) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (2, options_on_click, "show_yards_distance", not WorldQuestTracker.db.profile.show_yards_distance)
-
-				--only show quests on the current zone
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_TRACKER_CURRENTZONE"], "", 2)
-				if (WorldQuestTracker.db.profile.tracker_only_currentmap) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (2, options_on_click, "tracker_only_currentmap", not WorldQuestTracker.db.profile.tracker_only_currentmap)
-
-				GameCooltip:AddLine (L["S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_TITLE"], "", 2)
-				if (WorldQuestTracker.db.profile.tracker_show_time) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (2, options_on_click, "tracker_show_time", not WorldQuestTracker.db.profile.tracker_show_time)
-
-				--World Map Config
-
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_WORLDMAPCONFIG"])
-				GameCooltip:AddIcon ([[Interface\Worldmap\UI-World-Icon]], 1, 1, IconSize, IconSize)
-
-
-				--show the summary in the left side of the world map
-					--is summary enabled
-					GameCooltip:AddLine (L["S_WORLDMAP_QUESTSUMMARY"], "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.world_map_config.summary_show)
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "summary_show", not WorldQuestTracker.db.profile.world_map_config.summary_show)
-
-					--show by
-					GameCooltip:AddLine ("", "", 2)
-					GameCooltip:AddLine (L["S_OPTIONS_WORLD_ORGANIZE_BYMAP"], "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.world_map_config.summary_showbyzone)
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "summary_showbyzone", true)
-
-					GameCooltip:AddLine (L["S_OPTIONS_WORLD_ORGANIZE_BYTYPE"], "", 2)
-					add_checkmark_icon (not WorldQuestTracker.db.profile.world_map_config.summary_showbyzone)
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "summary_showbyzone", false)
-					GameCooltip:AddLine ("", "", 2)
-
-					--anchor
-					GameCooltip:AddLine (L["S_OPTIONS_WORLD_ANCHOR_LEFT"], "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.world_map_config.summary_anchor == "left")
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "summary_anchor", "left")
-
-					GameCooltip:AddLine (L["S_OPTIONS_WORLD_ANCHOR_RIGHT"], "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.world_map_config.summary_anchor == "right")
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "summary_anchor", "right")
-					GameCooltip:AddLine ("", "", 2)
-
-					--sizes
-					GameCooltip:AddLine (L["S_OPTIONS_WORLD_INCREASEICONSPERROW"], "", 2)
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "incrows", "summary_widgets_per_row")
-					GameCooltip:AddLine (L["S_OPTIONS_WORLD_DECREASEICONSPERROW"], "", 2)
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 0, 1)
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "decrows", "summary_widgets_per_row")
-
-					GameCooltip:AddLine ("", "", 2)
-
-					GameCooltip:AddLine (L["S_INCREASESIZE"], "", 2)
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "incsize", "summary_scale")
-					GameCooltip:AddLine (L["S_DECREASESIZE"], "", 2)
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 0, 1)
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "decsize", "summary_scale")
-
-				GameCooltip:AddLine ("$div", nil, 2, nil, -7, -14)
-
-					--is quest location enabled
-					GameCooltip:AddLine (L["S_WORLDMAP_QUESTLOCATIONS"], "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.world_map_config.onmap_show)
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "onmap_show", not WorldQuestTracker.db.profile.world_map_config.onmap_show)
-
-					GameCooltip:AddLine (L["S_INCREASESIZE"], "", 2)
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "incsize", "onmap_scale_offset")
-					GameCooltip:AddLine (L["S_DECREASESIZE"], "", 2)
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 0, 1)
-					GameCooltip:AddMenu (2, options_on_click, "world_map_config", "decsize", "onmap_scale_offset")
-
-				--Zone Map Config
-					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ZONEMAPCONFIG"])
-					GameCooltip:AddIcon ([[Interface\Worldmap\WorldMap-Icon]], 1, 1, IconSize, IconSize)
-
-					--summary enabled
-					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ZONE_QUESTSUMMARY"], "", 2)
-					if (WorldQuestTracker.db.profile.use_quest_summary) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, options_on_click, "use_quest_summary", not WorldQuestTracker.db.profile.use_quest_summary)
-
-					--is summary minimized
-					GameCooltip:AddLine ("Show Minimize Button", "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.show_summary_minimize_button)
-					GameCooltip:AddMenu (2, options_on_click, "show_summary_minimize_button", not WorldQuestTracker.db.profile.show_summary_minimize_button)
-
-					--change the summary scale
-					GameCooltip:AddLine (L["S_INCREASESIZE"], "", 2)
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
-					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "incsize", "quest_summary_scale")
-					GameCooltip:AddLine (L["S_DECREASESIZE"], "", 2)
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 0, 1)
-					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "decsize", "quest_summary_scale")
-
-					GameCooltip:AddLine ("$div", nil, 2, nil, -7, -14)
-
-					GameCooltip:AddLine (L["S_WORLDMAP_QUESTLOCATIONS"], "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.zone_map_config.show_widgets)
-					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "show_widgets", not WorldQuestTracker.db.profile.zone_map_config.show_widgets)
-
-					GameCooltip:AddLine (L["S_INCREASESIZE"], "", 2)
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 1, 0)
-					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "incsize", "scale")
-					GameCooltip:AddLine (L["S_DECREASESIZE"], "", 2)
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-MicroStream-Yellow]], 2, 1, 16, 16, 0, 1, 0, 1)
-					GameCooltip:AddMenu (2, options_on_click, "zone_map_config", "decsize", "scale")
-
-					GameCooltip:AddLine ("$div", nil, 2, nil, -7, -14)
-
-					GameCooltip:AddLine (L["S_OPTIONS_ZONE_SHOWONLYTRACKED"], "", 2)
-					if (WorldQuestTracker.db.profile.zone_only_tracked) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, options_on_click, "zone_only_tracked", not WorldQuestTracker.db.profile.zone_only_tracked)
-
-				do
-					--group finder config
-					GameCooltip:AddLine (L["S_GROUPFINDER_TITLE"])
-					GameCooltip:AddIcon ([[Interface\LFGFRAME\BattlenetWorking1]], 1, 1, IconSize, IconSize, .22, .78, .22, .78)
-
-					--enabled
-					GameCooltip:AddLine (L["S_GROUPFINDER_ENABLED"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.enabled) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetEnabledFunc, not WorldQuestTracker.db.profile.groupfinder.enabled)
-
-					--find group for rares
-					GameCooltip:AddLine (L["S_GROUPFINDER_AUTOOPEN_RARENPC_TARGETED"], "", 2)
-					if (WorldQuestTracker.db.profile.rarescan.search_group) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetFindGroupForRares, not WorldQuestTracker.db.profile.rarescan.search_group)
-
-					--uses buttons on the quest tracker
-					GameCooltip:AddLine (L["S_GROUPFINDER_OT_ENABLED"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.tracker_buttons) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetOTButtonsFunc, not WorldQuestTracker.db.profile.groupfinder.tracker_buttons)
-
-					--
-					GameCooltip:AddLine ("$div", nil, 2, nil, -7, -14)
-
-					GameCooltip:AddLine ("Don't Show if Already in Group", "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.dont_open_in_group) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.AlreadyInGroupFunc, not WorldQuestTracker.db.profile.groupfinder.dont_open_in_group)
-
-					--
-					GameCooltip:AddLine ("$div", nil, 2, nil, -7, -14)
-
-					--leave group
-					GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_IMMEDIATELY"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.autoleave) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave, "autoleave")
-
-					GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_AFTERX"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.autoleave_delayed) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.autoleave_delayed, "autoleave_delayed")
-
-					GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_ASKX"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.askleave_delayed) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.askleave_delayed, "askleave_delayed")
-
-					GameCooltip:AddLine (L["S_GROUPFINDER_LEAVEOPTIONS_DONTLEAVE"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.noleave) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetAutoGroupLeaveFunc, not WorldQuestTracker.db.profile.groupfinder.noleave, "noleave")
-
-					--
-					GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
-					--ask to leave with timeout
-					GameCooltip:AddLine ("10 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 10) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetGroupLeaveTimeoutFunc, 10)
-
-					GameCooltip:AddLine ("15 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 15) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetGroupLeaveTimeoutFunc, 15)
-
-					GameCooltip:AddLine ("20 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 20) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetGroupLeaveTimeoutFunc, 20)
-
-					GameCooltip:AddLine ("30 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 30) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetGroupLeaveTimeoutFunc, 30)
-
-					GameCooltip:AddLine ("60 " .. L["S_GROUPFINDER_SECONDS"], "", 2)
-					if (WorldQuestTracker.db.profile.groupfinder.leavetimer == 60) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, ff.SetGroupLeaveTimeoutFunc, 60)
-
-					GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
-
-				end
-
-				--rare finder
-					GameCooltip:AddLine (L["S_RAREFINDER_TITLE"])
-					GameCooltip:AddIcon ([[Interface\Collections\Collections]], 1, 1, IconSize, IconSize, 101/512, 116/512, 12/512, 26/512)
-
-					--enabled
-					GameCooltip:AddLine (L["S_RAREFINDER_OPTIONS_SHOWICONS"], "", 2)
-					if (WorldQuestTracker.db.profile.rarescan.show_icons) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, options_on_click, "rarescan", "show_icons", not WorldQuestTracker.db.profile.rarescan.show_icons)
-
-					--english only
-					GameCooltip:AddLine (L["S_RAREFINDER_OPTIONS_ENGLISHSEARCH"], "", 2)
-					if (WorldQuestTracker.db.profile.rarescan.always_use_english) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, options_on_click, "rarescan", "always_use_english", not WorldQuestTracker.db.profile.rarescan.always_use_english)
-
-					GameCooltip:AddLine (L["S_RAREFINDER_ADDFROMPREMADE"], "", 2)
-					if (WorldQuestTracker.db.profile.rarescan.add_from_premade) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, options_on_click, "rarescan", "add_from_premade", not WorldQuestTracker.db.profile.rarescan.add_from_premade)
-
-					GameCooltip:AddLine ("$div", nil, 2, nil, -5, -11)
-
-					--play audion on spot a rare
-					GameCooltip:AddLine (L["S_RAREFINDER_SOUND_ENABLED"], "", 2)
-					if (WorldQuestTracker.db.profile.rarescan.playsound) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, options_on_click, "rarescan", "playsound", not WorldQuestTracker.db.profile.rarescan.playsound)
-
-					GameCooltip:AddLine ("Volume: 100%", "", 2)
-					if (WorldQuestTracker.db.profile.rarescan.playsound_volume == 1) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, options_on_click, "rarescan", "playsound_volume", 1)
-
-					GameCooltip:AddLine ("Volume: 50%", "", 2)
-					if (WorldQuestTracker.db.profile.rarescan.playsound_volume == 2) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, options_on_click, "rarescan", "playsound_volume", 2)
-
-					GameCooltip:AddLine ("Volume: 30%", "", 2)
-					if (WorldQuestTracker.db.profile.rarescan.playsound_volume == 3) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, options_on_click, "rarescan", "playsound_volume", 3)
-
-					GameCooltip:AddLine (L["S_RAREFINDER_SOUND_ALWAYSPLAY"], "", 2)
-					if (WorldQuestTracker.db.profile.rarescan.use_master) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-					GameCooltip:AddMenu (2, options_on_click, "rarescan", "use_master", not WorldQuestTracker.db.profile.rarescan.use_master)
-
-				--tracker arrow update speed
-					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED"])
-					GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]], 1, 1, IconSize, IconSize, .15, .8, .15, .80)
-
-					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_REALTIME"], "", 2)
-					GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.016)
-					if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.017) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-
-					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_HIGH"], "", 2)
-					GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.03)
-					if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.032 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.029) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-
-					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_MEDIUM"], "", 2)
-					GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.075)
-					if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.076 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.074) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-
-					GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_ARROWSPEED_SLOW"], "", 2)
-					GameCooltip:AddMenu (2, options_on_click, "arrow_update_speed", 0.1)
-					if (WorldQuestTracker.db.profile.arrow_update_frequence < 0.11 and WorldQuestTracker.db.profile.arrow_update_frequence > 0.099) then
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
-					else
-						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 2, 1, 16, 16, .4, .6, .4, .6)
-					end
-
-				-- ~talking ~head
-				GameCooltip:AddLine ("No Talking Head")
-				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\icon_talking_head]], 1, 1, IconSize, IconSize)
-
-					GameCooltip:AddLine ("Open World", "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.talking_heads_openworld)
-					GameCooltip:AddMenu (2, options_on_click, "talkinghead", "talking_heads_openworld", not WorldQuestTracker.db.profile.talking_heads_openworld)
-
-					GameCooltip:AddLine ("Dungeon", "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.talking_heads_dungeon)
-					GameCooltip:AddMenu (2, options_on_click, "talkinghead", "talking_heads_dungeon", not WorldQuestTracker.db.profile.talking_heads_dungeon)
-
-					GameCooltip:AddLine ("Raid", "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.talking_heads_raid)
-					GameCooltip:AddMenu (2, options_on_click, "talkinghead", "talking_heads_raid", not WorldQuestTracker.db.profile.talking_heads_raid)
-
-					GameCooltip:AddLine ("Torgasth", "", 2)
-					add_checkmark_icon (WorldQuestTracker.db.profile.talking_heads_torgast)
-					GameCooltip:AddMenu (2, options_on_click, "talkinghead", "talking_heads_torgast", not WorldQuestTracker.db.profile.talking_heads_torgast)
-
-				-- ~accessibility
-				GameCooltip:AddLine (L["S_OPTIONS_ACCESSIBILITY"])
-				GameCooltip:AddIcon ([[Interface\PVPFrame\PVP-Banner-Emblem-1]], 1, 1, IconSize, IconSize)
-
-				GameCooltip:AddLine (L["S_OPTIONS_ACCESSIBILITY_EXTRATRACKERMARK"], "", 2)
-				add_checkmark_icon (WorldQuestTracker.db.profile.accessibility.extra_tracking_indicator)
-				GameCooltip:AddMenu (2, options_on_click, "accessibility", "extra_tracking_indicator", not WorldQuestTracker.db.profile.accessibility.extra_tracking_indicator)
-
-				GameCooltip:AddLine (L["S_OPTIONS_ACCESSIBILITY_SHOWBOUNTYRING"], "", 2)
-				add_checkmark_icon (WorldQuestTracker.db.profile.accessibility.use_bounty_ring)
-				GameCooltip:AddMenu (2, options_on_click, "accessibility", "use_bounty_ring", not WorldQuestTracker.db.profile.accessibility.use_bounty_ring)
-
-				GameCooltip:AddLine ("Path Line")
-				GameCooltip:AddIcon ([[Interface\AddOns\WorldQuestTracker\media\three_dots]], 1, 1, IconSize, IconSize)
-
-				GameCooltip:AddLine ("Enabled", "", 2)
-				add_checkmark_icon (WorldQuestTracker.db.profile.path.enabled)
-				GameCooltip:AddMenu (2, options_on_click, "pathdots", "enabled", not WorldQuestTracker.db.profile.path.enabled)
-
-				--ColorSRGB = {1, 1, 1, 1},
-				--DotSize = 5,
-				--DotAmount = 20,
-				--DotTexture = [[Interface\CHARACTERFRAME\TempPortraitAlphaMaskSmall]],
-				--LineSize = 500,
-
-				-- other options
-				GameCooltip:AddLine ("$div")
-
-				--sound enabled
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_SOUNDENABLED"])
-				if (WorldQuestTracker.db.profile.sound_enabled) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (1, options_on_click, "sound_enabled", not WorldQuestTracker.db.profile.sound_enabled)
-
-				--show faction frames ~faction
-				GameCooltip:AddLine (L["S_OPTIONS_SHOWFACTIONS"])
-				add_checkmark_icon (WorldQuestTracker.db.profile.show_faction_frame, true)
-				GameCooltip:AddMenu (1, options_on_click, "show_faction_frame", not WorldQuestTracker.db.profile.show_faction_frame)
-
-				--play standard animations
-				GameCooltip:AddLine (L["S_OPTIONS_ANIMATIONS"])
-				add_checkmark_icon (WorldQuestTracker.db.profile.hoverover_animations, true)
-				GameCooltip:AddMenu (1, options_on_click, "hoverover_animations", not WorldQuestTracker.db.profile.hoverover_animations)
-
-				--show the real equipment icon ~equipment
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_EQUIPMENTICONS"])
-				if (WorldQuestTracker.db.profile.use_old_icons) then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (1, options_on_click, "use_old_icons", not WorldQuestTracker.db.profile.use_old_icons)
-
-				--anchor to the top side ~anchor
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_STATUSBARANCHOR"]) --anchor on top
-				if (WorldQuestTracker.db.profile.bar_anchor == "top") then
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 1, 16, 16)
-				else
-					GameCooltip:AddIcon ([[Interface\BUTTONS\UI-AutoCastableOverlay]], 1, 1, 16, 16, .4, .6, .4, .6)
-				end
-				GameCooltip:AddMenu (1, options_on_click, "bar_anchor", WorldQuestTracker.db.profile.bar_anchor == "bottom" and "top" or "bottom")
-
-				--show the statusbar
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_STATUSBAR_VISIBILITY"]) --show statusbar
-				add_checkmark_icon (WorldQuestTracker.db.profile.bar_visible, true)
-				GameCooltip:AddMenu (1, options_on_click, "bar_visible", not WorldQuestTracker.db.profile.bar_visible)
-
-				--show emissary quest info
-				GameCooltip:AddLine ("Emissary Quest Info")
-				add_checkmark_icon (WorldQuestTracker.db.profile.show_emissary_info, true)
-				GameCooltip:AddMenu (1, options_on_click, "emissary_quest_info", not WorldQuestTracker.db.profile.show_emissary_info)
-
-				-- frame scale and frame align options
-				GameCooltip:AddLine ("$div")
-				--
-				GameCooltip:AddLine (L["S_OPTIONS_MAPFRAME_ALIGN"])
-				add_checkmark_icon (WorldQuestTracker.db.profile.map_frame_anchor == "center", true)
-				GameCooltip:AddMenu (1, options_on_click, "map_frame_anchor", WorldQuestTracker.db.profile.map_frame_anchor == "center" and "left" or "center")
-
 				--create a sub menu for the map frame scale
 				--[=[ -- ~review
 				GameCooltip:AddLine (L["S_OPTIONS_MAPFRAME_SCALE"])
@@ -4531,7 +3967,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					GameCooltip:AddLine ("TomTom")
 					GameCooltip:AddIcon ([[Interface\AddOns\TomTom\Images\Arrow.blp]], 1, 1, 16, 14, 0, 56/512, 0, 43/512, "lightgreen")
 
-					GameCooltip:AddLine (L["S_ENABLED"], "", 2)
+					GameCooltip:AddLine (L["S_ENABLE"], "", 2)
 					GameCooltip:AddMenu (2, options_on_click, "tomtom-enabled", not WorldQuestTracker.db.profile.tomtom.enabled)
 					if (WorldQuestTracker.db.profile.tomtom.enabled) then
 						GameCooltip:AddIcon ([[Interface\BUTTONS\UI-CheckBox-Check]], 2, 1, 16, 16)
@@ -4540,39 +3976,32 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					end
 				end
 
-				--oribos arrow
-				GameCooltip:AddLine ("Oribos Flight Master")
-				add_checkmark_icon (WorldQuestTracker.db.profile.flymaster_tracker_enabled, true)
-				GameCooltip:AddMenu (1, options_on_click, "oribos_flight_master", WorldQuestTracker.db.profile.flymaster_tracker_enabled)
-				--
-
-				GameCooltip:AddLine ("$div")
-
-				--
 				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_REFRESH"])
 				GameCooltip:AddMenu (1, options_on_click, "clear_quest_cache", true)
 				GameCooltip:AddIcon ([[Interface\GLUES\CharacterSelect\CharacterUndelete]], 1, 1, IconSize, IconSize, .2, .8, .2, .8)
-				--
-				--banned quests
-					GameCooltip:AddLine (L["S_OPTIONS_QUESTBLACKLIST"])
-					GameCooltip:AddIcon ([[Interface\COMMON\icon-noloot]], 1, 1, IconSize, IconSize)
-					GameCooltip:AddMenu (1, options_on_click, "ignore_quest")
-				--
-				GameCooltip:AddLine (L["S_MAPBAR_OPTIONSMENU_UNTRACKQUESTS"])
-				GameCooltip:AddMenu (1, options_on_click, "untrack_quests", true)
-				GameCooltip:AddIcon ([[Interface\BUTTONS\UI-GROUPLOOT-PASS-HIGHLIGHT]], 1, 1, IconSize, IconSize)
 
-				GameCooltip:AddLine ("$div")
+				GameCooltip:AddLine (L["S_OPTIONS_QUESTBLACKLIST"])
+				GameCooltip:AddIcon ([[Interface\COMMON\icon-noloot]], 1, 1, IconSize, IconSize)
+				GameCooltip:AddMenu (1, options_on_click, "ignore_quest")
 
-				GameCooltip:AddLine ("Discord Server")
-				GameCooltip:AddIcon ("Interface\\AddOns\\WorldQuestTracker\\media\\ds_icon.tga", nil, 1, 14, 14, 0, 1, 0, 1)
-				GameCooltip:AddMenu (1, options_on_click, "share_addon", true)
-				--
+				GameCooltip:AddLine(L["S_MAPBAR_OPTIONSMENU_UNTRACKQUESTS"])
+				GameCooltip:AddMenu(1, options_on_click, "untrack_quests", true)
+				GameCooltip:AddIcon([[Interface\BUTTONS\UI-GROUPLOOT-PASS-HIGHLIGHT]], 1, 1, IconSize, IconSize)
 
-				GameCooltip:SetOption ("IconBlendMode", "ADD")
-				GameCooltip:SetOption ("SubFollowButton", true)
+				GameCooltip:AddLine("$div")
 
-				--
+				GameCooltip:AddLine("Discord Server")
+				GameCooltip:AddIcon("Interface\\AddOns\\WorldQuestTracker\\media\\ds_icon.tga", nil, 1, 14, 14, 0, 1, 0, 1)
+				GameCooltip:AddMenu(1, options_on_click, "share_addon", true)
+
+				GameCooltip:AddLine("$div")
+
+				GameCooltip:AddLine(L["S_OPTIONS_OPEN"])
+				GameCooltip:AddIcon([[Interface\BUTTONS\UI-OptionsButton]], nil, 1, 14, 14, 0, 1, 0, 1)
+				GameCooltip:AddMenu(1, WorldQuestTrackerAddon.OpenOptionsPanel)
+
+				GameCooltip:SetOption("IconBlendMode", "ADD")
+				GameCooltip:SetOption("SubFollowButton", true)
 			end
 
 			optionsButton.CoolTip = {
@@ -4616,11 +4045,11 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				Settings.RegisterAddOnCategory(category)
 
 				--local optionsButtonOnInterfacePanel = CreateFrame("button", nil, frame, "BackdropTemplate")
-				local optionsButtonOnInterfacePanel = DF:CreateButton(frame, function()end, 300, 50, "Open World Quest Tracker Options Menu", -1)
+				local optionsButtonOnInterfacePanel = DF:CreateButton(frame, function() WorldQuestTrackerAddon.OpenOptionsPanel() end, 400, 50, L["S_OPTIONS_OPEN_FROM_INTERFACE_PANEL"], -1)
 				optionsButtonOnInterfacePanel:SetTemplate(DetailsFramework:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"))
-				optionsButtonOnInterfacePanel:SetSize(200, 50)
-				optionsButtonOnInterfacePanel:SetText("Open World Quest Tracker Options Menu")
-				optionsButtonOnInterfacePanel:SetPoint("topleft", frame, "topleft", 100, -360)
+				optionsButtonOnInterfacePanel:SetSize(250, 50)
+				optionsButtonOnInterfacePanel:SetText(L["S_OPTIONS_OPEN_FROM_INTERFACE_PANEL"])
+				optionsButtonOnInterfacePanel:SetPoint("center", frame, "center", 0, 0)
 				optionsButtonOnInterfacePanel.Text = optionsButtonOnInterfacePanel:CreateFontString(nil, "overlay", "GameFontNormal")
 				optionsButtonOnInterfacePanel.widget.Text = optionsButtonOnInterfacePanel.Text
 				DetailsFramework:ApplyStandardBackdrop(optionsButtonOnInterfacePanel)

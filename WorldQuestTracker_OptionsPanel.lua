@@ -75,8 +75,8 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 		{name = "WorldMapConfig",	    	title = "S_OPTTIONS_TAB_WORLDMAP_SETTINGS"},
 		{name = "ZoneMapConfig",			title = "S_OPTTIONS_TAB_ZONEMAP_SETTINGS"},
 		{name = "GroupFinderConfig",		title = "S_OPTTIONS_TAB_GROUPFINDER_SETTINGS"},
-		{name = "RaresConfig",				title = "S_OPTTIONS_TAB_RARES_SETTINGS"},
-		{name = "IgnoredQuestsPanel",		title = "S_OPTTIONS_TAB_IGNOREDQUESTS_SETTINGS"},
+		--{name = "RaresConfig",				title = "S_OPTTIONS_TAB_RARES_SETTINGS"},
+		--{name = "IgnoredQuestsPanel",		title = "S_OPTTIONS_TAB_IGNOREDQUESTS_SETTINGS"},
 	},
 	frameOptions, hookList, languageInfo)
 
@@ -152,8 +152,8 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
     local worldMapSettingsFrame = tabContainer.AllFrames[3]
     local zoneMapSettingsFrame = tabContainer.AllFrames[4]
     local groupFinderSettingsFrame = tabContainer.AllFrames[5]
-    local raresSettingsFrame = tabContainer.AllFrames[6]
-    local ignoredQuestsSettingsFrame = tabContainer.AllFrames[7]
+    --local raresSettingsFrame = tabContainer.AllFrames[6]
+    --local ignoredQuestsSettingsFrame = tabContainer.AllFrames[7]
 
     local DB = wqt.db
     local WorldQuestTracker = wqt
@@ -165,7 +165,9 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
     local options_slider_template = DF:GetTemplate("slider", "OPTIONS_SLIDER_TEMPLATE")
     local options_button_template = DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE")
 
+    local xStart = 5
     local yStart = -100
+    local tabFrameHeight = generalSettingsFrame:GetHeight()
 
     do --General Settings
         local optionsTable = {
@@ -280,6 +282,25 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 
             {
                 type = "label",
+                get = function() return "S_OPTIONS_PATHLINE" end,
+                text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.path.enabled
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("pathdots", "enabled", value)
+                end,
+                name = "S_ENABLE",
+                desc = "S_ENABLE",
+            },
+
+            {type = "blank"},
+
+            {
+                type = "label",
                 get = function() return "S_OPTIONS_TALKINGHEADS" end,
                 text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
             },
@@ -366,7 +387,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 
         optionsTable.always_boxfirst = true
         optionsTable.language_addonId = addonId
-        DF:BuildMenu(generalSettingsFrame, optionsTable, 5, yStart, generalSettingsFrame:GetHeight(), false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+        DF:BuildMenu(generalSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
     end
 
     do --Tracker Settings
@@ -380,11 +401,48 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                     return WorldQuestTracker.db.profile.use_tracker
                 end,
                 set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("use_tracker", not WorldQuestTracker.db.profile.use_tracker)
+                    WorldQuestTracker.SetSetting("use_tracker", value)
                 end,
                 name = "S_MAPBAR_OPTIONSMENU_QUESTTRACKER",
                 desc = "S_MAPBAR_OPTIONSMENU_QUESTTRACKER",
             },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.show_yards_distance
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("show_yards_distance", value)
+                    WorldQuestTracker.RefreshTrackerWidgets()
+                end,
+                name = "S_MAPBAR_OPTIONSMENU_YARDSDISTANCE",
+                desc = "S_MAPBAR_OPTIONSMENU_YARDSDISTANCE",
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.tracker_only_currentmap
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("tracker_only_currentmap", value)
+                    WorldQuestTracker.RefreshTrackerWidgets()
+                end,
+                name = "S_MAPBAR_OPTIONSMENU_TRACKER_CURRENTZONE",
+                desc = "S_MAPBAR_OPTIONSMENU_TRACKER_CURRENTZONE",
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.tracker_show_time
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("tracker_show_time", value)
+                    WorldQuestTracker.RefreshTrackerWidgets()
+                end,
+                name = "S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_TITLE",
+                desc = "S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_TITLE",
+            },
+
             {
                 type = "range",
                 get = function() return WorldQuestTracker.db.profile.tracker_scale end,
@@ -411,6 +469,20 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 thumbscale = 1.8,
                 name = "S_TEXT_SIZE",
                 desc = "S_TEXT_SIZE",
+            },
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.tracker_textsize end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("arrow_update_speed", value)
+                end,
+                min = 0.08,
+                max = 0.2,
+                step = 0.01,
+                usedecimals = true,
+                thumbscale = 1.8,
+                name = "S_MAPBAR_OPTIONSMENU_ARROWSPEED",
+                desc = "S_MAPBAR_OPTIONSMENU_ARROWSPEED",
             },
 
             {type = "blank"},
@@ -450,12 +522,419 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 name = "S_OPTIONS_TRACKER_RESETPOSITION",
                 desc = "S_OPTIONS_TRACKER_RESETPOSITION",
             },
-
         }
 
-        DF:BuildMenu(trackerSettingsFrame, optionsTable, 5, yStart, generalSettingsFrame:GetHeight(), false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+        DF:BuildMenu(trackerSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
     end
 
+    do --World Map Settings
+
+        local buildWorldMapOrganizeBy = function()
+            local languageId = DF.Language.GetLanguageIdForAddonId(addonId)
+
+            local result = {
+                {
+                    label = DF.Language.GetText(addonId, "S_OPTIONS_WORLD_ORGANIZE_BYMAP"),
+                    languageId = languageId,
+                    phraseId = "S_OPTIONS_WORLD_ORGANIZE_BYMAP",
+                    value = "byzone",
+                    onclick = function()
+                        WorldQuestTracker.SetSetting("world_map_config", "summary_showby", "byzone")
+                    end,
+                },
+                {
+                    label = DF.Language.GetText(addonId, "S_OPTIONS_WORLD_ORGANIZE_BYTYPE"),
+                    languageId = languageId,
+                    phraseId = "S_OPTIONS_WORLD_ORGANIZE_BYTYPE",
+                    value = "bytype",
+                    onclick = function()
+                        WorldQuestTracker.SetSetting("world_map_config", "summary_showby", "bytype")
+                    end,
+                },
+            }
+            return result
+        end
+
+        local buildWorldMapAnchorToSide = function()
+            local languageId = DF.Language.GetLanguageIdForAddonId(addonId)
+
+            local result = {
+                {
+                    label = DF.Language.GetText(addonId, "S_OPTIONS_WORLD_ANCHOR_LEFT"),
+                    languageId = languageId,
+                    phraseId = "S_OPTIONS_WORLD_ANCHOR_LEFT",
+                    value = "left",
+                    onclick = function()
+                        WorldQuestTracker.SetSetting("world_map_config", "summary_anchor", "left")
+                    end,
+                },
+                {
+                    label = DF.Language.GetText(addonId, "S_OPTIONS_WORLD_ANCHOR_RIGHT"),
+                    languageId = languageId,
+                    phraseId = "S_OPTIONS_WORLD_ANCHOR_RIGHT",
+                    value = "right",
+                    onclick = function()
+                        WorldQuestTracker.SetSetting("world_map_config", "summary_anchor", "right")
+                    end,
+                },
+            }
+            return result
+        end
+
+        local optionsTable = {
+            always_boxfirst = true,
+            language_addonId = addonId,
+            labelbreakline = true, --will place the text in one line and the dropdown in the next line
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.world_map_config.summary_show
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("world_map_config", "summary_show", value)
+                end,
+                name = "S_WORLDMAP_QUESTSUMMARY",
+                desc = "S_WORLDMAP_QUESTSUMMARY",
+            },
+
+            {type = "blank"},
+
+            {
+                type = "select",
+                get = function()
+                    return WorldQuestTracker.db.profile.world_map_config.summary_showby end,
+                values = function() return buildWorldMapOrganizeBy() end,
+                name = "S_OPTIONS_WORLDMAP_ORGANIZEBY",
+                desc = "S_OPTIONS_WORLDMAP_ORGANIZEBY",
+            },
+
+            {
+                type = "select",
+                get = function() return WorldQuestTracker.db.profile.world_map_config.summary_anchor end,
+                values = function() return buildWorldMapAnchorToSide() end,
+                name = "S_OPTIONS_WORLDMAP_ANCHOR_TO",
+                desc = "S_OPTIONS_WORLDMAP_ANCHOR_TO",
+            },
+
+            {type = "blank"},
+
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.world_map_config.summary_widgets_per_row end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.world_map_config.summary_widgets_per_row = value
+                    WorldQuestTracker.UpdateWorldQuestsOnWorldMap()
+                end,
+                min = 1,
+                max = 20,
+                step = 1,
+                thumbscale = 1.8,
+                name = "S_OPTIONS_WORLD_ICONSPERROW",
+                desc = "S_OPTIONS_WORLD_ICONSPERROW",
+            },
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.world_map_config.summary_scale end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.world_map_config.summary_scale = value
+                    WorldQuestTracker.UpdateWorldQuestsOnWorldMap()
+                end,
+                min = 0.6,
+                max = 1.5,
+                step = 1,
+                thumbscale = 1.8,
+                usedecimals = true,
+                name = "S_SCALE",
+                desc = "S_SCALE",
+            },
+
+            {type = "blank"},
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.world_map_config.onmap_show
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("world_map_config", "onmap_show", value)
+                end,
+                name = "S_WORLDMAP_QUESTLOCATIONS",
+                desc = "S_WORLDMAP_QUESTLOCATIONS",
+            },
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset = value
+                    WorldQuestTracker.UpdateWorldQuestsOnWorldMap()
+                end,
+                min = 0.6,
+                max = 1.5,
+                step = 1,
+                thumbscale = 1.8,
+                usedecimals = true,
+                name = "S_SCALE",
+                desc = "S_SCALE",
+            },
+        }
+
+        DF:BuildMenu(worldMapSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+    end
+
+    do --Zone Map Settings
+        local optionsTable = {
+            always_boxfirst = true,
+            language_addonId = addonId,
+            labelbreakline = true, --will place the text in one line and the dropdown in the next line
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.zone_map_config.summary_show
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("use_quest_summary", value)
+                end,
+                name = "S_MAPBAR_OPTIONSMENU_ZONE_QUESTSUMMARY",
+                desc = "S_MAPBAR_OPTIONSMENU_ZONE_QUESTSUMMARY",
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.show_summary_minimize_button
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("show_summary_minimize_button", value)
+                end,
+                name = "S_OPTIONS_SHOW_MINIMIZE_BUTTON",
+                desc = "S_OPTIONS_SHOW_MINIMIZE_BUTTON",
+            },
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.zone_map_config.quest_summary_scale end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.zone_map_config.quest_summary_scale = value
+                    if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+                        WorldQuestTracker.UpdateZoneWidgets(true)
+                    end
+                end,
+                min = 0.6,
+                max = 1.5,
+                step = 1,
+                thumbscale = 1.8,
+                usedecimals = true,
+                name = "S_SCALE",
+                desc = "S_SCALE",
+            },
+
+            {type = "blank"},
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.zone_map_config.show_widgets
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("zone_map_config", "show_widgets", value)
+                end,
+                name = "S_WORLDMAP_QUESTLOCATIONS",
+                desc = "S_WORLDMAP_QUESTLOCATIONS",
+            },
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.zone_map_config.scale end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.zone_map_config.scale = value
+                    if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+                        WorldQuestTracker.UpdateZoneWidgets(true)
+                    end
+                end,
+                min = 0.6,
+                max = 1.5,
+                step = 1,
+                thumbscale = 1.8,
+                usedecimals = true,
+                name = "S_SCALE",
+                desc = "S_SCALE",
+            },
+
+            {type = "blank"},
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.zone_only_tracked
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("zone_only_tracked", value)
+                end,
+                name = "S_OPTIONS_ZONE_SHOWONLYTRACKED",
+                desc = "S_OPTIONS_ZONE_SHOWONLYTRACKED",
+            },
+        }
+
+        DF:BuildMenu(zoneMapSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+    end
+
+    do --Group Finder Settings
+
+        local buildLeaveGroupOptions = function()
+            local languageId = DF.Language.GetLanguageIdForAddonId(addonId)
+            local ff = WorldQuestTrackerFinderFrame
+
+            local result = {
+                {
+                    label = DF.Language.GetText(addonId, "S_GROUPFINDER_LEAVEOPTIONS_IMMEDIATELY"),
+                    languageId = languageId,
+                    phraseId = "S_GROUPFINDER_LEAVEOPTIONS_IMMEDIATELY",
+                    value = "autoleave",
+                    onclick = function()
+                        ff.SetAutoGroupLeaveFunc(nil, nil, true, "autoleave")
+                    end,
+                },
+                {
+                    label = DF.Language.GetText(addonId, "S_GROUPFINDER_LEAVEOPTIONS_DONTLEAVE"),
+                    languageId = languageId,
+                    phraseId = "S_GROUPFINDER_LEAVEOPTIONS_DONTLEAVE",
+                    value = "noleave",
+                    onclick = function()
+                        ff.SetAutoGroupLeaveFunc(nil, nil, true, "noleave")
+                    end,
+                },
+                {
+                    label = DF.Language.GetText(addonId, "S_GROUPFINDER_LEAVEOPTIONS_AFTERX"),
+                    languageId = languageId,
+                    phraseId = "S_GROUPFINDER_LEAVEOPTIONS_AFTERX",
+                    value = "autoleave_delayed",
+                    onclick = function()
+                        ff.SetAutoGroupLeaveFunc(nil, nil, true, "autoleave_delayed")
+                    end,
+                },
+                {
+                    label = DF.Language.GetText(addonId, "S_GROUPFINDER_LEAVEOPTIONS_ASKX"),
+                    languageId = languageId,
+                    phraseId = "S_GROUPFINDER_LEAVEOPTIONS_ASKX",
+                    value = "askleave_delayed",
+                    onclick = function()
+                        ff.SetAutoGroupLeaveFunc(nil, nil, true, "askleave_delayed")
+                    end,
+                },
+            }
+            return result
+        end
+
+        local optionsTable = {
+            always_boxfirst = true,
+            language_addonId = addonId,
+            labelbreakline = true, --will place the text in one line and the dropdown in the next line
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.groupfinder.enabled
+                end,
+                set = function(self, fixedparam, value)
+                    local ff = WorldQuestTrackerFinderFrame
+                    ff.SetEnabledFunc(nil, nil, value)
+                end,
+                name = "S_GROUPFINDER_ENABLED",
+                desc = "S_GROUPFINDER_ENABLED",
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.rarescan.search_group
+                end,
+                set = function(self, fixedparam, value)
+                    local ff = WorldQuestTrackerFinderFrame
+                    ff.SetFindGroupForRares(nil, nil, value)
+                end,
+                name = "S_GROUPFINDER_AUTOOPEN_RARENPC_TARGETED",
+                desc = "S_GROUPFINDER_AUTOOPEN_RARENPC_TARGETED",
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.groupfinder.tracker_buttons
+                end,
+                set = function(self, fixedparam, value)
+                    local ff = WorldQuestTrackerFinderFrame
+                    ff.SetOTButtonsFunc(nil, nil, value)
+                end,
+                name = "S_GROUPFINDER_OT_ENABLED",
+                desc = "S_GROUPFINDER_OT_ENABLED",
+            },
+
+            {type = "blank"},
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.groupfinder.dont_open_in_group
+                end,
+                set = function(self, fixedparam, value)
+                    local ff = WorldQuestTrackerFinderFrame
+                    ff.AlreadyInGroupFunc(nil, nil, value)
+                end,
+                name = "S_OPTIONS_GF_DONT_SHOW_IFGROUP",
+                desc = "S_OPTIONS_GF_DONT_SHOW_IFGROUP",
+            },
+
+            {type = "blank"},
+
+            {
+                type = "select",
+                get = function()
+                    local groupFinderConfig = WorldQuestTracker.db.profile.groupfinder
+                    return groupFinderConfig.autoleave and "autoleave" or groupFinderConfig.autoleave_delayed and "autoleave_delayed" or groupFinderConfig.askleave_delayed and "askleave_delayed" or "noleave"
+                end,
+                values = function() return buildLeaveGroupOptions() end,
+                name = "S_GROUPFINDER_LEAVEOPTIONS",
+                desc = "S_GROUPFINDER_LEAVEOPTIONS",
+            },
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.groupfinder.leavetimer end,
+                set = function(self, fixedparam, value)
+                    local ff = WorldQuestTrackerFinderFrame
+                    ff.SetGroupLeaveTimeoutFunc(nil, nil, value)
+                end,
+                min = 1,
+                max = 60,
+                step = 1,
+                thumbscale = 1.8,
+                name = "S_GROUPFINDER_SECONDS",
+                desc = "S_GROUPFINDER_SECONDS",
+            },
+        }
+
+        DF:BuildMenu(groupFinderSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+    end
+
+    do --Rare Finder Settings
+        --[=[
+        local optionsTable = {
+            always_boxfirst = true,
+            language_addonId = addonId,
+            labelbreakline = true, --will place the text in one line and the dropdown in the next line
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.rarescan.playsound
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("use_tracker", "rarescan", "playsound", value)
+                end,
+                name = "S_RAREFINDER_SOUND_ENABLED",
+                desc = "S_RAREFINDER_SOUND_ENABLED",
+            },
+        }
+
+        DF:BuildMenu(raresSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+        --]=]
+    end
 end
 
 
