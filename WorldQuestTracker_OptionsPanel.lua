@@ -165,6 +165,14 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
     local options_slider_template = DF:GetTemplate("slider", "OPTIONS_SLIDER_TEMPLATE")
     local options_button_template = DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE")
 
+	--~languages
+    local onLanguageChangedCallback = function(languageId)
+        WQTrackerLanguage.language = languageId
+    end
+    --addonId, parent, callback, defaultLanguage
+    local languageSelectorDropdown = DF.Language.CreateLanguageSelector(addonId, generalSettingsFrame, onLanguageChangedCallback, WQTrackerLanguage.language)
+    languageSelectorDropdown:SetPoint("topright", -21, -108)
+
     local xStart = 5
     local yStart = -100
     local tabFrameHeight = generalSettingsFrame:GetHeight()

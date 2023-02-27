@@ -4,7 +4,7 @@
 
 ## Title: World Quest Tracker
 ## Notes: An addon by Terciob. Make more easy to see world quests
-## SavedVariables: WQTrackerDB
+## SavedVariables: WQTrackerDB, WQTrackerLanguage
 ## SavedVariablesPerCharacter: WQTrackerDBChr
 
 ## X-Curse-Project-ID: 100610

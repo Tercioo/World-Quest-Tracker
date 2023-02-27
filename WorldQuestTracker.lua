@@ -124,6 +124,23 @@ function WorldQuestTracker.Debug (message, color)
 end
 
 function WorldQuestTracker:OnInit()
+	do
+		local languageCurrentVersion = 1
+		if (not WQTrackerLanguage) then
+			WQTrackerLanguage = {
+				language = GetLocale(),
+				version = languageCurrentVersion,
+			}
+		end
+
+		if (WQTrackerLanguage.version < languageCurrentVersion) then
+			--do stuff in the future
+		end
+
+		DF.Language.SetCurrentLanguage(addonId, WQTrackerLanguage.language)
+	end
+
+
 	WorldQuestTracker.InitAt = GetTime()
 	WorldQuestTracker.LastMapID = WorldQuestTracker.GetCurrentMapAreaID()
 
