@@ -480,13 +480,13 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
             },
             {
                 type = "range",
-                get = function() return WorldQuestTracker.db.profile.tracker_textsize end,
+                get = function() return WorldQuestTracker.db.profile.arrow_update_frequence end,
                 set = function(self, fixedparam, value)
                     WorldQuestTracker.SetSetting("arrow_update_speed", value)
                 end,
-                min = 0.08,
-                max = 0.2,
-                step = 0.01,
+                min = 0,
+                max = 0.1,
+                step = 0.001,
                 usedecimals = true,
                 thumbscale = 1.8,
                 name = "S_MAPBAR_OPTIONSMENU_ARROWSPEED",
