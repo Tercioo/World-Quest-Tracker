@@ -187,9 +187,9 @@ local fontLanguageCompatibility = {
     ["itIT"] = 1,
     ["ptBR"] = 1,
     ["zhCN"] = 2,
-    ["zhTW"] = 2,
-    ["koKR"] = 3,
-    ["ruRU"] = 4,
+    ["zhTW"] = 3,
+    ["koKR"] = 4,
+    ["ruRU"] = 5,
 }
 
 --this table contains all the registered languages with their name and fonts
@@ -210,42 +210,43 @@ local languagesAvailable = {
     zhTW = {text = "繁體中文", font = [[Fonts\blei00d.TTF]]},
 }
 
-local fontPathToLanguageId = {
-    ["Fonts\\FRIZQT__.TTF"] = "enUS",
-    ["Fonts\\FRIZQT___CYR.TTF"] = "ruRU",
-}
-
-local cyrillic = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯЁЂЃЄЅІЇЈЉЊЋЌЎЏҐабвгдежзийклмнопрстуфхцчшщъыьэюяёђѓєѕіїјљњћќўџґАаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя"
-local latin = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-local zhCN = "的一是不了人有在他这与大为上们国我以要他时来用到也再说生去子到了地个用发当没成方主于作者我自以前从他者进过家对小多然些起主要只当从把以后看作者们进无对从以后就以于着个过去以及时日能够年月进天们动"
-local zhTW = "ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝﾞﾟﾡﾢﾣﾤﾥﾦﾧﾨﾩﾪﾫﾬﾭﾮﾯﾰﾱﾲﾳﾴﾵﾶﾷﾸﾹﾺﾻﾼﾽﾾￂￃￄￅￆￇￊￋￌￍￎￏￒￓￔￕￖￗￚￛￜ"
-local koKR = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ"
-local arAR = "ءآأؤإئابتثجحخدذرزسشصضطظعغفقكلمنهويىًٌٍَُِّْٰ"
-
-local alphabetTable = {}
-
-for letter in latin:gmatch(".") do
-    alphabetTable[letter] = "enUS"
+local ignoredCharacters = {}
+local punctuations = ".,;:!?-–—()[]{}'\"`/\\@_+*^%$#&~=<>|"
+for character in punctuations:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+    ignoredCharacters[character] = true
 end
 
-for letter in cyrillic:gmatch(".") do
-    alphabetTable[letter] = "ruRU"
+local accentedLetters = "áàâäãåæçéèêëíìîïñóòôöõøœúùûüýÿ"
+for character in accentedLetters:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+    ignoredCharacters[character] = true
 end
 
-for letter in zhCN:gmatch(".") do
-    alphabetTable[letter] = "zhCN"
+--store a list of letters, characters and symbols used on each language
+---@type table<string, string>
+DF.LanguageKnowledge = DF.LanguageKnowledge or {}
+
+local latinAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+for character in latinAlphabet:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+    DF.LanguageKnowledge[character] = CONST_LANGUAGEID_ENUS
 end
 
-for letter in zhTW:gmatch(".") do
-    alphabetTable[letter] = "zhTW"
-end
-
-for letter in koKR:gmatch(".") do
-    alphabetTable[letter] = "koKR"
-end
-
-for letter in arAR:gmatch(".") do
-    alphabetTable[letter] = "arAR"
+---register the letters and symbols used on phrases
+---@param languageId any
+---@param languageTable any
+local registerCharacters = function(languageId, languageTable)
+    for stringId, textString in pairs(languageTable) do
+        for character in textString:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+            if (not ignoredCharacters[character]) then
+                if (not DF.LanguageKnowledge[character]) then
+                    if (fontLanguageCompatibility[languageId] == 1) then
+                        DF.LanguageKnowledge[character] = CONST_LANGUAGEID_ENUS
+                    else
+                        DF.LanguageKnowledge[character] = languageId
+                    end
+                end
+            end
+        end
+    end
 end
 
 local functionSignature = {
@@ -888,9 +889,15 @@ end
 ---@param text string
 ---@return string
 function DF.Language.DetectLanguageId(text)
-    for letter in text:gmatch(".") do
-        if (alphabetTable[letter]) then
-            return alphabetTable[letter]
+    --if the text is not a string, return the default languageId
+    if (type(text) ~= "string") then
+        return "enUS"
+    end
+
+    for letter in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        local languageId = DF.LanguageKnowledge[letter]
+        if (languageId) then
+            return languageId
         end
     end
     return "enUS"
@@ -973,6 +980,12 @@ function DF.Language.RegisterLanguage(addonId, languageId, bNotSupportedWoWLangu
     --create a table to hold traslations for this languageId
     local languageTable = {}
     setLanguageTableForLanguageId(addonNamespaceTable, languageId, languageTable)
+
+    --after the language is registered, usualy comes the registration of phrases of the language registered
+    --let the phrases be registered and after that register the characters and symbols used on that language
+    C_Timer.After(0, function()
+        registerCharacters(languageId, languageTable)
+    end)
 
     return languageTable
 end
@@ -1572,7 +1585,7 @@ end
 
 ---return a font (path for a file) which works for the languageId passed, if the languageId is not registered, it'll return a compatible font registered by another addon or the default font
 ---@param languageId string
----@param addonId string
+---@param addonId string|nil
 ---@return string
 function DF.Language.GetFontForLanguageID(languageId, addonId)
     if (addonId) then
