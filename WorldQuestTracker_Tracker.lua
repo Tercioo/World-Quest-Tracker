@@ -364,15 +364,6 @@ local TrackerWidgetPool = {}
 --height of the quest tracker
 WorldQuestTracker.TrackerHeight = 0
 
---for move anything addon
-C_Timer.After(10, function()
-	if (MAOptions) then
-		MAOptions:HookScript("OnUpdate", function()
-			WorldQuestTracker.RefreshTrackerAnchor()
-		end)
-	end
-end)
-
 --refresh the tracker positioning
 function WorldQuestTracker.RefreshTrackerAnchor()
 	--if not using the tracker, hide it and return
@@ -390,14 +381,12 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 
 		for i = 1, ObjectiveTrackerFrame:GetNumPoints() do
 			local point, relativeTo, relativePoint, xOfs, yOfs = ObjectiveTrackerFrame:GetPoint (i)
+			WorldQuestTrackerScreenPanel:SetPoint(point, relativeTo, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
+		end
 
-			if (IsAddOnLoaded("MoveAnything") and relativeTo and (relativeTo:GetName() == "ObjectiveTrackerFrameMover")) then --check if MA is lodaded - thanks @liquidbase on WoWUI
-				local top, left = ObjectiveTrackerFrameMover:GetTop(), ObjectiveTrackerFrameMover:GetLeft()
-				WorldQuestTrackerScreenPanel:SetPoint("top", UIParent, "top", 0, (yOfs - WorldQuestTracker.TrackerHeight - 20) - abs (top-GetScreenHeight()))
-				WorldQuestTrackerScreenPanel:SetPoint("left", UIParent, "left", -10 + xOfs + left, 0)
-			else
-				WorldQuestTrackerScreenPanel:SetPoint(point, relativeTo, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
-			end
+		if (WorldQuestTracker.TrackerAttachToModule) then
+			WorldQuestTrackerScreenPanel:ClearAllPoints()
+			WorldQuestTrackerScreenPanel:SetPoint("top", WorldQuestTracker.TrackerAttachToModule.Header, "bottom", 0, -WorldQuestTracker.TrackerHeight + 10)
 		end
 
 		WorldQuestTrackerHeader:ClearAllPoints()
@@ -670,7 +659,7 @@ local TrackerIconButtonOnLeave = function(self)
 end
 
 
--- �rrow ~arrow
+--~arrow ãrrow
 
 --from the user @ilintar on CurseForge
 --Doing that instead of just SetSuperTrackedQuestID(questID) will make the arrow stay. The code also ensures that only the selected world quest is present in the Blizzard window, as to not make it cluttered.
@@ -1489,51 +1478,60 @@ function WorldQuestTracker.IsQuestOnObjectiveTracker (quest)
 	end
 end
 
+local getBlizzardObjectiveTrackerHeight = function()
+	local blizzObjectiveTracker = ObjectiveTrackerFrame
+	if (not blizzObjectiveTracker.initialized) then
+		return
+	end
+
+	local y = 0
+
+	--get the height of the tracker
+	for i = 1, #blizzObjectiveTracker.MODULES do
+		local module = blizzObjectiveTracker.MODULES[i]
+		if (module.Header:IsShown()) then
+			y = y + module.contentsHeight
+			--this may need to be included on the new stuff for the tracker anchor
+			if (WorldQuestTracker.db.profile.groupfinder.tracker_buttons) then
+				for questID, block in pairs(module.usedBlocks) do
+					ff.HandleBTrackerBlock(questID, block)
+				end
+			end
+		end
+	end
+end
+
 --dispara quando o tracker da interface � atualizado, precisa dar refresh na nossa ancora
 local On_ObjectiveTracker_Update = function()
-	local tracker = ObjectiveTrackerFrame
-
-	if (not tracker.initialized) then
+	local blizzObjectiveTracker = ObjectiveTrackerFrame
+	if (not blizzObjectiveTracker.initialized) then
 		return
 	end
 
 	WorldQuestTracker.UpdateQuestsInArea()
 
-	--pega a altura do tracker de quests
-	local y = 0
-	for i = 1, #tracker.MODULES do
-		local module = tracker.MODULES [i]
-		if (module.Header:IsShown()) then
-			y = y + module.contentsHeight
 
-			if (WorldQuestTracker.db.profile.groupfinder.tracker_buttons) then
-				for questID, block in pairs (module.usedBlocks) do
-					ff.HandleBTrackerBlock (questID, block)
-				end
+
+	WorldQuestTracker.TrackerAttachToModule = nil
+
+	if (blizzObjectiveTracker.collapsed) then
+		WorldQuestTracker.TrackerHeight = 20
+	else
+		for moduleId = #blizzObjectiveTracker.MODULES_UI_ORDER, 1, -1 do
+			local module = blizzObjectiveTracker.MODULES_UI_ORDER[moduleId]
+			if (module.Header:IsShown()) then
+				WorldQuestTracker.TrackerAttachToModule = module
+				--for k,v in pairs(module) do
+				--	print(k)
+				--end
+				WorldQuestTracker.TrackerHeight = module.contentsHeight
+				break
 			end
-
-			--> is a module for world quests?
-			--if (module.DefaultHeaderText == TRACKER_HEADER_WORLD_QUESTS) then
-				--> which blocks are active showing a world quest
-			--		if (type (questID) == "number" and HaveQuestData (questID) and QuestMapFrame_IsQuestWorldQuest (questID)) then
-
-			--		end
-			--	end
-			--end
-
 		end
 	end
 
-	--usado na fun��o da ancora
-	if (ObjectiveTrackerFrame.collapsed) then
-		WorldQuestTracker.TrackerHeight = 20
-	else
-		WorldQuestTracker.TrackerHeight = y
-	end
-
-	-- atualiza a ancora do nosso tracker
+	--update world quest tracker anchor
 	WorldQuestTracker.RefreshTrackerAnchor()
-
 end
 
 --quando houver uma atualiza��o no quest tracker, atualizar as ancores do nosso tracker
