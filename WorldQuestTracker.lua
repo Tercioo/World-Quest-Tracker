@@ -1218,14 +1218,27 @@ end
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
-local p = CreateFrame("frame")
-p:RegisterEvent("TALKINGHEAD_REQUESTED")
-p:SetScript("OnEvent", function (self, event, arg1)
-	if (event == "TALKINGHEAD_REQUESTED") then
 
+--[=[ --user posted on discord
+local TalkingHeadFrame = _G.TalkingHeadFrame
+if TalkingHeadFrame then
+    hooksecurefunc(_G["TalkingHeadFrame"], "PlayCurrent", function()
+        TalkingHeadFrame:Hide()
+    end)
+    hooksecurefunc(_G["TalkingHeadFrame"], "Reset", function()
+        TalkingHeadFrame:Hide()
+    end)
+end
+]=]
+
+local talkingHeadSuppressFrame = CreateFrame("frame")
+talkingHeadSuppressFrame:RegisterEvent("TALKINGHEAD_REQUESTED")
+talkingHeadSuppressFrame:SetScript("OnEvent", function (self, event, arg1)
+	if (event == "TALKINGHEAD_REQUESTED") then
 		--get where the player is
 		local _, zoneType = GetInstanceInfo()
 
+		--check if the zone type is enbaled under the options panel
 		if (zoneType == "none") then
 			if (not WorldQuestTracker.db.profile.talking_heads_openworld) then
 				return
@@ -1247,6 +1260,7 @@ p:SetScript("OnEvent", function (self, event, arg1)
 			end
 		end
 
+		--if the player already heard the talking head, close it
 		local displayInfo, cameraID, vo, duration, lineNumber, numLines, name, text, isNewTalkingHead = C_TalkingHead.GetCurrentLineInfo()
 		if (WorldQuestTracker.db.profile.talking_heads_heard[vo]) then
 			_G.TalkingHeadFrame:CloseImmediately()
@@ -1474,6 +1488,8 @@ function WorldQuestTracker.InitiateFlyMasterTracker()
 
 	C_Timer.After(0.1, checkIfIsInOribosSecondFloor)
 end
+
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> faction bounty
 
@@ -1539,7 +1555,3 @@ hooksecurefunc (WorldMapFrame.UIElementsFrame.BountyBoard, "AnchorBountyTab", fu
 	end
 end)
 --]=]
-
--- stop auto complete doq dow endf thena ends then�
-
-
