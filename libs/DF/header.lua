@@ -11,13 +11,16 @@ local geterrorhandler = geterrorhandler
 local wipe = wipe
 
 --definitions
+
+---@class df_headercolumndata : {key: string, name: string, icon: string, texcoord: table, text: string, canSort: boolean, selected: boolean, width: number, height: number, align: string, offset: number}
+
 ---@class df_headerchild : uiobject
 ---@field FramesToAlign table
 
 ---@class df_headerframe : frame, df_headermixin, df_optionsmixin
 ---@field columnHeadersCreated df_headercolumnframe[]
 ---@field options table
----@field HeaderTable table
+---@field HeaderTable df_headercolumndata[]
 ---@field columnSelected number
 
 ---@class df_headermixin : table
@@ -25,9 +28,9 @@ local wipe = wipe
 ---@field HeaderWidth number
 ---@field HeaderHeight number
 ---@field OnColumnSettingChangeCallback function
----@field GetColumnWidth fun(self: df_headerframe, columnId: number)
----@field SetHeaderTable fun(self: df_headerframe, newTable)
----@field GetSelectedColumn fun(self: df_headerframe) : number, string, string
+---@field GetColumnWidth fun(self: df_headerframe, columnId: number) : number
+---@field SetHeaderTable fun(self: df_headerframe, table)
+---@field GetSelectedColumn fun(self: df_headerframe) : number, string, string, string
 ---@field Refresh fun(self: df_headerframe)
 ---@field UpdateSortArrow fun(self: df_headerframe, columnHeader: df_headercolumnframe, defaultShown: boolean|nil, defaultOrder: string|nil)
 ---@field UpdateColumnHeader fun(self: df_headerframe, columnHeader: df_headercolumnframe, headerIndex)
@@ -37,7 +40,7 @@ local wipe = wipe
 ---@field GetNextHeader fun(self: df_headerframe) : df_headercolumnframe
 ---@field SetColumnSettingChangedCallback fun(self: df_headerframe, func: function) : boolean
 
----@class df_headercolumnframe : frame
+---@class df_headercolumnframe : button
 ---@field Icon texture
 ---@field Text fontstring
 ---@field Arrow texture
@@ -127,8 +130,8 @@ detailsFramework.HeaderFunctions = {
 	---@param buttonClicked string
 	OnClick = function(columnHeader, buttonClicked)
 		--get the header main frame
-		---@type df_headerframe
 		local headerFrame = columnHeader:GetParent()
+		---@cast headerFrame df_headerframe
 
 		--if this header does not have a clickable header, just ignore
 		if (not headerFrame.columnSelected) then
@@ -219,14 +222,13 @@ detailsFramework.HeaderMixin = {
 
 	--return which header is current selected and the the order ASC DESC
 	---@param self df_headerframe
-	---@return number, string
+	---@return number, string, string, string
 	GetSelectedColumn = function(self)
 		---@type number
 		local columnSelected = self.columnSelected
 		---@type df_headercolumnframe
 		local columnHeader = self.columnHeadersCreated[columnSelected or 1]
-
-		return columnSelected, columnHeader.order, columnHeader.key
+		return columnSelected, columnHeader.order, columnHeader.key, columnHeader.columnData.name
 	end,
 
 	--clean up and rebuild the header following the header options
@@ -353,7 +355,6 @@ detailsFramework.HeaderMixin = {
 	UpdateColumnHeader = function(self, columnHeader, headerIndex)
 		--this is the data to update the columnHeader
 		local columnData = self.HeaderTable[headerIndex]
-
 		columnHeader.key = columnData.key or "total"
 
 		if (columnData.icon) then
@@ -418,7 +419,7 @@ detailsFramework.HeaderMixin = {
 
 		columnHeader.XPosition = self.HeaderWidth -- + self.options.padding
 		columnHeader.YPosition = self.HeaderHeight -- + self.options.padding
-
+		
 		columnHeader.columnAlign = columnData.align or "left"
 		columnHeader.columnOffset = columnData.offset or 0
 
@@ -573,11 +574,24 @@ detailsFramework.HeaderMixin = {
 		return columnHeader
 	end,
 
+	---return a header button by passing its name (.name on the column table)
+	---@param self df_headerframe
+	---@param columnName string
+	---@return df_headercolumnframe|nil
+	GetHeaderColumnByName = function(self, columnName)
+		for _, headerColumnFrame in ipairs(self.columnHeadersCreated) do
+			if (headerColumnFrame.columnData.name == columnName) then
+				return headerColumnFrame
+			end
+		end
+	end,
+
 	NextHeader = 1,
 	HeaderWidth = 0,
 	HeaderHeight = 0,
 }
 
+--default options
 local default_header_options = {
 	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
 	backdrop_color = {0, 0, 0, 0.2},
@@ -618,13 +632,17 @@ local default_header_options = {
 	line_separator_gap_align = false,
 }
 
----create a header frame
+---create a df_headerframe, alias 'header'.
+---a header is a frame that can hold multiple columns which are also frames, each column is a df_headercolumnframe, these columns are arranged in horizontal form.
+---a header is used to organize columns giving them a name/title, a way to sort and align them.
+---each column is placed on the right side of the previous column.
 ---@param parent frame
 ---@param headerTable table
 ---@param options table|nil
 ---@param frameName string|nil
 ---@return df_headerframe
 function detailsFramework:CreateHeader(parent, headerTable, options, frameName)
+	---create the header frame which is returned by this function
 	---@type df_headerframe
 	local newHeader = CreateFrame("frame", frameName or "$parentHeaderLine", parent, "BackdropTemplate")
 
@@ -633,6 +651,7 @@ function detailsFramework:CreateHeader(parent, headerTable, options, frameName)
 
 	newHeader:BuildOptionsTable(default_header_options, options)
 
+	--set the backdrop and backdrop color following the values in the options table
 	newHeader:SetBackdrop(newHeader.options.backdrop)
 	newHeader:SetBackdropColor(unpack(newHeader.options.backdrop_color))
 	newHeader:SetBackdropBorderColor(unpack(newHeader.options.backdrop_border_color))
@@ -641,3 +660,27 @@ function detailsFramework:CreateHeader(parent, headerTable, options, frameName)
 
 	return newHeader
 end
+
+
+--[=[example:
+C_Timer.After(1, function()
+
+
+	local parent = UIParent
+
+	--declare the columns the headerFrame will have
+	---@type df_headercolumndata[]
+	local headerTable = {
+		{name = "playername", text = "Player Name", width = 120, align = "left", canSort = true},
+		{name = "damage", text = "Damage Done", width = 80, align = "right", canSort = true},
+		{name = "points", text = "Total Points", width = 80, align = "right", canSort = false},
+	}
+	local frameName = "MyAddOnOptionsFrame"
+	local options = {}
+
+	local headerFrame = DetailsFramework:CreateHeader(parent, headerTable, options, frameName)
+	headerFrame:SetPoint("center", parent, "center", 10, -10)
+
+
+end)
+--]=]

@@ -18,13 +18,7 @@ local IS_WOW_PROJECT_MAINLINE = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 local IS_WOW_PROJECT_NOT_MAINLINE = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE
 local IS_WOW_PROJECT_CLASSIC_ERA = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 
-local UnitCastingInfo = UnitCastingInfo
-local UnitChannelInfo = UnitChannelInfo
-
-if IS_WOW_PROJECT_CLASSIC_ERA then
-    UnitCastingInfo = CastingInfo
-    UnitChannelInfo = ChannelInfo
-end
+local CastInfo = detailsFramework.CastInfo
 
 local PixelUtil = PixelUtil or DFPixelUtil
 
@@ -1982,37 +1976,50 @@ local no_options = {}
 ---UseStatusBar = false, --if true, creates a status bar at the bottom of the frame (frame.StatusBar)
 ---NoCloseButton = false, --if true, won't show the close button
 ---NoTitleBar = false, --if true, don't create the title bar
----@param parent table
----@param width number|nil
----@param height number|nil
----@param title string|nil
----@param frameName string|nil
----@param panelOptions table|nil
----@param savedVariableTable table|nil
----@return table
+---@class simplepanel
+---@field TitleBar frame
+---@field Title fontstring
+---@field Close button
+---@field SetTitle fun(self: simplepanel, title: string)
+---@param parent frame the parent frame
+---@param width number|nil the width of the panel
+---@param height number|nil the height of the panel
+---@param title string|nil a string to show in the title bar
+---@param frameName string|nil the name of the frame
+---@param panelOptions table|nil a table with options described above
+---@param savedVariableTable table|nil a table to save the scale of the panel
+---@return frame
 function detailsFramework:CreateSimplePanel(parent, width, height, title, frameName, panelOptions, savedVariableTable)
+	--create a saved variable table if the savedVariableTable has been not passed within the function call
 	if (savedVariableTable and frameName and not savedVariableTable[frameName]) then
 		savedVariableTable[frameName] = {
 			scale = 1
 		}
 	end
 
+	--create a frame name if the frameName has been not passed within the function call
 	if (not frameName) then
 		frameName = "DetailsFrameworkSimplePanel" .. detailsFramework.SimplePanelCounter
 		detailsFramework.SimplePanelCounter = detailsFramework.SimplePanelCounter + 1
 	end
+
+	--default parent is UIParent
 	if (not parent) then
-		parent = UIParent
+		parent = _G["UIParent"]
 	end
 
+	--default options
 	panelOptions = panelOptions or no_options
 
-	local simplePanel = CreateFrame("frame", frameName, UIParent,"BackdropTemplate")
+	--create the frame
+	local simplePanel = CreateFrame("frame", frameName, _G["UIParent"],"BackdropTemplate")
 	simplePanel:SetSize(width or 400, height or 250)
-	simplePanel:SetPoint("center", UIParent, "center", 0, 0)
+	simplePanel:SetPoint("center", _G["UIParent"], "center", 0, 0)
 	simplePanel:SetFrameStrata("FULLSCREEN")
 	simplePanel:EnableMouse()
 	simplePanel:SetMovable(true)
+
+	--set the backdrop
 	simplePanel:SetBackdrop(SimplePanel_frame_backdrop)
 	simplePanel:SetBackdropColor(unpack(SimplePanel_frame_backdrop_color))
 	simplePanel:SetBackdropBorderColor(unpack(SimplePanel_frame_backdrop_border_color))
@@ -3422,232 +3429,6 @@ function detailsFramework:FindHighestParent(self)
 	end
 
 	return highestParent
-end
-
-detailsFramework.TabContainerFunctions = {}
-
-local button_tab_template = detailsFramework.table.copy({}, detailsFramework:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"))
-button_tab_template.backdropbordercolor = nil
-
-detailsFramework.TabContainerFunctions.CreateUnderlineGlow = function(button)
-	local selectedGlow = button:CreateTexture(nil, "background", nil, -4)
-	selectedGlow:SetPoint("topleft", button.widget, "bottomleft", -7, 0)
-	selectedGlow:SetPoint("topright", button.widget, "bottomright", 7, 0)
-	selectedGlow:SetTexture([[Interface\BUTTONS\UI-Panel-Button-Glow]])
-	selectedGlow:SetTexCoord(0, 95/128, 30/64, 38/64)
-	selectedGlow:SetBlendMode("ADD")
-	selectedGlow:SetHeight(8)
-	selectedGlow:SetAlpha(.75)
-	selectedGlow:Hide()
-	button.selectedUnderlineGlow = selectedGlow
-end
-
-detailsFramework.TabContainerFunctions.OnMouseDown = function(self, button)
-	--search for UIParent
-	local f = detailsFramework:FindHighestParent (self)
-	local container = self:GetParent()
-
-	if (button == "LeftButton") then
-		if (not f.IsMoving and f:IsMovable()) then
-			f:StartMoving()
-			f.IsMoving = true
-		end
-	elseif (button == "RightButton") then
-		if (not f.IsMoving and container.IsContainer) then
-			if (self.IsFrontPage) then
-				if (container.CanCloseWithRightClick) then
-					if (f.CloseFunction) then
-						f:CloseFunction()
-					else
-						f:Hide()
-					end
-				end
-			else
-				--goes back to front page
-				detailsFramework.TabContainerFunctions.SelectIndex (self, _, 1)
-			end
-		end
-	end
-end
-
-detailsFramework.TabContainerFunctions.OnMouseUp = function(self, button)
-	local f = detailsFramework:FindHighestParent (self)
-	if (f.IsMoving) then
-		f:StopMovingOrSizing()
-		f.IsMoving = false
-	end
-end
-
-detailsFramework.TabContainerFunctions.SelectIndex = function(self, fixedParam, menuIndex)
-	local mainFrame = self.AllFrames and self or self.mainFrame or self:GetParent()
-
-	for i = 1, #mainFrame.AllFrames do
-		mainFrame.AllFrames[i]:Hide()
-		if (mainFrame.ButtonNotSelectedBorderColor) then
-			mainFrame.AllButtons[i]:SetBackdropBorderColor(unpack(mainFrame.ButtonNotSelectedBorderColor))
-		end
-		if (mainFrame.AllButtons[i].selectedUnderlineGlow) then
-			mainFrame.AllButtons[i].selectedUnderlineGlow:Hide()
-		end
-	end
-
-	mainFrame.AllFrames[menuIndex]:Show()
-	if mainFrame.AllFrames[menuIndex].RefreshOptions then
-		mainFrame.AllFrames[menuIndex]:RefreshOptions()
-	end
-	if (mainFrame.ButtonSelectedBorderColor) then
-		mainFrame.AllButtons[menuIndex]:SetBackdropBorderColor(unpack(mainFrame.ButtonSelectedBorderColor))
-	end
-	if (mainFrame.AllButtons[menuIndex].selectedUnderlineGlow) then
-		mainFrame.AllButtons[menuIndex].selectedUnderlineGlow:Show()
-	end
-	mainFrame.CurrentIndex = menuIndex
-
-	if (mainFrame.hookList.OnSelectIndex) then
-		detailsFramework:QuickDispatch(mainFrame.hookList.OnSelectIndex, mainFrame, mainFrame.AllButtons[menuIndex])
-	end
-end
-
-detailsFramework.TabContainerFunctions.SetIndex = function(self, index)
-	self.CurrentIndex = index
-end
-
-local tab_container_on_show = function(self)
-	local index = self.CurrentIndex
-	self.SelectIndex (self.AllButtons[index], nil, index)
-end
-
-function detailsFramework:CreateTabContainer (parent, title, frameName, frameList, optionsTable, hookList, languageInfo)
-	local options_text_template = detailsFramework:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")
-	local options_dropdown_template = detailsFramework:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE")
-	local options_switch_template = detailsFramework:GetTemplate("switch", "OPTIONS_CHECKBOX_TEMPLATE")
-	local options_slider_template = detailsFramework:GetTemplate("slider", "OPTIONS_SLIDER_TEMPLATE")
-	local options_button_template = detailsFramework:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE")
-
-	optionsTable = optionsTable or {}
-	local parentFrameWidth = parent:GetWidth()
-	local y_offset = optionsTable.y_offset or 0
-	local buttonWidth = optionsTable.button_width or 160
-	local buttonHeight = optionsTable.button_height or 20
-	local buttonAnchorX = optionsTable.button_x or 230
-	local buttonAnchorY = optionsTable.button_y or -32
-	local button_text_size = optionsTable.button_text_size or 10
-	local containerWidthOffset = optionsTable.container_width_offset or 0
-
-	local mainFrame = CreateFrame("frame", frameName, parent.widget or parent, "BackdropTemplate")
-	mainFrame:SetAllPoints()
-	detailsFramework:Mixin(mainFrame, detailsFramework.TabContainerFunctions)
-	mainFrame.hookList = hookList or {}
-
-	local mainTitle = detailsFramework:CreateLabel(mainFrame, title, 24, "white")
-	mainTitle:SetPoint("topleft", mainFrame, "topleft", 10, -30 + y_offset)
-
-	mainFrame:SetFrameLevel(200)
-
-	mainFrame.AllFrames = {}
-	mainFrame.AllButtons = {}
-	mainFrame.CurrentIndex = 1
-	mainFrame.IsContainer = true
-	mainFrame.ButtonSelectedBorderColor = optionsTable.button_selected_border_color or {1, 1, 0, 1}
-	mainFrame.ButtonNotSelectedBorderColor = optionsTable.button_border_color or {0, 0, 0, 0}
-
-	if (optionsTable.right_click_interact ~= nil) then
-		mainFrame.CanCloseWithRightClick = optionsTable.right_click_interact
-	else
-		mainFrame.CanCloseWithRightClick = true
-	end
-
-	--languageInfo
-	local addonId = languageInfo and languageInfo.language_addonId or "none"
-
-	for i, frameInfo in ipairs(frameList) do
-		local f = CreateFrame("frame", "$parent" .. frameInfo.name, mainFrame, "BackdropTemplate")
-		f:SetAllPoints()
-		f:SetFrameLevel(210)
-		f:Hide()
-
-		--attempt to get the localized text from the language system using the addonId and the frameInfo.title
-		local phraseId = frameInfo.title
-		local bIsLanguagePrahseID = detailsFramework.Language.DoesPhraseIDExistsInDefaultLanguage(addonId, phraseId)
-
-		local title = detailsFramework:CreateLabel(f, "", 16, "silver")
-		if (bIsLanguagePrahseID) then
-			DetailsFramework.Language.RegisterObjectWithDefault(addonId, title.widget, frameInfo.title, frameInfo.title)
-		else
-			title:SetText(frameInfo.title)
-		end
-
-		title:SetPoint("topleft", mainTitle, "bottomleft", 0, 0)
-		f.titleText = title
-
-		local tabButton = detailsFramework:CreateButton(mainFrame, detailsFramework.TabContainerFunctions.SelectIndex, buttonWidth, buttonHeight, frameInfo.title, i, nil, nil, nil, "$parentTabButton" .. frameInfo.name, false, button_tab_template)
-
-		if (bIsLanguagePrahseID) then
-			DetailsFramework.Language.RegisterObjectWithDefault(addonId, tabButton.widget, frameInfo.title, frameInfo.title)
-		end
-
-		PixelUtil.SetSize(tabButton, buttonWidth, buttonHeight)
-		tabButton:SetFrameLevel(220)
-		tabButton.textsize = button_text_size
-		tabButton.mainFrame = mainFrame
-		detailsFramework.TabContainerFunctions.CreateUnderlineGlow(tabButton)
-
-		local rightClickToBack
-		if (i == 1 or optionsTable.rightbutton_always_close) then
-			rightClickToBack = detailsFramework:CreateLabel(f, "right click to close", 10, "gray")
-			rightClickToBack:SetPoint("bottomright", f, "bottomright", -1, optionsTable.right_click_y or 0)
-			if (optionsTable.close_text_alpha) then
-				rightClickToBack:SetAlpha(optionsTable.close_text_alpha)
-			end
-			f.IsFrontPage = true
-		else
-			rightClickToBack = detailsFramework:CreateLabel(f, "right click to go back to main menu", 10, "gray")
-			rightClickToBack:SetPoint("bottomright", f, "bottomright", -1, optionsTable.right_click_y or 0)
-			if (optionsTable.close_text_alpha) then
-				rightClickToBack:SetAlpha(optionsTable.close_text_alpha)
-			end
-		end
-
-		if (optionsTable.hide_click_label) then
-			rightClickToBack:Hide()
-		end
-
-		f:SetScript("OnMouseDown", detailsFramework.TabContainerFunctions.OnMouseDown)
-		f:SetScript("OnMouseUp", detailsFramework.TabContainerFunctions.OnMouseUp)
-
-		tinsert(mainFrame.AllFrames, f)
-		tinsert(mainFrame.AllButtons, tabButton)
-	end
-
-	--order buttons
-	local x = buttonAnchorX
-	local y = buttonAnchorY
-	local spaceBetweenButtons = 3
-
-	local allocatedSpaceForButtons = parentFrameWidth - ((#frameList - 2) * spaceBetweenButtons) - buttonAnchorX + containerWidthOffset
-	local amountButtonsPerRow = floor(allocatedSpaceForButtons / buttonWidth)
-
-	mainFrame.AllButtons[1]:SetPoint("topleft", mainTitle, "topleft", x, y)
-	x = x + buttonWidth + 2
-
-	for i = 2, #mainFrame.AllButtons do
-		local button = mainFrame.AllButtons[i]
-		PixelUtil.SetPoint(button, "topleft", mainTitle, "topleft", x, y)
-		x = x + buttonWidth + 2
-
-		if (i % amountButtonsPerRow == 0) then
-			x = buttonAnchorX
-			y = y - buttonHeight - 1
-		end
-	end
-
-	--when show the frame, reset to the current internal index
-	mainFrame:SetScript("OnShow", tab_container_on_show)
-	--select the first frame
-	mainFrame.SelectIndex (mainFrame.AllButtons[1], nil, 1)
-
-	print()
-	return mainFrame
 end
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -7610,7 +7391,7 @@ detailsFramework.CastFrameFunctions = {
 
 		if (self.unit) then
 			if (self.casting) then
-				local name, text, texture, startTime = UnitCastingInfo (self.unit)
+				local name, text, texture, startTime = CastInfo.UnitCastingInfo (self.unit)
 				if (name) then
 					--[[if not self.spellStartTime then
 						self:UpdateCastingInfo(self.unit)
@@ -7621,7 +7402,7 @@ detailsFramework.CastFrameFunctions = {
 				self:RunHooksForWidget("OnShow", self, self.unit)
 
 			elseif (self.channeling) then
-				local name, text, texture, endTime = UnitChannelInfo (self.unit)
+				local name, text, texture, endTime = CastInfo.UnitChannelInfo (self.unit)
 				if (name) then
 					--[[if not self.spellEndTime then
 						self:UpdateChannelInfo(self.unit)
@@ -7817,8 +7598,8 @@ detailsFramework.CastFrameFunctions = {
 	end,
 
 	PLAYER_ENTERING_WORLD = function(self, unit, arg1)
-		local isChannel = UnitChannelInfo (unit)
-		local isRegularCast = UnitCastingInfo (unit)
+		local isChannel = CastInfo.UnitChannelInfo (unit)
+		local isRegularCast = CastInfo.UnitCastingInfo (unit)
 
 		if (isChannel) then
 			self.channeling = true
@@ -7842,7 +7623,7 @@ detailsFramework.CastFrameFunctions = {
 	end,
 
 	UpdateCastingInfo = function(self, unit)
-		local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = UnitCastingInfo (unit)
+		local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = CastInfo.UnitCastingInfo (unit)
 
 		--is valid?
 		if (not self:IsValid (unit, name, isTradeSkill, true)) then
@@ -7958,7 +7739,7 @@ detailsFramework.CastFrameFunctions = {
 
 	UpdateChannelInfo = function(self, unit, ...)
 		local unitID, castID, spellID = ...
-		local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numStages = UnitChannelInfo (unit)
+		local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numStages = CastInfo.UnitChannelInfo (unit)
 
 		--is valid?
 		if (not self:IsValid (unit, name, isTradeSkill, true)) then
@@ -8204,7 +7985,7 @@ detailsFramework.CastFrameFunctions = {
 	end,
 
 	UNIT_SPELLCAST_DELAYED = function(self, unit, ...)
-		local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible = UnitCastingInfo (unit)
+		local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible = CastInfo.UnitCastingInfo (unit)
 
 		if (not self:IsValid (unit, name, isTradeSkill)) then
 			return
@@ -8219,7 +8000,7 @@ detailsFramework.CastFrameFunctions = {
 	end,
 
 	UNIT_SPELLCAST_CHANNEL_UPDATE = function(self, unit, ...)
-		local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numStages = UnitChannelInfo (unit)
+		local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numStages = CastInfo.UnitChannelInfo (unit)
 
 		if (not self:IsValid (unit, name, isTradeSkill)) then
 			return
@@ -8256,90 +8037,6 @@ detailsFramework.CastFrameFunctions = {
 }
 
 detailsFramework:Mixin(detailsFramework.CastFrameFunctions, detailsFramework.ScriptHookMixin)
-
--- for classic era use LibClassicCasterino:
-local LibCC = LibStub("LibClassicCasterino", true)
-if IS_WOW_PROJECT_CLASSIC_ERA and LibCC then
-	local fCast = CreateFrame("frame")
-
-	local getCastBar = function(unitId)
-		local plateFrame = C_NamePlate.GetNamePlateForUnit (unitId)
-		if (not plateFrame) then
-			return
-		end
-
-		local castBar = plateFrame.unitFrame and plateFrame.unitFrame.castBar
-		if (not castBar) then
-			return
-		end
-
-		return castBar
-	end
-
-	local triggerCastEvent = function(castBar, event, unitId, ...)
-		if (castBar and castBar.OnEvent) then
-			castBar.OnEvent (castBar, event, unitId)
-		end
-	end
-
-	local funcCast = function(event, unitId, ...)
-		local castBar = getCastBar (unitId)
-		if (castBar) then
-			triggerCastEvent (castBar, event, unitId)
-		end
-	end
-
-	fCast.UNIT_SPELLCAST_START = function(self, event, unitId, ...)
-		triggerCastEvent (getCastBar (unitId), event, unitId)
-	end
-
-	fCast.UNIT_SPELLCAST_STOP = function(self, event, unitId, ...)
-		triggerCastEvent (getCastBar (unitId), event, unitId)
-	end
-
-	fCast.UNIT_SPELLCAST_DELAYED = function(self, event, unitId, ...)
-		triggerCastEvent (getCastBar (unitId), event, unitId)
-	end
-
-	fCast.UNIT_SPELLCAST_FAILED = function(self, event, unitId, ...)
-		triggerCastEvent (getCastBar (unitId), event, unitId)
-	end
-
-	fCast.UNIT_SPELLCAST_INTERRUPTED = function(self, event, unitId, ...)
-		triggerCastEvent (getCastBar (unitId), event, unitId)
-	end
-
-	fCast.UNIT_SPELLCAST_CHANNEL_START = function(self, event, unitId, ...)
-		triggerCastEvent (getCastBar (unitId), event, unitId)
-	end
-
-	fCast.UNIT_SPELLCAST_CHANNEL_UPDATE = function(self, event, unitId, ...)
-		triggerCastEvent (getCastBar (unitId), event, unitId)
-	end
-
-	fCast.UNIT_SPELLCAST_CHANNEL_STOP = function(self, event, unitId, ...)
-		triggerCastEvent (getCastBar (unitId), event, unitId)
-	end
-
-	if LibCC then
-		LibCC.RegisterCallback(fCast,"UNIT_SPELLCAST_START", funcCast)
-		LibCC.RegisterCallback(fCast,"UNIT_SPELLCAST_DELAYED", funcCast) -- only for player
-		LibCC.RegisterCallback(fCast,"UNIT_SPELLCAST_STOP", funcCast)
-		LibCC.RegisterCallback(fCast,"UNIT_SPELLCAST_FAILED", funcCast)
-		LibCC.RegisterCallback(fCast,"UNIT_SPELLCAST_INTERRUPTED", funcCast)
-		LibCC.RegisterCallback(fCast,"UNIT_SPELLCAST_CHANNEL_START", funcCast)
-		LibCC.RegisterCallback(fCast,"UNIT_SPELLCAST_CHANNEL_UPDATE", funcCast) -- only for player
-		LibCC.RegisterCallback(fCast,"UNIT_SPELLCAST_CHANNEL_STOP", funcCast)
-
-		UnitCastingInfo = function(unit)
-			return LibCC:UnitCastingInfo (unit)
-		end
-
-		UnitChannelInfo = function(unit)
-			return LibCC:UnitChannelInfo (unit)
-		end
-	end
-end -- end classic era
 
 -- ~castbar
 
