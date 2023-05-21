@@ -1847,8 +1847,8 @@ options_button_template.backdropbordercolor = {0, 0, 0, 1}
 configButton:SetTemplate(options_button_template)
 configButton:Hide()
 
-if (UsePFGButton) then
-	configButton:SetPoint("right", UsePFGButton, "left", -8, 0)
+if (UsePGFButton) then
+	configButton:SetPoint("right", UsePGFButton, "left", -8, 0)
 else
 	configButton:SetPoint("right", LFGListFrame.SearchPanel.RefreshButton, "left", -5, 0)
 end
