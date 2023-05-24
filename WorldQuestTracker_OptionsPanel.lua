@@ -70,15 +70,19 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
     --create the tab system which will hold the tabs for each section of the options panel
 	local tabContainer = DF:CreateTabContainer(optionsFrame, "WQT Options", "WQTOptionsPanelContainer",
 	{
-		{name = "FrontPage",				title = "S_OPTTIONS_TAB_GENERAL_SETTINGS"},
-		{name = "TrackerConfig",			title = "S_OPTTIONS_TAB_TRACKER_SETTINGS"},
-		{name = "WorldMapConfig",	    	title = "S_OPTTIONS_TAB_WORLDMAP_SETTINGS"},
-		{name = "ZoneMapConfig",			title = "S_OPTTIONS_TAB_ZONEMAP_SETTINGS"},
-		{name = "GroupFinderConfig",		title = "S_OPTTIONS_TAB_GROUPFINDER_SETTINGS"},
-		--{name = "RaresConfig",				title = "S_OPTTIONS_TAB_RARES_SETTINGS"},
-		--{name = "IgnoredQuestsPanel",		title = "S_OPTTIONS_TAB_IGNOREDQUESTS_SETTINGS"},
+		{name = "FrontPage",				text = "S_OPTTIONS_TAB_GENERAL_SETTINGS"},
+		{name = "TrackerConfig",			text = "S_OPTTIONS_TAB_TRACKER_SETTINGS"},
+		{name = "WorldMapConfig",	    	text = "S_OPTTIONS_TAB_WORLDMAP_SETTINGS"},
+		{name = "ZoneMapConfig",			text = "S_OPTTIONS_TAB_ZONEMAP_SETTINGS"},
+		{name = "GroupFinderConfig",		text = "S_OPTTIONS_TAB_GROUPFINDER_SETTINGS"},
+		--{name = "RaresConfig",				text = "S_OPTTIONS_TAB_RARES_SETTINGS"},
+		--{name = "IgnoredQuestsPanel",		text = "S_OPTTIONS_TAB_IGNOREDQUESTS_SETTINGS"},
 	},
 	frameOptions, hookList, languageInfo)
+
+    tabContainer:SetPoint("topleft", optionsFrame, "topleft", 5, -10)
+    tabContainer:Show()
+    tabContainer:SetSize(optionsFrame:GetSize())
 
     --this function runs when any setting is changed
 	local globalCallback = function()
