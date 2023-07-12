@@ -1,4 +1,4 @@
-## Interface: 100100
+## Interface: 100105
 ## Interface-Mainline: 100100
 ## Interface-Wrath: 30401
 
@@ -6,6 +6,8 @@
 ## Notes: An addon by Terciob. Make more easy to see world quests
 ## SavedVariables: WQTrackerDB, WQTrackerLanguage
 ## SavedVariablesPerCharacter: WQTrackerDBChr
+
+## IconTexture: Interface\AddOns\WorldQuestTracker\media\icon_artifact_power.blp
 
 ## X-Curse-Project-ID: 100610
 ## X-Wago-ID: lQNlrEKe
