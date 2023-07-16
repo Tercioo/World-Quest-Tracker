@@ -1041,6 +1041,9 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 		end)
 		b:SetPoint("center", UIParent, "center", 0, 0)
 
+	elseif (msg == "options") then
+		WorldQuestTracker.OpenOptionsPanel()
+
 	elseif (msg == "test") then
 		local playerLevel = UnitLevel("player")
 		if (playerLevel < 51) then

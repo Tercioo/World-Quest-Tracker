@@ -1,5 +1,5 @@
-## Interface: 100100
-## Interface-Mainline: 100100
+## Interface: 100105
+## Interface-Mainline: 100105
 ## Interface-Wrath: 30401
 
 ## Title: World Quest Tracker
