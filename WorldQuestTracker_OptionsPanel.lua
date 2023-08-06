@@ -704,7 +704,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
             language_addonId = addonId,
             labelbreakline = true, --will place the text in one line and the dropdown in the next line
 
-            {
+            { --show zone summary
                 type = "toggle",
                 get = function()
                     return WorldQuestTracker.db.profile.zone_map_config.summary_show
@@ -715,6 +715,9 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 name = "S_MAPBAR_OPTIONSMENU_ZONE_QUESTSUMMARY",
                 desc = "S_MAPBAR_OPTIONSMENU_ZONE_QUESTSUMMARY",
             },
+
+            {type = "blank"},
+
             {
                 type = "toggle",
                 get = function()

@@ -238,6 +238,7 @@ do
 			show_summary_minimize_button = true,
 
 			zone_map_config = {
+				summary_show = true,
 				quest_summary_scale = 1,
 				show_widgets = true,
 				scale = 1,
