@@ -15,21 +15,23 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 	}
 
     --create the options frame
-    local optionsFrame = DF:CreateSimplePanel(UIParent, 800, 600, "World Quest Tracker Options", "WorldQuestTrackerOptionsPanel")
-	optionsFrame.Title:SetAlpha(.75)
+    local optionsFrame = DF:CreateSimplePanel(UIParent, 800, 600, "World Quest Tracker Options", "WorldQuestTrackerOptionsPanel", {RoundedCorners = true})
 	optionsFrame:SetFrameStrata("HIGH")
-	DF:ApplyStandardBackdrop(optionsFrame)
 	optionsFrame:ClearAllPoints()
 	PixelUtil.SetPoint(optionsFrame, "center", UIParent, "center", 2, 2, 1, 1)
 
+    --this title bar is created by the rounded corners (RoundedCorners = true)
+    optionsFrame.TitleBar.Text:SetText("World Quest Tracker Options")
+
     --create the footer below the options frame
+
 	local statusBar = CreateFrame("frame", "$parentStatusBar", optionsFrame, "BackdropTemplate")
 	statusBar:SetPoint("bottomleft", optionsFrame, "bottomleft")
 	statusBar:SetPoint("bottomright", optionsFrame, "bottomright")
 	statusBar:SetHeight(20)
 	statusBar:SetAlpha(0.9)
 	statusBar:SetFrameLevel(optionsFrame:GetFrameLevel()+2)
-    DF:ApplyStandardBackdrop(statusBar)
+    --DF:ApplyStandardBackdrop(statusBar)
 	DF:BuildStatusbarAuthorInfo(statusBar, "An AddOn By Terciob")
 
     local bottomGradient = DF:CreateTexture(optionsFrame, {gradient = "vertical", fromColor = {0, 0, 0, 0.6}, toColor = "transparent"}, 1, 100, "artwork", {0, 1, 0, 1}, "bottomGradient")
@@ -82,7 +84,9 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 
     tabContainer:SetPoint("topleft", optionsFrame, "topleft", 5, -10)
     tabContainer:Show()
-    tabContainer:SetSize(optionsFrame:GetSize())
+
+    local optionsFrameWidth, optionsFrameHeight = optionsFrame:GetSize()
+    tabContainer:SetSize(optionsFrameWidth - 5, optionsFrameHeight - 5)
 
     --this function runs when any setting is changed
 	local globalCallback = function()
@@ -92,8 +96,8 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 	--make the tab button's text be aligned to left and fit the button's area
 	for index, frame in ipairs(tabContainer.AllFrames) do
 		--DF:ApplyStandardBackdrop(frame)
-		local frameBackgroundTexture = frame:CreateTexture(nil, "artwork")
-		frameBackgroundTexture:SetPoint("topleft", frame, "topleft", 1, -140)
+		local frameBackgroundTexture = frame:CreateTexture("$parentBackgroundTexture", "artwork")
+		frameBackgroundTexture:SetPoint("topleft", frame, "topleft", 1, -90)
 		frameBackgroundTexture:SetPoint("bottomright", frame, "bottomright", -1, 20)
 		frameBackgroundTexture:SetColorTexture (0.2317647, 0.2317647, 0.2317647)
 		frameBackgroundTexture:SetVertexColor (0.27, 0.27, 0.27)
@@ -101,7 +105,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 		--frameBackgroundTexture:Hide()
 
 		--divisor shown above the background (create above)
-		local frameBackgroundTextureTopLine = frame:CreateTexture(nil, "artwork")
+		local frameBackgroundTextureTopLine = frame:CreateTexture("$parentBackgroundTextureTopLine", "artwork")
 		frameBackgroundTextureTopLine:SetPoint("bottomleft", frameBackgroundTexture, "topleft", 0, 0)
 		frameBackgroundTextureTopLine:SetPoint("bottomright", frame, "topright", -1, 0)
 		frameBackgroundTextureTopLine:SetHeight(1)
@@ -361,7 +365,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 desc = "S_OPENWORLD",
             },
 
-            {type = "blank"},
+            {type = "breakline"},
 
             {
                 type = "label",

@@ -218,9 +218,9 @@ do
 			tracker_textsize = 12,
 
 			talking_heads_heard = {},--a
-			talking_heads_torgast = true,--a
-			talking_heads_dungeon = true,--a
-			talking_heads_raid = true,--a
+			talking_heads_torgast = false,--a
+			talking_heads_dungeon = false,--a
+			talking_heads_raid = false,--a
 			talking_heads_openworld = false,--a
 
 			flymaster_tracker_frame_pos = {},--a
