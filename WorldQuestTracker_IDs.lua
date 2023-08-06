@@ -23,7 +23,8 @@ WorldQuestTracker.FilterToQuestType = {
 	garrison_resource =	WQT_QUESTTYPE_RESOURCE,
 	equipment =		WQT_QUESTTYPE_EQUIPMENT,
 	trade_skill =		WQT_QUESTTYPE_TRADE,
-	reputation_token = 	WQT_QUESTTYPE_REPUTATION
+	reputation_token = 	WQT_QUESTTYPE_REPUTATION,
+	racing =			WQT_QUESTTYPE_RACING,
 }
 
 --convert a quest type to a filter
@@ -34,10 +35,11 @@ WorldQuestTracker.QuestTypeToFilter = {
 	[WQT_QUESTTYPE_EQUIPMENT] =		"equipment",
 	[WQT_QUESTTYPE_TRADE] =			"trade_skill",
 	[WQT_QUESTTYPE_DUNGEON] =		"dungeon",
-	[WQT_QUESTTYPE_PROFESSION] =		"profession",
+	[WQT_QUESTTYPE_PROFESSION] =	"profession",
 	[WQT_QUESTTYPE_PVP] =			"pvp",
 	[WQT_QUESTTYPE_PETBATTLE] =		"pet_battles",
-	[WQT_QUESTTYPE_REPUTATION] =		"reputation_token"
+	[WQT_QUESTTYPE_REPUTATION] =	"reputation_token",
+	[WQT_QUESTTYPE_RACING] =		"racing",
 }
 
 WorldQuestTracker.MapData = {}
@@ -1036,6 +1038,7 @@ WorldQuestTracker.MapData.QuestTypeIcons = {
 	[WQT_QUESTTYPE_PETBATTLE] = {name = L["S_QUESTTYPE_PETBATTLE"], icon = [[Interface\AddOns\WorldQuestTracker\media\icon_pet]], coords = {0.05, 0.95, 0.05, 0.95}},
 	[WQT_QUESTTYPE_TRADE] = {name = L["S_QUESTTYPE_TRADESKILL"], icon = [[Interface\ICONS\INV_Blood of Sargeras]], coords = {5/64, 59/64, 5/64, 59/64}},
 	[WQT_QUESTTYPE_REPUTATION] = {name = "Reputation", icon = [[Interface\ICONS\Achievement_Reputation_01]], coords = {5/64, 59/64, 5/64, 59/64}},
+	[WQT_QUESTTYPE_RACING] = {name = "Racing", icon = [[Interface\AddOns\WorldQuestTracker\media\icon_racing_nobackground]], coords = {0, 1, 0, 1}},
 }
 
 WorldQuestTracker.MapData.GeneralIcons = {

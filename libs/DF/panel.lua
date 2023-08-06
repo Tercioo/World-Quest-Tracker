@@ -627,6 +627,7 @@ function detailsFramework:NewPanel(parent, container, name, member, w, h, backdr
 	PanelObject.frame:SetBackdrop({bgFile = [[Interface\DialogFrame\UI-DialogBox-Background]], edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", edgeSize = 10, tileSize = 64, tile = true})
 
 	PanelObject.widget = PanelObject.frame
+	PanelObject.frame.MyObject = PanelObject
 
 	if (not APIFrameFunctions) then
 		APIFrameFunctions = {}
@@ -643,8 +644,6 @@ function detailsFramework:NewPanel(parent, container, name, member, w, h, backdr
 
 	PanelObject.frame:SetWidth(w or 100)
 	PanelObject.frame:SetHeight(h or 100)
-
-	PanelObject.frame.MyObject = PanelObject
 
 	PanelObject.HookList = {
 		OnEnter = {},

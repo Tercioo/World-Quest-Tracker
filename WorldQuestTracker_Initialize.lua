@@ -4,40 +4,41 @@
 do
 	WQT_VERSION = 414
 
-	--> update quest type max when a new type of world quest is added to the filtering
+	--update quest type max when a new type of world quest is added to the filtering
 	WQT_QUESTTYPE_MAX = 		10			--[[global]]
 
-	--> all quest types current available
+	--all quest types current available
 	WQT_QUESTTYPE_GOLD = 		"gold"			--[[global]]
 	WQT_QUESTTYPE_RESOURCE = 	"resource"		--[[global]]
-	WQT_QUESTTYPE_APOWER = 	"apower"		--[[global]]
-	WQT_QUESTTYPE_EQUIPMENT = 	"equipment"	--[[global]]
-	WQT_QUESTTYPE_TRADE = 		"trade"		--[[global]]
+	WQT_QUESTTYPE_APOWER = 		"apower"		--[[global]]
+	WQT_QUESTTYPE_EQUIPMENT = 	"equipment"		--[[global]]
+	WQT_QUESTTYPE_TRADE = 		"trade"			--[[global]]
 	WQT_QUESTTYPE_DUNGEON = 	"dungeon"		--[[global]]
 	WQT_QUESTTYPE_PROFESSION =	 "profession"	--[[global]]
 	WQT_QUESTTYPE_PVP = 		"pvp"			--[[global]]
 	WQT_QUESTTYPE_PETBATTLE = 	"petbattle"		--[[global]]
 	WQT_QUESTTYPE_REPUTATION = 	"reputation"	--[[global]]
+	WQT_QUESTTYPE_RACING = 		"racing"		--[[global]]
 
-	WQT_QUERYTYPE_REWARD = 	"reward"		--[[global]]
-	WQT_QUERYTYPE_QUEST = 		"quest"		--[[global]]
+	WQT_QUERYTYPE_REWARD = 		"reward"		--[[global]]
+	WQT_QUERYTYPE_QUEST = 		"quest"			--[[global]]
 	WQT_QUERYTYPE_PERIOD = 		"period"		--[[global]]
 	WQT_QUERYDB_ACCOUNT = 		"global"		--[[global]]
 	WQT_QUERYDB_LOCAL = 		"character"		--[[global]]
 	WQT_REWARD_RESOURCE = 		"resource"		--[[global]]
 	WQT_REWARD_GOLD = 			"gold"			--[[global]]
 	WQT_REWARD_APOWER = 		"artifact"		--[[global]]
-	WQT_QUESTS_TOTAL = 		"total"		--[[global]]
-	WQT_QUESTS_PERIOD = 		"quest"		--[[global]]
-	WQT_DATE_TODAY = 			1			--[[global]]
-	WQT_DATE_YESTERDAY = 		2			--[[global]]
-	WQT_DATE_1WEEK = 			3			--[[global]]
-	WQT_DATE_2WEEK = 			4			--[[global]]
-	WQT_DATE_MONTH = 			5			--[[global]]
+	WQT_QUESTS_TOTAL = 			"total"			--[[global]]
+	WQT_QUESTS_PERIOD = 		"quest"			--[[global]]
+	WQT_DATE_TODAY = 			1				--[[global]]
+	WQT_DATE_YESTERDAY = 		2				--[[global]]
+	WQT_DATE_1WEEK = 			3				--[[global]]
+	WQT_DATE_2WEEK = 			4				--[[global]]
+	WQT_DATE_MONTH = 			5				--[[global]]
 
 	--helps blend the icons within the map texture
 	WQT_ZONEWIDGET_ALPHA =		0.97
-	WQT_WORLDWIDGET_ALPHA =	0.975
+	WQT_WORLDWIDGET_ALPHA =		0.975
 	WQT_WORLDWIDGET_BLENDED =	ALPHA_BLEND_AMOUNT - 0.11
 
 	WQT_ANIMATION_SPEED = 0.05
@@ -60,6 +61,7 @@ do
 	FILTER_TYPE_REPUTATION_TOKEN = "reputation_token"
 	FILTER_TYPE_EQUIPMENT = "equipment"
 	FILTER_TYPE_TRADESKILL = "trade_skill"
+	FILTER_TYPE_RACING = "racing"
 
 	--9.0.1 re-filling the French globals
 	local questTagType = _G.Enum.QuestTagType
@@ -70,7 +72,7 @@ do
 	LE_QUEST_TAG_TYPE_INVASION = questTagType.Invasion
 	LE_QUEST_TAG_TYPE_FACTION_ASSAULT = questTagType.FactionAssault
 	LE_QUEST_TAG_TYPE_PVP = questTagType.PvP
---
+
 	local questQualityType = _G.Enum.WorldQuestQuality --former known as rarity
 	LE_WORLD_QUEST_QUALITY_COMMON = questQualityType.Common
 	LE_WORLD_QUEST_QUALITY_RARE = questQualityType.Rare
@@ -89,6 +91,7 @@ do
 				equipment = true,
 				trade_skill = true,
 				reputation_token = true,
+				racing = true,
 			},
 
 			sort_order = {
@@ -102,6 +105,7 @@ do
 				[WQT_QUESTTYPE_PROFESSION] = 3,
 				[WQT_QUESTTYPE_PVP] = 2,
 				[WQT_QUESTTYPE_PETBATTLE] = 6,
+				[WQT_QUESTTYPE_RACING] = 11,
 			},
 
 			groupfinder = {

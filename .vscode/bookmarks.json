@@ -1,45 +1,30 @@
 {
 	"files": [
 		{
-			"path": "WorldQuestTracker_Core.lua",
-			"bookmarks": [
-				{
-					"line": 1144,
-					"column": 8,
-					"label": ""
-				},
-				{
-					"line": 2431,
-					"column": 42,
-					"label": ""
-				}
-			]
-		},
-		{
 			"path": "WorldQuestTracker_IDs.lua",
 			"bookmarks": [
 				{
-					"line": 43,
+					"line": 45,
 					"column": 0,
 					"label": ""
 				},
 				{
-					"line": 122,
+					"line": 124,
 					"column": 6,
 					"label": ""
 				},
 				{
-					"line": 173,
+					"line": 175,
 					"column": 14,
 					"label": ""
 				},
 				{
-					"line": 581,
+					"line": 583,
 					"column": 15,
 					"label": ""
 				},
 				{
-					"line": 728,
+					"line": 730,
 					"column": 17,
 					"label": ""
 				}
@@ -89,12 +74,12 @@
 					"label": ""
 				},
 				{
-					"line": 1178,
+					"line": 1183,
 					"column": 4,
 					"label": ""
 				},
 				{
-					"line": 1496,
+					"line": 1501,
 					"column": 97,
 					"label": ""
 				}
@@ -104,17 +89,17 @@
 			"path": "WorldQuestTracker_MapAPI.lua",
 			"bookmarks": [
 				{
-					"line": 266,
+					"line": 276,
 					"column": 132,
 					"label": ""
 				},
 				{
-					"line": 566,
+					"line": 579,
 					"column": 0,
 					"label": ""
 				},
 				{
-					"line": 606,
+					"line": 619,
 					"column": 4,
 					"label": ""
 				}
@@ -124,23 +109,18 @@
 			"path": "WorldQuestTracker_WorldMap.lua",
 			"bookmarks": [
 				{
-					"line": 356,
-					"column": 41,
-					"label": ""
-				},
-				{
-					"line": 652,
-					"column": 31,
-					"label": ""
-				},
-				{
-					"line": 886,
-					"column": 18,
-					"label": ""
-				},
-				{
-					"line": 1058,
+					"line": 1068,
 					"column": 0,
+					"label": ""
+				},
+				{
+					"line": 1114,
+					"column": 4,
+					"label": ""
+				},
+				{
+					"line": 1267,
+					"column": 75,
 					"label": ""
 				}
 			]

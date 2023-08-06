@@ -26,6 +26,16 @@ local GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
 local GetQuestLogRewardMoney = GetQuestLogRewardMoney
 local GetNumQuestLogRewards = GetNumQuestLogRewards
 
+---return a boolean representing if the quest is a racing world quest
+---@param tagID number
+---@return boolean
+function WorldQuestTracker.IsRacingQuest(tagID)
+	if (tagID == 281) then
+		return true
+	end
+	return false
+end
+
 local triggerScheduledWidgetUpdate = function(timerObject)
 	local widget = timerObject.widget
 	local questID = widget.questID
@@ -328,7 +338,7 @@ function WorldQuestTracker.CanShowQuest (info)
 end
 
 -- ~filter
-function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount, numRewardItems, rewardTexture)
+function WorldQuestTracker.GetQuestFilterTypeAndOrder(worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount, numRewardItems, rewardTexture, tagID)
 	local filter, order
 
 	--[=[
@@ -352,24 +362,23 @@ function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rew
 	end
 
 	if (worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE) then
-		return FILTER_TYPE_PET_BATTLES, WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_PETBATTLE]
+		return FILTER_TYPE_PET_BATTLES, WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_PETBATTLE]
 
 	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PVP) then
-		return FILTER_TYPE_PVP, WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_PVP]
+		return FILTER_TYPE_PVP, WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_PVP]
 
 
 	elseif (worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION) then
-		return FILTER_TYPE_PROFESSION, WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_PROFESSION]
+		return FILTER_TYPE_PROFESSION, WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_PROFESSION]
 
 	elseif (worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON) then
 		filter = FILTER_TYPE_DUNGEON
-		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_DUNGEON]
+		order = WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_DUNGEON]
 	end
 
 	if (gold and gold > 0) then
-		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_GOLD]
+		order = WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_GOLD]
 		filter = FILTER_TYPE_GOLD
-
 	end
 
 	--print (rewardName, rewardTexture)
@@ -377,40 +386,44 @@ function WorldQuestTracker.GetQuestFilterTypeAndOrder (worldQuestType, gold, rew
 	if (rewardName) then
 		--print (rewardName, rewardTexture) --reputation token
 		--resources
-		if (WorldQuestTracker.MapData.ResourceIcons [rewardTexture]) then
-			order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_RESOURCE]
+		if (WorldQuestTracker.MapData.ResourceIcons[rewardTexture]) then
+			order = WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_RESOURCE]
 			filter = FILTER_TYPE_GARRISON_RESOURCE
 
 		--reputation
-		elseif (WorldQuestTracker.MapData.ReputationIcons [rewardTexture]) then
-			order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_REPUTATION]
+		elseif (WorldQuestTracker.MapData.ReputationIcons[rewardTexture]) then
+			order = WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_REPUTATION]
 			filter = FILTER_TYPE_REPUTATION_TOKEN
 
 		--trade skill
-		elseif (WorldQuestTracker.MapData.TradeSkillIcons [rewardTexture]) then
-			order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_TRADE]
+		elseif (WorldQuestTracker.MapData.TradeSkillIcons[rewardTexture]) then
+			order = WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_TRADE]
 			filter = FILTER_TYPE_TRADESKILL
-
 		end
 	end
 
+	if (WorldQuestTracker.IsRacingQuest(tagID)) then
+		order = WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_RACING] --order = 5
+		return FILTER_TYPE_RACING, order
+	end
+
 	if (isArtifact) then
-		order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_APOWER]
+		order = WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_APOWER]
 		filter = FILTER_TYPE_ARTIFACT_POWER
 
 	elseif (itemName) then
 		if (stackAmount > 1) then
-			order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_TRADE]
+			order = WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_TRADE]
 			filter = FILTER_TYPE_TRADESKILL
 		else
-			order = WorldQuestTracker.db.profile.sort_order [WQT_QUESTTYPE_EQUIPMENT]
+			order = WorldQuestTracker.db.profile.sort_order[WQT_QUESTTYPE_EQUIPMENT]
 			filter = FILTER_TYPE_EQUIPMENT
 		end
 	end
 
 	--> if dungeons are disabled, override the quest type to dungeon
 	if (worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON) then
-		if (not WorldQuestTracker.db.profile.filters [FILTER_TYPE_DUNGEON]) then
+		if (not WorldQuestTracker.db.profile.filters[FILTER_TYPE_DUNGEON]) then
 			filter = FILTER_TYPE_DUNGEON
 		end
 	end
