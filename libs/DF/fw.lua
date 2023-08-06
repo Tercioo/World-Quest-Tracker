@@ -911,24 +911,26 @@ function DF:SetFontFace(fontString, fontface)
 end
 
 ---get the FontString passed and set the font color
+---@param self table
 ---@param fontString fontstring
 ---@param r any
----@param g number|nil
----@param b number|nil
----@param a number|nil
+---@param g number?
+---@param b number?
+---@param a number?
 function DF:SetFontColor(fontString, r, g, b, a)
 	r, g, b, a = DF:ParseColors(r, g, b, a)
 	fontString:SetTextColor(r, g, b, a)
 end
 
 ---get the FontString passed and set the font shadow color and offset
+---@param self table
 ---@param fontString fontstring
----@param r number
----@param g number
----@param b number
----@param a number
----@param x number
----@param y number
+---@param r any
+---@param g number?
+---@param b number?
+---@param a number?
+---@param x number?
+---@param y number?
 function DF:SetFontShadow(fontString, r, g, b, a, x, y)
 	r, g, b, a = DF:ParseColors(r, g, b, a)
 	fontString:SetShadowColor(r, g, b, a)

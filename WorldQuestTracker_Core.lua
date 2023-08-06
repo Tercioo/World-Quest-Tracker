@@ -2124,10 +2124,6 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 				--sort the reputation by faction id when not using show by zone
 				if (not isShowingByZone and not isSortByTime) then
-
-					--debug:
-					--print()
-
 					if (anchor.anchorType == "reputation_token") then
 						table.sort(anchor.Widgets, function(widget1, widget2)
 							return widget1.FactionID < widget2.FactionID --attempt to compare nil with number

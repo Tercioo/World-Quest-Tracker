@@ -397,10 +397,18 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button.blackGradient:SetAlpha(.7)
 
 	--string da flag
-	button.flagText = supportFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	button.flagText = supportFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal", 6)
 	button.flagText:SetText("13m")
 	button.flagText:SetPoint("top", button.bgFlag, "top", 0, -2)
 	DF:SetFontSize(button.flagText, 8)
+
+	button.flagTextShadow = supportFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal", 5)
+	button.flagTextShadow:SetText("13m")
+	button.flagTextShadow:SetPoint("center", button.flagText, "center", 0, 0)
+	button.flagTextShadow:SetTextColor(.2, .2, .2, 0.5)
+	DF:SetFontSize(button.flagTextShadow, 8)
+	DF:SetFontShadow(button.flagTextShadow, "black")
+	DF:SetFontOutline(button.flagTextShadow, "OUTLINE")
 
 	local criteriaFrame = CreateFrame("frame", nil, supportFrame, "BackdropTemplate")
 	local criteriaIndicator = criteriaFrame:CreateTexture(nil, "OVERLAY", nil, 4)
@@ -896,6 +904,7 @@ function WorldQuestTracker.ResetWorldQuestZoneButton(self)
 	self.circleBorder:Hide()
 	self.squareBorder:Hide()
 	self.flagText:SetText("")
+	self.flagTextShadow:SetText("")
 	self.SelectedGlow:Hide()
 	self.CriteriaMatchGlow:Hide()
 	self.SpellTargetGlow:Hide()
@@ -1081,6 +1090,7 @@ function WorldQuestTracker.SetupWorldQuestButton(self, worldQuestType, rarity, i
 				self.IconTexture = texture
 				self.IconText = goldFormated
 				self.flagText:SetText(goldFormated)
+				self.flagTextShadow:SetText(goldFormated)
 				self.circleBorder:Show()
 				self.QuestType = QUESTTYPE_GOLD
 				self.Amount = goldReward
@@ -1114,8 +1124,15 @@ function WorldQuestTracker.SetupWorldQuestButton(self, worldQuestType, rarity, i
 
 					if (numRewardItems >= 1000) then
 						self.flagText:SetText(format("%.1fK", numRewardItems/1000))
+						self.flagTextShadow:SetText(format("%.1fK", numRewardItems/1000))
 					else
-						self.flagText:SetText(numRewardItems)
+						if (numRewardItems == 1) then
+							self.flagText:SetText("")
+							self.flagTextShadow:SetText("")
+						else
+							self.flagText:SetText(numRewardItems)
+							self.flagTextShadow:SetText(numRewardItems)
+						end
 					end
 
 					WorldQuestTracker.UpdateBorder(self, rarity, worldQuestType, mapID, self.isCriteria, isElite)
@@ -1141,18 +1158,23 @@ function WorldQuestTracker.SetupWorldQuestButton(self, worldQuestType, rarity, i
 					if (artifactPower >= 1000) then
 						if (artifactPower > 999999999) then -- 1B
 							self.flagText:SetText(WorldQuestTracker.ToK_FormatBigger(artifactPower))
+							self.flagTextShadow:SetText(WorldQuestTracker.ToK_FormatBigger(artifactPower))
 
 						elseif (artifactPower > 999999) then -- 1M
 							self.flagText:SetText(WorldQuestTracker.ToK_FormatBigger(artifactPower))
+							self.flagTextShadow:SetText(WorldQuestTracker.ToK_FormatBigger(artifactPower))
 
 						elseif (artifactPower > 9999) then
 							self.flagText:SetText(WorldQuestTracker.ToK(artifactPower))
+							self.flagTextShadow:SetText(WorldQuestTracker.ToK(artifactPower))
 
 						else
 							self.flagText:SetText(format("%.1fK", artifactPower/1000))
+							self.flagTextShadow:SetText(format("%.1fK", artifactPower/1000))
 						end
 					else
 						self.flagText:SetText(artifactPower)
+						self.flagTextShadow:SetText(artifactPower)
 					end
 
 					self.isArtifact = isArtifact
@@ -1175,7 +1197,15 @@ function WorldQuestTracker.SetupWorldQuestButton(self, worldQuestType, rarity, i
 						color =  WorldQuestTracker.RarityColors [quality]
 					end
 
-					self.flagText:SetText((isStackable and itemQuantity and itemQuantity >= 1 and itemQuantity or false) or(itemLevel and itemLevel > 5 and(color) .. itemLevel) or "")
+					local sFlagText = (isStackable and itemQuantity and itemQuantity >= 1 and itemQuantity or false) or(itemLevel and itemLevel > 5 and(color) .. itemLevel) or ""
+
+					if (sFlagText == 1) then
+						self.flagText:SetText("")
+						self.flagTextShadow:SetText("")
+					else
+						self.flagText:SetText(sFlagText)
+						self.flagTextShadow:SetText(sFlagText)
+					end
 					self.IconTexture = itemTexture
 					self.IconText = self.flagText:GetText()
 					self.QuestType = QUESTTYPE_ITEM

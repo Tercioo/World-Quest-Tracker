@@ -34,12 +34,12 @@
 			"path": "WorldQuestTracker_GroupFinder.lua",
 			"bookmarks": [
 				{
-					"line": 1299,
+					"line": 1301,
 					"column": 5,
 					"label": ""
 				},
 				{
-					"line": 1370,
+					"line": 1372,
 					"column": 6,
 					"label": ""
 				}
@@ -64,22 +64,22 @@
 			"path": "WorldQuestTracker_ZoneMap.lua",
 			"bookmarks": [
 				{
-					"line": 452,
+					"line": 460,
 					"column": 15,
 					"label": ""
 				},
 				{
-					"line": 1132,
+					"line": 1149,
 					"column": 59,
 					"label": ""
 				},
 				{
-					"line": 1183,
+					"line": 1213,
 					"column": 4,
 					"label": ""
 				},
 				{
-					"line": 1501,
+					"line": 1531,
 					"column": 97,
 					"label": ""
 				}

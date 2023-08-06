@@ -162,9 +162,9 @@ do
 
 			world_map_config = {
 				onmap_show = true,
-				onmap_scale_offset = 0,
+				onmap_scale_offset = 0.6,
 				summary_show = true,
-				summary_scale = 1,
+				summary_scale = 0.95,
 				summary_showby = "bytype", --"bytype" or "byzone"
 				summary_anchor = "left",
 				summary_widgets_per_row = 10,
