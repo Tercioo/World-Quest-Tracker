@@ -5,7 +5,7 @@ do
 	WQT_VERSION = 414
 
 	--update quest type max when a new type of world quest is added to the filtering
-	WQT_QUESTTYPE_MAX = 		10			--[[global]]
+	WQT_QUESTTYPE_MAX = 		11			--[[global]]
 
 	--all quest types current available
 	WQT_QUESTTYPE_GOLD = 		"gold"			--[[global]]
@@ -95,17 +95,17 @@ do
 			},
 
 			sort_order = {
-				[WQT_QUESTTYPE_REPUTATION] = 8,
+				[WQT_QUESTTYPE_REPUTATION] = 7,
 				[WQT_QUESTTYPE_TRADE] = 5,
-				[WQT_QUESTTYPE_APOWER] = 10,
-				[WQT_QUESTTYPE_GOLD] = 7,
+				[WQT_QUESTTYPE_APOWER] = 11,
+				[WQT_QUESTTYPE_GOLD] = 8,
 				[WQT_QUESTTYPE_RESOURCE] = 5,
-				[WQT_QUESTTYPE_EQUIPMENT] = 9,
+				[WQT_QUESTTYPE_EQUIPMENT] = 10,
 				[WQT_QUESTTYPE_DUNGEON] = 4,
 				[WQT_QUESTTYPE_PROFESSION] = 3,
 				[WQT_QUESTTYPE_PVP] = 2,
 				[WQT_QUESTTYPE_PETBATTLE] = 6,
-				[WQT_QUESTTYPE_RACING] = 11,
+				[WQT_QUESTTYPE_RACING] = 9,
 			},
 
 			groupfinder = {

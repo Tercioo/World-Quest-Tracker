@@ -1146,16 +1146,15 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questID, numObjectives, map
 	return okay, amountGold, amountResources, amountAPower
 end
 
-
 function WorldQuestTracker.DelayedShowWorldQuestPins()
 	if (WorldQuestTracker.DelayedWorldQuestUpdate) then
 		return
 	end
 
 	WorldQuestTracker.DelayedWorldQuestUpdate = C_Timer.NewTimer(0.05, function()
-		
-		WorldQuestTracker.DelayedWorldQuestUpdate = nil
-		if (WorldMapFrame and WorldMapFrame:IsShown() and WorldQuestTracker.IsWorldQuestHub(WorldMapFrame.mapID)) then
+	WorldQuestTracker.DelayedWorldQuestUpdate = nil
+
+	if (WorldMapFrame and WorldMapFrame:IsShown() and WorldQuestTracker.IsWorldQuestHub(WorldMapFrame.mapID)) then
 			WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
 		end
 	end)
@@ -1447,9 +1446,9 @@ local mapRangeValues = {
 hooksecurefunc(WorldMapFrame.ScrollContainer, "ZoomIn", function()
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
 
-	local rangeValues = mapRangeValues [WorldMapFrame.mapID]
+	local rangeValues = mapRangeValues[WorldMapFrame.mapID]
 	if (not rangeValues) then
-		rangeValues = mapRangeValues ["default"]
+		rangeValues = mapRangeValues["default"]
 	end
 
 	local pinScale = DF:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
@@ -1464,9 +1463,9 @@ end)
 hooksecurefunc(WorldMapFrame.ScrollContainer, "ZoomOut", function()
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
 
-	local rangeValues = mapRangeValues [WorldMapFrame.mapID]
+	local rangeValues = mapRangeValues[WorldMapFrame.mapID]
 	if (not rangeValues) then
-		rangeValues = mapRangeValues ["default"]
+		rangeValues = mapRangeValues["default"]
 	end
 
 	local pinScale = DF:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
@@ -1516,11 +1515,10 @@ lazyUpdate.ShownQuests = {}
 WorldQuestTracker.WorldMapSmallWidgets = {}
 
 local scheduledIconUpdate = function(questTable)
-
 	local questID, mapID, numObjectives, questCounter, questName, x, y = unpack(questTable)
 
 	--is already showing this quest?
-	if (lazyUpdate.ShownQuests [questID]) then
+	if (lazyUpdate.ShownQuests[questID]) then
 		return
 	end
 
@@ -1529,11 +1527,11 @@ local scheduledIconUpdate = function(questTable)
 	WorldQuestTracker.WorldMapQuestCounter = WorldQuestTracker.WorldMapQuestCounter + 1
 
 	--get a widget button for this quest
-	local button = WorldQuestTracker.WorldMapSmallWidgets [questCounter]
+	local button = WorldQuestTracker.WorldMapSmallWidgets[questCounter]
 	if (not button) then
 		button = WorldQuestTracker.CreateZoneWidget(questCounter, "WorldQuestTrackerWorldMapSmallWidget", worldFramePOIs) --, "WorldQuestTrackerWorldMapPinTemplate"
 		button.IsWorldZoneQuestButton = true
-		WorldQuestTracker.WorldMapSmallWidgets [questCounter] = button
+		WorldQuestTracker.WorldMapSmallWidgets[questCounter] = button
 	end
 
 	--get a pin in the world map from the data provider
@@ -1543,15 +1541,15 @@ local scheduledIconUpdate = function(questTable)
 	button:SetParent(pin)
 	button:SetPoint("center")
 
-	lazyUpdate.ShownQuests [questID] = button
+	lazyUpdate.ShownQuests[questID] = button
 
 	button:Show()
 
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
 
-	local rangeValues = mapRangeValues [WorldMapFrame.mapID]
+	local rangeValues = mapRangeValues[WorldMapFrame.mapID]
 	if (not rangeValues) then
-		rangeValues = mapRangeValues ["default"]
+		rangeValues = mapRangeValues["default"]
 	end
 
 	local pinScale = DF:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
@@ -1576,7 +1574,6 @@ local scheduledIconUpdate = function(questTable)
 
 	WorldQuestTracker.SetupWorldQuestButton(button, worldQuestType, rarity, isElite, tradeskillLineIndex, nil, nil, isCriteria, nil, mapID)
 
-
 	local newX, newY = HereBeDragons:TranslateZoneCoordinates(x, y, mapID, WorldMapFrame.mapID, false)
 	pin:SetPosition(newX, newY)
 	pin:SetSize(22, 22)
@@ -1597,7 +1594,6 @@ function WorldQuestTracker.ShowWorldMapSmallIcon_Temp(questTable)
 end
 
 local lazyUpdateEnded = function()
-
 	local total_Gold, total_Resources, total_APower = 0, 0, 0
 
 	for _, widget in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
@@ -1610,13 +1606,11 @@ local lazyUpdateEnded = function()
 
 			elseif (widget.QuestType == QUESTTYPE_ARTIFACTPOWER) then
 				total_APower = total_APower +(widget.Amount or 0)
-
 			end
 		end
 	end
 
 	WorldQuestTracker.UpdateResourceIndicators(total_Gold, total_Resources, total_APower)
-
 end
 
 local lazyUpdateFunc = function(self, deltaTime)
@@ -1667,7 +1661,6 @@ WorldQuestTracker.WorldMapQuestCounter = 0
 
 --questsToUpdate is a hash table with questIDs to just update / if is nil it's a full refresh
 function WorldQuestTracker.UpdateWorldMapSmallIcons(addToWorldMap, questsToUpdate)
-
 	if (not WorldQuestTracker.db.profile.world_map_config.onmap_show) then
 		return
 	end

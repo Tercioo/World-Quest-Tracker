@@ -1619,7 +1619,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			worldSummary.TotalPet = 0
 			worldSummary.FactionSelected = 1
 			worldSummary.FactionSelected_OnInit = 6 --the index 6 is the tortollan faction which has less quests and add less noise
-			worldSummary.AnchorAmount = 8
+			worldSummary.AnchorAmount = 9
 			worldSummary.MaxWidgetsPerRow = 9
 			worldSummary.FactionIDs = {}
 			worldSummary.ZoneAnchors = {}
@@ -1643,7 +1643,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				"ANCHORTYPE_MISC",
 				"ANCHORTYPE_MISC2",
 				"ANCHORTYPE_PETBATTLE",
-				"",
+				"ANCHORTYPE_RACING",
 			}
 
 			worldSummary.QuestTypes = {
@@ -1655,6 +1655,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				["ANCHORTYPE_MISC"] = 6,
 				["ANCHORTYPE_MISC2"] = 7,
 				["ANCHORTYPE_PETBATTLE"] = 8,
+				["ANCHORTYPE_RACING"] = 9,
 			}
 
 			function worldSummary.UpdateMaxWidgetsPerRow()
@@ -1670,7 +1671,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				else
 					if (WorldQuestTracker.db.profile.world_map_config.summary_showby) then
 						local mapID = anchor.mapID
-						local mapTable = WorldQuestTracker.mapTables [mapID]
+						local mapTable = WorldQuestTracker.mapTables[mapID]
 						if (mapTable) then
 							return mapTable.GrowRight and "left" or "right"
 						end
@@ -1805,7 +1806,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 						GameCooltip:Preset(2)
 
 						local mapID = anchor.mapID
-						local anchorOptions = WorldQuestTracker.db.profile.anchor_options [mapID]
+						local anchorOptions = WorldQuestTracker.db.profile.anchor_options[mapID]
 
 						if (not anchorOptions) then
 							GameCooltip:AddLine("nop, there no options")
@@ -1891,9 +1892,9 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				end)
 
 				worldSummary.Anchors[i] = anchor
+
 				--store a point to this table by its quest type
 				worldSummary.AnchorsByQuestType[worldSummary.QuestTypesByIndex[i]] = anchor
-
 				anchor.QuestType = worldSummary.QuestTypesByIndex[i]
 			end
 
@@ -1903,6 +1904,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			local anchorReorderFunc = function(anchor1, anchor2)
 				return anchor1.AnchorOrder < anchor2.AnchorOrder
 			end
+
 			function worldSummary.ReAnchor()
 				if (WorldQuestTracker.db.profile.world_map_config.summary_showby == "byzone") then
 					for index, anchor in pairs(worldSummary.Anchors) do
@@ -1952,14 +1954,14 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 							if (previousAnchor) then
 								local spacePadding = padding
 								local addSecondLine = previousAnchor.WidgetsAmount > worldSummary.MaxWidgetsPerRow and -40 or 0
-								anchor:SetPoint("topleft", previousAnchor, "bottomleft", 0,(spacePadding + addSecondLine) * summaryScale)
+								anchor:SetPoint("topleft", previousAnchor, "bottomleft", 0, (spacePadding + addSecondLine) * summaryScale)
 							else
 								anchor:SetPoint("topleft", worldSummary, "topleft", 2, Y)
 							end
 						else
 							if (previousAnchor) then
 								local addSecondLine = previousAnchor.WidgetsAmount > worldSummary.MaxWidgetsPerRow and -40 or 0
-								anchor:SetPoint("topright", previousAnchor, "bottomright", 0,(padding + addSecondLine) * summaryScale)
+								anchor:SetPoint("topright", previousAnchor, "bottomright", 0, (padding + addSecondLine) * summaryScale)
 							else
 								anchor:SetPoint("topright", worldSummary, "topright", -4, Y)
 							end
@@ -2013,6 +2015,10 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 						anchor = worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_PETBATTLE]]
 						anchorTitle = "Pet Battles"
 
+					elseif (filterType == "racing") then
+						anchor = worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_RACING]]
+						anchorTitle = "Racing"
+
 					else
 						anchor = worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_MISC]]
 						anchorTitle = "Misc"
@@ -2048,21 +2054,23 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			function worldSummary.UpdateOrder()
 				local order = WorldQuestTracker.db.profile.sort_order
 				--artifact power
-				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_ARTIFACTPOWER]].AnchorOrder = abs(order [WQT_QUESTTYPE_APOWER] -(WQT_QUESTTYPE_MAX + 1))
+				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_ARTIFACTPOWER]].AnchorOrder = math.abs(order [WQT_QUESTTYPE_APOWER] -(WQT_QUESTTYPE_MAX + 1))
 				--resource
-				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_RESOURCES]].AnchorOrder = abs(order [WQT_QUESTTYPE_RESOURCE] -(WQT_QUESTTYPE_MAX + 1))
+				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_RESOURCES]].AnchorOrder = math.abs(order [WQT_QUESTTYPE_RESOURCE] -(WQT_QUESTTYPE_MAX + 1))
 				--equipment
-				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_EQUIPMENT]].AnchorOrder = abs(order [WQT_QUESTTYPE_EQUIPMENT] -(WQT_QUESTTYPE_MAX + 1))
+				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_EQUIPMENT]].AnchorOrder = math.abs(order [WQT_QUESTTYPE_EQUIPMENT] -(WQT_QUESTTYPE_MAX + 1))
 				--gold
-				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_GOLD]].AnchorOrder = abs(order [WQT_QUESTTYPE_GOLD] -(WQT_QUESTTYPE_MAX + 1))
+				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_GOLD]].AnchorOrder = math.abs(order [WQT_QUESTTYPE_GOLD] -(WQT_QUESTTYPE_MAX + 1))
 				--reputation
-				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_REPUTATION]].AnchorOrder = abs(order [WQT_QUESTTYPE_REPUTATION] -(WQT_QUESTTYPE_MAX + 1))
+				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_REPUTATION]].AnchorOrder = math.abs(order [WQT_QUESTTYPE_REPUTATION] -(WQT_QUESTTYPE_MAX + 1))
 				--misc
 				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_MISC]].AnchorOrder = 100
 				--7th anchor
 				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_MISC2]].AnchorOrder = 101
 				--pet_battles
-				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_PETBATTLE]].AnchorOrder = abs(order [WQT_QUESTTYPE_PETBATTLE] -(WQT_QUESTTYPE_MAX + 1))
+				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_PETBATTLE]].AnchorOrder = math.abs(order [WQT_QUESTTYPE_PETBATTLE] -(WQT_QUESTTYPE_MAX + 1))
+				--racing
+				worldSummary.AnchorsByQuestType [worldSummary.QuestTypesByIndex [worldSummary.QuestTypes.ANCHORTYPE_RACING]].AnchorOrder = math.abs(order [WQT_QUESTTYPE_RACING] -(WQT_QUESTTYPE_MAX + 1))
 			end
 
 			--reorder widgets within the anchor, sorting by the questID, time left and selected faction
@@ -2645,7 +2653,6 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			end
 
 			function worldSummary.AddQuest(questTable)
-
 				--unpack quest information
 				local questID, mapID, numObjectives, questCounter, questName, x, y, filterType, worldQuestType, isCriteria, isNew, timeLeft, order = unpack(questTable)
 				local artifactPowerIcon = WorldQuestTracker.MapData.ItemIcons ["BFA_ARTIFACT"]
