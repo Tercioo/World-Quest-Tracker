@@ -111,6 +111,7 @@ end
 
 --~mapchange ~map change ~change map ~changemap
 WorldQuestTracker.OnMapHasChanged = function(self)
+	WorldQuestTracker.AdjustThatThingInTheBottomLeftCorner()
 
 	local mapID = WorldMapFrame.mapID
 	WorldQuestTracker.InitializeWorldWidgets()
@@ -457,9 +458,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 	if (WorldMapFrame:IsShown()) then
 		--� a primeira vez que � mostrado?
-
 		if (not WorldMapFrame.firstRun) then
-
 			local currentMapId = WorldMapFrame.mapID
 
 			WorldMapFrame.firstRun = true
@@ -2789,7 +2788,6 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			end
 
 			function worldSummary.LazyUpdate(self, deltaTime)
-
 				--if framerate is low, update more quests at the same time
 				local frameRate = GetFramerate()
 				local amountToUpdate = 2 +(not WorldQuestTracker.db.profile.hoverover_animations and 5 or 0)
@@ -2835,7 +2833,6 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					worldSummary.HideSummary()
 					return
 				end
-
 				worldSummary.UpdateMaxWidgetsPerRow()
 
 				worldSummary.ShowSummary()

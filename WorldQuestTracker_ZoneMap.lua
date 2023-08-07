@@ -62,8 +62,7 @@ local on_show_alpha_animation = function(self)
 	self:GetParent():Show()
 end
 
--- ~zoneicon ~create
-function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --~zone
+function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --~zone --~zoneicon ~create
 	local anchorFrame
 
 	if (pinTemplate) then
@@ -71,7 +70,6 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 		anchorFrame.dataProvider = WorldQuestTracker.DataProvider
 		anchorFrame.worldQuest = true
 		anchorFrame.owningMap = WorldQuestTracker.DataProvider:GetMap()
-
 	else
 		anchorFrame = CreateFrame("frame", name .. index .. "Anchor", parent, WorldQuestTracker.DataProvider:GetPinTemplate())
 		anchorFrame.dataProvider = WorldQuestTracker.DataProvider
@@ -238,7 +236,7 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 							self.OnLeaveAnimation.ScaleAnimation:SetScaleTo(originalScale, originalScale)
 						else
 							self.OnLeaveAnimation.ScaleAnimation:SetFromScale(currentScale, currentScale)
-							self.OnLeaveAnimation.ScaleAnimation:SetToScale(originalScale, originalScale)							
+							self.OnLeaveAnimation.ScaleAnimation:SetToScale(originalScale, originalScale)
 						end
 
 					elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
@@ -544,6 +542,53 @@ local dazaralor_quests = {
 	{0.441, 0.522},
 }
 
+function WorldQuestTracker.AdjustThatThingInTheBottomLeftCorner()
+	--looks like this dropdown is opened by default
+	if (_G["DropDownList1MenuBackdrop"] and _G["DropDownList1MenuBackdrop"]:IsShown()) then
+		_G["DropDownList1MenuBackdrop"]:Hide()
+	end
+
+	local children = {WorldMapFrame:GetChildren()}
+	for i = 1, #children do
+		local child = children[i]
+		if (type(child) == "table" and child.GetObjectType and child.BountyDropdownButton and child.BountyDropDown and child.Background) then
+			child:SetScale(0.6)
+			child:ClearAllPoints()
+			child:SetPoint("BOTTOMLEFT", WorldMapFrame, "BOTTOMLEFT", 11, 35)
+			child:SetAlpha(0.834)
+
+			if (not child.WorldQuestTrackerInit) then
+				child:SetScript("OnClick", function(self, button)
+					--close the dropdown if it's opened
+					if (_G["DropDownList1MenuBackdrop"] and _G["DropDownList1MenuBackdrop"]:IsShown()) then
+						_G["DropDownList1MenuBackdrop"]:Hide()
+						return
+					end
+
+					--open the dropdown
+					child.BountyDropdownButton:GetScript("OnMouseDown")(child.BountyDropdownButton, button)
+				end)
+
+				child.Background:SetBlendMode("ADD")
+
+				--crete a highlight using the same texture as the .Background has
+				local highlight = child:CreateTexture(nil, "background")
+				highlight:SetAtlas("dragonflight-landingbutton-up")
+				highlight:SetPoint("topleft", child, "topleft", -7, 6)
+				highlight:SetPoint("bottomright", child, "bottomright", 5, -6)
+				highlight:Hide()
+
+				DF:CreateFadeAnimation(highlight, 0.05, 0.05, 0.3, 0)
+
+				child.WorldQuestTrackerInit = true
+			end
+
+			child.BountyDropdownButton:Hide()
+			break
+		end
+	end
+end
+
 --atualiza as quest do mapa da zona ~updatezone ~zoneupdate
 function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 	--get the map shown in the map frame
@@ -554,6 +599,158 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 
 	elseif (not WorldQuestTracker.ZoneHaveWorldQuest(mapID)) then
 		return WorldQuestTracker.HideZoneWidgets()
+	end
+
+	WorldQuestTracker.AdjustThatThingInTheBottomLeftCorner()
+
+	--detect where the fly points are
+	local map = WorldQuestTrackerDataProvider:GetMap()
+
+	--[=[ pin templates
+		FlightPointPinTemplate
+		HereBeDragonsPinsTemplate
+		WorldMap_WorldQuestPinTemplate
+		MapLinkPinTemplate
+		VignettePinTemplate
+		StorylineQuestPinTemplate
+		AreaPOIPinTemplate
+		WorldQuestSpellEffectPinTemplate
+		GroupMembersPinTemplate
+		QuestBlobPinTemplate
+		QuestPinTemplate
+		WorldQuestTrackerPathPinTemplate
+		DungeonEntrancePinTemplate
+		MapHighlightPinTemplate
+		FogOfWarPinTemplate
+		MapExplorationPinTemplate
+		ScenarioBlobPinTemplate
+	--]=]
+
+	--[=[ pin members
+		zoomedInNudge 1
+		endScale 1.2
+		zoomedOutNudge 1.25
+		startScale 1
+		normalizedY 1.4144917726517
+		name Azure Archives, Azure Span
+		normalizedX 0.16435858607292
+		pinFrameLevelType PIN_FRAME_LEVEL_FLIGHT_POINT
+		scaleFactor 1
+		nudgeTargetFactor 0.015
+		Texture table: 000001B027B233D0
+		pinFrameLevel PIN_FRAME_LEVEL_FLIGHT_POINT
+		pinTemplate FlightPointPinTemplate
+		owningMap
+		ApplyFrameLevel
+		ApplyCurrentPosition
+		ApplyCurrentAlpha
+		ApplyCurrentScale
+		HighlightTexture
+		PanAndZoomTo
+		CreateSubPin
+		ClearNudgeSettings
+		DisableInheritedMotionScriptsWarning
+		GetFrameLevelType
+		GetHighlightType
+		GetNudgeSourceZoomedInMagnitude
+		GetNudgeSourcePinZoomedInNudgeFactor
+		GetNudgeSourceZoomedOutMagnitude
+		GetNudgeVector
+		GetNudgeFactor
+		GetNudgeSourcePinZoomedOutNudgeFactor
+		GetNudgeSourceRadius
+		GetNudgeTargetFactor
+		GetNudgeZoomFactor
+		GetMap
+		GetGlobalPosition
+		GetPosition
+		GetZoomedOutNudgeFactor
+		GetZoomedInNudgeFactor
+		IsIgnoringGlobalPinScale
+		IgnoresNudging
+		OnMouseEnter
+		OnMouseUp
+		OnAcquired
+		OnLoad
+		OnReleased
+		OnCanvasPanChanged
+		OnCanvasScaleChanged
+		OnClick
+		OnMouseLeave
+		OnMapInsetMouseEnter
+		OnMapInsetSizeChanged
+		OnMapInsetMouseLeave
+		OnMouseDown
+		OnCanvasSizeChanged
+		PanTo
+		SetAlphaStyle
+		SetAlphaLimits
+		SetIgnoreGlobalPinScale
+		SetNudgeTargetFactor
+		SetNudgeFactor
+		SetNudgeZoomedInFactor
+		SetNudgeSourceMagnitude
+		SetNudgeSourceRadius
+		SetNudgeVector
+		SetNudgeZoomedOutFactor
+		SetPosition
+		SetScaleStyle
+		SetScalingLimits
+		SetTexture
+		UseFrameLevelType
+		UseFrameLevelTypeFromRangeTop
+	--]=]
+
+	for pin in map:EnumeratePinsByTemplate("DungeonEntrancePinTemplate") do
+		pin.Texture:SetAlpha(0.834)
+	end
+
+	for pin in map:EnumeratePinsByTemplate("QuestPinTemplate") do
+		pin:SetAlpha(0.923)
+	end
+
+	local flightPoints = {}
+
+	for pin in map:EnumeratePinsByTemplate("FlightPointPinTemplate") do
+		local x, y = pin:GetPosition()
+		flightPoints[#flightPoints + 1] = {x = x, y = y, pin = pin}
+
+		local texture = pin.Texture
+		texture:SetAlpha(0.75)
+
+		if (not pin.TextureShadow) then
+			pin.TextureShadow = texture:GetParent():CreateTexture(nil, "BACKGROUND")
+			pin.TextureShadow:SetAtlas(texture:GetAtlas())
+			pin.TextureShadow:SetVertexColor(.2, .2, .2)
+			pin.TextureShadow:SetAlpha(0.4)
+			pin.TextureShadow:SetPoint("CENTER", texture, "CENTER", 1, -1)
+			local width, height = texture:GetSize()
+			pin.TextureShadow:SetSize(width, height)
+		end
+
+		pin.TextureShadow:SetAlpha(0.4)
+	end
+
+	--get the player position in the map
+	local playerPosition = C_Map.GetPlayerMapPosition(WorldMapFrame.mapID, "player")
+
+	if (playerPosition) then
+		--find the closest flight point to the player position
+		local closestFlightPoint
+		local closestDist
+		for i = 1, #flightPoints do
+			local flightPoint = flightPoints[i]
+			local distance = DF:GetDistance_Point(playerPosition.x, playerPosition.y, flightPoint.x, flightPoint.y)
+			if (not closestDist or distance < closestDist) then
+				closestDist = distance
+				closestFlightPoint = flightPoint
+			end
+		end
+
+		if (closestFlightPoint) then
+			closestFlightPoint.pin.Texture:SetAlpha(1)
+			closestFlightPoint.pin.TextureShadow:SetAlpha(0.924)
+		end
 	end
 
 	WorldQuestTracker.RefreshStatusBarVisibility()
@@ -995,7 +1192,8 @@ function WorldQuestTracker.SetupWorldQuestButton(self, worldQuestType, rarity, i
 		end
 
 		--default alpha
-		self:SetAlpha(WQT_ZONEWIDGET_ALPHA - 0.05)
+		--self:SetAlpha(WQT_ZONEWIDGET_ALPHA - 0.05)
+		self:SetAlpha(ALPHA_BLEND_AMOUNT)
 		self.FactionID = factionID
 
 		if (self.isCriteria) then
@@ -1003,10 +1201,6 @@ function WorldQuestTracker.SetupWorldQuestButton(self, worldQuestType, rarity, i
 				self.BountyRing:Show()
 			end
 
-			--if (not self.criteriaIndicator:IsShown() and self.CriteriaAnimation.LastPlay + 60 < time()) then
-			--	self.CriteriaAnimation:Play()
-			--	self.CriteriaAnimation.LastPlay = time()
-			--end
 			self.criteriaIndicator:Show()
 			self.criteriaIndicator:SetAlpha(1)
 			self.criteriaIndicatorGlow:Show()

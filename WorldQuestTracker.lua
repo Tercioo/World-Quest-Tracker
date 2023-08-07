@@ -140,7 +140,6 @@ function WorldQuestTracker:OnInit()
 		DF.Language.SetCurrentLanguage(addonId, WQTrackerLanguage.language)
 	end
 
-
 	WorldQuestTracker.InitAt = GetTime()
 	WorldQuestTracker.LastMapID = WorldQuestTracker.GetCurrentMapAreaID()
 
