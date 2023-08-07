@@ -1,6 +1,6 @@
 
 
-local dversion = 454
+local dversion = 455
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -814,6 +814,7 @@ else
 end
 
 ---format a number with commas
+---@param self table
 ---@param value number
 ---@return string
 function DF:CommaValue(value)
@@ -832,6 +833,7 @@ function DF:CommaValue(value)
 end
 
 ---call the function 'callback' for each group member passing the unitID and the extra arguments
+---@param self table
 ---@param callback function
 ---@vararg any
 function DF:GroupIterator(callback, ...)
@@ -852,6 +854,7 @@ function DF:GroupIterator(callback, ...)
 end
 
 ---get an integer an format it as string with the time format 16:45
+---@param self table
 ---@param value number
 ---@return string
 function DF:IntegerToTimer(value) --~formattime
@@ -859,6 +862,7 @@ function DF:IntegerToTimer(value) --~formattime
 end
 
 ---remove the realm name from a name
+---@param self table
 ---@param name string
 ---@return string, number
 function DF:RemoveRealmName(name)
@@ -866,6 +870,7 @@ function DF:RemoveRealmName(name)
 end
 
 ---remove the owner name of the pet or guardian
+---@param self table
 ---@param name string
 ---@return string, number
 function DF:RemoveOwnerName(name)
@@ -873,6 +878,7 @@ function DF:RemoveOwnerName(name)
 end
 
 ---remove realm and owner names also remove brackets from spell actors
+---@param self table
 ---@param name string
 ---@return string
 function DF:CleanUpName(name)
@@ -883,6 +889,7 @@ function DF:CleanUpName(name)
 end
 
 ---remove the realm name from a name
+---@param self table
 ---@param name string
 ---@return string, number
 function DF:RemoveRealName(name)
@@ -890,6 +897,7 @@ function DF:RemoveRealName(name)
 end
 
 ---get the UIObject of type 'FontString' named fontString and set the font size to the maximum value of the arguments
+---@param self table
 ---@param fontString fontstring
 ---@vararg number
 function DF:SetFontSize(fontString, ...)
@@ -898,6 +906,7 @@ function DF:SetFontSize(fontString, ...)
 end
 
 ---get the UIObject of type 'FontString' named fontString and set the font to the argument fontface
+---@param self table
 ---@param fontString fontstring
 ---@param fontface string
 function DF:SetFontFace(fontString, fontface)
@@ -943,6 +952,7 @@ function DF:SetFontShadow(fontString, r, g, b, a, x, y)
 end
 
 ---get the FontString object passed and set the rotation of the text shown
+---@param self table
 ---@param fontString fontstring
 ---@param degrees number
 function DF:SetFontRotation(fontString, degrees)
@@ -960,6 +970,7 @@ function DF:SetFontRotation(fontString, degrees)
 end
 
 ---receives a string and a color and return the string wrapped with the color using |c and |r scape codes
+---@param self table
 ---@param text string
 ---@param color any
 ---@return string
@@ -977,6 +988,7 @@ function DF:AddColorToText(text, color) --wrap text with a color
 end
 
 ---receives a string 'text' and a class name and return the string wrapped with the class color using |c and |r scape codes
+---@param self table
 ---@param text string
 ---@param className string
 ---@return string
@@ -999,6 +1011,7 @@ function DF:AddClassColorToText(text, className)
 end
 
 ---create a string with the spell icon and the spell name using |T|t scape codes to add the icon inside the string
+---@param self table
 ---@param spellId any
 ---@return string
 function DF:MakeStringFromSpellId(spellId)
@@ -3443,6 +3456,38 @@ function DF:CreateAnimation(animation, animationType, order, duration, arg1, arg
 
 	animation.NextAnimation = animation.NextAnimation + 1
 	return anim
+end
+
+---receives a texture, when mouse hover over its parent, start the fade in animation for this texture
+---when the mouse leaves the area, start the fade out animation
+---@param UIObject uiobject
+---@param fadeInTime number
+---@param fadeOutTime number
+---@param fadeInAlpha number
+---@param fadeOutAlpha number
+function DF:CreateFadeAnimation(UIObject, fadeInTime, fadeOutTime, fadeInAlpha, fadeOutAlpha)
+	fadeInTime = fadeInTime or 0.1
+	fadeOutTime = fadeOutTime or 0.1
+	fadeInAlpha = fadeInAlpha or 1
+	fadeOutAlpha = fadeOutAlpha or 0
+
+	local fadeInAnimationHub = DF:CreateAnimationHub(UIObject, function() UIObject:Show(); UIObject:SetAlpha(fadeOutAlpha) end, function() UIObject:SetAlpha(fadeInAlpha) end)
+	local fadeIn = DF:CreateAnimation(fadeInAnimationHub, "Alpha", 1, fadeInTime, fadeOutAlpha, fadeInAlpha)
+
+	local fadeOutAnimationHub = DF:CreateAnimationHub(UIObject, nil, function() UIObject:Hide(); UIObject:SetAlpha(0) end)
+	local fadeOut = DF:CreateAnimation(fadeOutAnimationHub, "Alpha", 2, fadeOutTime, fadeInAlpha, fadeOutAlpha)
+
+	local scriptFrame
+	--hook the parent OnEnter and OnLeave
+	if (UIObject:IsObjectType("FontString") or UIObject:IsObjectType("Texture")) then
+		scriptFrame = UIObject:GetParent()
+	else
+		scriptFrame = UIObject
+	end
+
+	---@cast scriptFrame frame
+	scriptFrame:HookScript("OnEnter", function() fadeOutAnimationHub:Stop(); fadeInAnimationHub:Play() end)
+	scriptFrame:HookScript("OnLeave", function() fadeInAnimationHub:Stop(); fadeOutAnimationHub:Play() end)
 end
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
