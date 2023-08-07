@@ -193,7 +193,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
             {
                 type = "toggle",
                 get = function()
-                    return DB.profile.map_frame_anchor
+                    return DB.profile.map_frame_anchor == "center"
                 end,
                 set = function(self, fixedparam, value)
                     WorldQuestTracker.SetSetting("map_frame_anchor", WorldQuestTracker.db.profile.map_frame_anchor == "center" and "left" or "center")
