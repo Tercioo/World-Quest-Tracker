@@ -55,7 +55,7 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		THALDRASZUS = 	2025,
 		OHNAHRANPLAINS = 	2023,
 		WAKINGSHORES = 	2022,
-		FORBIDDENREACH =	2026,
+		FORBIDDENREACH =	2151,
 		ZARALEK = 		2133,
 
 	--Shadowlands
