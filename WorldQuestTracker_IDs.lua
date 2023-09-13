@@ -67,7 +67,7 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		ORIBOS =		1570,
 		THESHADOWLANDS = 1550,
 		ZERETH = 		1970,
-		
+
 	--Legion
 		ARGUS = 		905, --905
 		BROKENISLES = 	619, --
@@ -82,7 +82,7 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		ANTORAN = 	885,
 		KROKUUN = 	830,
 		MCCAREE = 	882,
-		
+
 	--BFA
 		DARKSHORE = 	62,
 		ARATHI =		14,
@@ -95,13 +95,24 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		STORMSONG = 	942,
 		DRUSTVAR = 	896,
 		TOLDAGOR =	1169,
-		
+
 		NAZJATAR = 	1355, --patch 8.2
 		MECHAGON = 	1462, --patch 8.2
 }
 
 --cache
 local zoneQuests = WorldQuestTracker.MapData.ZoneIDs
+
+WorldQuestTracker.DotLineScale = {
+	[zoneQuests.ZARALEK] = 2,
+	[zoneQuests.OHNAHRANPLAINS] = 2,
+	[zoneQuests.WAKINGSHORES] = 2,
+	[zoneQuests.FORBIDDENREACH] = 2,
+	[zoneQuests.AZURESSPAN] = 2,
+	[zoneQuests.THALDRASZUS] = 2,
+	[zoneQuests.DRAGONISLES] = 2,
+	[2112] = 2, --valdrakken
+}
 
 --all zones with world quests
 WorldQuestTracker.MapData.WorldQuestZones = {
@@ -121,7 +132,7 @@ WorldQuestTracker.MapData.WorldQuestZones = {
 		[zoneQuests.THEMAW] =		true,
 		[zoneQuests.ZERETH] = 		true,
 		--[zoneQuests.ORIBOS] =		true,
-		
+
 	--BFA
 		--zandalar
 		[zoneQuests.ZULDAZAAR] = 	true,
@@ -130,16 +141,16 @@ WorldQuestTracker.MapData.WorldQuestZones = {
 		[1165] = 		true, --dazar'alor
 		[1161] = 		true, --boralus
 		[zoneQuests.TOLDAGOR] = 		true,
-		
+
 		--kul'tiras
 		[zoneQuests.TIRAGARDE] = 	true,
 		[zoneQuests.STORMSONG] = 	true,
 		[zoneQuests.DRUSTVAR] = 		true,
-		
+
 		--PRE PATCH
 		[zoneQuests.DARKSHORE] = 	true,
 		[zoneQuests.ARATHI] 	= 	true,
-		
+
 		--8.2
 		[zoneQuests.NAZJATAR] = 		true,
 		[zoneQuests.MECHAGON] = 	true,
@@ -159,6 +170,18 @@ WorldQuestTracker.MapData.WorldQuestZones = {
 		[zoneQuests.KROKUUN] = 		true,
 		[zoneQuests.MCCAREE] = 		true,
 }
+
+WorldQuestTracker.MapData.DragonflightZones = {
+	[zoneQuests.AZURESSPAN] = 	true,
+	[zoneQuests.THALDRASZUS] = 	true,
+	[zoneQuests.OHNAHRANPLAINS] = 	true,
+	[zoneQuests.WAKINGSHORES] = 	true,
+	[zoneQuests.FORBIDDENREACH] = 	true,
+	[zoneQuests.ZARALEK] = 	true,
+	[zoneQuests.DRAGONISLES] = 	true,
+	[2112] = true, --valdrakken
+}
+
 
 --quest hub by expansion
 WorldQuestTracker.MapData.ExpMaps = {
@@ -318,7 +341,7 @@ WorldQuestTracker.mapTables = {
 				[zoneQuests.AZEROTH] = true,
 			},
 		},
-		
+
 		[zoneQuests.KULTIRAS] = {
 			widgets = {},
 			Anchor_X = 0.99,
@@ -328,7 +351,7 @@ WorldQuestTracker.mapTables = {
 				[zoneQuests.AZEROTH] = true,
 			},
 		},
-		
+
 		[zoneQuests.DARKSHORE] = {
 			widgets = {},
 			Anchor_X = 0.01,
@@ -338,7 +361,7 @@ WorldQuestTracker.mapTables = {
 				[zoneQuests.AZEROTH] = true,
 			},
 		},
-		
+
 		[zoneQuests.ARATHI] = {
 			widgets = {},
 			Anchor_X = 0.01,
@@ -348,7 +371,7 @@ WorldQuestTracker.mapTables = {
 				[zoneQuests.AZEROTH] = true,
 			},
 		},
-		
+
 		[zoneQuests.NAZJATAR] = {
 			widgets = {},
 			Anchor_X = 0.01,
@@ -369,7 +392,7 @@ WorldQuestTracker.mapTables = {
 					[zoneQuests.KULTIRAS] = true,
 				},
 		},
-		
+
 		[1165] = { --dazar'alor
 			widgets = {},
 			Anchor_X = 0.99,
@@ -379,7 +402,7 @@ WorldQuestTracker.mapTables = {
 					[zoneQuests.ZANDALAR] = true,
 				}
 		},
-	
+
 		--alliance
 		[zoneQuests.TIRAGARDE] = {
 			widgets = {},
@@ -446,7 +469,7 @@ WorldQuestTracker.mapTables = {
 					[zoneQuests.ZANDALAR] = true,
 				}
 		},
-		
+
 	--Legion
 		[zoneQuests.AZSUNA] = {
 			widgets = {},
@@ -517,7 +540,7 @@ WorldQuestTracker.mapTables = {
 				[zoneQuests.BROKENISLES] = true,
 			}
 		},
-		
+
 		[zoneQuests.MCCAREE] = {
 			widgets = {},
 			Anchor_X = 0.01,
@@ -561,7 +584,7 @@ WorldQuestTracker.MapData.EquipmentIcons = {
 	["INVTYPE_TRINKET"] = "Interface\\ICONS\\" .. "INV_Jewelry_Talisman_07", --"INV_Trinket_HonorHold",
 	["INVTYPE_CLOAK"] = "Interface\\ICONS\\" .. "INV_Misc_Cape_19", --INVTYPE_BACK
 	["Relic"] = "Interface\\ICONS\\" .. "inv_misc_enchantedpearlE",
-	
+
 	["INVTYPE_WEAPON"] = "Interface\\ICONS\\" .. "INV_Sword_39",
 	["INVTYPE_SHIELD"] = "Interface\\ICONS\\" .. "INV_Sword_39",
 	["INVTYPE_2HWEAPON"] = "Interface\\ICONS\\" .. "INV_Sword_39",
@@ -941,7 +964,7 @@ WorldQuestTracker.MapData.ReputationByFaction = {
 		[1828] = GetFactionInfoByID (1828), --Highmountain Tribe
 		[1859] = GetFactionInfoByID (1859), --The Nightfallen
 		[1894] = GetFactionInfoByID (1894), --The Wardens
-		[1948] = GetFactionInfoByID (1948), --Valarjar		
+		[1948] = GetFactionInfoByID (1948), --Valarjar
 		[GetFactionInfoByID (2170) or "NotFound"] = 2170, --Argussian Reach
 		[GetFactionInfoByID (2045) or "NotFound"] = 2045, --Armies of Legionfall
 		[GetFactionInfoByID (2165) or "NotFound"] = 2165, --Army of the Light
@@ -1087,7 +1110,7 @@ WorldQuestTracker.MapData.GroupFinderIgnoreQuestList = {
 		[41317] = true, --supplies-needed-leystone
 		[41315] = true, --supplies-needed-leystone
 		[41316] = true, --supplies-needed-leystone
-		
+
 		[48338] = true, --supplies-needed-astral-glory
 		[48337] = true, --supplies-needed-astral-glory
 		[48360] = true, --supplies-needed-fiendish leather
@@ -1095,7 +1118,7 @@ WorldQuestTracker.MapData.GroupFinderIgnoreQuestList = {
 		[48349] = true, --supplies-needed-empyrium
 		[48374] = true, --supplies-needed-lightweave-cloth
 		[48373] = true, --supplies-needed-lightweave-cloth
-		
+
 		--other quests
 		[45988] = true, --ancient bones broken shore
 		[45379] = true, --tresure master rope broken shore
@@ -1109,7 +1132,7 @@ WorldQuestTracker.MapData.RaresToScan = {
 	--BFA
 		[124185] = true, -- Golrakahn
 		[122004] = true, -- Umbra'jin
-		
+
 		--arathi highlands
 		[141668] = true, --echo of myzrael
 		[141618] = true, --cresting goliath
@@ -1124,7 +1147,7 @@ WorldQuestTracker.MapData.RaresToScan = {
 		[142508] = true, --branchlord akdrus
 		[142437] = true, --skullripper
 		[142423] = true, --overseer krix
-		
+
 	--Legion
 		[126338] = true, --wrathlord yarez
 		[126852] = true, --wrangler kravos
@@ -1189,7 +1212,7 @@ WorldQuestTracker.MapData.RaresToScan = {
 		[126889] = true, --sorolis the ill fated
 		[124440] = true, --overseer ybeda
 		[125498] = true, --overseer ymorna
-		[126908] = true, --zultan the numerous	
+		[126908] = true, --zultan the numerous
 }
 
 --> greater invasion point
@@ -1257,7 +1280,7 @@ WorldQuestTracker.MapData.RaresLocations = {
 		[126910] = {x = 56.8, y = 14.5}, --commander xethgar
 		[126913] = {x = 49.5, y = 52.8}, --slithon the last
 		[122838] = {x = 44.6, y = 71.6}, --shadowcaster voruun
-		[126815] = {x = 53.0, y = 67.5}, --soultwisted monstrosity 
+		[126815] = {x = 53.0, y = 67.5}, --soultwisted monstrosity
 		[126864] = {x = 41.3, y = 11.6}, --feasel the muffin thief
 		[126866] = {x = 63.8, y = 64.6}, --vigilant kuro
 		[126868] = {x = 39.2, y = 66.6}, --turek the lucid
@@ -1265,7 +1288,7 @@ WorldQuestTracker.MapData.RaresLocations = {
 		[126889] = {x = 70.4, y = 46.7}, --sorolis the ill fated
 		[124440] = {x = 59.2, y = 37.7}, --overseer ybeda
 		[125498] = {x = 60.4, y = 29.7}, --overseer ymorna
-		[126908] = {x = 64.0, y = 29.5}, --zultan the numerous	
+		[126908] = {x = 64.0, y = 29.5}, --zultan the numerous
 }
 
 WorldQuestTracker.MapData.RaresQuestIDs = {
@@ -1331,7 +1354,7 @@ WorldQuestTracker.MapData.RaresQuestIDs = {
 		[126889] = 48710, --sorolis the ill fated
 		[124440] = 48714, --overseer ybeda
 		[125498] = 48717, --overseer ymorna
-		[126908] = 48719, --zultan the numerous	
+		[126908] = 48719, --zultan the numerous
 }
 
 WorldQuestTracker.MapData.RaresENNames = {
@@ -1399,7 +1422,7 @@ WorldQuestTracker.MapData.RaresENNames = {
 		[124440] = "overseer y'beda",
 		[125498] = "overseer y'morna",
 		[126908] = "zul'tan the numerous",
-	
+
 	--world bosses
 	--Legion
 		[124625] = "mistress alluradel",
@@ -1420,25 +1443,25 @@ WorldQuestTracker.MapData.RaresIgnored = {
 WorldQuestTracker.MapData.ENRareNameToZoneID = {
 	--Legion
 		["sister subversia"] = 1135,
-		["admiral rel'var"] = 1171,	
+		["admiral rel'var"] = 1171,
 		["chief alchemist munculus"] = 1171,
 		["wrangler kravos"] = 1170,
 		["commander texlaz"] = 1171,
 		["commander endaxis"] = 1135,
 		["turek the lucid"] = 1170,
-		["commander sathrenael"] = 1135,	
+		["commander sathrenael"] = 1135,
 		["baruut the bloodthirsty"] = 1170,
 		["watcher aival"] = 1171,
-		["captain faruq"] = 1170,	
+		["captain faruq"] = 1170,
 		["mistress il'thendra"] = 1171,
-		["houndmaster kerrax"] = 1171,	
+		["houndmaster kerrax"] = 1171,
 		["mother rosula"] = 1171,
 		["slithon the last"] = 1170,
 		["puscilla"] = 1171,
 		["imp mother laglath"] = 1135,
 		["rezira the seer"] = 1171,
 		["squadron commander vishax"] = 1171,
-		["skreeg the devourer"] = 1170,	
+		["skreeg the devourer"] = 1170,
 		["the many-faced devourer"] = 1171,
 		["umbraliss"] = 1170,
 		["varga"] = 1171,
@@ -1448,25 +1471,25 @@ WorldQuestTracker.MapData.ENRareNameToZoneID = {
 		["vrax'thul"] = 1171,
 		["gar'zoth"] = 1171,
 		["blistermaw"] = 1171,
-		["inquisitor vethroz"] = 1171,	
-		["lieutenant xakaar"] = 1171,	
+		["inquisitor vethroz"] = 1171,
+		["lieutenant xakaar"] = 1171,
 		["soultwisted monstrosity"] = 1170,
 		["wrath-lord yarez"] = 1171,
-		["zul'tan the numerous"] = 1170,	
+		["zul'tan the numerous"] = 1170,
 		["khazaduum"] = 1135,
 		["vigilant thanos"] = 1170,
 		["naroua"] = 1135,
-		["siegemaster voraan"] = 1135,	
+		["siegemaster voraan"] = 1135,
 		["talestra the vile"] = 1135,
 		["tar spitter"] = 1135,
 		["tereck the selector"] = 1135,
 		["doomcaster suprax"] = 1171,
-		["vagath the betrayed"] = 1135,	
+		["vagath the betrayed"] = 1135,
 		["feasel the muffin thief"] = 1170,
 		["herald of chaos"] = 1170,
 		["instructor tarahna"] = 1170,
 		["jed'hin champion vorusk"] = 1170,
-		["kaara the pale"] = 1170,	
+		["kaara the pale"] = 1170,
 		["void warden valsuran"] = 1171,
 		["overseer y'beda"] = 1170,
 		["overseer y'morna"] = 1170,

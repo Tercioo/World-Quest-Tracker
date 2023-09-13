@@ -1440,19 +1440,9 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			--path frame based on where do we go now addon which i co-wrote with my dear friend yakumile
 			--create the frame to check if the map is open
 			local WQTPathFrame = CreateFrame("frame")
-			local DB = WorldQuestTracker.db.profile.path
-
-			local dragonflightZones = {
-				[1978] = true,
-				[2024] = true,
-				[2025] = true,
-				[2023] = true,
-				[2022] = true,
-				[2026] = true,
-			}
 
 			function WQTPathFrame.IsDragonflightMap()
-				return dragonflightZones[WorldMapFrame.mapID]
+				return WorldQuestTracker.MapData.DragonflightZones[WorldMapFrame.mapID]
 			end
 
 			--data provider
@@ -1505,15 +1495,61 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				table.insert(WQTPathFrame.texturePool, dotTexture)
 			end
 
+			function WQTPathFrame.Refresh()
+				for i = 1, #WQTPathFrame.texturePool do
+					local dotTexture = WQTPathFrame.texturePool[i]
+					WQTPathFrame.RefreshDot(dotTexture)
+				end
+
+				local dotAmount = WorldQuestTracker.db.profile.path.DotAmount
+				local dotScale = WorldQuestTracker.DotLineScale[WorldMapFrame.mapID] or 1
+				dotAmount = math.floor(dotAmount * dotScale)
+
+				--line length
+				WQTPathFrame.Distance = WorldQuestTracker.db.profile.path.LineSize / dotAmount
+
+				--if (not WQTPathFrame.bIsShowingLine) then
+				--	worldQuestTrackerPathProvider:ShowLine()
+				--end
+
+				--dot amount
+				if (#WQTPathFrame.texturePool ~= dotAmount) then
+					if (#WQTPathFrame.texturePool < dotAmount) then
+						--increase
+						for i = #WQTPathFrame.texturePool+1, dotAmount do
+							local Dot = tremove(WQTPathFrame.texturesNotInUse)
+							if (not Dot) then
+								Dot = WQTPathFrame.LinePin:CreateTexture(nil, "overlay")
+							end
+
+							Dot:SetPoint("center")
+							Dot:Show()
+							WQTPathFrame.RefreshDot(Dot)
+							table.insert(WQTPathFrame.texturePool, Dot)
+						end
+					else
+						--decrease
+						for i = dotAmount+1, #WQTPathFrame.texturePool do
+							local Dot = tremove(WQTPathFrame.texturePool)
+							Dot:Hide()
+							table.insert(WQTPathFrame.texturesNotInUse, Dot)
+						end
+					end
+				end
+
+				--worldQuestTrackerPathProvider:HideLine()
+			end
+
+			WQTPathFrame.Refresh()
 			worldQuestTrackerPathProvider:HideLine()
 
 			WQTPathFrame:SetScript("OnUpdate", function()
 				--check if the map is opened and if the player is flying
 				if (WorldMapFrame:IsShown() and IsFlying() and not IsInInstance() and WorldQuestTracker.db.profile.path.enabled and GetPlayerFacing()) then
 					--get the direction the player is facing
-					local Direction = GetPlayerFacing()
+					local direction = GetPlayerFacing()
 					--build a forward vector based on the the direction the player is facing
-					local ForwardVector = {x = -math.sin(Direction), y = -math.cos(Direction), z = 0}
+					local forwardVector = {x = -math.sin(direction), y = -math.cos(direction), z = 0}
 
 					--get the player map position
 					local vec2Position = C_Map.GetPlayerMapPosition(WorldMapFrame.mapID, "player") --C_Map.GetBestMapForUnit("player")
@@ -1527,6 +1563,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					else
 						if (not WQTPathFrame.bIsShowingLine) then
 							worldQuestTrackerPathProvider:ShowLine()
+							WQTPathFrame.Refresh()
 						end
 					end
 
@@ -1540,7 +1577,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 						local dotTexture = WQTPathFrame.texturePool[i]
 
 						--calculate the dot position
-						local nx, ny = ForwardVector.x * WQTPathFrame.Distance * i, ForwardVector.y * WQTPathFrame.Distance * i
+						local nx, ny = forwardVector.x * WQTPathFrame.Distance * i, forwardVector.y * WQTPathFrame.Distance * i
 						nx, ny = nx + playerXPos, ny + playerYPos
 
 						--set the dot position
@@ -1562,47 +1599,6 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					end
 				end
 			end)
-
-			function WQTPathFrame.Refresh()
-				for i = 1, #WQTPathFrame.texturePool do
-					local dotTexture = WQTPathFrame.texturePool[i]
-					WQTPathFrame.RefreshDot(dotTexture)
-				end
-
-				--line length
-				WQTPathFrame.Distance = WorldQuestTracker.db.profile.path.LineSize / WorldQuestTracker.db.profile.path.DotAmount
-
-				if (not WQTPathFrame.bIsShowingLine) then
-					worldQuestTrackerPathProvider:ShowLine()
-				end
-
-				--dot amount
-				if (#WQTPathFrame.texturePool ~= WorldQuestTracker.db.profile.path.DotAmount) then
-					if (#WQTPathFrame.texturePool < WorldQuestTracker.db.profile.path.DotAmount) then
-						--increase
-						for i = #WQTPathFrame.texturePool+1, WorldQuestTracker.db.profile.path.DotAmount do
-							local Dot = tremove(WQTPathFrame.texturesNotInUse)
-							if (not Dot) then
-								Dot = WQTPathFrame.LinePin:CreateTexture(nil, "overlay")
-							end
-
-							Dot:SetPoint("center")
-							Dot:Show()
-							WQTPathFrame.RefreshDot(Dot)
-							table.insert(WQTPathFrame.texturePool, Dot)
-						end
-					else
-						--decrease
-						for i = WorldQuestTracker.db.profile.path.DotAmount+1, #WQTPathFrame.texturePool do
-							local Dot = tremove(WQTPathFrame.texturePool)
-							Dot:Hide()
-							table.insert(WQTPathFrame.texturesNotInUse, Dot)
-						end
-					end
-				end
-
-				worldQuestTrackerPathProvider:HideLine()
-			end
 
 			-- world map summary ~summary ~worldsummary
 			local worldSummary = WorldQuestTracker.WorldSummary

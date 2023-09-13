@@ -1152,9 +1152,9 @@ function WorldQuestTracker.DelayedShowWorldQuestPins()
 	end
 
 	WorldQuestTracker.DelayedWorldQuestUpdate = C_Timer.NewTimer(0.05, function()
-	WorldQuestTracker.DelayedWorldQuestUpdate = nil
+		WorldQuestTracker.DelayedWorldQuestUpdate = nil
 
-	if (WorldMapFrame and WorldMapFrame:IsShown() and WorldQuestTracker.IsWorldQuestHub(WorldMapFrame.mapID)) then
+		if (WorldMapFrame and WorldMapFrame:IsShown() and WorldQuestTracker.IsWorldQuestHub(WorldMapFrame.mapID)) then
 			WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
 		end
 	end)
