@@ -731,25 +731,27 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 		pin.TextureShadow:SetAlpha(0.4)
 	end
 
-	--get the player position in the map
-	local playerPosition = C_Map.GetPlayerMapPosition(WorldMapFrame.mapID, "player")
+	if (WorldMapFrame.mapID) then
+		--get the player position in the map
+		local playerPosition = C_Map.GetPlayerMapPosition(WorldMapFrame.mapID, "player")
 
-	if (playerPosition) then
-		--find the closest flight point to the player position
-		local closestFlightPoint
-		local closestDist
-		for i = 1, #flightPoints do
-			local flightPoint = flightPoints[i]
-			local distance = DF:GetDistance_Point(playerPosition.x, playerPosition.y, flightPoint.x, flightPoint.y)
-			if (not closestDist or distance < closestDist) then
-				closestDist = distance
-				closestFlightPoint = flightPoint
+		if (playerPosition) then
+			--find the closest flight point to the player position
+			local closestFlightPoint
+			local closestDist
+			for i = 1, #flightPoints do
+				local flightPoint = flightPoints[i]
+				local distance = DF:GetDistance_Point(playerPosition.x, playerPosition.y, flightPoint.x, flightPoint.y)
+				if (not closestDist or distance < closestDist) then
+					closestDist = distance
+					closestFlightPoint = flightPoint
+				end
 			end
-		end
 
-		if (closestFlightPoint) then
-			closestFlightPoint.pin.Texture:SetAlpha(1)
-			closestFlightPoint.pin.TextureShadow:SetAlpha(0.924)
+			if (closestFlightPoint) then
+				closestFlightPoint.pin.Texture:SetAlpha(1)
+				closestFlightPoint.pin.TextureShadow:SetAlpha(0.924)
+			end
 		end
 	end
 

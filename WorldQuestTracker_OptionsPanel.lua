@@ -926,6 +926,20 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 name = "S_GROUPFINDER_SECONDS",
                 desc = "S_GROUPFINDER_SECONDS",
             },
+
+            {type = "breakline"},
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.groupfinder.kfilter.show_button
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.groupfinder.kfilter.show_button = value
+                end,
+                name = "S_OPTIONS_GF_SHOWOPTIONS_BUTTON",
+                desc = "S_OPTIONS_GF_SHOWOPTIONS_BUTTON",
+            },
         }
 
         DF:BuildMenu(groupFinderSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)

@@ -1860,7 +1860,11 @@ kspam:SetScript("OnUpdate", function()
 	if (LFGListFrame:IsShown()) then
 		local selectedCategory = LFGListFrame.SearchPanel.categoryID
 		if (selectedCategory == 2 or selectedCategory == 3) then --dungeon | raid
-			configButton:Show()
+			if (WorldQuestTracker.db.profile.groupfinder.kfilter.show_button) then
+				configButton:Show()
+			else
+				configButton:Hide()
+			end
 		else
 			configButton:Hide()
 		end
