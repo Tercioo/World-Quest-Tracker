@@ -57,6 +57,7 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		WAKINGSHORES = 	2022,
 		FORBIDDENREACH =	2026,
 		ZARALEK = 		2133,
+		EMERALDDREAM = 	2200,
 
 	--Shadowlands
 		MALDRAXXUS =	1536,
@@ -101,284 +102,285 @@ WorldQuestTracker.MapData.ZoneIDs = {
 }
 
 --cache
-local zoneQuests = WorldQuestTracker.MapData.ZoneIDs
+local zoneIDs = WorldQuestTracker.MapData.ZoneIDs
 
 WorldQuestTracker.DotLineScale = {
-	[zoneQuests.ZARALEK] = 2,
-	[zoneQuests.OHNAHRANPLAINS] = 2,
-	[zoneQuests.WAKINGSHORES] = 2,
-	[zoneQuests.FORBIDDENREACH] = 2,
-	[zoneQuests.AZURESSPAN] = 2,
-	[zoneQuests.THALDRASZUS] = 2,
-	[zoneQuests.DRAGONISLES] = 2,
+	[zoneIDs.ZARALEK] = 2,
+	[zoneIDs.OHNAHRANPLAINS] = 2,
+	[zoneIDs.WAKINGSHORES] = 2,
+	[zoneIDs.FORBIDDENREACH] = 2,
+	[zoneIDs.AZURESSPAN] = 2,
+	[zoneIDs.THALDRASZUS] = 2,
+	[zoneIDs.DRAGONISLES] = 2,
 	[2112] = 2, --valdrakken
+	[zoneIDs.EMERALDDREAM] = 2,
 }
 
 --all zones with world quests
 WorldQuestTracker.MapData.WorldQuestZones = {
 	--Dragonflight
-		[zoneQuests.AZURESSPAN] = 	true,
-		[zoneQuests.THALDRASZUS] = 	true,
-		[zoneQuests.OHNAHRANPLAINS] = 	true,
-		[zoneQuests.WAKINGSHORES] = 	true,
-		[zoneQuests.FORBIDDENREACH] = 	true,
-		[zoneQuests.ZARALEK] = 	true,
+		[zoneIDs.AZURESSPAN] = 	true,
+		[zoneIDs.THALDRASZUS] = 	true,
+		[zoneIDs.OHNAHRANPLAINS] = 	true,
+		[zoneIDs.WAKINGSHORES] = 	true,
+		[zoneIDs.FORBIDDENREACH] = 	true,
+		[zoneIDs.ZARALEK] = 	true,
 
 	--Shadowlands
-		[zoneQuests.MALDRAXXUS] =	true,
-		[zoneQuests.BASTION] = 		true,
-		[zoneQuests.ARDENWEALD] =	true,
-		[zoneQuests.REVENDRETH] =	true,
-		[zoneQuests.THEMAW] =		true,
-		[zoneQuests.ZERETH] = 		true,
+		[zoneIDs.MALDRAXXUS] =	true,
+		[zoneIDs.BASTION] = 		true,
+		[zoneIDs.ARDENWEALD] =	true,
+		[zoneIDs.REVENDRETH] =	true,
+		[zoneIDs.THEMAW] =		true,
+		[zoneIDs.ZERETH] = 		true,
 		--[zoneQuests.ORIBOS] =		true,
 
 	--BFA
 		--zandalar
-		[zoneQuests.ZULDAZAAR] = 	true,
-		[zoneQuests.NAZMIR] = 		true,
-		[zoneQuests.VOLDUN] = 		true,
+		[zoneIDs.ZULDAZAAR] = 	true,
+		[zoneIDs.NAZMIR] = 		true,
+		[zoneIDs.VOLDUN] = 		true,
 		[1165] = 		true, --dazar'alor
 		[1161] = 		true, --boralus
-		[zoneQuests.TOLDAGOR] = 		true,
+		[zoneIDs.TOLDAGOR] = 		true,
 
 		--kul'tiras
-		[zoneQuests.TIRAGARDE] = 	true,
-		[zoneQuests.STORMSONG] = 	true,
-		[zoneQuests.DRUSTVAR] = 		true,
+		[zoneIDs.TIRAGARDE] = 	true,
+		[zoneIDs.STORMSONG] = 	true,
+		[zoneIDs.DRUSTVAR] = 		true,
 
 		--PRE PATCH
-		[zoneQuests.DARKSHORE] = 	true,
-		[zoneQuests.ARATHI] 	= 	true,
+		[zoneIDs.DARKSHORE] = 	true,
+		[zoneIDs.ARATHI] 	= 	true,
 
 		--8.2
-		[zoneQuests.NAZJATAR] = 		true,
-		[zoneQuests.MECHAGON] = 	true,
+		[zoneIDs.NAZJATAR] = 		true,
+		[zoneIDs.MECHAGON] = 	true,
 
 	--Legion
 		--broken isles
-		[zoneQuests.AZSUNA] = 		true,
-		[zoneQuests.HIGHMONTAIN] = 	true,
-		[zoneQuests.STORMHEIM] = 	true,
-		[zoneQuests.SURAMAR] = 		true,
-		[zoneQuests.VALSHARAH] = 	true,
-		[zoneQuests.EYEAZSHARA] = 	true,
-		[zoneQuests.DALARAN] = 		true,
-		[zoneQuests.BROKENSHORE] = 	true,
+		[zoneIDs.AZSUNA] = 		true,
+		[zoneIDs.HIGHMONTAIN] = 	true,
+		[zoneIDs.STORMHEIM] = 	true,
+		[zoneIDs.SURAMAR] = 		true,
+		[zoneIDs.VALSHARAH] = 	true,
+		[zoneIDs.EYEAZSHARA] = 	true,
+		[zoneIDs.DALARAN] = 		true,
+		[zoneIDs.BROKENSHORE] = 	true,
 		--argus
-		[zoneQuests.ANTORAN] = 		true,
-		[zoneQuests.KROKUUN] = 		true,
-		[zoneQuests.MCCAREE] = 		true,
+		[zoneIDs.ANTORAN] = 		true,
+		[zoneIDs.KROKUUN] = 		true,
+		[zoneIDs.MCCAREE] = 		true,
 }
 
 WorldQuestTracker.MapData.DragonflightZones = {
-	[zoneQuests.AZURESSPAN] = 	true,
-	[zoneQuests.THALDRASZUS] = 	true,
-	[zoneQuests.OHNAHRANPLAINS] = 	true,
-	[zoneQuests.WAKINGSHORES] = 	true,
-	[zoneQuests.FORBIDDENREACH] = 	true,
-	[zoneQuests.ZARALEK] = 	true,
-	[zoneQuests.DRAGONISLES] = 	true,
+	[zoneIDs.AZURESSPAN] = 	true,
+	[zoneIDs.THALDRASZUS] = 	true,
+	[zoneIDs.OHNAHRANPLAINS] = 	true,
+	[zoneIDs.WAKINGSHORES] = 	true,
+	[zoneIDs.FORBIDDENREACH] = 	true,
+	[zoneIDs.ZARALEK] = 	true,
+	[zoneIDs.DRAGONISLES] = 	true,
 	[2112] = true, --valdrakken
 }
 
 
 --quest hub by expansion
 WorldQuestTracker.MapData.ExpMaps = {
-	[zoneQuests.DRAGONISLES] = 10,
-	[zoneQuests.THESHADOWLANDS] = 9,
-	[zoneQuests.ZANDALAR] = 8,
-	[zoneQuests.KULTIRAS] = 8,
-	[zoneQuests.AZEROTH] = 8,
-	[zoneQuests.BROKENISLES] = 7,
+	[zoneIDs.DRAGONISLES] = 10,
+	[zoneIDs.THESHADOWLANDS] = 9,
+	[zoneIDs.ZANDALAR] = 8,
+	[zoneIDs.KULTIRAS] = 8,
+	[zoneIDs.AZEROTH] = 8,
+	[zoneIDs.BROKENISLES] = 7,
 }
 
 --list of map ids for world quest hubs
 WorldQuestTracker.MapData.QuestHubs = {
-	[zoneQuests.DRAGONISLES] = true, --dragon isles hub
-	[zoneQuests.THESHADOWLANDS] = true, --shadowlands hub
-	[zoneQuests.BROKENISLES] = true, --dalaran (~rev)
-	[zoneQuests.ARGUS] = true, --argus (~rev)
-	[zoneQuests.ZANDALAR] = true, --bfa horde
-	[zoneQuests.KULTIRAS] = true, --bfa alliance
-	[zoneQuests.AZEROTH] = true, --main hub
+	[zoneIDs.DRAGONISLES] = true, --dragon isles hub
+	[zoneIDs.THESHADOWLANDS] = true, --shadowlands hub
+	[zoneIDs.BROKENISLES] = true, --dalaran (~rev)
+	[zoneIDs.ARGUS] = true, --argus (~rev)
+	[zoneIDs.ZANDALAR] = true, --bfa horde
+	[zoneIDs.KULTIRAS] = true, --bfa alliance
+	[zoneIDs.AZEROTH] = true, --main hub
 }
 
 --world map anchors
 WorldQuestTracker.mapTables = {
 	--Dragon Isles (Dragonflight)
 
-		[zoneQuests.AZURESSPAN] = 		{
+		[zoneIDs.AZURESSPAN] = 		{
 			widgets = {},
 			Anchor_X = 0.995,
 			Anchor_Y = 0.48,
 			GrowRight = false,
 			show_on_map = {
-				[zoneQuests.DRAGONISLES] = true,
+				[zoneIDs.DRAGONISLES] = true,
 			},
 		},
 
-		[zoneQuests.THALDRASZUS] = 		{
+		[zoneIDs.THALDRASZUS] = 		{
 			widgets = {},
 			Anchor_X = 0.995,
 			Anchor_Y = 0.35,
 			GrowRight = false,
 			show_on_map = {
-				[zoneQuests.DRAGONISLES] = true,
+				[zoneIDs.DRAGONISLES] = true,
 			},
 		},
 
-		[zoneQuests.ZARALEK] = 		{
+		[zoneIDs.ZARALEK] = 		{
 			widgets = {},
 			Anchor_X = 0.995,
 			Anchor_Y = 0.7,
 			GrowRight = false,
 			show_on_map = {
-				[zoneQuests.DRAGONISLES] = true,
+				[zoneIDs.DRAGONISLES] = true,
 			},
 		},
 
-		[zoneQuests.OHNAHRANPLAINS] = 		{
+		[zoneIDs.OHNAHRANPLAINS] = 		{
 			widgets = {},
 			Anchor_X = 0.002,
 			Anchor_Y = 0.48,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.DRAGONISLES] = true,
+				[zoneIDs.DRAGONISLES] = true,
 			},
 		},
 
-		[zoneQuests.WAKINGSHORES] = 		{
+		[zoneIDs.WAKINGSHORES] = 		{
 			widgets = {},
 			Anchor_X = 0.002,
 			Anchor_Y = 0.28,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.DRAGONISLES] = true,
+				[zoneIDs.DRAGONISLES] = true,
 			},
 		},
 
-		[zoneQuests.FORBIDDENREACH] = 		{
+		[zoneIDs.FORBIDDENREACH] = 		{
 			widgets = {},
 			Anchor_X = 0.6,
 			Anchor_Y = 0.05,
 			GrowRight = false,
 			show_on_map = {
-				[zoneQuests.DRAGONISLES] = true,
+				[zoneIDs.DRAGONISLES] = true,
 			},
 		},
 
 	--Shadowlands
 
-		[zoneQuests.ZERETH] = 		{
+		[zoneIDs.ZERETH] = 		{
 			widgets = {},
 			Anchor_X = 0.995,
 			Anchor_Y = 0.68,
 			GrowRight = false,
 			show_on_map = {
-				[zoneQuests.THESHADOWLANDS] = true,
+				[zoneIDs.THESHADOWLANDS] = true,
 			},
 		},
 
-		[zoneQuests.MALDRAXXUS] =	{
+		[zoneIDs.MALDRAXXUS] =	{
 			widgets = {},
 			Anchor_X = 0.995,
 			Anchor_Y = 0.28,
 			GrowRight = false,
 			show_on_map = {
-				[zoneQuests.THESHADOWLANDS] = true,
+				[zoneIDs.THESHADOWLANDS] = true,
 			},
 		},
 
-		[zoneQuests.BASTION] = 		{
+		[zoneIDs.BASTION] = 		{
 			widgets = {},
 			Anchor_X = 0.995,
 			Anchor_Y = 0.46,
 			GrowRight = false,
 			show_on_map = {
-				[zoneQuests.THESHADOWLANDS] = true,
+				[zoneIDs.THESHADOWLANDS] = true,
 			},
 		},
 
-		[zoneQuests.ARDENWEALD] =	{
+		[zoneIDs.ARDENWEALD] =	{
 			widgets = {},
 			Anchor_X = 0.002,
 			Anchor_Y = 0.70,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.THESHADOWLANDS] = true,
+				[zoneIDs.THESHADOWLANDS] = true,
 			},
 		},
 
-		[zoneQuests.REVENDRETH] =	{
+		[zoneIDs.REVENDRETH] =	{
 			widgets = {},
 			Anchor_X = 0.002,
 			Anchor_Y = 0.34,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.THESHADOWLANDS] = true,
+				[zoneIDs.THESHADOWLANDS] = true,
 			},
 		},
 
-		[zoneQuests.THEMAW] = {
+		[zoneIDs.THEMAW] = {
 			widgets = {},
 			--Anchor_X = 0.31,
 			Anchor_X = 0.002,
 			Anchor_Y = 0.17,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.THESHADOWLANDS] = true,
+				[zoneIDs.THESHADOWLANDS] = true,
 			},
 		},
 
 	--Main Hub
-		[zoneQuests.ZANDALAR] = {
+		[zoneIDs.ZANDALAR] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.55,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.AZEROTH] = true,
+				[zoneIDs.AZEROTH] = true,
 			},
 		},
 
-		[zoneQuests.KULTIRAS] = {
+		[zoneIDs.KULTIRAS] = {
 			widgets = {},
 			Anchor_X = 0.99,
 			Anchor_Y = 0.15,
 			GrowRight = false,
 			show_on_map = {
-				[zoneQuests.AZEROTH] = true,
+				[zoneIDs.AZEROTH] = true,
 			},
 		},
 
-		[zoneQuests.DARKSHORE] = {
+		[zoneIDs.DARKSHORE] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.32,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.AZEROTH] = true,
+				[zoneIDs.AZEROTH] = true,
 			},
 		},
 
-		[zoneQuests.ARATHI] = {
+		[zoneIDs.ARATHI] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.20,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.AZEROTH] = true,
+				[zoneIDs.AZEROTH] = true,
 			},
 		},
 
-		[zoneQuests.NAZJATAR] = {
+		[zoneIDs.NAZJATAR] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.08,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.AZEROTH] = true,
+				[zoneIDs.AZEROTH] = true,
 			},
 		},
 
@@ -389,7 +391,7 @@ WorldQuestTracker.mapTables = {
 			Anchor_Y = 0.48,
 			GrowRight = false,
 			show_on_map = {
-					[zoneQuests.KULTIRAS] = true,
+					[zoneIDs.KULTIRAS] = true,
 				},
 		},
 
@@ -399,172 +401,172 @@ WorldQuestTracker.mapTables = {
 			Anchor_Y = 0.48,
 			GrowRight = false,
 			show_on_map = {
-					[zoneQuests.ZANDALAR] = true,
+					[zoneIDs.ZANDALAR] = true,
 				}
 		},
 
 		--alliance
-		[zoneQuests.TIRAGARDE] = {
+		[zoneIDs.TIRAGARDE] = {
 			widgets = {},
 			Anchor_X = 0.99,
 			Anchor_Y = 0.62,
 			GrowRight = false,
 			show_on_map = {
-					[zoneQuests.KULTIRAS] = true,
+					[zoneIDs.KULTIRAS] = true,
 				},
 		},
-		[zoneQuests.STORMSONG] = {
+		[zoneIDs.STORMSONG] = {
 			widgets = {},
 			Anchor_X = 0.99,
 			Anchor_Y = 0.18,
 			GrowRight = false,
 			show_on_map = {
-					[zoneQuests.KULTIRAS] = true,
+					[zoneIDs.KULTIRAS] = true,
 				},
 		},
-		[zoneQuests.DRUSTVAR] = {
+		[zoneIDs.DRUSTVAR] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.36,
 			GrowRight = true,
 			show_on_map = {
-					[zoneQuests.KULTIRAS] = true,
+					[zoneIDs.KULTIRAS] = true,
 				},
 		},
-		[zoneQuests.TOLDAGOR] = {
+		[zoneIDs.TOLDAGOR] = {
 			widgets = {},
 			Anchor_X = 0.99,
 			Anchor_Y = 0.56,
 			GrowRight = false,
 			show_on_map = {
-					[zoneQuests.KULTIRAS] = true,
+					[zoneIDs.KULTIRAS] = true,
 				},
 		},
 
 		--horde
-		[zoneQuests.ZULDAZAAR] = {
+		[zoneIDs.ZULDAZAAR] = {
 			widgets = {},
 			Anchor_X = 0.99,
 			Anchor_Y = 0.62,
 			GrowRight = false,
 			show_on_map = {
-					[zoneQuests.ZANDALAR] = true,
+					[zoneIDs.ZANDALAR] = true,
 				}
 		},
-		[zoneQuests.NAZMIR] = {
+		[zoneIDs.NAZMIR] = {
 			widgets = {},
 			Anchor_X = 0.99,
 			Anchor_Y = 0.18,
 			GrowRight = false,
 			show_on_map = {
-					[zoneQuests.ZANDALAR] = true,
+					[zoneIDs.ZANDALAR] = true,
 				}
 		},
-		[zoneQuests.VOLDUN] = {
+		[zoneIDs.VOLDUN] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.36,
 			GrowRight = true,
 			show_on_map = {
-					[zoneQuests.ZANDALAR] = true,
+					[zoneIDs.ZANDALAR] = true,
 				}
 		},
 
 	--Legion
-		[zoneQuests.AZSUNA] = {
+		[zoneIDs.AZSUNA] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.53,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.BROKENISLES] = true,
+				[zoneIDs.BROKENISLES] = true,
 			}
 		},
-		[zoneQuests.VALSHARAH] = {
+		[zoneIDs.VALSHARAH] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.33,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.BROKENISLES] = true,
+				[zoneIDs.BROKENISLES] = true,
 			}
 		},
-		[zoneQuests.HIGHMONTAIN] = {
+		[zoneIDs.HIGHMONTAIN] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.10,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.BROKENISLES] = true,
+				[zoneIDs.BROKENISLES] = true,
 			}
 		},
-		[zoneQuests.STORMHEIM] = {
+		[zoneIDs.STORMHEIM] = {
 			widgets = {},
 			Anchor_X = 0.99,
 			Anchor_Y = 0.30,
 			show_on_map = {
-				[zoneQuests.BROKENISLES] = true,
+				[zoneIDs.BROKENISLES] = true,
 			}
 		},
-		[zoneQuests.SURAMAR] = {
+		[zoneIDs.SURAMAR] = {
 			widgets = {},
 			Anchor_X = 0.99,
 			Anchor_Y = 0.50,
 			show_on_map = {
-				[zoneQuests.BROKENISLES] = true,
+				[zoneIDs.BROKENISLES] = true,
 			}
 		},
-		[zoneQuests.BROKENSHORE] = { --broken shore
+		[zoneIDs.BROKENSHORE] = { --broken shore
 			widgets = {},
 			Anchor_X = 0.99,
 			Anchor_Y = 0.69,
 			show_on_map = {
-				[zoneQuests.BROKENISLES] = true,
+				[zoneIDs.BROKENISLES] = true,
 			}
 		},
-		[zoneQuests.EYEAZSHARA] = {
+		[zoneIDs.EYEAZSHARA] = {
 			widgets = {},
 			Anchor_X = 0.5,
 			Anchor_Y = 0.8,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.BROKENISLES] = true,
+				[zoneIDs.BROKENISLES] = true,
 			}
 		},
-		[zoneQuests.DALARAN] = {
+		[zoneIDs.DALARAN] = {
 			widgets = {},
 			Anchor_X = 0.47,
 			Anchor_Y = 0.62,
 			GrowRight = true,
 			show_on_map = {
-				[zoneQuests.BROKENISLES] = true,
+				[zoneIDs.BROKENISLES] = true,
 			}
 		},
 
-		[zoneQuests.MCCAREE] = {
+		[zoneIDs.MCCAREE] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.20,
 			show_on_map = {
-					[zoneQuests.ARGUS] = true,
+					[zoneIDs.ARGUS] = true,
 				},
 			GrowRight = true,
 		},
-		[zoneQuests.ANTORAN] = {
+		[zoneIDs.ANTORAN] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.37,
 			show_on_map = {
-					[zoneQuests.ARGUS] = true,
+					[zoneIDs.ARGUS] = true,
 				},
 			GrowRight = true,
 		},
-		[zoneQuests.KROKUUN] = {
+		[zoneIDs.KROKUUN] = {
 			widgets = {},
 			Anchor_X = 0.01,
 			Anchor_Y = 0.52,
 			show_on_map = {
-					[zoneQuests.ARGUS] = true,
+					[zoneIDs.ARGUS] = true,
 				},
 			GrowRight = true,
 		},
@@ -622,19 +624,19 @@ WorldQuestTracker.MapData.ResourceIcons = {
 --which faction set to be used by the map id
 --this table isn't being in use at the moment
 WorldQuestTracker.MapData.FactionByMapID = { --not in use
-	[zoneQuests.ZANDALAR] = "BFA",
-	[zoneQuests.KULTIRAS] = "BFA",
-	[zoneQuests.AZEROTH] = "BFA",
+	[zoneIDs.ZANDALAR] = "BFA",
+	[zoneIDs.KULTIRAS] = "BFA",
+	[zoneIDs.AZEROTH] = "BFA",
 
 	[619] = "LEGION", --brosken isles map
 	[905] = "LEGION", --argus map
 
-	[zoneQuests.ZULDAZAAR] = 	"BFA",
-	[zoneQuests.NAZMIR] = 		"BFA",
-	[zoneQuests.VOLDUN] = 		"BFA",
-	[zoneQuests.TIRAGARDE] = 	"BFA",
-	[zoneQuests.STORMSONG] = 	"BFA",
-	[zoneQuests.DRUSTVAR] = 	"BFA",
+	[zoneIDs.ZULDAZAAR] = 	"BFA",
+	[zoneIDs.NAZMIR] = 		"BFA",
+	[zoneIDs.VOLDUN] = 		"BFA",
+	[zoneIDs.TIRAGARDE] = 	"BFA",
+	[zoneIDs.STORMSONG] = 	"BFA",
+	[zoneIDs.DRUSTVAR] = 	"BFA",
 }
 
 --start of factions
@@ -741,11 +743,11 @@ WorldQuestTracker.MapData.AllFactionIds = {
 ---@type table<factionid, mapid>
 WorldQuestTracker.MapData.FactionMapId = {
 	--Dragonflight
-	[2503] = zoneQuests.OHNAHRANPLAINS, --Maruuk Centaur
-	[2507] = zoneQuests.WAKINGSHORES, --Dragonscale Expedition
-	[2510] = zoneQuests.THALDRASZUS, --Valdrakken Accord
-	[2511] = zoneQuests.AZURESSPAN, --Iskaara Tuskarr
-	[2564] = zoneQuests.ZARALEK, --Loamm Niffen
+	[2503] = zoneIDs.OHNAHRANPLAINS, --Maruuk Centaur
+	[2507] = zoneIDs.WAKINGSHORES, --Dragonscale Expedition
+	[2510] = zoneIDs.THALDRASZUS, --Valdrakken Accord
+	[2511] = zoneIDs.AZURESSPAN, --Iskaara Tuskarr
+	[2564] = zoneIDs.ZARALEK, --Loamm Niffen
 
 	--Shadowlands
 	[2410] = 1536, --The Undying Army | MALDRAXXUS
@@ -869,36 +871,36 @@ local LegionFactions = {
 --what are the factionIds belong to the map
 WorldQuestTracker.MapData.ReputationByMap = {
 	--world maps
-		[zoneQuests.DRAGONISLES] = DragonflightFactions,
-		[zoneQuests.THESHADOWLANDS] = ShadowlandsFactions,
-		[zoneQuests.KULTIRAS] = BFAFactions,
-		[zoneQuests.ZANDALAR] = BFAFactions,
-		[zoneQuests.AZEROTH] = BFAFactions,
-		[zoneQuests.BROKENISLES] = LegionFactions,
-		[zoneQuests.ARGUS] = LegionFactions,
+		[zoneIDs.DRAGONISLES] = DragonflightFactions,
+		[zoneIDs.THESHADOWLANDS] = ShadowlandsFactions,
+		[zoneIDs.KULTIRAS] = BFAFactions,
+		[zoneIDs.ZANDALAR] = BFAFactions,
+		[zoneIDs.AZEROTH] = BFAFactions,
+		[zoneIDs.BROKENISLES] = LegionFactions,
+		[zoneIDs.ARGUS] = LegionFactions,
 
 	--zones
 		--Dragonflight
-		[zoneQuests.OHNAHRANPLAINS] = DragonflightFactions,
-		[zoneQuests.WAKINGSHORES] = DragonflightFactions,
-		[zoneQuests.THALDRASZUS] = DragonflightFactions,
-		[zoneQuests.AZURESSPAN] = DragonflightFactions,
-		[zoneQuests.ZARALEK] = DragonflightFactions,
+		[zoneIDs.OHNAHRANPLAINS] = DragonflightFactions,
+		[zoneIDs.WAKINGSHORES] = DragonflightFactions,
+		[zoneIDs.THALDRASZUS] = DragonflightFactions,
+		[zoneIDs.AZURESSPAN] = DragonflightFactions,
+		[zoneIDs.ZARALEK] = DragonflightFactions,
 
 		--Shadowlands
-		[zoneQuests.BASTION] = 		ShadowlandsFactions,
-		[zoneQuests.MALDRAXXUS] = 	ShadowlandsFactions,
-		[zoneQuests.ARDENWEALD] = 	ShadowlandsFactions,
-		[zoneQuests.REVENDRETH] = 	ShadowlandsFactions,
-		[zoneQuests.ZERETH] = 		ShadowlandsFactions,
+		[zoneIDs.BASTION] = 		ShadowlandsFactions,
+		[zoneIDs.MALDRAXXUS] = 	ShadowlandsFactions,
+		[zoneIDs.ARDENWEALD] = 	ShadowlandsFactions,
+		[zoneIDs.REVENDRETH] = 	ShadowlandsFactions,
+		[zoneIDs.ZERETH] = 		ShadowlandsFactions,
 
 		--BFA
-		[zoneQuests.ZULDAZAAR] = 	BFAFactions,
-		[zoneQuests.NAZMIR] = 		BFAFactions,
-		[zoneQuests.VOLDUN] = 		BFAFactions,
-		[zoneQuests.TIRAGARDE] = 	BFAFactions,
-		[zoneQuests.STORMSONG] = 	BFAFactions,
-		[zoneQuests.DRUSTVAR] = 		BFAFactions,
+		[zoneIDs.ZULDAZAAR] = 	BFAFactions,
+		[zoneIDs.NAZMIR] = 		BFAFactions,
+		[zoneIDs.VOLDUN] = 		BFAFactions,
+		[zoneIDs.TIRAGARDE] = 	BFAFactions,
+		[zoneIDs.STORMSONG] = 	BFAFactions,
+		[zoneIDs.DRUSTVAR] = 		BFAFactions,
 }
 
 function WorldQuestTracker.GetFactionsAllowedOnMap(mapId)

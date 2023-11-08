@@ -223,9 +223,18 @@ DF:Mixin(DFSliderMetaFunctions, DF.ScriptHookMixin)
 		rawset(self, "FixedValue", value)
 	end
 
+	function DFSliderMetaFunctions:GetFixedParameter()
+		return rawget(self, "FixedValue")
+	end
+
 	--set value
 	function DFSliderMetaFunctions:SetValue(value)
 		return self(value)
+	end
+
+	function DFSliderMetaFunctions:SetValueNoCallback(value)
+		self.NoCallback = true
+		self.slider:SetValue(value)
 	end
 
 	-- thumb size
@@ -693,6 +702,18 @@ DF:Mixin(DFSliderMetaFunctions, DF.ScriptHookMixin)
 		table.insert(object.previous_value, 1, amt)
 		table.remove(object.previous_value, 4)
 
+		if (object.useDecimals) then
+			slider.amt:SetText(string.format("%.2f", amt))
+		else
+			slider.amt:SetText(math.floor(amt))
+		end
+		object.ivalue = amt
+
+		if (object.NoCallback) then
+			object.NoCallback = false
+			return
+		end
+
 		--some plugins registered OnValueChanged and others with OnValueChange
 		local kill = object:RunHooksForWidget("OnValueChanged", slider, object.FixedValue, amt, object)
 		if (kill) then
@@ -707,17 +728,6 @@ DF:Mixin(DFSliderMetaFunctions, DF.ScriptHookMixin)
 		if (object.OnValueChanged) then
 			object.OnValueChanged(slider, object.FixedValue, amt)
 		end
-
-		if (amt < 10 and amt >= 1) then
-			amt = "0" .. amt
-		end
-
-		if (object.useDecimals) then
-			slider.amt:SetText(string.format("%.2f", amt))
-		else
-			slider.amt:SetText(math.floor(amt))
-		end
-		object.ivalue = amt
 	end
 
 ------------------------------------------------------------------------------------------------------------
@@ -799,6 +809,10 @@ local switch_set_fixparameter = function(self, value)
 	rawset(self, "FixedValue", value)
 end
 
+local switch_get_fixparameter = function(self)
+	return rawget(self, "FixedValue")
+end
+
 local switch_disable = function(self)
 	if (self.is_checkbox) then
 		self.checked_texture:Hide()
@@ -841,6 +855,10 @@ local set_switch_func = function(self, newFunction)
 	self.OnSwitch = newFunction
 end
 
+local get_switch_func = function(self)
+	return self.OnSwitch
+end
+
 local set_as_checkbok = function(self)
 	if self.is_checkbox and self.checked_texture then return end
 	local checked = self:CreateTexture(self:GetName() .. "CheckTexture", "overlay")
@@ -871,11 +889,29 @@ local set_as_checkbok = function(self)
 	end
 end
 
+---@class df_checkbox : df_button
+---@field OnSwitch fun(self:df_checkbox, fixedValue:any, value:boolean)
+---@field SetValue fun(self:df_button, value:boolean)
+---@field GetValue fun(self:df_button):boolean
+---@field SetFixedParameter fun(self:df_button, value:any)
+---@field GetFixedParameter fun(self:df_button):any
+---@field Disable fun(self:df_button)
+---@field Enable fun(self:df_button)
+---@field SetAsCheckBox fun(self:df_button)
+---@field SetTemplate fun(self:df_button, template: table)
+---@field GetSwitchFunction fun(self:df_button):function
+---@field SetSwitchFunction fun(self:df_button, newOnSwitchFunction: function)
+---@field GetCapsule fun(self:df_button):df_button capsule only exists in the actual frame of the encapsulated widget
+
+
 function DF:CreateSwitch(parent, onSwitch, defaultValue, width, height, leftText, rightText, member, name, colorInverted, switchFunc, returnFunc, withLabel, switch_template, label_template)
 	local switch, label = DF:NewSwitch(parent, parent, name, member, width or 60, height or 20, leftText, rightText, defaultValue, colorInverted, switchFunc, returnFunc, withLabel, switch_template, label_template)
 	if (onSwitch) then
 		switch.OnSwitch = onSwitch
 	end
+
+	---@cast switch df_checkbox
+	---@cast label df_label
 	return switch, label
 end
 
@@ -909,11 +945,13 @@ function DF:NewSwitch(parent, container, name, member, width, height, leftText, 
 	slider.SetValue = switch_set_value
 	slider.GetValue = switch_get_value
 	slider.SetFixedParameter = switch_set_fixparameter
+	slider.GetFixedParameter = switch_get_fixparameter
 	slider.Disable = switch_disable
 	slider.Enable = switch_enable
 	slider.SetAsCheckBox = set_as_checkbok
 	slider.SetTemplate = DFSliderMetaFunctions.SetTemplate
 	slider.SetSwitchFunction = set_switch_func
+	slider.GetSwitchFunction = get_switch_func
 
 	if (member) then
 		parent[member] = slider
@@ -953,7 +991,7 @@ function DF:NewSwitch(parent, container, name, member, width, height, leftText, 
 	if (with_label) then
 		local label = DF:CreateLabel(slider.widget, with_label, nil, nil, nil, "label", nil, "overlay")
 		label.text = with_label
-		slider.widget:SetPoint("left", label.widget, "right", 2, 0)
+		PixelUtil.SetPoint(slider.widget, "left", label.widget, "right", 2, 0)
 		with_label = label
 
 		if (label_template) then
@@ -967,10 +1005,10 @@ end
 function DFSliderMetaFunctions:SetTemplate(template)
 	--slider e switch
 	if (template.width) then
-		self:SetWidth(template.width)
+		PixelUtil.SetWidth(self.widget, template.width)
 	end
 	if (template.height) then
-		self:SetHeight(template.height)
+		PixelUtil.SetHeight(self.widget, template.height)
 	end
 
 	if (template.backdrop) then
@@ -1104,8 +1142,7 @@ function DF:NewSlider (parent, container, name, member, width, height, minValue,
 	end
 
 	SliderObject.slider.MyObject = SliderObject
-	SliderObject.slider:SetWidth(width)
-	SliderObject.slider:SetHeight(height)
+	PixelUtil.SetSize(SliderObject.slider, width, height)
 	SliderObject.slider:SetOrientation("horizontal")
 	SliderObject.slider:SetMinMaxValues(minValue, maxValue)
 	SliderObject.slider:SetValue(defaultValue)

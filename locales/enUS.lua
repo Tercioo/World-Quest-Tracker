@@ -2,6 +2,8 @@ local addonId = ...
 local languageTable = DetailsFramework.Language.RegisterLanguage(addonId, "enUS")
 local L = languageTable
 
+L["S_OPTIONS_GF_SHOWOPTIONS_BUTTON"] = "Show Options Button"
+
 L["S_OPTTIONS_TAB_GENERAL_SETTINGS"] = "General Settings"
 L["S_OPTTIONS_TAB_TRACKER_SETTINGS"] = "Tracker"
 L["S_OPTTIONS_TAB_WORLDMAP_SETTINGS"] = "World Map"

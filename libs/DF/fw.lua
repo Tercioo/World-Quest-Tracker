@@ -1,6 +1,6 @@
 
 
-local dversion = 468
+local dversion = 482
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -11,6 +11,8 @@ end
 
 _G["DetailsFramework"] = DF
 
+---@cast DF detailsframework
+
 DetailsFrameworkCanLoad = true
 local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
 
@@ -19,7 +21,7 @@ local type = type
 local unpack = unpack
 local upper = string.upper
 local string_match = string.match
-local tinsert = _G.tinsert
+local tinsert = table.insert
 local abs = _G.abs
 local tremove = _G.tremove
 
@@ -46,6 +48,8 @@ end
 function DF:MsgWarning(msg, ...)
 	print("|cFFFFFFAA" .. (self.__name or "Details!Framework") .. "|r |cFFFFAA00[Warning]|r", msg, ...)
 end
+
+DF.internalFunctions = DF.internalFunctions or {}
 
 local PixelUtil = PixelUtil or DFPixelUtil
 if (not PixelUtil) then
@@ -491,6 +495,62 @@ function DF.table.find(t, value)
 	end
 end
 
+---get a value from a table using a path, e.g. getfrompath(tbl, "a.b.c") is the same as tbl.a.b.c
+---@param t table
+---@param path string
+---@return any
+function DF.table.getfrompath(t, path)
+	if (path:match("%.") or path:match("%[")) then
+		local value
+
+		for key in path:gmatch("[%w_]+") do
+			value = t[key] or t[tonumber(key)]
+
+			--check if the value is nil, if it is, the key does not exists in the table
+			if (not value) then
+				return
+			end
+
+			--update t for the next iteration
+			t = value
+		end
+
+		return value
+	else
+		return t[path] or t[tonumber(path)]
+	end
+end
+
+---set the value of a table using a path, e.g. setfrompath(tbl, "a.b.c", 10) is the same as tbl.a.b.c = 10
+---@param t table
+---@param path string
+---@param value any
+---@return boolean?
+function DF.table.setfrompath(t, path, value)
+	if (path:match("%.") or path:match("%[")) then
+		local lastTable
+		local lastKey
+
+		for key in path:gmatch("[%w_]+") do
+			lastTable = t
+			lastKey = key
+
+			--update t for the next iteration
+			t = t[key] or t[tonumber(key)]
+		end
+
+		if (lastTable and lastKey) then
+			lastTable[lastKey] = value
+			return true
+		end
+	else
+		t[path] = value
+		return true
+	end
+
+	return false
+end
+
 ---find the value inside the table, and it it's not found, add it
 ---@param t table
 ---@param index integer|any
@@ -689,10 +749,10 @@ local function tableToString(t, resultString, deep, seenTables)
 			resultString = resultString .. space .. "[\"" .. key .. "\"] = \"|cFFfff1c1" .. value .. "|r\",\n"
 
 		elseif (valueType == "number") then
-			resultString = resultString .. space .. "[\"" .. key .. "\"] = |cFFffc1f4" .. value .. "|r,\n"
+			resultString = resultString .. space .. "[\"" .. key .. "\"] = |cFF94CEA8" .. value .. "|r,\n"
 
 		elseif (valueType == "function") then
-			resultString = resultString .. space .. "[\"" .. key .. "\"] = function()end,\n"
+			resultString = resultString .. space .. "[\"" .. key .. "\"] = |cFFC586C0function|r,\n"
 
 		elseif (valueType == "boolean") then
 			resultString = resultString .. space .. "[\"" .. key .. "\"] = |cFF99d0ff" .. (value and "true" or "false") .. "|r,\n"
@@ -706,7 +766,6 @@ local function tableToStringSafe(t)
     local seenTables = {}
     return tableToString(t, nil, 0, seenTables)
 end
-
 
 ---get the contends of table 't' and return it as a string
 ---@param t table
@@ -936,6 +995,16 @@ function DF:GroupIterator(callback, ...)
 	end
 end
 
+---receives an object and a percent amount, then calculate the return value by multiplying the min value of the object width or height by the percent received
+---@param uiObject uiobject
+---@param percent number
+---@return number
+function DF:GetSizeFromPercent(uiObject, percent)
+	local width, height = uiObject:GetSize()
+	local minValue = math.min(width, height)
+	return minValue * percent
+end
+
 ---get an integer an format it as string with the time format 16:45
 ---@param self table
 ---@param value number
@@ -1038,7 +1107,7 @@ end
 ---@param self table
 ---@param fontString fontstring
 ---@param degrees number
-function DF:SetFontRotation(fontString, degrees) --deprecated, use fontString:SetRotation(degrees)
+function DF:SetFontRotation(fontString, degrees) --deprecated, use fontString:SetRotation(degrees) | retail use fontString:SetRotation(math.rad(degrees))
 	if (type(degrees) == "number") then
 		if (not fontString.__rotationAnimation) then
 			fontString.__rotationAnimation = DF:CreateAnimationHub(fontString)
@@ -1093,6 +1162,14 @@ function DF:AddClassColorToText(text, className)
 	return text
 end
 
+---returns the class icon texture coordinates and texture file path
+---@param class string
+---@return number, number, number, number, string
+function DF:GetClassTCoordsAndTexture(class)
+	local l, r, t, b = unpack(CLASS_ICON_TCOORDS[class])
+	return l, r, t, b, [[Interface\WORLDSTATEFRAME\Icons-Classes]]
+end
+
 ---create a string with the spell icon and the spell name using |T|t scape codes to add the icon inside the string
 ---@param self table
 ---@param spellId any
@@ -1103,14 +1180,6 @@ function DF:MakeStringFromSpellId(spellId)
 		return "|T" .. spellIcon .. ":16:16:0:0:64:64:4:60:4:60|t " .. spellName
 	end
 	return ""
-end
-
----returns the class icon texture coordinates and texture file path
----@param class string
----@return number, number, number, number, string
-function DF:GetClassTCoordsAndTexture(class)
-	local l, r, t, b = unpack(CLASS_ICON_TCOORDS[class])
-	return l, r, t, b, [[Interface\WORLDSTATEFRAME\Icons-Classes]]
 end
 
 ---wrap 'text' with the class icon of 'playerName' using |T|t scape codes
@@ -1159,6 +1228,58 @@ function DF:AddClassIconToText(text, playerName, englishClassName, useSpec, icon
 	return text
 end
 
+---create a table with information about a texture
+---@param texture any
+---@param textureWidth any
+---@param textureHeight any
+---@param imageWidth any
+---@param imageHeight any
+---@param left any
+---@param right any
+---@param top any
+---@param bottom any
+---@return table
+function DF:CreateTextureInfo(texture, textureWidth, textureHeight, left, right, top, bottom, imageWidth, imageHeight)
+	local textureInfo = {
+		texture = texture,
+		width = textureWidth or 16,
+		height = textureHeight or 16,
+		coords = {left or 0, right or 1, top or 0, bottom or 1},
+	}
+
+	textureInfo.imageWidth = imageWidth or textureInfo.width
+	textureInfo.imageHeight = imageHeight or textureInfo.height
+
+	return textureInfo
+end
+
+---add a texture to the start or end of a string
+---@param text string
+---@param textureInfo table
+---@param bAddSpace any
+---@param bAddAfterText any
+---@return string
+function DF:AddTextureToText(text, textureInfo, bAddSpace, bAddAfterText)
+	local texture = textureInfo.texture
+	local textureWidth = textureInfo.width
+	local textureHeight = textureInfo.height
+	local imageWidth = textureInfo.imageWidth or textureWidth
+	local imageHeight = textureInfo.imageHeight or textureHeight
+	local left, right, top, bottom = unpack(textureInfo.coords)
+	left = left or 0
+	right = right or 1
+	top = top or 0
+	bottom = bottom or 1
+
+	if (bAddAfterText) then
+		local newString = text .. (bAddSpace and " " or "") .. "|T" .. texture .. ":" .. textureWidth .. ":" .. textureHeight .. ":0:0:" .. imageWidth .. ":" .. imageHeight .. ":" .. (left * imageWidth) .. ":" .. (right * imageWidth) .. ":" .. (top * imageHeight) .. ":" .. (bottom * imageHeight) .. "|t"
+		return newString
+	else
+		local newString = "|T" .. texture .. ":" .. textureWidth .. ":" .. textureHeight .. ":0:0:" .. imageWidth .. ":" .. imageHeight .. ":" .. (left * imageWidth) .. ":" .. (right * imageWidth) .. ":" .. (top * imageHeight) .. ":" .. (bottom * imageHeight) .. "|t" .. (bAddSpace and " " or "") .. text
+		return newString
+	end
+end
+
 ---return the size of a fontstring
 ---@param fontString table
 ---@return number
@@ -1180,6 +1301,15 @@ local ValidOutlines = {
 	["MONOCHROME"] = true,
 	["OUTLINE"] = true,
 	["THICKOUTLINE"] = true,
+}
+
+DF.FontOutlineFlags = {
+	{"NONE", "None"},
+	{"MONOCHROME", "Monochrome"},
+	{"OUTLINE", "Outline"},
+	{"THICKOUTLINE", "Thick Outline"},
+	{"OUTLINEMONOCHROME", "Outline & Monochrome"},
+	{"THICKOUTLINEMONOCHROME", "Thick Outline & Monochrome"},
 }
 
 ---set the outline of a fontstring, outline is a black border around the text, can be "NONE", "MONOCHROME", "OUTLINE" or "THICKOUTLINE"
@@ -1382,6 +1512,157 @@ function DF:GetSpellBookSpells()
     return spellNamesInSpellBook, spellIdsInSpellBook
 end
 
+---return a table of passive talents, format: [spellId] = true
+---@return {Name: string, ID: number, Texture: any, IsSelected: boolean}[]
+function DF:GetAllTalents()
+	local allTalents = {}
+
+	local configId = C_ClassTalents.GetActiveConfigID()
+	if (configId) then
+		local configInfo = C_Traits.GetConfigInfo(configId)
+		--get the spells from the SPEC from talents
+		for treeIndex, treeId in ipairs(configInfo.treeIDs) do
+			local treeNodes = C_Traits.GetTreeNodes(treeId)
+			for nodeIdIndex, treeNodeID in ipairs(treeNodes) do
+				local traitNodeInfo = C_Traits.GetNodeInfo(configId, treeNodeID)
+				if (traitNodeInfo) then
+					local activeEntry = traitNodeInfo.activeEntry
+					local entryIds = traitNodeInfo.entryIDs
+					for i = 1, #entryIds do
+						local entryId = entryIds[i] --number
+						local traitEntryInfo = C_Traits.GetEntryInfo(configId, entryId)
+						local borderTypes = Enum.TraitNodeEntryType
+						if (traitEntryInfo.type) then -- == borderTypes.SpendCircle
+							local definitionId = traitEntryInfo.definitionID
+							local traitDefinitionInfo = C_Traits.GetDefinitionInfo(definitionId)
+							local spellId = traitDefinitionInfo.overriddenSpellID or traitDefinitionInfo.spellID
+							local spellName, _, spellTexture = GetSpellInfo(spellId)
+							if (spellName) then
+								local talentInfo = {Name = spellName, ID = spellId, Texture = spellTexture, IsSelected = (activeEntry and activeEntry.rank and activeEntry.rank > 0) or false}
+								allTalents[#allTalents+1] = talentInfo
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	return allTalents
+end
+
+---return a table where keys are spellIds (number) and the value is true
+---@return table<number, boolean>
+function DF:GetAvailableSpells()
+    local completeListOfSpells = {}
+
+    --this line might not be compatible with classic
+    --local specId, specName, _, specIconTexture = GetSpecializationInfo(GetSpecialization())
+    --local classNameLoc, className, classId = UnitClass("player") --not in use
+    local locPlayerRace, playerRace, playerRaceId = UnitRace("player")
+
+    --get racials from the general tab
+	local generalTabIndex = 1
+    local tabName, tabTexture, offset, numSpells, isGuild, offspecId = GetSpellTabInfo(generalTabIndex)
+    offset = offset + 1
+    local tabEnd = offset + numSpells
+    for entryOffset = offset, tabEnd - 1 do
+        local spellType, spellId = GetSpellBookItemInfo(entryOffset, "player")
+        local spellData = LIB_OPEN_RAID_COOLDOWNS_INFO[spellId]
+        if (spellData) then
+            local raceId = spellData.raceid
+            if (raceId) then
+                if (type(raceId) == "table") then
+                    if (raceId[playerRaceId]) then
+                        spellId = C_SpellBook.GetOverrideSpell(spellId)
+                        local spellName = GetSpellInfo(spellId)
+                        local bIsPassive = IsPassiveSpell(spellId, "player")
+                        if (spellName and not bIsPassive) then
+                            completeListOfSpells[spellId] = true
+                        end
+                    end
+
+                elseif (type(raceId) == "number") then
+                    if (raceId == playerRaceId) then
+                        spellId = C_SpellBook.GetOverrideSpell(spellId)
+                        local spellName = GetSpellInfo(spellId)
+                        local bIsPassive = IsPassiveSpell(spellId, "player")
+                        if (spellName and not bIsPassive) then
+                            completeListOfSpells[spellId] = true
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+	--get spells from the Spec spellbook
+	local amountOfTabs = GetNumSpellTabs()
+    for i = 2, amountOfTabs-1 do --starting at index 2 to ignore the general tab
+        local tabName, tabTexture, offset, numSpells, isGuild, offSpecId, shouldHide, specID = GetSpellTabInfo(i)
+		local bIsOffSpec = offSpecId ~= 0
+		offset = offset + 1
+		local tabEnd = offset + numSpells
+		for entryOffset = offset, tabEnd - 1 do
+			local spellType, spellId = GetSpellBookItemInfo(entryOffset, "player")
+			if (spellId) then
+				if (spellType == "SPELL") then
+					spellId = C_SpellBook.GetOverrideSpell(spellId)
+					local spellName = GetSpellInfo(spellId)
+					local bIsPassive = IsPassiveSpell(spellId, "player")
+					if (spellName and not bIsPassive) then
+						completeListOfSpells[spellId] = bIsOffSpec == false
+					end
+				end
+			end
+		end
+    end
+
+    --get class shared spells from the spell book
+	--[=[
+    local tabName, tabTexture, offset, numSpells, isGuild, offSpecId = GetSpellTabInfo(2)
+	local bIsOffSpec = offSpecId ~= 0
+    offset = offset + 1
+    local tabEnd = offset + numSpells
+    for entryOffset = offset, tabEnd - 1 do
+        local spellType, spellId = GetSpellBookItemInfo(entryOffset, "player")
+        if (spellId) then
+            if (spellType == "SPELL") then
+                spellId = C_SpellBook.GetOverrideSpell(spellId)
+                local spellName = GetSpellInfo(spellId)
+                local bIsPassive = IsPassiveSpell(spellId, "player")
+
+				if (spellName and not bIsPassive) then
+                    completeListOfSpells[spellId] = bIsOffSpec == false
+                end
+            end
+        end
+    end
+	--]=]
+
+    local getNumPetSpells = function()
+        --'HasPetSpells' contradicts the name and return the amount of pet spells available instead of a boolean
+        return HasPetSpells()
+    end
+
+    --get pet spells from the pet spellbook
+    local numPetSpells = getNumPetSpells()
+    if (numPetSpells) then
+        for i = 1, numPetSpells do
+            local spellName, _, unmaskedSpellId = GetSpellBookItemName(i, "pet")
+            if (unmaskedSpellId) then
+                unmaskedSpellId = C_SpellBook.GetOverrideSpell(unmaskedSpellId)
+                local bIsPassive = IsPassiveSpell(unmaskedSpellId, "pet")
+                if (spellName and not bIsPassive) then
+                    completeListOfSpells[unmaskedSpellId] = true
+                end
+            end
+        end
+    end
+
+    return completeListOfSpells
+end
+
 
 ------------------------------------------------------------------------------------------------------------------------
 --flash animation
@@ -1506,6 +1787,26 @@ end
 ---@field x number
 ---@field y number
 
+DF.AnchorPoints = {
+	"Top Left",
+	"Left",
+	"Bottom Left",
+	"Bottom",
+	"Bottom Right",
+	"Right",
+	"Top Right",
+	"Top",
+	"Center",
+	"Inside Left",
+	"Inside Right",
+	"Inside Top",
+	"Inside Bottom",
+	"Inside Top Left",
+	"Inside Bottom Left",
+	"Inside Bottom Right",
+	"Inside Top Right",
+}
+
 local anchoringFunctions = {
 	function(frame, anchorTo, offSetX, offSetY) --1 TOP LEFT
 		frame:ClearAllPoints()
@@ -1608,7 +1909,7 @@ end
 	--add a new color name, the color can be query using DetailsFramework:ParseColors(colorName)
 	function DF:NewColor(colorName, red, green, blue, alpha)
 		assert(type(colorName) == "string", "DetailsFramework:NewColor(): colorName must be a string.")
-		assert(not DF.alias_text_colors[colorName], "DetailsFramework:NewColor(): colorName already exists.")
+		--assert(not DF.alias_text_colors[colorName], "DetailsFramework:NewColor(): colorName already exists.")
 
 		red, green, blue, alpha = DetailsFramework:ParseColors(red, green, blue, alpha)
 		local colorTable = DetailsFramework:FormatColor("table", red, green, blue, alpha)
@@ -1771,1173 +2072,6 @@ end
 	end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
---menus
-	local formatOptionNameWithColon = function(text, useColon)
-		if (text) then
-			if (useColon) then
-				text = text .. ":"
-				return text
-			else
-				return text
-			end
-		end
-	end
-
-	local widgetsToDisableOnCombat = {}
-
-	local getMenuWidgetVolative = function(parent, widgetType, indexTable)
-		local widgetObject
-
-		if (widgetType == "label") then
-			widgetObject = parent.widget_list_by_type[widgetType][indexTable[widgetType]]
-			if (not widgetObject) then
-				widgetObject = DF:CreateLabel(parent, "", 10, "white", "", nil, "$parentWidget" .. widgetType .. indexTable[widgetType], "overlay")
-				tinsert(parent.widget_list, widgetObject)
-				tinsert(parent.widget_list_by_type[widgetType], widgetObject)
-			end
-			indexTable[widgetType] = indexTable[widgetType] + 1
-
-		elseif (widgetType == "dropdown") then
-			widgetObject = parent.widget_list_by_type[widgetType][indexTable[widgetType]]
-			if (not widgetObject) then
-				widgetObject = DF:CreateDropDown(parent, function() return {} end, nil, 140, 18, nil, "$parentWidget" .. widgetType .. indexTable[widgetType])
-				widgetObject.hasLabel = DF:CreateLabel(parent, "", 10, "white", "", nil, "$parentWidget" .. widgetType .. indexTable[widgetType] .. "label", "overlay")
-				tinsert(parent.widget_list, widgetObject)
-				tinsert(parent.widget_list_by_type[widgetType], widgetObject)
-
-			else
-				widgetObject:ClearHooks()
-				widgetObject.hasLabel.text = ""
-			end
-			indexTable[widgetType] = indexTable[widgetType] + 1
-
-		elseif (widgetType == "switch") then
-			widgetObject = parent.widget_list_by_type[widgetType][indexTable[widgetType]]
-			if (not widgetObject) then
-				widgetObject = DF:CreateSwitch(parent, nil, true, 20, 20, nil, nil, nil, "$parentWidget" .. widgetType .. indexTable[widgetType])
-				widgetObject.hasLabel = DF:CreateLabel(parent, "", 10, "white", "", nil, "$parentWidget" .. widgetType .. indexTable[widgetType] .. "label", "overlay")
-
-				tinsert(parent.widget_list, widgetObject)
-				tinsert(parent.widget_list_by_type[widgetType], widgetObject)
-			else
-				widgetObject:ClearHooks()
-			end
-			indexTable[widgetType] = indexTable[widgetType] + 1
-
-		elseif (widgetType == "slider") then
-			widgetObject = parent.widget_list_by_type[widgetType][indexTable[widgetType]]
-			if (not widgetObject) then
-				widgetObject = DF:CreateSlider(parent, 140, 20, 1, 2, 1, 1, false, nil, "$parentWidget" .. widgetType .. indexTable[widgetType])
-				widgetObject.hasLabel = DF:CreateLabel(parent, "", 10, "white", "", nil, "$parentWidget" .. widgetType .. indexTable[widgetType] .. "label", "overlay")
-
-				tinsert(parent.widget_list, widgetObject)
-				tinsert(parent.widget_list_by_type[widgetType], widgetObject)
-			else
-				widgetObject:ClearHooks()
-			end
-			indexTable[widgetType] = indexTable[widgetType] + 1
-
-		elseif (widgetType == "color") then
-			widgetObject = parent.widget_list_by_type[widgetType][indexTable[widgetType]]
-			if (not widgetObject) then
-				widgetObject = DF:CreateColorPickButton(parent, "$parentWidget" .. widgetType .. indexTable[widgetType], nil, function()end, 1)
-				widgetObject.hasLabel = DF:CreateLabel(parent, "", 10, "white", "", nil, "$parentWidget" .. widgetType .. indexTable[widgetType] .. "label", "overlay")
-
-				tinsert(parent.widget_list, widgetObject)
-				tinsert(parent.widget_list_by_type[widgetType], widgetObject)
-			else
-				widgetObject:ClearHooks()
-			end
-			indexTable[widgetType] = indexTable[widgetType] + 1
-
-		elseif (widgetType == "button") then
-			widgetObject = parent.widget_list_by_type[widgetType][indexTable[widgetType]]
-			if (not widgetObject) then
-				widgetObject = DF:CreateButton(parent, function()end, 120, 18, "", nil, nil, nil, nil, "$parentWidget" .. widgetType .. indexTable[widgetType])
-				widgetObject.hasLabel = DF:CreateLabel(parent, "", 10, "white", "", nil, "$parentWidget" .. widgetType .. indexTable[widgetType] .. "label", "overlay")
-
-				tinsert(parent.widget_list, widgetObject)
-				tinsert(parent.widget_list_by_type[widgetType], widgetObject)
-			else
-				widgetObject:ClearHooks()
-			end
-			indexTable[widgetType] = indexTable[widgetType] + 1
-
-		elseif (widgetType == "textentry") then
-			widgetObject = parent.widget_list_by_type[widgetType][indexTable[widgetType]]
-			if (not widgetObject) then
-				widgetObject = DF:CreateTextEntry(parent, function()end, 120, 18, nil, "$parentWidget" .. widgetType .. indexTable[widgetType])
-				widgetObject.hasLabel = DF:CreateLabel(parent, "", 10, "white", "", nil, "$parentWidget" .. widgetType .. indexTable[widgetType] .. "label", "overlay")
-
-				tinsert(parent.widget_list, widgetObject)
-				tinsert(parent.widget_list_by_type[widgetType], widgetObject)
-			else
-				widgetObject:ClearHooks()
-			end
-			indexTable[widgetType] = indexTable[widgetType] + 1
-		end
-
-		--if the widget is inside the no combat table, remove it
-		for i = 1, #widgetsToDisableOnCombat do
-			if (widgetsToDisableOnCombat[i] == widgetObject) then
-				tremove(widgetsToDisableOnCombat, i)
-				break
-			end
-		end
-
-		return widgetObject
-	end
-
-	--get the description phrase from the language table or use the .desc or .deschraseid
-	local getDescPhraseText = function(languageTable, widgetTable)
-		local descPhraseId = languageTable and (languageTable[widgetTable.descPhraseId] or languageTable[widgetTable.desc])
-		return descPhraseId or widgetTable.descPhraseId or widgetTable.desc or widgetTable.name or "-?-"
-	end
-
-	local getNamePhraseText = function(languageTable, widgetTable, useColon)
-		local namePhrase = languageTable and (languageTable[widgetTable.namePhraseId] or languageTable[widgetTable.name])
-		return namePhrase or formatOptionNameWithColon(widgetTable.name, useColon) or widgetTable.namePhraseId or widgetTable.name or "-?-"
-	end
-
-	--volatile menu can be called several times, each time all settings are reset and a new menu is built using the same widgets
-	function DF:BuildMenuVolatile(parent, menuOptions, xOffset, yOffset, height, useColon, textTemplate, dropdownTemplate, switchTemplate, switchIsCheckbox, sliderTemplate, buttonTemplate, valueChangeHook)
-		if (not parent.widget_list) then
-			DF:SetAsOptionsPanel(parent)
-		end
-		DF:ClearOptionsPanel(parent)
-
-		local currentXOffset = xOffset
-		local currentYOffset = yOffset
-		local maxColumnWidth = 0
-
-		local latestInlineWidget
-
-		local widgetIndexes = {
-			label = 1,
-			dropdown = 1,
-			switch = 1,
-			slider = 1,
-			color = 1,
-			button = 1,
-			textentry = 1,
-		}
-
-		height = abs((height or parent:GetHeight()) - abs(yOffset) + 20)
-		height = height * -1
-
-		--normalize format types
-		for index, widgetTable in ipairs(menuOptions) do
-			if (widgetTable.type == "space") then
-				widgetTable.type = "blank"
-
-			elseif (widgetTable.type == "dropdown") then
-				widgetTable.type = "select"
-
-			elseif (widgetTable.type == "switch") then
-				widgetTable.type = "toggle"
-
-			elseif (widgetTable.type == "slider") then
-				widgetTable.type = "range"
-
-			elseif (widgetTable.type == "button") then
-				widgetTable.type = "execute"
-
-			end
-		end
-
-		--catch some options added in the hash part of the menu table
-		local useBoxFirstOnAllWidgets = menuOptions.always_boxfirst
-		local languageAddonId = menuOptions.language_addonId
-		local languageTable
-
-		if (languageAddonId) then
-			languageTable = DetailsFramework.Language.GetLanguageTable(languageAddonId)
-		end
-
-		for index, widgetTable in ipairs(menuOptions) do
-			if (not widgetTable.hidden) then
-
-				local widgetCreated
-				if (latestInlineWidget) then
-					if (not widgetTable.inline) then
-						latestInlineWidget = nil
-						currentYOffset = currentYOffset - 20
-					end
-				end
-
-				local extraPaddingY = 0
-
-				if (not widgetTable.novolatile) then
-					--step a line
-					if (widgetTable.type == "blank" or widgetTable.type == "space") then
-						--do nothing
-
-					elseif (widgetTable.type == "label" or widgetTable.type == "text") then
-						local label = getMenuWidgetVolative(parent, "label", widgetIndexes)
-						widgetCreated = label
-
-						local namePhrase = (languageTable and (languageTable[widgetTable.namePhraseId] or languageTable[widgetTable.name])) or (widgetTable.get and widgetTable.get()) or widgetTable.text or (widgetTable.namePhraseId) or ""
-						label.text = namePhrase
-						label.color = widgetTable.color
-
-						if (widgetTable.font) then
-							label.fontface = widgetTable.font
-						end
-
-						if (widgetTable.text_template or textTemplate) then
-							label:SetTemplate(widgetTable.text_template or textTemplate)
-						else
-							label.fontsize = widgetTable.size or 10
-						end
-
-						label._get = widgetTable.get
-						label.widget_type = "label"
-						label:ClearAllPoints()
-						label:SetPoint(currentXOffset, currentYOffset)
-
-						if (widgetTable.id) then
-							parent.widgetids [widgetTable.id] = label
-						end
-
-					--dropdowns
-					elseif (widgetTable.type == "select" or widgetTable.type == "dropdown") then
-						assert(widgetTable.get, "DetailsFramework:BuildMenu(): .get() not found in the widget table for 'select'")
-						local dropdown = getMenuWidgetVolative(parent, "dropdown", widgetIndexes)
-						widgetCreated = dropdown
-
-						dropdown:SetFunction(widgetTable.values)
-						dropdown:Refresh()
-						dropdown:Select(widgetTable.get())
-						dropdown:SetTemplate(dropdownTemplate)
-
-						local descPhrase = getDescPhraseText(languageTable, widgetTable)
-						dropdown:SetTooltip(descPhrase)
-						dropdown._get = widgetTable.get
-						dropdown.widget_type = "select"
-
-						local namePhrase = getNamePhraseText(languageTable, widgetTable, useColon)
-						dropdown.hasLabel.text = namePhrase
-
-						dropdown.hasLabel:SetTemplate(widgetTable.text_template or textTemplate)
-						dropdown:ClearAllPoints()
-						dropdown:SetPoint("left", dropdown.hasLabel, "right", 2)
-						dropdown.hasLabel:ClearAllPoints()
-						dropdown.hasLabel:SetPoint(currentXOffset, currentYOffset)
-
-						--global callback
-						if (valueChangeHook) then
-							dropdown:SetHook("OnOptionSelected", valueChangeHook)
-						end
-
-						--hook list (hook list is wiped when getting the widget)
-						if (widgetTable.hooks) then
-							for hookName, hookFunc in pairs(widgetTable.hooks) do
-								dropdown:SetHook(hookName, hookFunc)
-							end
-						end
-
-						if (widgetTable.id) then
-							parent.widgetids[widgetTable.id] = dropdown
-						end
-
-						local widgetTotalSize = dropdown.hasLabel.widget:GetStringWidth() + 140 + 4
-						if (widgetTotalSize > maxColumnWidth) then
-							maxColumnWidth = widgetTotalSize
-						end
-
-					--switchs
-					elseif (widgetTable.type == "toggle" or widgetTable.type == "switch") then
-						local switch = getMenuWidgetVolative(parent, "switch", widgetIndexes)
-						widgetCreated = switch
-
-						switch:SetValue(widgetTable.get())
-						switch:SetTemplate(switchTemplate)
-						switch:SetAsCheckBox() --it's always a checkbox on volatile menu
-
-						local descPhrase = getDescPhraseText(languageTable, widgetTable)
-						switch:SetTooltip(descPhrase)
-						switch._get = widgetTable.get
-						switch.widget_type = "toggle"
-						switch.OnSwitch = widgetTable.set
-
-						if (valueChangeHook) then
-							switch:SetHook("OnSwitch", valueChangeHook)
-						end
-
-						--hook list
-						if (widgetTable.hooks) then
-							for hookName, hookFunc in pairs(widgetTable.hooks) do
-								switch:SetHook(hookName, hookFunc)
-							end
-						end
-
-						if (widgetTable.width) then
-							switch:SetWidth(widgetTable.width)
-						end
-						if (widgetTable.height) then
-							switch:SetHeight(widgetTable.height)
-						end
-
-						local namePhrase = getNamePhraseText(languageTable, widgetTable, useColon)
-						switch.hasLabel.text = namePhrase
-						switch.hasLabel:SetTemplate(widgetTable.text_template or textTemplate)
-
-						switch:ClearAllPoints()
-						switch.hasLabel:ClearAllPoints()
-
-						if (widgetTable.boxfirst or useBoxFirstOnAllWidgets) then
-							switch:SetPoint(currentXOffset, currentYOffset)
-							switch.hasLabel:SetPoint("left", switch, "right", 2)
-
-							local nextWidgetTable = menuOptions[index+1]
-							if (nextWidgetTable) then
-								if (nextWidgetTable.type ~= "blank" and nextWidgetTable.type ~= "breakline" and nextWidgetTable.type ~= "toggle" and nextWidgetTable.type ~= "color") then
-									extraPaddingY = 4
-								end
-							end
-						else
-							switch.hasLabel:SetPoint(currentXOffset, currentYOffset)
-							switch:SetPoint("left", switch.hasLabel, "right", 2)
-						end
-
-						if (widgetTable.id) then
-							parent.widgetids [widgetTable.id] = switch
-						end
-
-						local widgetTotalSize = switch.hasLabel:GetStringWidth() + 32
-						if (widgetTotalSize > maxColumnWidth) then
-							maxColumnWidth = widgetTotalSize
-						end
-
-					--slider
-					elseif (widgetTable.type == "range" or widgetTable.type == "slider") then
-						local slider = getMenuWidgetVolative(parent, "slider", widgetIndexes)
-						widgetCreated = slider
-
-						if (widgetTable.usedecimals) then
-							slider.slider:SetValueStep(0.01)
-						else
-							slider.slider:SetValueStep(widgetTable.step)
-						end
-						slider.useDecimals = widgetTable.usedecimals
-
-						slider.slider:SetMinMaxValues(widgetTable.min, widgetTable.max)
-						slider.slider:SetValue(widgetTable.get())
-						slider.ivalue = slider.slider:GetValue()
-
-						slider:SetTemplate(sliderTemplate)
-
-						local descPhrase = getDescPhraseText(languageTable, widgetTable)
-						slider:SetTooltip(descPhrase)
-						slider._get = widgetTable.get
-						slider.widget_type = "range"
-						slider:SetHook("OnValueChange", widgetTable.set)
-
-						if (valueChangeHook) then
-							slider:SetHook("OnValueChange", valueChangeHook)
-						end
-
-						if (widgetTable.thumbscale) then
-							slider:SetThumbSize (slider.thumb.originalWidth * widgetTable.thumbscale, nil)
-						else
-							slider:SetThumbSize (slider.thumb.originalWidth * 1.3, nil)
-						end
-
-						--hook list
-						if (widgetTable.hooks) then
-							for hookName, hookFunc in pairs(widgetTable.hooks) do
-								slider:SetHook(hookName, hookFunc)
-							end
-						end
-
-						local namePhrase = getNamePhraseText(languageTable, widgetTable, useColon)
-						slider.hasLabel.text = namePhrase
-						slider.hasLabel:SetTemplate(widgetTable.text_template or textTemplate)
-
-						slider:SetPoint("left", slider.hasLabel, "right", 2)
-						slider.hasLabel:SetPoint(currentXOffset, currentYOffset)
-
-						if (widgetTable.id) then
-							parent.widgetids[widgetTable.id] = slider
-						end
-
-						local widgetTotalSize = slider.hasLabel:GetStringWidth() + 146
-						if (widgetTotalSize > maxColumnWidth) then
-							maxColumnWidth = widgetTotalSize
-						end
-
-					--color
-					elseif (widgetTable.type == "color" or widgetTable.type == "color") then
-						local colorpick = getMenuWidgetVolative(parent, "color", widgetIndexes)
-						widgetCreated = colorpick
-
-						colorpick.color_callback = widgetTable.set --callback
-						colorpick:SetTemplate(buttonTemplate)
-						colorpick:SetSize(18, 18)
-
-						local descPhrase = getDescPhraseText(languageTable, widgetTable)
-						colorpick:SetTooltip(descPhrase)
-						colorpick._get = widgetTable.get
-						colorpick.widget_type = "color"
-
-						local default_value, g, b, a = widgetTable.get()
-						if (type(default_value) == "table") then
-							colorpick:SetColor(unpack(default_value))
-						else
-							colorpick:SetColor(default_value, g, b, a)
-						end
-
-						if (valueChangeHook) then
-							colorpick:SetHook("OnColorChanged", valueChangeHook)
-						end
-
-						--hook list
-						if (widgetTable.hooks) then
-							for hookName, hookFunc in pairs(widgetTable.hooks) do
-								colorpick:SetHook(hookName, hookFunc)
-							end
-						end
-
-						local label = colorpick.hasLabel
-
-						local namePhrase = getNamePhraseText(languageTable, widgetTable, useColon)
-						label.text = namePhrase
-						label:SetTemplate(widgetTable.text_template or textTemplate)
-
-						label:ClearAllPoints()
-						colorpick:ClearAllPoints()
-
-						if (widgetTable.boxfirst or useBoxFirstOnAllWidgets) then
-							label:SetPoint("left", colorpick, "right", 2)
-							colorpick:SetPoint(currentXOffset, currentYOffset)
-							extraPaddingY = 1
-						else
-							colorpick:SetPoint("left", label, "right", 2)
-							label:SetPoint(currentXOffset, currentYOffset)
-						end
-
-						if (widgetTable.id) then
-							parent.widgetids[widgetTable.id] = colorpick
-						end
-
-						local widgetTotalSize = label:GetStringWidth() + 32
-						if (widgetTotalSize > maxColumnWidth) then
-							maxColumnWidth = widgetTotalSize
-						end
-
-					--button
-					elseif (widgetTable.type == "execute" or widgetTable.type == "button") then
-						local button = getMenuWidgetVolative(parent, "button", widgetIndexes)
-						widgetCreated = button
-
-						button:SetTemplate(buttonTemplate)
-						button:SetSize(widgetTable.width or 120, widgetTable.height or 18)
-						button:SetClickFunction(widgetTable.func, widgetTable.param1, widgetTable.param2)
-
-						local textTemplate = widgetTable.text_template or textTemplate or DF.font_templates["ORANGE_FONT_TEMPLATE"]
-						button.textcolor = textTemplate.color
-						button.textfont = textTemplate.font
-						button.textsize = textTemplate.size
-
-						local namePhrase = getNamePhraseText(languageTable, widgetTable, useColon)
-						button.text = namePhrase
-
-						if (widgetTable.inline) then
-							if (latestInlineWidget) then
-								button:SetPoint("left", latestInlineWidget, "right", 2, 0)
-								latestInlineWidget = button
-							else
-								button:SetPoint(currentXOffset, currentYOffset)
-								latestInlineWidget = button
-							end
-						else
-							button:SetPoint(currentXOffset, currentYOffset)
-						end
-
-						local descPhrase = getDescPhraseText(languageTable, widgetTable)
-						button:SetTooltip(descPhrase)
-						button.widget_type = "execute"
-
-						--hook list
-						if (widgetTable.hooks) then
-							for hookName, hookFunc in pairs(widgetTable.hooks) do
-								button:SetHook(hookName, hookFunc)
-							end
-						end
-
-						if (widgetTable.width) then
-							button:SetWidth(widgetTable.width)
-						end
-						if (widgetTable.height) then
-							button:SetHeight(widgetTable.height)
-						end
-
-						if (widgetTable.id) then
-							parent.widgetids[widgetTable.id] = button
-						end
-
-						local widgetTotalSize = button:GetWidth() + 4
-						if (widgetTotalSize > maxColumnWidth) then
-							maxColumnWidth = widgetTotalSize
-						end
-
-					--textentry
-					elseif (widgetTable.type == "textentry") then
-						local textentry = getMenuWidgetVolative(parent, "textentry", widgetIndexes)
-						widgetCreated = textentry
-
-						textentry:SetCommitFunction(widgetTable.func or widgetTable.set)
-						textentry:SetTemplate(widgetTable.template or widgetTable.button_template or buttonTemplate)
-						textentry:SetSize(widgetTable.width or 120, widgetTable.height or 18)
-
-						local descPhrase = getDescPhraseText(languageTable, widgetTable)
-						textentry:SetTooltip(descPhrase)
-						textentry.text = widgetTable.get()
-						textentry._get = widgetTable.get
-						textentry.widget_type = "textentry"
-						textentry:SetHook("OnEnterPressed", function(...)
-							local upFunc = widgetTable.func or widgetTable.set
-							upFunc(...)
-							if (valueChangeHook) then
-								valueChangeHook()
-							end
-						end)
-						textentry:SetHook("OnEditFocusLost", function(...)
-							local upFunc = widgetTable.func or widgetTable.set
-							upFunc(...)
-							if (valueChangeHook) then
-								valueChangeHook()
-							end
-						end)
-
-						local namePhrase = getNamePhraseText(languageTable, widgetTable, useColon)
-						textentry.hasLabel.text = namePhrase
-						textentry.hasLabel:SetTemplate(widgetTable.text_template or textTemplate)
-						textentry:SetPoint("left", textentry.hasLabel, "right", 2)
-						textentry.hasLabel:SetPoint(currentXOffset, currentYOffset)
-
-						--hook list
-						if (widgetTable.hooks) then
-							for hookName, hookFunc in pairs(widgetTable.hooks) do
-								textentry:SetHook(hookName, hookFunc)
-							end
-						end
-
-						if (widgetTable.id) then
-							parent.widgetids[widgetTable.id] = textentry
-						end
-
-						local widgetTotalSize = textentry.hasLabel:GetStringWidth() + 64
-						if (widgetTotalSize > maxColumnWidth) then
-							maxColumnWidth = widgetTotalSize
-						end
-
-					end --end loop
-
-					if (widgetTable.nocombat) then
-						tinsert(widgetsToDisableOnCombat, widgetCreated)
-					end
-
-					if (not widgetTable.inline) then
-						if (widgetTable.spacement) then
-							currentYOffset = currentYOffset - 30
-						else
-							currentYOffset = currentYOffset - 20
-						end
-					end
-
-					if (extraPaddingY > 0) then
-						currentYOffset = currentYOffset - extraPaddingY
-					end
-
-					if (widgetTable.type == "breakline" or currentYOffset < height) then
-						currentYOffset = yOffset
-						currentXOffset = currentXOffset + maxColumnWidth + 20
-						maxColumnWidth = 0
-					end
-
-					if widgetCreated then
-						widgetCreated:Show()
-					end
-				end
-			end
-		end
-
-		DF.RefreshUnsafeOptionsWidgets()
-	end
-
-	local getDescripttionPhraseID = function(widgetTable, languageAddonId, languageTable)
-		if (widgetTable.descPhraseId) then
-			return widgetTable.descPhraseId
-		end
-
-		if (not languageTable) then
-			return
-		end
-
-		local hasValue = DF.Language.DoesPhraseIDExistsInDefaultLanguage(languageAddonId, widgetTable.desc)
-		if (not hasValue) then
-			return
-		end
-
-		return widgetTable.desc
-	end
-
-	local getNamePhraseID = function(widgetTable, languageAddonId, languageTable)
-		if (widgetTable.namePhraseId) then
-			return widgetTable.namePhraseId
-		end
-
-		if (not languageTable) then
-			return
-		end
-
-		local keyName = widgetTable.name
-
-		if (widgetTable.type == "label" and widgetTable.get) then
-			local key = widgetTable.get()
-			if (key and type(key) == "string") then
-				keyName = key
-			end
-		end
-
-		--embed key is when the phraseId is inside a string surounded by @
-    	local embedPhraseId = keyName:match("@(.-)@")
-
-		local hasValue = DF.Language.DoesPhraseIDExistsInDefaultLanguage(languageAddonId, embedPhraseId or keyName)
-		if (not hasValue) then
-			return
-		end
-
-		return keyName
-	end
-
-	function DF:BuildMenu(parent, menuOptions, xOffset, yOffset, height, useColon, textTemplate, dropdownTemplate, switchTemplate, switchIsCheckbox, sliderTemplate, buttonTemplate, valueChangeHook)
-		if (not parent.widget_list) then
-			DF:SetAsOptionsPanel(parent)
-		end
-
-		local currentXOffset = xOffset
-		local currentYOffset = yOffset
-		local maxColumnWidth = 0
-
-		--how many widgets has been created on this line loop pass
-		local amountLineWidgetCreated = 0
-		local latestInlineWidget
-
-		height = abs((height or parent:GetHeight()) - abs(yOffset) + 20)
-		height = height * -1
-
-		--normalize format types
-		for index, widgetTable in ipairs(menuOptions) do
-			if (widgetTable.type == "space") then
-				widgetTable.type = "blank"
-
-			elseif (widgetTable.type == "dropdown") then
-				widgetTable.type = "select"
-
-			elseif (widgetTable.type == "switch") then
-				widgetTable.type = "toggle"
-
-			elseif (widgetTable.type == "slider") then
-				widgetTable.type = "range"
-
-			elseif (widgetTable.type == "button") then
-				widgetTable.type = "execute"
-			end
-		end
-
-		--catch some options added in the hash part of the menu table
-		local useBoxFirstOnAllWidgets = menuOptions.always_boxfirst
-		local languageAddonId = menuOptions.language_addonId
-		local languageTable
-
-		if (languageAddonId) then
-			languageTable = DetailsFramework.Language.GetLanguageTable(languageAddonId)
-		end
-
-		for index, widgetTable in ipairs(menuOptions) do
-			if (not widgetTable.hidden) then
-
-				local widgetCreated
-				if (latestInlineWidget) then
-					if (not widgetTable.inline) then
-						latestInlineWidget = nil
-						currentYOffset = currentYOffset - 28
-					end
-				end
-
-				local extraPaddingY = 0
-
-				if (widgetTable.type == "blank") then
-					--do nothing
-
-				elseif (widgetTable.type == "label" or widgetTable.type == "text") then
-					local label = DF:CreateLabel(parent, "", widgetTable.text_template or textTemplate or widgetTable.size, widgetTable.color, widgetTable.font, nil, "$parentWidget" .. index, "overlay")
-					label._get = widgetTable.get
-					label.widget_type = "label"
-					label:SetPoint(currentXOffset, currentYOffset)
-
-					local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable)
-					if (namePhraseId) then
-						DetailsFramework.Language.RegisterObject(languageAddonId, label.widget, namePhraseId)
-						label.languageAddonId = languageAddonId
-					else
-						local textToSet = (widgetTable.get and widgetTable.get()) or widgetTable.text or ""
-						label:SetText(textToSet)
-					end
-
-					--store the widget created into the overall table and the widget by type
-					tinsert(parent.widget_list, label)
-					tinsert(parent.widget_list_by_type.label, label)
-
-					amountLineWidgetCreated = amountLineWidgetCreated + 1
-
-					if (widgetTable.id) then
-						parent.widgetids[widgetTable.id] = label
-					end
-
-				elseif (widgetTable.type == "select") then
-					assert(widgetTable.get, "DetailsFramework:BuildMenu(): .get not found in the widget table for 'select'")
-					local dropdown = DF:NewDropDown(parent, nil, "$parentWidget" .. index, nil, 140, 18, widgetTable.values, widgetTable.get(), dropdownTemplate)
-
-					local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterTableKeyWithDefault(languageAddonId, dropdown, "have_tooltip", descPhraseId, widgetTable.desc)
-
-					dropdown._get = widgetTable.get
-					dropdown.widget_type = "select"
-
-					local label = DF:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
-					local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterObjectWithDefault(languageAddonId, label.widget, namePhraseId, formatOptionNameWithColon(widgetTable.name, useColon))
-
-					dropdown.addonId = languageAddonId
-					if (languageAddonId) then
-						DF.Language.RegisterCallback(languageAddonId, function(addonId, languageId, ...) dropdown:Select(dropdown:GetValue()) end)
-						C_Timer.After(0.1, function() dropdown:Select(dropdown:GetValue()) end)
-					end
-
-					dropdown:SetPoint("left", label, "right", 2)
-					label:SetPoint(currentXOffset, currentYOffset)
-					dropdown.hasLabel = label
-
-					--global callback
-					if (valueChangeHook) then
-						dropdown:SetHook("OnOptionSelected", valueChangeHook)
-					end
-
-					--hook list
-					if (widgetTable.hooks) then
-						for hookName, hookFunc in pairs(widgetTable.hooks) do
-							dropdown:SetHook(hookName, hookFunc)
-						end
-					end
-
-					if (widgetTable.id) then
-						parent.widgetids[widgetTable.id] = dropdown
-					end
-
-					local widgetTotalSize = label.widget:GetStringWidth() + 144
-					if (widgetTotalSize > maxColumnWidth) then
-						maxColumnWidth = widgetTotalSize
-					end
-
-					--store the widget created into the overall table and the widget by type
-					tinsert(parent.widget_list, dropdown)
-					tinsert(parent.widget_list_by_type.dropdown, dropdown)
-
-					widgetCreated = dropdown
-					amountLineWidgetCreated = amountLineWidgetCreated + 1
-
-				elseif (widgetTable.type == "toggle") then
-					local switch = DF:NewSwitch(parent, nil, "$parentWidget" .. index, nil, 60, 20, nil, nil, widgetTable.get(), nil, nil, nil, nil, switchTemplate)
-
-					local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterTableKeyWithDefault(languageAddonId, switch, "have_tooltip", descPhraseId, widgetTable.desc)
-
-					switch._get = widgetTable.get
-					switch.widget_type = "toggle"
-					switch.OnSwitch = widgetTable.set
-
-					if (switchIsCheckbox) then
-						switch:SetAsCheckBox()
-					end
-
-					if (valueChangeHook) then
-						switch:SetHook("OnSwitch", valueChangeHook)
-					end
-
-					--hook list
-					if (widgetTable.hooks) then
-						for hookName, hookFunc in pairs(widgetTable.hooks) do
-							switch:SetHook(hookName, hookFunc)
-						end
-					end
-
-					if (widgetTable.width) then
-						switch:SetWidth(widgetTable.width)
-					end
-					if (widgetTable.height) then
-						switch:SetHeight(widgetTable.height)
-					end
-
-					local label = DF:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
-
-					local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterObjectWithDefault(languageAddonId, label.widget, namePhraseId, formatOptionNameWithColon(widgetTable.name, useColon))
-
-					if (widgetTable.boxfirst or useBoxFirstOnAllWidgets) then
-						switch:SetPoint(currentXOffset, currentYOffset)
-						label:SetPoint("left", switch, "right", 2)
-
-						local nextWidgetTable = menuOptions[index+1]
-						if (nextWidgetTable) then
-							if (nextWidgetTable.type ~= "blank" and nextWidgetTable.type ~= "breakline" and nextWidgetTable.type ~= "toggle" and nextWidgetTable.type ~= "color") then
-								extraPaddingY = 4
-							end
-						end
-					else
-						label:SetPoint(currentXOffset, currentYOffset)
-						switch:SetPoint("left", label, "right", 2, 0)
-					end
-					switch.hasLabel = label
-
-					if (widgetTable.id) then
-						parent.widgetids[widgetTable.id] = switch
-					end
-
-					local widgetTotalSize = label.widget:GetStringWidth() + 32
-					if (widgetTotalSize > maxColumnWidth) then
-						maxColumnWidth = widgetTotalSize
-					end
-
-					--store the widget created into the overall table and the widget by type
-					tinsert(parent.widget_list, switch)
-					tinsert(parent.widget_list_by_type.switch, switch)
-
-					widgetCreated = switch
-					amountLineWidgetCreated = amountLineWidgetCreated + 1
-
-				elseif (widgetTable.type == "range") then
-					assert(widgetTable.get, "DetailsFramework:BuildMenu(): .get not found in the widget table for 'range'")
-					local isDecimanls = widgetTable.usedecimals
-					local slider = DF:NewSlider(parent, nil, "$parentWidget" .. index, nil, 140, 20, widgetTable.min, widgetTable.max, widgetTable.step, widgetTable.get(),  isDecimanls, nil, nil, sliderTemplate)
-
-					local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterTableKeyWithDefault(languageAddonId, slider, "have_tooltip", descPhraseId, widgetTable.desc)
-
-					slider._get = widgetTable.get
-					slider.widget_type = "range"
-					slider:SetHook("OnValueChange", widgetTable.set)
-
-					if (widgetTable.thumbscale) then
-						slider:SetThumbSize(slider.thumb:GetWidth() * widgetTable.thumbscale, nil)
-					else
-						slider:SetThumbSize(slider.thumb:GetWidth() * 1.3, nil)
-					end
-
-					if (valueChangeHook) then
-						slider:SetHook("OnValueChange", valueChangeHook)
-					end
-
-					--hook list
-					if (widgetTable.hooks) then
-						for hookName, hookFunc in pairs(widgetTable.hooks) do
-							slider:SetHook(hookName, hookFunc)
-						end
-					end
-
-					local label = DF:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
-					local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterObjectWithDefault(languageAddonId, label.widget, namePhraseId, formatOptionNameWithColon(widgetTable.name, useColon))
-
-					slider:SetPoint("left", label, "right", 2)
-					label:SetPoint(currentXOffset, currentYOffset)
-					slider.hasLabel = label
-
-					if (widgetTable.id) then
-						parent.widgetids[widgetTable.id] = slider
-					end
-
-					local widgetTotalSize = label.widget:GetStringWidth() + 146
-					if (widgetTotalSize > maxColumnWidth) then
-						maxColumnWidth = widgetTotalSize
-					end
-
-					--store the widget created into the overall table and the widget by type
-					tinsert(parent.widget_list, slider)
-					tinsert(parent.widget_list_by_type.slider, slider)
-
-					widgetCreated = slider
-					amountLineWidgetCreated = amountLineWidgetCreated + 1
-
-				elseif (widgetTable.type == "color") then
-					assert(widgetTable.get, "DetailsFramework:BuildMenu(): .get not found in the widget table for 'color'")
-					local colorpick = DF:NewColorPickButton(parent, "$parentWidget" .. index, nil, widgetTable.set, nil, buttonTemplate)
-
-					local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterTableKeyWithDefault(languageAddonId, colorpick, "have_tooltip", descPhraseId, widgetTable.desc)
-
-					colorpick._get = widgetTable.get
-					colorpick.widget_type = "color"
-					colorpick:SetSize(18, 18)
-
-					local r, g, b, a = DF:ParseColors(widgetTable.get())
-					colorpick:SetColor(r, g, b, a)
-
-					if (valueChangeHook) then
-						colorpick:SetHook("OnColorChanged", valueChangeHook)
-					end
-
-					--hook list
-					if (widgetTable.hooks) then
-						for hookName, hookFunc in pairs(widgetTable.hooks) do
-							colorpick:SetHook(hookName, hookFunc)
-						end
-					end
-
-					local label = DF:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
-					local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterObjectWithDefault(languageAddonId, label.widget, namePhraseId, formatOptionNameWithColon(widgetTable.name, useColon))
-
-					if (widgetTable.boxfirst or useBoxFirstOnAllWidgets) then
-						label:SetPoint("left", colorpick, "right", 2)
-						colorpick:SetPoint(currentXOffset, currentYOffset)
-						extraPaddingY = 1
-					else
-						colorpick:SetPoint("left", label, "right", 2)
-						label:SetPoint(currentXOffset, currentYOffset)
-					end
-
-					colorpick.hasLabel = label
-
-					if (widgetTable.id) then
-						parent.widgetids[widgetTable.id] = colorpick
-					end
-
-					local widgetTotalSize = label.widget:GetStringWidth() + 32
-					if (widgetTotalSize > maxColumnWidth) then
-						maxColumnWidth = widgetTotalSize
-					end
-
-					--store the widget created into the overall table and the widget by type
-					tinsert(parent.widget_list, colorpick)
-					tinsert(parent.widget_list_by_type.color, colorpick)
-
-					widgetCreated = colorpick
-					amountLineWidgetCreated = amountLineWidgetCreated + 1
-
-				elseif (widgetTable.type == "execute") then
-					local button = DF:NewButton(parent, nil, "$parentWidget" .. index, nil, 120, 18, widgetTable.func, widgetTable.param1, widgetTable.param2, nil, "", nil, buttonTemplate, textTemplate)
-
-					local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterObjectWithDefault(languageAddonId, button.widget, namePhraseId, widgetTable.name)
-
-					if (not buttonTemplate) then
-						button:InstallCustomTexture()
-					end
-
-					if (widgetTable.inline) then
-						if (latestInlineWidget) then
-							button:SetPoint("left", latestInlineWidget, "right", 2, 0)
-							latestInlineWidget = button
-						else
-							button:SetPoint(currentXOffset, currentYOffset)
-							latestInlineWidget = button
-						end
-					else
-						button:SetPoint(currentXOffset, currentYOffset)
-					end
-
-					local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterTableKeyWithDefault(languageAddonId, button, "have_tooltip", descPhraseId, widgetTable.desc)
-
-					button.widget_type = "execute"
-
-					--button icon
-					if (widgetTable.icontexture) then
-						button:SetIcon(widgetTable.icontexture, nil, nil, nil, widgetTable.icontexcoords, nil, nil, 2)
-					end
-
-					--hook list
-					if (widgetTable.hooks) then
-						for hookName, hookFunc in pairs(widgetTable.hooks) do
-							button:SetHook(hookName, hookFunc)
-						end
-					end
-
-					if (widgetTable.id) then
-						parent.widgetids [widgetTable.id] = button
-					end
-
-					if (widgetTable.width) then
-						button:SetWidth(widgetTable.width)
-					end
-					if (widgetTable.height) then
-						button:SetHeight(widgetTable.height)
-					end
-
-					local widgetTotalSize = button:GetWidth() + 4
-					if (widgetTotalSize > maxColumnWidth) then
-						maxColumnWidth = widgetTotalSize
-					end
-
-					--store the widget created into the overall table and the widget by type
-					tinsert(parent.widget_list, button)
-					tinsert(parent.widget_list_by_type.button, button)
-
-					widgetCreated = button
-					amountLineWidgetCreated = amountLineWidgetCreated + 1
-
-				elseif (widgetTable.type == "textentry") then
-					local textentry = DF:CreateTextEntry(parent, widgetTable.func or widgetTable.set, 120, 18, nil, "$parentWidget" .. index, nil, buttonTemplate)
-					textentry.align = widgetTable.align or "left"
-
-					local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterTableKeyWithDefault(languageAddonId, textentry, "have_tooltip", descPhraseId, widgetTable.desc)
-
-					textentry.text = widgetTable.get()
-					textentry._get = widgetTable.get
-					textentry.widget_type = "textentry"
-					textentry:SetHook("OnEnterPressed", widgetTable.func or widgetTable.set)
-					textentry:SetHook("OnEditFocusLost", widgetTable.func or widgetTable.set)
-
-					local label = DF:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
-
-					local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable)
-					DetailsFramework.Language.RegisterObjectWithDefault(languageAddonId, label.widget, namePhraseId, formatOptionNameWithColon(widgetTable.name, useColon))
-
-					textentry:SetPoint("left", label, "right", 2)
-					label:SetPoint(currentXOffset, currentYOffset)
-					textentry.hasLabel = label
-
-					--hook list
-					if (widgetTable.hooks) then
-						for hookName, hookFunc in pairs(widgetTable.hooks) do
-							textentry:SetHook(hookName, hookFunc)
-						end
-					end
-
-					if (widgetTable.id) then
-						parent.widgetids [widgetTable.id] = textentry
-					end
-
-					local widgetTotalSize = label.widget:GetStringWidth() + 64
-					if (widgetTotalSize > maxColumnWidth) then
-						maxColumnWidth = widgetTotalSize
-					end
-
-					--store the widget created into the overall table and the widget by type
-					tinsert(parent.widget_list, textentry)
-					tinsert(parent.widget_list_by_type.textentry, textentry)
-
-					widgetCreated = textentry
-					amountLineWidgetCreated = amountLineWidgetCreated + 1
-				end
-
-				if (widgetTable.nocombat) then
-					tinsert(widgetsToDisableOnCombat, widgetCreated)
-				end
-
-				if (not widgetTable.inline) then
-					if (widgetTable.spacement) then
-						currentYOffset = currentYOffset - 30
-					else
-						currentYOffset = currentYOffset - 20
-					end
-				end
-
-				if (extraPaddingY > 0) then
-					currentYOffset = currentYOffset - extraPaddingY
-				end
-
-				if (widgetTable.type == "breakline" or currentYOffset < height) then
-					currentYOffset = yOffset
-					currentXOffset = currentXOffset + maxColumnWidth + 20
-					amountLineWidgetCreated = 0
-					maxColumnWidth = 0
-				end
-			end
-		end
-
-		DF.RefreshUnsafeOptionsWidgets()
-	end
-
-	local lockNotSafeWidgetsForCombat = function()
-		for _, widget in ipairs(widgetsToDisableOnCombat) do
-			widget:Disable()
-		end
-	end
-
-	local unlockNotSafeWidgetsForCombat = function()
-		for _, widget in ipairs(widgetsToDisableOnCombat) do
-			widget:Enable()
-		end
-	end
-
-	function DF.RefreshUnsafeOptionsWidgets()
-		if (DF.PlayerHasCombatFlag) then
-			lockNotSafeWidgetsForCombat()
-		else
-			unlockNotSafeWidgetsForCombat()
-		end
-	end
-
-	DF.PlayerHasCombatFlag = false
-	local ProtectCombatFrame = CreateFrame("frame")
-	ProtectCombatFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-	ProtectCombatFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-	ProtectCombatFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-	ProtectCombatFrame:SetScript("OnEvent", function(self, event)
-		if (event == "PLAYER_ENTERING_WORLD") then
-			if (InCombatLockdown()) then
-				DF.PlayerHasCombatFlag = true
-			else
-				DF.PlayerHasCombatFlag = false
-			end
-			DF.RefreshUnsafeOptionsWidgets()
-
-		elseif (event == "PLAYER_REGEN_ENABLED") then
-			DF.PlayerHasCombatFlag = false
-			DF.RefreshUnsafeOptionsWidgets()
-
-		elseif (event == "PLAYER_REGEN_DISABLED") then
-			DF.PlayerHasCombatFlag = true
-			DF.RefreshUnsafeOptionsWidgets()
-		end
-	end)
-
-	function DF:CreateInCombatTexture(frame)
-		if (DF.debug and not frame) then
-			error("Details! Framework: CreateInCombatTexture invalid frame on parameter 1.")
-		end
-
-		local inCombatBackgroundTexture = DF:CreateImage(frame)
-		inCombatBackgroundTexture:SetColorTexture(.6, 0, 0, .1)
-		inCombatBackgroundTexture:Hide()
-
-		local inCombatLabel = Plater:CreateLabel(frame, "you are in combat", 24, "silver")
-		inCombatLabel:SetPoint("right", inCombatBackgroundTexture, "right", -10, 0)
-		inCombatLabel:Hide()
-
-		frame:RegisterEvent("PLAYER_REGEN_DISABLED")
-		frame:RegisterEvent("PLAYER_REGEN_ENABLED")
-
-		frame:SetScript("OnEvent", function(self, event)
-			if (event == "PLAYER_REGEN_DISABLED") then
-				inCombatBackgroundTexture:Show()
-				inCombatLabel:Show()
-
-			elseif (event == "PLAYER_REGEN_ENABLED") then
-				inCombatBackgroundTexture:Hide()
-				inCombatLabel:Hide()
-			end
-		end)
-
-		return inCombatBackgroundTexture
-	end
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --tutorials
 	function DF:ShowTutorialAlertFrame(maintext, desctext, clickfunc)
 		local TutorialAlertFrame = _G.DetailsFrameworkAlertFrame
@@ -2968,67 +2102,6 @@ end
 		TutorialAlertFrame:Show()
 	end
 
-	local refresh_options = function(self)
-		for _, widget in ipairs(self.widget_list) do
-			if (widget._get) then
-				if (widget.widget_type == "label") then
-					if (widget._get() and not widget.languageAddonId) then
-						widget:SetText(widget._get())
-					end
-
-				elseif (widget.widget_type == "select") then
-					widget:Select(widget._get())
-
-				elseif (widget.widget_type == "toggle" or widget.widget_type == "range") then
-					widget:SetValue(widget._get())
-
-				elseif (widget.widget_type == "textentry") then
-					widget:SetText(widget._get())
-
-				elseif (widget.widget_type == "color") then
-					local default_value, g, b, a = widget._get()
-					if (type(default_value) == "table") then
-						widget:SetColor (unpack(default_value))
-
-					else
-						widget:SetColor (default_value, g, b, a)
-					end
-				end
-			end
-		end
-	end
-
-	local get_frame_by_id = function(self, id)
-		return self.widgetids [id]
-	end
-
-	function DF:ClearOptionsPanel(frame)
-		for i = 1, #frame.widget_list do
-			frame.widget_list[i]:Hide()
-			if (frame.widget_list[i].hasLabel) then
-				frame.widget_list[i].hasLabel:SetText("")
-			end
-		end
-
-		table.wipe(frame.widgetids)
-	end
-
-	function DF:SetAsOptionsPanel(frame)
-		frame.RefreshOptions = refresh_options
-		frame.widget_list = {}
-		frame.widget_list_by_type = {
-			["dropdown"] = {}, -- "select"
-			["switch"] = {}, -- "toggle"
-			["slider"] = {}, -- "range"
-			["color"] = {}, --
-			["button"] = {}, -- "execute"
-			["textentry"] = {}, --
-			["label"] = {}, --"text"
-		}
-		frame.widgetids = {}
-		frame.GetWidgetById = get_frame_by_id
-	end
-
 	function DF:CreateOptionsFrame(name, title, template)
 		template = template or 1
 
@@ -3037,7 +2110,7 @@ end
 			tinsert(UISpecialFrames, name)
 
 			newOptionsFrame:SetSize(500, 200)
-			newOptionsFrame.RefreshOptions = refresh_options
+			newOptionsFrame.RefreshOptions = DF.internalFunctions.RefreshOptionsPanel
 			newOptionsFrame.widget_list = {}
 
 			newOptionsFrame:SetScript("OnMouseDown", function(self, button)
@@ -3075,7 +2148,7 @@ end
 			tinsert(UISpecialFrames, name)
 
 			newOptionsFrame:SetSize(500, 200)
-			newOptionsFrame.RefreshOptions = refresh_options
+			newOptionsFrame.RefreshOptions = DF.internalFunctions.RefreshOptionsPanel
 			newOptionsFrame.widget_list = {}
 
 			newOptionsFrame:SetScript("OnMouseDown", function(self, button)
@@ -3311,6 +2384,12 @@ DF.button_templates["OPTIONS_BUTTON_TEMPLATE"] = {
 	backdropbordercolor = {0, 0, 0, 1},
 }
 
+DF.button_templates["OPTIONS_BUTTON_GOLDENBORDER_TEMPLATE"] = {
+	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
+	backdropcolor = {1, 1, 1, .5},
+	backdropbordercolor = {1, 0.785, 0, 1},
+}
+
 --sliders
 DF.slider_templates = DF.slider_templates or {}
 DF.slider_templates["OPTIONS_SLIDER_TEMPLATE"] = {
@@ -3325,6 +2404,12 @@ DF.slider_templates["OPTIONS_SLIDER_TEMPLATE"] = {
 	thumbcolor = {0, 0, 0, 0.5},
 }
 
+---install a template
+---@param widgetType string
+---@param templateName string
+---@param template table
+---@param parentName any
+---@return table
 function DF:InstallTemplate(widgetType, templateName, template, parentName)
 	local newTemplate = {}
 
@@ -4597,12 +3682,27 @@ function DF:ReskinSlider(slider, heightOffset)
 	end
 end
 
+function DF:GetCurrentClassName()
+	local className = UnitClass("player")
+	return className
+end
+
+function DF:GetCurrentSpecName()
+	local specIndex = DF.GetSpecialization()
+	if (specIndex) then
+		local specId, specName = DF.GetSpecializationInfo(specIndex)
+		if (specId and specId ~= 0) then
+			return specName
+		end
+	end
+end
+
 function DF:GetCurrentSpec()
 	local specIndex = DF.GetSpecialization()
 	if (specIndex) then
-		local specID = DF.GetSpecializationInfo(specIndex)
-		if (specID and specID ~= 0) then
-			return specID
+		local specId = DF.GetSpecializationInfo(specIndex)
+		if (specId and specId ~= 0) then
+			return specId
 		end
 	end
 end
@@ -4627,15 +3727,19 @@ local specs_per_class = {
 	["EVOKER"] = {1467, 1468, 1473},
 }
 
-function DF:GetClassSpecIDs(class)
-	return specs_per_class [class]
+
+function DF:GetClassSpecIDs(engClass)
+	return specs_per_class[engClass]
+end
+function DF:GetClassSpecIds(engClass) --naming conventions
+	return DF:GetClassSpecIDs(engClass)
 end
 
 local dispatch_error = function(context, errortext)
 	DF:Msg( (context or "<no context>") .. " |cFFFF9900error|r: " .. (errortext or "<no error given>"))
 end
 
---safe call an external func with payload and without telling who is calling
+--call a function with payload, if the callback doesn't exists, quit silently
 function DF:QuickDispatch(func, ...)
 	if (type(func) ~= "function") then
 		return
@@ -4678,7 +3782,7 @@ end
 
 --[=[
 	DF:CoreDispatch(func, context, ...)
-	safe call a function making a error window with what caused, the context and traceback of the error
+	safe call a function making an error window with what caused, context and traceback of the error
 	this func is only used inside the framework for sensitive calls where the func must run without errors
 	@func = the function which will be called
 	@context = what made the function be called
@@ -4721,44 +3825,42 @@ DF.ClassIndexToFileName = {
 
 
 DF.ClassFileNameToIndex = {
-	["DEATHKNIGHT"] = 6,
 	["WARRIOR"] = 1,
-	["ROGUE"] = 4,
-	["MAGE"] = 8,
-	["PRIEST"] = 5,
-	["HUNTER"] = 3,
-	["WARLOCK"] = 9,
-	["DEMONHUNTER"] = 12,
-	["SHAMAN"] = 7,
-	["DRUID"] = 11,
-	["MONK"] = 10,
 	["PALADIN"] = 2,
+	["HUNTER"] = 3,
+	["ROGUE"] = 4,
+	["PRIEST"] = 5,
+	["DEATHKNIGHT"] = 6,
+	["SHAMAN"] = 7,
+	["MAGE"] = 8,
+	["WARLOCK"] = 9,
+	["MONK"] = 10,
+	["DRUID"] = 11,
+	["DEMONHUNTER"] = 12,
 	["EVOKER"] = 13,
 }
 DF.ClassCache = {}
 
 function DF:GetClassList()
-
 	if (next (DF.ClassCache)) then
 		return DF.ClassCache
 	end
 
 	for className, classIndex in pairs(DF.ClassFileNameToIndex) do
-		local classTable = C_CreatureInfo.GetClassInfo (classIndex)
+		local classTable = C_CreatureInfo.GetClassInfo(classIndex)
 		if classTable then
 			local t = {
 				ID = classIndex,
 				Name = classTable.className,
 				Texture = [[Interface\GLUES\CHARACTERCREATE\UI-CharacterCreate-Classes]],
-				TexCoord = CLASS_ICON_TCOORDS [className],
+				TexCoord = CLASS_ICON_TCOORDS[className],
 				FileString = className,
 			}
-			tinsert(DF.ClassCache, t)
+			table.insert(DF.ClassCache, t)
 		end
 	end
 
 	return DF.ClassCache
-
 end
 
 --hardcoded race list
@@ -4822,13 +3924,13 @@ function DF:GetCharacterRaceList()
 	end
 
 	for i = 1, 100 do
-		local raceInfo = C_CreatureInfo.GetRaceInfo (i)
+		local raceInfo = C_CreatureInfo.GetRaceInfo(i)
 		if (raceInfo and DF.RaceList [raceInfo.raceID]) then
 			tinsert(DF.RaceCache, {Name = raceInfo.raceName, FileString = raceInfo.clientFileString, ID = raceInfo.raceID})
 		end
 
 		if IS_WOW_PROJECT_MAINLINE then
-			local alliedRaceInfo = C_AlliedRaces.GetRaceInfoByID (i)
+			local alliedRaceInfo = C_AlliedRaces.GetRaceInfoByID(i)
 			if (alliedRaceInfo and DF.AlliedRaceList [alliedRaceInfo.raceID]) then
 				tinsert(DF.RaceCache, {Name = alliedRaceInfo.maleName, FileString = alliedRaceInfo.raceFileString, ID = alliedRaceInfo.raceID})
 			end
@@ -4841,24 +3943,72 @@ end
 --get a list of talents for the current spec the player is using
 --if onlySelected return an index table with only the talents the character has selected
 --if onlySelectedHash return a hash table with [spelID] = true
-function DF:GetCharacterTalents (onlySelected, onlySelectedHash)
+function DF:GetCharacterTalents(bOnlySelected, bOnlySelectedHash)
 	local talentList = {}
+	local version, build, date, tocversion = GetBuildInfo()
 
-	for i = 1, 7 do
-		for o = 1, 3 do
-			local talentID, name, texture, selected, available = GetTalentInfo (i, o, 1)
-			if (onlySelectedHash) then
-				if (selected) then
-					talentList [talentID] = true
-					break
+	if (tocversion >= 70000 and tocversion <= 99999) then
+		for i = 1, 7 do
+			for o = 1, 3 do
+				local talentID, name, texture, selected, available = GetTalentInfo(i, o, 1)
+				if (bOnlySelectedHash) then
+					if (selected) then
+						talentList[talentID] = true
+						break
+					end
+				elseif (bOnlySelected) then
+					if (selected) then
+						table.insert(talentList, {Name = name, ID = talentID, Texture = texture, IsSelected = selected})
+						break
+					end
+				else
+					table.insert(talentList, {Name = name, ID = talentID, Texture = texture, IsSelected = selected})
 				end
-			elseif (onlySelected) then
-				if (selected) then
-					tinsert(talentList, {Name = name, ID = talentID, Texture = texture, IsSelected = selected})
-					break
+			end
+		end
+
+	elseif (tocversion >= 100000) then
+		if (not bOnlySelected) then
+			return DF:GetAllTalents()
+		end
+
+		local configId = C_ClassTalents.GetActiveConfigID()
+		if (configId) then
+			local configInfo = C_Traits.GetConfigInfo(configId)
+			--get the spells from the SPEC from talents
+			for treeIndex, treeId in ipairs(configInfo.treeIDs) do
+				local treeNodes = C_Traits.GetTreeNodes(treeId)
+
+				for nodeIdIndex, treeNodeID in ipairs(treeNodes) do
+					local traitNodeInfo = C_Traits.GetNodeInfo(configId, treeNodeID)
+
+					if (traitNodeInfo) then
+						local activeEntry = traitNodeInfo.activeEntry
+						local entryIds = traitNodeInfo.entryIDs
+
+						for i = 1, #entryIds do
+							local entryId = entryIds[i] --number
+							local traitEntryInfo = C_Traits.GetEntryInfo(configId, entryId)
+							local borderTypes = Enum.TraitNodeEntryType
+
+							if (traitEntryInfo.type) then -- == borderTypes.SpendCircle
+								local definitionId = traitEntryInfo.definitionID
+								local traitDefinitionInfo = C_Traits.GetDefinitionInfo(definitionId)
+								local spellId = traitDefinitionInfo.overriddenSpellID or traitDefinitionInfo.spellID
+								local spellName, _, spellTexture = GetSpellInfo(spellId)
+								local bIsSelected = (activeEntry and activeEntry.rank and activeEntry.rank > 0) or false
+								if (spellName and bIsSelected) then
+									local talentInfo = {Name = spellName, ID = spellId, Texture = spellTexture, IsSelected = true}
+									if (bOnlySelectedHash) then
+										talentList[spellId] = talentInfo
+									else
+										table.insert(talentList, talentInfo)
+									end
+								end
+							end
+						end
+					end
 				end
-			else
-				tinsert(talentList, {Name = name, ID = talentID, Texture = texture, IsSelected = selected})
 			end
 		end
 	end
@@ -4866,7 +4016,7 @@ function DF:GetCharacterTalents (onlySelected, onlySelectedHash)
 	return talentList
 end
 
-function DF:GetCharacterPvPTalents (onlySelected, onlySelectedHash)
+function DF:GetCharacterPvPTalents(onlySelected, onlySelectedHash)
 	if (onlySelected or onlySelectedHash) then
 		local talentsSelected = C_SpecializationInfo.GetAllSelectedPvpTalentIDs()
 		local talentList = {}
@@ -5129,6 +4279,15 @@ DF.SpecListByClass = {
 		1473,
 	},
 }
+
+---return if the specId is a valid spec, it'll return false for specIds from the tutorial area
+---@param self table
+---@param specId number
+function DF:IsValidSpecId(specId)
+	local _, class = UnitClass("player")
+	local specs = DF.ClassSpecs[class]
+	return specs and specs[specId] and true or false
+end
 
 --given a class and a  specId, return if the specId is a spec from the class passed
 function DF:IsSpecFromClass(class, specId)
@@ -5633,6 +4792,8 @@ function DF:DebugVisibility(UIObject)
 	local bIsShown = UIObject:IsShown()
 	print("Is Shown:", bIsShown and "|cFF00FF00true|r" or "|cFFFF0000false|r")
 
+	print("Alpha > 0:", UIObject:GetAlpha() > 0 and "|cFF00FF00true|r" or "|cFFFF0000false|r")
+
 	local bIsVisible = UIObject:IsVisible()
 	print("Is Visible:", bIsVisible and "|cFF00FF00true|r" or "|cFFFF0000false|r")
 
@@ -5643,3 +4804,24 @@ function DF:DebugVisibility(UIObject)
 	local numPoints = UIObject:GetNumPoints()
 	print("Num Points:", numPoints > 0 and "|cFF00FF00" .. numPoints .. "|r" or "|cFFFF00000|r")
 end
+
+local benchmarkTime = 0
+local bBenchmarkEnabled = false
+function _G.__benchmark(bNotPrintResult)
+	if (not bBenchmarkEnabled) then
+		bBenchmarkEnabled = true
+		debugprofilestop()
+		benchmarkTime = debugprofilestop()
+	else
+		local elapsed = debugprofilestop() - benchmarkTime
+		bBenchmarkEnabled = false
+
+		if (bNotPrintResult) then
+			return elapsed
+		end
+
+		print("Elapsed Time:", elapsed)
+		return elapsed
+	end
+end
+

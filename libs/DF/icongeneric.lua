@@ -12,6 +12,11 @@ end
 ---@field CountdownText fontstring
 ---@field CooldownEdge texture
 ---@field options table
+---@field NextIcon number
+---@field IconPool table<number, df_icongeneric> table which store the icons created for this iconrow
+---@field SetAuraWithIconTemplate fun(self:df_icongeneric, aI:aurainfo, iconTemplateTable:table)
+---@field ClearIcons fun(self:df_icongeneric, resetBuffs:boolean?, resetDebuffs:boolean?)
+---@field AlignAuraIcons fun(self:df_icongeneric)
 
 local unpack = unpack
 local CreateFrame = CreateFrame
@@ -22,6 +27,10 @@ local spellIconCache = {}
 local spellNameCache = {}
 local emptyTable = {}
 local white = {1, 1, 1, 1}
+
+local sortIconByShownState = function(i1, i2)
+	return i1:IsShown() and not i2:IsShown()
+end
 
 local iconFrameOnHideScript = function(self)
 	if (self.cooldownLooper) then
@@ -159,6 +168,15 @@ detailsFramework.IconGenericMixin = {
 
 	AddSpecificIconWithTemplate = function(self, iconTemplateTable)
 		self:AddSpecificIcon(iconTemplateTable.id, iconTemplateTable.id, nil, iconTemplateTable.startTime, iconTemplateTable.duration, nil, nil, iconTemplateTable.count, nil, nil, nil, nil, nil, nil, iconTemplateTable)
+	end,
+
+	IsIconShown = function(self, identifierKey)
+		if (not identifierKey or identifierKey == "") then
+			return
+		end
+		if (self.AuraCache[identifierKey]) then
+			return true
+		end
 	end,
 
 	---set an icon frame with a template
@@ -551,7 +569,8 @@ detailsFramework.IconGenericMixin = {
 		if iconAmount == 0 then
 			self:Hide()
 		else
-			table.sort(iconPool, function(i1, i2) return i1:IsShown() and not i2:IsShown() end)
+			table.sort(iconPool, sortIconByShownState)
+
 			local shownAmount = 0
 			for i = 1, iconAmount do
 				if iconPool[i]:IsShown() then

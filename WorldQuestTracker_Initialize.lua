@@ -167,7 +167,7 @@ do
 				summary_scale = 0.95,
 				summary_showby = "bytype", --"bytype" or "byzone"
 				summary_anchor = "left",
-				summary_widgets_per_row = 10,
+				summary_widgets_per_row = 8,
 			},
 
 			disable_world_map_widgets = false,

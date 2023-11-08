@@ -1470,13 +1470,21 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 			WQTPathFrame.texturePool = {}
 			WQTPathFrame.texturesNotInUse = {}
+
 			--line size need to be dynamic with the canvas size
-			WQTPathFrame.Distance = WorldQuestTracker.db.profile.path.LineSize / WorldQuestTracker.db.profile.path.DotAmount
+			local dotScale = WorldQuestTracker.DotLineScale[WorldMapFrame.mapID] or 1
+			local dotAmount = WorldQuestTracker.db.profile.path.DotAmount
+			dotAmount = math.floor(dotAmount * dotScale)
+
+			WQTPathFrame.DotScale = dotScale
+			WQTPathFrame.Distance = WorldQuestTracker.db.profile.path.LineSize / (WorldQuestTracker.db.profile.path.DotAmount * dotAmount)
 			WQTPathFrame.bIsShowingLine = false
 
 			function WQTPathFrame.RefreshDot(Dot)
+				local dotSize = WorldQuestTracker.db.profile.path.DotSize
+				dotSize = dotSize * WQTPathFrame.DotScale
 				Dot:SetTexture(WorldQuestTracker.db.profile.path.DotTexture)
-				Dot:SetSize(WorldQuestTracker.db.profile.path.DotSize, WorldQuestTracker.db.profile.path.DotSize)
+				Dot:SetSize(dotSize, dotSize)
 				Dot:SetVertexColor(unpack(WorldQuestTracker.db.profile.path.ColorSRGB))
 			end
 
@@ -1506,7 +1514,9 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				dotAmount = math.floor(dotAmount * dotScale)
 
 				--line length
+				WQTPathFrame.DotScale = dotScale
 				WQTPathFrame.Distance = WorldQuestTracker.db.profile.path.LineSize / dotAmount
+				WQTPathFrame.Distance = WQTPathFrame.Distance * 2
 
 				--if (not WQTPathFrame.bIsShowingLine) then
 				--	worldQuestTrackerPathProvider:ShowLine()

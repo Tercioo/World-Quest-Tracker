@@ -275,6 +275,7 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 --methods
 
 	---change the function which will be called when the button is pressed
+	---callback function will receive the blizzard button as first parameter, click type as second, param1 and param2 as third and fourth
 	---@param func function
 	---@param param1 any
 	---@param param2 any
@@ -381,6 +382,7 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 	end
 
 	---add an icon to the left of the button text
+	---short method truncates the text: false = do nothing, nil = increate the button width, 1 = decrease the font size, 2 = truncate the text
 	---@param texture any
 	---@param width number|nil
 	---@param height number|nil
@@ -463,6 +465,9 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 						textSize = textSize - 1
 					end
 				end
+
+			elseif (shortMethod == 2) then
+				detailsFramework:TruncateText(self.button.text, self:GetWidth() - self.icon:GetWidth() - 15)
 			end
 		end
 	end
@@ -740,11 +745,11 @@ function ButtonMetaFunctions:SetTemplate(template)
 	end
 
 	if (template.width) then
-		self:SetWidth(template.width)
+		PixelUtil.SetWidth(self.button, template.width)
 	end
 
 	if (template.height) then
-		self:SetHeight(template.height)
+		PixelUtil.SetHeight(self.button, template.height)
 	end
 
 	if (template.backdrop) then
@@ -809,8 +814,8 @@ end
 --object constructor
 	local onDisableFunc = function(self)
 		self.texture_disabled:Show()
-		self.texture_disabled:SetVertexColor(0, 0, 0)
-		self.texture_disabled:SetAlpha(.5)
+		self.texture_disabled:SetVertexColor(0.1, 0.1, 0.1)
+		self.texture_disabled:SetAlpha(.834)
 	end
 
 	local onEnableFunc = function(self)
@@ -835,7 +840,7 @@ end
 		self:SetScript("OnEnable", onEnableFunc)
 	end
 
-	---@class df_button : button
+	---@class df_button : button, df_scripthookmixin
 	---@field widget button
 	---@field tooltip string
 	---@field shown boolean
@@ -851,13 +856,14 @@ end
 	---@field textcolor any
 	---@field textfont string
 	---@field textsize number
+	---@field icon texture created after calling SetIcon()
 	---@field SetTemplate fun(self: df_button, template: table) set the button visual by a template
 	---@field RightClick fun(self: df_button) right click the button executing its right click function
 	---@field Exec fun(self: df_button) execute the button function for the left button
 	---@field Disable fun(self: df_button) disable the button
 	---@field Enable fun(self: df_button) enable the button
 	---@field IsEnabled fun(self: df_button) : boolean returns true if the button is enabled
-	---@field SetIcon fun(self: df_button,texture: string, width: number|nil, height: number|nil, layout: string|nil, texcoord: table|nil, overlay: table|nil, textDistance: number|nil, leftPadding: number|nil, textHeight: number|nil, shortMethod: any|nil)
+	---@field SetIcon fun(self: df_button,texture: string|number, width: number|nil, height: number|nil, layout: string|nil, texcoord: table|nil, overlay: table|nil, textDistance: number|nil, leftPadding: number|nil, textHeight: number|nil, shortMethod: any|nil)
 	---@field GetIconTexture fun(self: df_button) : string returns the texture path of the button icon
 	---@field SetTexture fun(self: df_button, normalTexture: string, highlightTexture: string, pressedTexture: string, disabledTexture: string) set the regular button textures
 	---@field SetFontFace fun(self: df_button, font: string) set the button font
@@ -871,7 +877,7 @@ end
 	---@param func function
 	---@param width number
 	---@param height number
-	---@param text string
+	---@param text any
 	---@param param1 any|nil
 	---@param param2 any|nil
 	---@param texture any|nil
@@ -887,17 +893,18 @@ end
 
 	---@return df_button
 	function detailsFramework:NewButton(parent, container, name, member, width, height, func, param1, param2, texture, text, shortMethod, buttonTemplate, textTemplate)
-		if (not name) then
-			name = "DetailsFrameworkButtonNumber" .. detailsFramework.ButtonCounter
-			detailsFramework.ButtonCounter = detailsFramework.ButtonCounter + 1
-
-		elseif (not parent) then
+		if (not parent) then
 			error("Details! FrameWork: parent not found.", 2)
 		end
 
-		if (name:find("$parent")) then
-			local parentName = detailsFramework.GetParentName(parent)
-			name = name:gsub("$parent", parentName)
+		if (not name) then
+			local parentName = parent:GetName()
+			if (parentName) then
+				name = parentName .. "Button" .. detailsFramework.ButtonCounter
+			else
+				name = "DetailsFrameworkButtonNumber" .. detailsFramework.ButtonCounter
+			end
+			detailsFramework.ButtonCounter = detailsFramework.ButtonCounter + 1
 		end
 
 		local buttonObject = {type = "button", dframework = true}
@@ -921,7 +928,7 @@ end
 		detailsFramework:Mixin(buttonObject.button, detailsFramework.WidgetFunctions)
 
 		createButtonWidgets(buttonObject.button)
-		buttonObject.button:SetSize(width or 100, height or 20)
+		PixelUtil.SetSize(buttonObject.button, width or 100, height or 20)
 		buttonObject.widget = buttonObject.button
 		buttonObject.button.MyObject = buttonObject
 
@@ -957,8 +964,8 @@ end
 			if (shortMethod == false) then --if is false, do not use auto resize
 				--do nothing
 			elseif (not shortMethod) then --if the value is omitted, use the default resize
-				local new_width = textWidth + 15
-				buttonObject.button:SetWidth(new_width)
+				local newWidth = textWidth + 15
+				PixelUtil.SetWidth(buttonObject.button, newWidth)
 
 			elseif (shortMethod == 1) then
 				local loop = true

@@ -23,7 +23,7 @@
 	<Script file="charts.lua"/>
 	<Script file="scripting.lua"/>
 	<Script file="externals.lua"/>
-	<Script file="frames.lua"/>
+	<Script file="rounded_panel.lua"/>
 	
 	<Include file="tutorial_alert.xml"/>
 	<Include file="split_bar.xml"/>
@@ -32,12 +32,17 @@
 	<Include file="cooltip.xml"/>
 	<Include file="dropdown.xml"/>
 	<Include file="normal_bar.xml"/>
+	<Script file="scrollbox.lua"/>
 	<Include file="panel.xml"/>
 
+	<Script file="buildmenu.lua"/>
+	<Script file="loadconditions.lua"/>
 	<Include file="unitframe.lua"/>
 	<Script file="icon.lua"/>
 	<Script file="icongeneric.lua"/>
 	<Script file="pictureedit.lua"/>
 	<Script file="auras.lua"/>
 	<Script file="tabcontainer.lua"/>
+	<Script file="editor.lua"/>
+	<Script file="keybind.lua"/>
 </Ui>

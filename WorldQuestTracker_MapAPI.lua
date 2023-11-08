@@ -79,9 +79,6 @@ function WorldQuestTracker.CheckQuestRewardDataForWidget (widget, noScheduleRefr
 	end
 
 	if (not HaveQuestRewardData (questID)) then
-
-
-
 		--if this is from a re-schedule it already requested the data
 		if (not noRequestData) then
 			--ask que server for the reward data

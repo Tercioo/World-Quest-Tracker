@@ -245,8 +245,8 @@ detailsFramework.TextEntryCounter = detailsFramework.TextEntryCounter or 1
 
 			self.editbox:Disable()
 
-			self.editbox:SetBackdropBorderColor(.5, .5, .5, .5)
-			self.editbox:SetBackdropColor(.5, .5, .5, .5)
+			self.editbox:SetBackdropBorderColor(0, 0, 0, 1)
+			self.editbox:SetBackdropColor(.1, .1, .1, .834)
 			self.editbox:SetTextColor(.5, .5, .5, .5)
 
 			if (self.editbox.borderframe) then
@@ -531,8 +531,45 @@ end
 ------------------------------------------------------------------------------------------------------------
 --object constructor
 
-function detailsFramework:CreateTextEntry(parent, func, w, h, member, name, with_label, entry_template, label_template)
-	return detailsFramework:NewTextEntry(parent, parent, name, member, w, h, func, nil, nil, nil, with_label, entry_template, label_template)
+---@class df_textentry : editbox
+---@field widget editbox
+---@field tooltip any
+---@field show any
+---@field hide any
+---@field width any
+---@field height any
+---@field text any
+---@field multiline any
+---@field align any
+---@field ShouldOptimizeAutoComplete boolean?
+---@field SetTemplate fun(self:df_textentry, template:table)
+---@field Disable fun(self:df_textentry)
+---@field Enable fun(self:df_textentry)
+---@field SetCommitFunction fun(self:df_textentry, func:function)
+---@field SetNext fun(self:df_textentry, next:df_textentry)
+---@field SetLabelText fun(self:df_textentry, text:string)
+---@field SelectAll fun(self:df_textentry)
+---@field SetAutoSelectTextOnFocus fun(self:df_textentry, value:boolean)
+---@field Blink fun(self:df_textentry)
+---@field SetText fun(self:df_textentry, text:string)
+---@field GetText fun(self:df_textentry)
+---@field SetEnterFunction fun(self:df_textentry, func:function, param1:any, param2:any)
+---@field SetHook fun(self:df_textentry, hookName:string, func:function)
+---@field SetAsSearchBox fun(self:df_textentry)
+---@field SetAsAutoComplete fun(self:df_textentry, poolName:string, poolTable:table?, shouldOptimize:boolean?) poolName is the name of the member on textEntry that will be used to store the pool table, poolTable is an array with word to be used on the autocomplete, shouldOptimize is a boolean that will optimize the autocomplete by using a cache table, it's recommended to use it if the autocomplete array is too large.
+
+---@param parent frame
+---@param textChangedCallback function
+---@param width number
+---@param height number
+---@param member string?
+---@param name string?
+---@param labelText string?
+---@param textentryTemplate table?
+---@param labelTemplate table?
+---@return df_textentry
+function detailsFramework:CreateTextEntry(parent, textChangedCallback, width, height, member, name, labelText, textentryTemplate, labelTemplate)
+	return detailsFramework:NewTextEntry(parent, parent, name, member, width, height, textChangedCallback, nil, nil, nil, labelText, textentryTemplate, labelTemplate)
 end
 
 function detailsFramework:NewTextEntry(parent, container, name, member, width, height, func, param1, param2, space, withLabel, entryTemplate, labelTemplate)
@@ -942,9 +979,34 @@ local set_speciallua_editor_font_size = function(borderFrame, newSize)
 	borderFrame.editboxlines:SetFont(file, newSize, flags)
 end
 
+---@class df_luaeditor : frame
+---@field scroll scrollframe
+---@field editbox editbox
+---@field scrollnumberlines number
+---@field editboxlines editbox
+---@field SetTemplate fun(self:df_luaeditor, template:table)
+---@field Disable fun(self:df_luaeditor)
+---@field Enable fun(self:df_luaeditor)
+---@field SetText fun(self:df_luaeditor, text:string)
+---@field GetText fun(self:df_luaeditor):string
+---@field SetTextSize fun(self:df_luaeditor, size:number)
+---@field ClearFocus fun(self:df_luaeditor)
+---@field SetFocus fun(self:df_luaeditor)
+
+---create a text box to edit lua code
+---if 'nointent' is true, the lua code will not be indented / highlighted / colored
+---@param parent frame
+---@param width number
+---@param height number
+---@param member string?
+---@param name string?
+---@param nointent boolean?
+---@param showLineNumbers boolean?
+---@param bNoName boolean?
+---@return df_luaeditor
 function detailsFramework:NewSpecialLuaEditorEntry(parent, width, height, member, name, nointent, showLineNumbers, bNoName)
 	if (not bNoName) then
-		if (name:find("$parent")) then
+		if (name and name:find("$parent")) then
 			local parentName = detailsFramework.GetParentName(parent)
 			name = name:gsub("$parent", parentName)
 		end
@@ -1048,13 +1110,13 @@ function detailsFramework:NewSpecialLuaEditorEntry(parent, width, height, member
 				--set the line text into a fontstring to get its width
 				local thisText = textInArray[i]
 				stringLengthFontString:SetText(thisText)
-				local lineTextLength = ceil(stringLengthFontString:GetStringWidth())
+				local lineTextLength = math.ceil(stringLengthFontString:GetStringWidth())
 
 				if (lineTextLength < maxStringWidth) then
 					resultText = resultText .. i .. "\n"
 				else
 					--if the text width is bigger than the editbox width, add a blank line into the line counter
-					local linesToOccupy = floor(lineTextLength / maxStringWidth)
+					local linesToOccupy = math.floor(lineTextLength / maxStringWidth)
 					local fillingText = i .. ""
 					for o = 1, linesToOccupy do
 						fillingText = fillingText .. "\n"
