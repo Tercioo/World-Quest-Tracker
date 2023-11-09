@@ -119,16 +119,17 @@ WorldQuestTracker.DotLineScale = {
 --all zones with world quests
 WorldQuestTracker.MapData.WorldQuestZones = {
 	--Dragonflight
-		[zoneIDs.AZURESSPAN] = 	true,
+		[zoneIDs.AZURESSPAN] = 		true,
 		[zoneIDs.THALDRASZUS] = 	true,
 		[zoneIDs.OHNAHRANPLAINS] = 	true,
 		[zoneIDs.WAKINGSHORES] = 	true,
 		[zoneIDs.FORBIDDENREACH] = 	true,
-		[zoneIDs.ZARALEK] = 	true,
+		[zoneIDs.ZARALEK] = 		true,
+		[zoneIDs.EMERALDDREAM] = 	true,
 
 	--Shadowlands
 		[zoneIDs.MALDRAXXUS] =	true,
-		[zoneIDs.BASTION] = 		true,
+		[zoneIDs.BASTION] = 	true,
 		[zoneIDs.ARDENWEALD] =	true,
 		[zoneIDs.REVENDRETH] =	true,
 		[zoneIDs.THEMAW] =		true,
@@ -181,9 +182,9 @@ WorldQuestTracker.MapData.DragonflightZones = {
 	[zoneIDs.FORBIDDENREACH] = 	true,
 	[zoneIDs.ZARALEK] = 	true,
 	[zoneIDs.DRAGONISLES] = 	true,
+	[zoneIDs.EMERALDDREAM] = 	true,
 	[2112] = true, --valdrakken
 }
-
 
 --quest hub by expansion
 WorldQuestTracker.MapData.ExpMaps = {
@@ -269,6 +270,17 @@ WorldQuestTracker.mapTables = {
 				[zoneIDs.DRAGONISLES] = true,
 			},
 		},
+
+		[zoneIDs.EMERALDDREAM] = 		{
+			widgets = {},
+			Anchor_X = 0.002,
+			Anchor_Y = 0.67,
+			GrowRight = true,
+			show_on_map = {
+				[zoneIDs.DRAGONISLES] = true,
+			},
+		},
+
 
 	--Shadowlands
 
@@ -639,7 +651,7 @@ WorldQuestTracker.MapData.FactionByMapID = { --not in use
 	[zoneIDs.DRUSTVAR] = 	"BFA",
 }
 
---start of factions
+--start of ~factions
 
 -- texture ID of the reward when the world quest reward is a faction rep token
 WorldQuestTracker.MapData.ReputationIcons = {
@@ -648,6 +660,8 @@ WorldQuestTracker.MapData.ReputationIcons = {
 	[4687628] = true, --Dragonscale Expedition
 	[4687630] = true, --Valdrakken Accord
 	[4687629] = true, --Iskaara Tuskarr
+	["Interface\\ICONS\\UI_MajorFaction_Niffen"] = true, --Loamm Niffen
+	[5244643] = true, --Dream Wardens
 
 	--Shadowlands
 	[3257748] = true, --Ascended
@@ -686,21 +700,7 @@ WorldQuestTracker.MapData.AllFactionIds = {
 	[2510] = true, --Valdrakken Accord
 	[2511] = true, --Iskaara Tuskarr
 	[2564] = true, --Loamm Niffen
-	--[2514] = true, --Primalists
-	--[2516] = true, --Djaradin
-	--[2517] = true, --Wrathion
-	--[2518] = true, --Sabellian
-	--[2519] = true, --Reclaimers
-	--[2523] = true, --Dark Talons
-	--[2524] = true, --Obsidian Warders
-	--[2525] = true, --Elemental, Fire
-	--[2526] = true, --Winterpelt Furbolg
-	--[2544] = true, --Artisan's Consortium - Dragon Isles Branch
-	--[2545] = true, --Maruuk Centaur (Renown)
-	--[2548] = true, --Valdrakken Accord (Renown)
-	--[2550] = true, --Cobalt Assembly
-	--[2553] = true, --Timewalkers
-
+	[2574] = true, --Dream Wardens
 
 	--Shadowlands Factions
 	[2410] = true, --The Undying Army
@@ -748,6 +748,7 @@ WorldQuestTracker.MapData.FactionMapId = {
 	[2510] = zoneIDs.THALDRASZUS, --Valdrakken Accord
 	[2511] = zoneIDs.AZURESSPAN, --Iskaara Tuskarr
 	[2564] = zoneIDs.ZARALEK, --Loamm Niffen
+	[2574] = zoneIDs.EMERALDDREAM, --Dream Wardens
 
 	--Shadowlands
 	[2410] = 1536, --The Undying Army | MALDRAXXUS
@@ -767,6 +768,7 @@ WorldQuestTracker.MapData.FactionIcons = {
 	[2510] = 4687630, --Valdrakken Accord
 	[2511] = 4687629, --Iskaara Tuskarr
 	[2564] = [[Interface\ICONS\UI_MajorFaction_Niffen]], --Loamm Niffen
+	[2574] = 5244643, --Dream Wardens
 
 	--Shadowlands
 	[2410] = 3492310, --The Undying Army
@@ -813,6 +815,7 @@ local DragonflightFactions = {
 	[2510] = true, --Valdrakken Accord
 	[2511] = true, --Iskaara Tuskarr
 	[2564] = true, --Loamm Niffen
+	[2574] = true, --Dream Wardens
 }
 
 local ShadowlandsFactions = {
@@ -886,6 +889,7 @@ WorldQuestTracker.MapData.ReputationByMap = {
 		[zoneIDs.THALDRASZUS] = DragonflightFactions,
 		[zoneIDs.AZURESSPAN] = DragonflightFactions,
 		[zoneIDs.ZARALEK] = DragonflightFactions,
+		[zoneIDs.EMERALDDREAM] = DragonflightFactions,
 
 		--Shadowlands
 		[zoneIDs.BASTION] = 		ShadowlandsFactions,
@@ -929,6 +933,7 @@ WorldQuestTracker.MapData.ReputationByFaction = {
 		[2510] = GetFactionInfoByID(2510), --Valdrakken Accord
 		[2511] = GetFactionInfoByID(2511), --Iskaara Tuskarr
 		[2564] = GetFactionInfoByID(2564), --Loamm Niffen
+		[2574] = GetFactionInfoByID(2574), --Dream Wardens
 
 		--Shadowlands
 		[2410] = GetFactionInfoByID(2410), --The Undying Army
@@ -987,6 +992,7 @@ WorldQuestTracker.MapData.ReputationByFaction = {
 		[2510] = GetFactionInfoByID(2510), --Valdrakken Accord
 		[2511] = GetFactionInfoByID(2511), --Iskaara Tuskarr
 		[2564] = GetFactionInfoByID(2564), --Loamm Niffen
+		[2574] = GetFactionInfoByID(2574), --Dream Wardens
 
 		--Shadowlands
 		[2410] = GetFactionInfoByID(2410), --The Undying Army
