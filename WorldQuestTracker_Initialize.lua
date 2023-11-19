@@ -39,7 +39,7 @@ do
 	--helps blend the icons within the map texture
 	WQT_ZONEWIDGET_ALPHA =		0.97
 	WQT_WORLDWIDGET_ALPHA =		0.975
-	WQT_WORLDWIDGET_BLENDED =	ALPHA_BLEND_AMOUNT - 0.11
+	WQT_WORLDWIDGET_BLENDED =	ALPHA_BLEND_AMOUNT
 
 	WQT_ANIMATION_SPEED = 0.05
 
@@ -185,6 +185,8 @@ do
 				use_bounty_ring = false,--a
 			},--a
 
+			show_world_shortcuts = false,
+
 			last_news_time = 0,
 
 			hoverover_animations = true, --hover and shown slider animations
@@ -232,7 +234,7 @@ do
 
 			show_faction_frame = true,--a
 
-			map_frame_anchor = "center",--a
+			map_frame_anchor = "left",--a
 
 			map_frame_scale_enabled = false,--a
 			map_frame_scale_mod = 1,--a
@@ -329,6 +331,7 @@ do
 
 	--store zone widgets
 	WorldQuestTracker.ZoneWidgetPool = {}
+	WorldQuestTracker.VignettePool = {}
 	--default world quest pins
 	WorldQuestTracker.DefaultWorldQuestPin = {}
 	WorldQuestTracker.ShowDefaultWorldQuestPin = {}

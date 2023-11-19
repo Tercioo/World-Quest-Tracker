@@ -883,7 +883,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			end)
 
 			--broken isles
-				local BrokenIslesWorldQuestButton = CreateFrame("button", "WorldQuestTrackerGoToAzerothButton", anchorFrame, "BackdropTemplate")
+				local BrokenIslesWorldQuestButton = CreateFrame("button", "WorldQuestTrackerGoToBrokenIsles", anchorFrame, "BackdropTemplate")
 				BrokenIslesWorldQuestButton:SetSize(unpack(navigateButtonsSize))
 				BrokenIslesWorldQuestButton:SetFrameLevel(WorldMapFrame.SidePanelToggle.CloseButton:GetFrameLevel())
 
@@ -969,6 +969,14 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			--AllianceWorldQuestButton:SetAlpha(.7)
 			--HordeWorldQuestButton:SetAlpha(.7)
 			ShadowlandsWorldQuestButton:SetAlpha(.96)
+
+			function WorldQuestTracker.SetShownWorldShortcuts()
+				BrokenIslesWorldQuestButton:SetShown(WorldQuestTracker.db.profile.show_world_shortcuts)
+				AzerothWorldQuestButton:SetShown(WorldQuestTracker.db.profile.show_world_shortcuts)
+				ShadowlandsWorldQuestButton:SetShown(WorldQuestTracker.db.profile.show_world_shortcuts)
+			end
+
+			WorldQuestTracker.SetShownWorldShortcuts()
 
 			--toggle between by zone and by type
 			local ToggleQuestsSummaryButton = CreateFrame("button", "WorldQuestTrackerToggleQuestsSummaryButton", anchorFrame, "BackdropTemplate")
@@ -2873,9 +2881,12 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			end
 
 			-- ~bar ~statusbar
+
+			WorldQuestTracker.ParentTapFrame = CreateFrame("frame", "WorldQuestTrackerParentTapFrame", anchorFrame, "BackdropTemplate")
 			WorldQuestTracker.DoubleTapFrame = CreateFrame("frame", "WorldQuestTrackerDoubleTapFrame", anchorFrame, "BackdropTemplate")
 			WorldQuestTracker.DoubleTapFrame:SetHeight(18)
 			WorldQuestTracker.DoubleTapFrame:SetFrameLevel(WorldMapFrame.SidePanelToggle.CloseButton:GetFrameLevel()-1)
+			WorldQuestTracker.ParentTapFrame:SetAllPoints()
 
 			--background
 			local doubleTapBackground = WorldQuestTracker.DoubleTapFrame:CreateTexture(nil, "artwork")
@@ -3491,8 +3502,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 			---------------------------------------------------------
 			--options button
-			local optionsButton = CreateFrame("button", "WorldQuestTrackerOptionsButton", WorldQuestTracker.DoubleTapFrame, "BackdropTemplate")
-			optionsButton:SetPoint("bottomleft", WorldQuestTracker.DoubleTapFrame, "bottomleft", 0, 2)
+			local optionsButton = CreateFrame("button", "WorldQuestTrackerOptionsButton", WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
+			--point is set on WorldQuestTracker.UpdateStatusBarAnchors()
 			optionsButton:SetScript("OnClick", function()
 				WorldQuestTracker.OpenOptionsPanel()
 			end)
@@ -3501,8 +3512,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			---------------------------------------------------------
 
 			--sort options
-			local sortButton = CreateFrame("button", "WorldQuestTrackerSortButton", WorldQuestTracker.DoubleTapFrame, "BackdropTemplate")
-			sortButton:SetPoint("left", optionsButton, "right", 2, 0)
+			local sortButton = CreateFrame("button", "WorldQuestTrackerSortButton", WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
+			sortButton:SetPoint("left", optionsButton, "right", 0, 0)
 			setup_button(sortButton, L["S_MAPBAR_SORTORDER"])
 
 			-- ~sort
@@ -3614,8 +3625,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			---------------------------------------------------------
 
 			-- ~filter
-			local filterButton = CreateFrame("button", "WorldQuestTrackerFilterButton", WorldQuestTracker.DoubleTapFrame, "BackdropTemplate")
-			filterButton:SetPoint("left", sortButton, "right", 2, 0)
+			local filterButton = CreateFrame("button", "WorldQuestTrackerFilterButton", WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
+			filterButton:SetPoint("left", sortButton, "right", 0, 0)
 			setup_button(filterButton, L["S_MAPBAR_FILTER"])
 
 			local filter_quest_type = function(_, _, questType, _, _, mouseButton)
@@ -3796,8 +3807,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			---------------------------------------------------------
 			-- ~time left
 
-			local timeLeftButton = CreateFrame("button", "WorldQuestTrackerTimeLeftButton", WorldQuestTracker.DoubleTapFrame, "BackdropTemplate")
-			timeLeftButton:SetPoint("left", filterButton, "right", 2, 0)
+			local timeLeftButton = CreateFrame("button", "WorldQuestTrackerTimeLeftButton", WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
+			timeLeftButton:SetPoint("left", filterButton, "right", 0, 0)
 			setup_button(timeLeftButton, L["S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_TITLE"])
 
 
@@ -3917,8 +3928,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 			---------------------------------------------------------
 			--statistics button
-			local statisticsButton = CreateFrame("button", "WorldQuestTrackerStatisticsButton", WorldQuestTracker.DoubleTapFrame, "BackdropTemplate")
-			statisticsButton:SetPoint("left", timeLeftButton, "right", 2, 0)
+			local statisticsButton = CreateFrame("button", "WorldQuestTrackerStatisticsButton", WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
+			statisticsButton:SetPoint("left", timeLeftButton, "right", 0, 0)
 			setup_button(statisticsButton, "Statistics")
 			--statisticsButton.Text:SetTextColor(.8, .8, .8, .65)
 			if (GameCooltip.InjectQuickTooltip) then
@@ -4092,16 +4103,16 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			--recursos dispon�veis
 			local xOffset = 35
 
-			local resource_GoldFrame = CreateFrame("button", nil, WorldQuestTracker.DoubleTapFrame, "BackdropTemplate")
+			local resource_GoldFrame = CreateFrame("button", nil, WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
 			resource_GoldFrame.QuestType = WQT_QUESTTYPE_GOLD
 
-			local resource_ResourcesFrame = CreateFrame("button", nil, WorldQuestTracker.DoubleTapFrame, "BackdropTemplate")
+			local resource_ResourcesFrame = CreateFrame("button", nil, WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
 			resource_ResourcesFrame.QuestType = WQT_QUESTTYPE_RESOURCE
 
-			local resource_APowerFrame = CreateFrame("button", nil, WorldQuestTracker.DoubleTapFrame, "BackdropTemplate")
+			local resource_APowerFrame = CreateFrame("button", nil, WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
 			resource_APowerFrame.QuestType = WQT_QUESTTYPE_APOWER
 
-			local resource_PetFrame = CreateFrame("button", nil, WorldQuestTracker.DoubleTapFrame, "BackdropTemplate")
+			local resource_PetFrame = CreateFrame("button", nil, WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
 			resource_PetFrame.QuestType = WQT_QUESTTYPE_PETBATTLE
 
 			-- ~resources ~recursos
@@ -4413,25 +4424,25 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			end
 
 
-			local shadow = WorldQuestTracker.DoubleTapFrame:CreateTexture(nil, "background")
+			local shadow = WorldQuestTracker.ParentTapFrame:CreateTexture(nil, "background")
 			shadow:SetPoint("left", resource_GoldIcon.widget, "left", 2, 0)
 			shadow:SetTexture([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT]])
 			shadow:SetSize(58, 10)
 			shadow:SetAlpha(.3)
 
-			local shadow = WorldQuestTracker.DoubleTapFrame:CreateTexture(nil, "background")
+			local shadow = WorldQuestTracker.ParentTapFrame:CreateTexture(nil, "background")
 			shadow:SetPoint("left", resource_ResourcesIcon.widget, "left", 2, 0)
 			shadow:SetTexture([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT]])
 			shadow:SetSize(58, 10)
 			shadow:SetAlpha(.3)
 
-			local shadow = WorldQuestTracker.DoubleTapFrame:CreateTexture(nil, "background")
+			local shadow = WorldQuestTracker.ParentTapFrame:CreateTexture(nil, "background")
 			shadow:SetPoint("left", resource_APowerIcon.widget, "left", 2, 0)
 			shadow:SetTexture([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT]])
 			shadow:SetSize(58, 10)
 			shadow:SetAlpha(.3)
 
-			local shadow = WorldQuestTracker.DoubleTapFrame:CreateTexture(nil, "background")
+			local shadow = WorldQuestTracker.ParentTapFrame:CreateTexture(nil, "background")
 			shadow:SetPoint("left", resource_PetIcon.widget, "left", 2, 0)
 			shadow:SetTexture([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT]])
 			shadow:SetSize(58, 10)
@@ -4676,8 +4687,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			if (numNews > 0 and WorldQuestTracker.DoubleTapFrame and false) then --adding a false here to not show the news button for now(15/02/2019)
 				-- /run WorldQuestTrackerAddon.db.profile.last_news_time = 0
 
-				local openNewsButton = DF:CreateButton(WorldQuestTracker.DoubleTapFrame, WorldQuestTracker.OpenNewsWindow, 120, 20, L["S_WHATSNEW"], -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "WQT_NEWS_BUTTON"), DF:GetTemplate("font", "WQT_TOGGLEQUEST_TEXT"))
-				openNewsButton:SetPoint("bottom", WorldQuestTracker.DoubleTapFrame, "top", -5, 2)
+				local openNewsButton = DF:CreateButton(WorldQuestTracker.ParentTapFrame, WorldQuestTracker.OpenNewsWindow, 120, 20, L["S_WHATSNEW"], -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "WQT_NEWS_BUTTON"), DF:GetTemplate("font", "WQT_TOGGLEQUEST_TEXT"))
+				openNewsButton:SetPoint("bottom", WorldQuestTracker.ParentTapFrame, "top", -5, 2)
 				WorldQuestTracker.NewsButton = openNewsButton
 
 				local numNews = DF:GetNumNews(WorldQuestTracker.GetChangelogTable(), WorldQuestTracker.db.profile.last_news_time)

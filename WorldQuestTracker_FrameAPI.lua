@@ -254,6 +254,8 @@ function WorldQuestTracker.UpdateStatusBarAnchors()
 	local backgroundTexture = statusBar.BackgroundTexture
 	local backgroundBorder = statusBar.BackgroundBorder
 
+	statusBar:SetAlpha(0)
+
 	--clear points
 	statusBar:ClearAllPoints()
 	backgroundTexture:ClearAllPoints()
@@ -273,16 +275,21 @@ function WorldQuestTracker.UpdateStatusBarAnchors()
 		backgroundBorder:SetPoint("topright", backgroundTexture, "topright")
 		backgroundBorder:SetTexCoord(0, 1, 0, 1)
 	
-		if (WorldMapFrame.isMaximized) then
-			WorldQuestTrackerOptionsButton:SetPoint("bottomleft", statusBar, "bottomleft", 0, 3)
-			--WorldQuestTracker.IndicatorsAnchor:SetPoint("bottomright", WorldQuestTrackerGoToAllianceButton, "bottomleft", -10, 3) --now is anchored to horde (horde and alliance button got swapped)
-			WorldQuestTracker.IndicatorsAnchor:SetPoint("bottomright", WorldQuestTrackerGoToShadowlandsButton, "bottomleft", -10, 3)
-		else
-			WorldQuestTrackerOptionsButton:SetPoint("bottomleft", statusBar, "bottomleft", 0, 2)
-			--WorldQuestTracker.IndicatorsAnchor:SetPoint("bottomright", WorldQuestTrackerGoToAllianceButton, "bottomleft", -10, 2)
-			WorldQuestTracker.IndicatorsAnchor:SetPoint("bottomright", WorldQuestTrackerGoToShadowlandsButton, "bottomleft", -10, 2)
+		local indicatorsAnchorY = 3
+
+		if (not WorldMapFrame.isMaximized) then
+			indicatorsAnchorY = 2
 		end
 		
+		WorldQuestTrackerOptionsButton:SetPoint("bottomleft", statusBar, "bottomleft", 0, 1)
+
+		--attach the indicators anchor to the same point of the legion shortcut button if the shortcut is not enabled
+		if (WorldQuestTracker.db.profile.show_world_shortcuts) then
+			WorldQuestTracker.IndicatorsAnchor:SetPoint("bottomright", WorldQuestTrackerGoToShadowlandsButton, "bottomright", -25, indicatorsAnchorY)
+		else
+			WorldQuestTracker.IndicatorsAnchor:SetPoint("bottomright", WorldMapFrame.SidePanelToggle, "bottomleft", -10, indicatorsAnchorY)
+		end
+
 	elseif (anchor == "top") then
 
 		statusBar:SetPoint("topleft", WorldQuestTrackerWorldMapPOI, "topleft", 0, 0)
@@ -300,7 +307,7 @@ function WorldQuestTracker.UpdateStatusBarAnchors()
 			WorldQuestTracker.IndicatorsAnchor:SetPoint("topright", statusBar, "topright", -80, -3)
 		else
 			WorldQuestTrackerOptionsButton:SetPoint("bottomleft", statusBar, "bottomleft", 0, 2)
-			WorldQuestTracker.IndicatorsAnchor:SetPoint("topright", statusBar, "topright", -80, -3)
+			WorldQuestTracker.IndicatorsAnchor:SetPoint("topright", statusBar, "topright", -110, -3)
 		end
 	end
 end

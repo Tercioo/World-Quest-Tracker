@@ -396,6 +396,28 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
             },
 
             {type = "blank"},
+            {type = "breakline"},
+
+            {
+                type = "label",
+                get = function() return "Visibility" end,
+                text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return DB.profile.show_world_shortcuts
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.show_world_shortcuts = not WorldQuestTracker.db.profile.show_world_shortcuts
+                    WorldQuestTracker.SetShownWorldShortcuts()
+                end,
+                name = "Show World Shortcuts",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 36 .. ":" .. 80 .. ":0:0:256:256:" .. (0) .. ":" .. (80) .. ":" .. (0) .. ":" .. (36) .. "|t",
+            },
+
+            --
+
 			--map_frame_scale_enabled = false,
 			--map_frame_scale_mod = 1,
 
