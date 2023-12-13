@@ -25,3 +25,4 @@ locales/zhTW.lua
 *.afphoto
 api.lua
 *.png
+media/options_visibility_context.afphoto~lock~

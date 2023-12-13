@@ -3566,7 +3566,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			setup_button(timeLeftButton, L["S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_TITLE"])
 
 
-			local BuildTimeLeftMenu = function()
+			local buildTimeLeftMenu = function()
 				GameCooltip:Preset(2)
 				GameCooltip:SetOption("TextSize", 10)
 				GameCooltip:SetOption("FixedWidth", 180)
@@ -3652,7 +3652,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 			timeLeftButton.CoolTip = {
 				Type = "menu",
-				BuildFunc = BuildTimeLeftMenu, --> called when user mouse over the frame
+				BuildFunc = buildTimeLeftMenu, --> called when user mouse over the frame
 				OnEnterFunc = function(self)
 					timeLeftButton.button_mouse_over = true
 					button_onenter(self)
@@ -3681,6 +3681,329 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			GameCooltip:CoolTipInject(timeLeftButton)
 
 
+			--sort options
+			local sortButton = CreateFrame("button", "WorldQuestTrackerSortButtonStatusBar", WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
+			sortButton:SetPoint("left", timeLeftButton, "right", 2, 0)
+			setup_button(sortButton, L["S_MAPBAR_SORTORDER"])
+
+			-- ~sort
+			local change_sort_mode = function(a, b, questType, _, _, mouseButton)
+				local currentIndex = WorldQuestTracker.db.profile.sort_order [questType]
+				if (currentIndex < WQT_QUESTTYPE_MAX) then
+					for type, order in pairs(WorldQuestTracker.db.profile.sort_order) do
+						if (WorldQuestTracker.db.profile.sort_order [type] == currentIndex+1) then
+							WorldQuestTracker.db.profile.sort_order [type] = currentIndex
+							break
+						end
+					end
+
+					WorldQuestTracker.db.profile.sort_order [questType] = WorldQuestTracker.db.profile.sort_order [questType] + 1
+				end
+
+				GameCooltip:ExecFunc(sortButton)
+			---------------------------------------------------------
+
+				--atualiza as quests
+				if (WorldQuestTracker.IsWorldQuestHub(WorldQuestTracker.GetCurrentMapAreaID())) then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
+				end
+			end
+
+			local overlayColor = {.5, .5, .5, 1}
+			local BuildSortMenu = function()
+				local t = {}
+				for type, order in pairs(WorldQuestTracker.db.profile.sort_order) do
+					table.insert(t, {type, order})
+				end
+				table.sort(t, function(a, b) return a[2] > b[2] end)
+
+				GameCooltip:Preset(2)
+				GameCooltip:SetOption("TextSize", 10)
+				GameCooltip:SetOption("FixedWidth", 180)
+
+				--warning: this looks like is running in protective mode without any error message
+
+				for i = 1, #t do
+					local questInfoTable = t[i]
+					local questType = questInfoTable[1]
+					local info = WorldQuestTracker.MapData.QuestTypeIcons[questType]
+					local bIsEnabled = WorldQuestTracker.db.profile.filters[WorldQuestTracker.QuestTypeToFilter[questType]]
+
+					if (bIsEnabled) then
+						GameCooltip:AddLine(info.name)
+						GameCooltip:AddIcon(info.icon, 1, 1, 16, 16, unpack(info.coords))
+						GameCooltip:AddIcon([[Interface\BUTTONS\UI-MicroStream-Yellow]], 1, 2, 16, 16, 0, 1, 1, 0, overlayColor, nil, true)
+					else
+						GameCooltip:AddLine(info.name, _, _, "silver")
+						local l, r, t, b = unpack(info.coords)
+						GameCooltip:AddIcon(info.icon, 1, 1, 16, 16, l, r, t, b, _, _, true)
+					end
+
+					GameCooltip:AddMenu(1, change_sort_mode, questType)
+				end
+			end
+
+			sortButton.CoolTip = {
+				Type = "menu",
+				BuildFunc = BuildSortMenu, --> called when user mouse over the frame
+				OnEnterFunc = function(self)
+					sortButton.button_mouse_over = true
+					button_onenter(self)
+				end,
+				OnLeaveFunc = function(self)
+					sortButton.button_mouse_over = false
+					button_onleave(self)
+				end,
+				FixedValue = "none",
+				ShowSpeed = 0.05,
+				Options = function()
+
+					if (WorldQuestTracker.db.profile.bar_anchor == "top") then
+						GameCooltip:SetOption("MyAnchor", "top")
+						GameCooltip:SetOption("RelativeAnchor", "bottom")
+						GameCooltip:SetOption("WidthAnchorMod", 0)
+						GameCooltip:SetOption("HeightAnchorMod", -10)
+					else
+						GameCooltip:SetOption("MyAnchor", "bottom")
+						GameCooltip:SetOption("RelativeAnchor", "top")
+						GameCooltip:SetOption("WidthAnchorMod", 0)
+						GameCooltip:SetOption("HeightAnchorMod", -5)
+					end
+
+				end
+			}
+
+			GameCooltip:CoolTipInject(sortButton, openOnClick)
+
+
+			--filter button
+			local filterButton = CreateFrame("button", "WorldQuestTrackerFilterButton", WorldQuestTracker.ParentTapFrame, "BackdropTemplate")
+			filterButton:SetPoint("left", sortButton, "right", 0, 0)
+			setup_button(filterButton, L["S_MAPBAR_FILTER"])
+
+			local filter_quest_type = function(_, _, questType, _, _, mouseButton)
+				WorldQuestTracker.db.profile.filters[questType] = not WorldQuestTracker.db.profile.filters[questType]
+
+				GameCooltip:ExecFunc(filterButton)
+
+				--atualiza as quests
+				if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
+				elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+					WorldQuestTracker.UpdateZoneWidgets()
+				end
+			end
+
+			local toggle_faction_objectives = function()
+				WorldQuestTracker.db.profile.filter_always_show_faction_objectives = not WorldQuestTracker.db.profile.filter_always_show_faction_objectives
+				GameCooltip:ExecFunc(filterButton)
+
+				--atualiza as quests
+				if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
+				elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+					WorldQuestTracker.UpdateZoneWidgets()
+				end
+			end
+
+			local toggle_brokenshore_bypass = function()
+				WorldQuestTracker.db.profile.filter_force_show_brokenshore = not WorldQuestTracker.db.profile.filter_force_show_brokenshore
+				GameCooltip:ExecFunc(filterButton)
+				--atualiza as quests
+				if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
+				elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+					WorldQuestTracker.UpdateZoneWidgets()
+				end
+			end
+
+			if (WorldQuestTracker.db.profile.filter_force_show_brokenshore) then
+				GameCooltip:AddLine("Ignore New Zones", "", 1, "orange")
+				GameCooltip:AddLine("World quets on new zones will always be shown.\n\nCurrent new zones:\n-Najatar\n-Machagon.", "", 2)
+				GameCooltip:AddIcon([[Interface\ICONS\70_inscription_vantus_rune_tomb]], 1, 1, 23*.54, 37*.40, 0, 1, 0, 1)
+				GameCooltip:AddIcon([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 2, 16, 16, 0, 1, 0, 1, overlayColor, nil, true)
+			else
+				GameCooltip:AddLine("Ignore New Zones", "", 1, "silver")
+				GameCooltip:AddLine("World quets on new zones will always be shown.\n\nCurrent new zones:\n-Najatar\n-Machagon", "", 2)
+				--GameCooltip:AddIcon([[Interface\ICONS\70_inscription_vantus_rune_tomb]], 1, 1, 23*.54, 37*.40, l, r, t, b, nil, nil, true)
+			end
+			GameCooltip:AddMenu(1, toggle_brokenshore_bypass)
+			--]=]
+
+			local toggle_filters_all_on = function()
+				for filterType, canShow in pairs(WorldQuestTracker.db.profile.filters) do
+					local questType = filterType
+					WorldQuestTracker.db.profile.filters [questType] = true
+				end
+
+				GameCooltip:ExecFunc(filterButton)
+
+				--update quest on current map shown
+				if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
+
+				elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+					WorldQuestTracker.UpdateZoneWidgets()
+				end
+			end
+
+			local toggle_filters_all_off = function()
+				for filterType, canShow in pairs(WorldQuestTracker.db.profile.filters) do
+					local questType = filterType
+					WorldQuestTracker.db.profile.filters[questType] = false
+				end
+
+				GameCooltip:ExecFunc(filterButton)
+
+				--update quest on current map shown
+				if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+					WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
+
+				elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+					WorldQuestTracker.UpdateZoneWidgets()
+				end
+			end
+
+			local BuildFilterMenu = function()
+				GameCooltip:Preset(2)
+				GameCooltip:SetOption("TextSize", 10)
+				GameCooltip:SetOption("FixedWidth", 180)
+				GameCooltip:SetOption("FixedWidthSub", 200)
+				GameCooltip:SetOption("SubMenuIsTooltip", true)
+				GameCooltip:SetOption("IgnoreArrows", true)
+
+				local t = {}
+				for filterType, canShow in pairs(WorldQuestTracker.db.profile.filters) do
+					local sortIndex = WorldQuestTracker.db.profile.sort_order[WorldQuestTracker.FilterToQuestType[filterType]]
+					table.insert(t, {filterType, sortIndex})
+				end
+
+				table.sort(t, function(a, b) return a[2] > b[2] end)
+
+				for i, filter in ipairs(t) do
+					local filterType = filter [1]
+					local info = WorldQuestTracker.MapData.QuestTypeIcons[WorldQuestTracker.FilterToQuestType[filterType]]
+					local isEnabled = WorldQuestTracker.db.profile.filters[filterType]
+					if (isEnabled) then
+						GameCooltip:AddLine(info.name)
+						GameCooltip:AddIcon(info.icon, 1, 1, 16, 16, unpack(info.coords))
+						GameCooltip:AddIcon([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 2, 16, 16, 0, 1, 0, 1, overlayColor, nil, true)
+					else
+						GameCooltip:AddLine(info.name, _, _, "silver")
+						local l, r, t, b = unpack(info.coords)
+						GameCooltip:AddIcon(info.icon, 1, 1, 16, 16, l, r, t, b, _, _, true)
+					end
+					GameCooltip:AddMenu(1, filter_quest_type, filterType)
+				end
+
+				GameCooltip:AddLine("$div")
+
+				GameCooltip:AddLine("Select All")
+				GameCooltip:AddMenu(1, toggle_filters_all_on)
+
+				GameCooltip:AddLine("Select None")
+				GameCooltip:AddMenu(1, toggle_filters_all_off)
+
+				GameCooltip:AddLine("$div")
+
+				local l, r, t, b = unpack(WorldQuestTracker.MapData.GeneralIcons.CRITERIA.coords)
+
+				if (WorldQuestTracker.db.profile.filter_always_show_faction_objectives) then
+					GameCooltip:AddLine(L["S_MAPBAR_FILTERMENU_FACTIONOBJECTIVES"])
+					GameCooltip:AddLine(L["S_MAPBAR_FILTERMENU_FACTIONOBJECTIVES_DESC"], "", 2)
+					GameCooltip:AddIcon(WorldQuestTracker.MapData.GeneralIcons.CRITERIA.icon, 1, 1, 23*.54, 37*.40, l, r, t, b)
+					GameCooltip:AddIcon([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 2, 16, 16, 0, 1, 0, 1, overlayColor, nil, true)
+				else
+					GameCooltip:AddLine(L["S_MAPBAR_FILTERMENU_FACTIONOBJECTIVES"], "", 1, "silver")
+					GameCooltip:AddLine(L["S_MAPBAR_FILTERMENU_FACTIONOBJECTIVES_DESC"], "", 2)
+					GameCooltip:AddIcon(WorldQuestTracker.MapData.GeneralIcons.CRITERIA.icon, 1, 1, 23*.54, 37*.40, l, r, t, b, nil, nil, true)
+				end
+				GameCooltip:AddMenu(1, toggle_faction_objectives)
+
+				GameCooltip:AddLine("$div")
+
+				--[= --this is deprecated at the moment, but might be needed again in the future
+				if (WorldQuestTracker.db.profile.filter_force_show_brokenshore) then
+					GameCooltip:AddLine("Ignore New Zones", "", 1, "orange")
+					GameCooltip:AddLine("World quets on new zones will always be shown.\n\nCurrent new zones:\n-Najatar\n-Machagon.", "", 2)
+					GameCooltip:AddIcon([[Interface\ICONS\70_inscription_vantus_rune_tomb]], 1, 1, 23*.54, 37*.40, 0, 1, 0, 1)
+					GameCooltip:AddIcon([[Interface\BUTTONS\UI-CheckBox-Check]], 1, 2, 16, 16, 0, 1, 0, 1, overlayColor, nil, true)
+				else
+					GameCooltip:AddLine("Ignore New Zones", "", 1, "silver")
+					GameCooltip:AddLine("World quets on new zones will always be shown.\n\nCurrent new zones:\n-Najatar\n-Machagon", "", 2)
+					--GameCooltip:AddIcon([[Interface\ICONS\70_inscription_vantus_rune_tomb]], 1, 1, 23*.54, 37*.40, l, r, t, b, nil, nil, true)
+				end
+				GameCooltip:AddMenu(1, toggle_brokenshore_bypass)
+				--]=]
+			end
+
+			filterButton.CoolTip = {
+				Type = "menu",
+				BuildFunc = BuildFilterMenu, --> called when user mouse over the frame
+				OnEnterFunc = function(self)
+					filterButton.button_mouse_over = true
+					button_onenter(self)
+				end,
+				OnLeaveFunc = function(self)
+					filterButton.button_mouse_over = false
+					button_onleave(self)
+				end,
+				FixedValue = "none",
+				ShowSpeed = 0.05,
+				Options = function()
+
+					if (WorldQuestTracker.db.profile.bar_anchor == "top") then
+						GameCooltip:SetOption("MyAnchor", "top")
+						GameCooltip:SetOption("RelativeAnchor", "bottom")
+						GameCooltip:SetOption("WidthAnchorMod", 0)
+						GameCooltip:SetOption("HeightAnchorMod", -10)
+					else
+						GameCooltip:SetOption("MyAnchor", "bottom")
+						GameCooltip:SetOption("RelativeAnchor", "top")
+						GameCooltip:SetOption("WidthAnchorMod", 0)
+						GameCooltip:SetOption("HeightAnchorMod", -5)
+					end
+
+				end,
+			}
+
+			GameCooltip:CoolTipInject(filterButton)
+
+			--end of filter button
+
+			function WorldQuestTracker.RefreshStatusBarButtons()
+				timeLeftButton:Hide()
+				sortButton:Hide()
+				filterButton:Hide()
+
+				local buttonShown = {}
+				if (WorldQuestTracker.db.profile.show_timeleft_button) then
+					timeLeftButton:Show()
+					buttonShown[#buttonShown+1] = timeLeftButton
+				end
+
+				if (WorldQuestTracker.db.profile.show_sort_button) then
+					sortButton:Show()
+					buttonShown[#buttonShown+1] = sortButton
+				end
+
+				if (WorldQuestTracker.db.profile.show_filter_button) then
+					filterButton:Show()
+					buttonShown[#buttonShown+1] = filterButton
+				end
+
+				--iterage among shown buttons and set the point
+				for i = 1, #buttonShown do
+					local button = buttonShown[i]
+					if (i == 1) then
+						button:SetPoint("left", optionsButton, "right", 5, 0)
+					else
+						button:SetPoint("left", buttonShown[i-1], "right", 2, 0)
+					end
+				end
+			end
+
+			C_Timer.After(1, WorldQuestTracker.RefreshStatusBarButtons)
 
 			---------------------------------------------------------
 			-- ~map ~anchor ~�nchor

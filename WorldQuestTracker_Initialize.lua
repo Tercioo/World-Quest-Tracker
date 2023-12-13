@@ -171,6 +171,9 @@ do
 			},
 
 			disable_world_map_widgets = false,
+			show_filter_button = false,
+			show_sort_button = false,
+			show_timeleft_button = true,
 
 			show_emissary_info = true,
 

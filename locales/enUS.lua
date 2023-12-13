@@ -2,6 +2,14 @@ local addonId = ...
 local languageTable = DetailsFramework.Language.RegisterLanguage(addonId, "enUS")
 local L = languageTable
 
+L["S_OPTIONS_SHOW_TIMELEFT_BUTTON"] = "Show Time Left Button"
+L["S_OPTIONS_SHOW_SORT_BUTTON"] = "Show Sort Button"
+L["S_OPTIONS_SHOW_FILTER_BUTTON"] = "Show Filter Button"
+L["S_OPTIONS_SHOW_WORLDSHORTCUT_BUTTON"] = "Show World Shortcuts"
+L["S_VISIBILITY"] = "Visibility"
+
+-------
+
 L["S_OPTIONS_GF_SHOWOPTIONS_BUTTON"] = "Show Options Button"
 
 L["S_OPTTIONS_TAB_GENERAL_SETTINGS"] = "General Settings"

@@ -704,7 +704,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 
             {
                 type = "label",
-                get = function() return "Visibility" end,
+                get = function() return "S_VISIBILITY" end,
                 text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
             },
             {
@@ -716,10 +716,47 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                     WorldQuestTracker.db.profile.show_world_shortcuts = not WorldQuestTracker.db.profile.show_world_shortcuts
                     WorldQuestTracker.SetShownWorldShortcuts()
                 end,
-                name = "Show World Shortcuts",
+                name = "S_OPTIONS_SHOW_WORLDSHORTCUT_BUTTON",
                 desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 36 .. ":" .. 80 .. ":0:0:256:256:" .. (0) .. ":" .. (80) .. ":" .. (0) .. ":" .. (36) .. "|t",
             },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.show_timeleft_button
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.show_timeleft_button = not WorldQuestTracker.db.profile.show_timeleft_button
+                    WorldQuestTracker.RefreshStatusBarButtons()
+                end,
+                name = "S_OPTIONS_SHOW_TIMELEFT_BUTTON",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 30 .. ":" .. 210 .. ":0:0:256:256:" .. (0) .. ":" .. (210) .. ":" .. (37) .. ":" .. (37+30) .. "|t",
+            },
 
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.show_sort_button
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.show_sort_button = not WorldQuestTracker.db.profile.show_sort_button
+                    WorldQuestTracker.RefreshStatusBarButtons()
+                end,
+                name = "S_OPTIONS_SHOW_SORT_BUTTON",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 30 .. ":" .. 210 .. ":0:0:256:256:" .. (0) .. ":" .. (210) .. ":" .. (37) .. ":" .. (37+30) .. "|t",
+            },
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.show_filter_button
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.show_filter_button = not WorldQuestTracker.db.profile.show_filter_button
+                    WorldQuestTracker.RefreshStatusBarButtons()
+                end,
+                name = "S_OPTIONS_SHOW_FILTER_BUTTON",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 30 .. ":" .. 210 .. ":0:0:256:256:" .. (0) .. ":" .. (210) .. ":" .. (37) .. ":" .. (37+30) .. "|t",
+            },
             --
 
 			--map_frame_scale_enabled = false,
