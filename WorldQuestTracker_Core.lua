@@ -2742,7 +2742,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					factionButton.Text:SetText(factionButton.AmountQuests)
 				end
 
-				widget:SetAlpha(WQT_WORLDWIDGET_BLENDED)
+				widget:SetAlpha(WorldQuestTracker.db.profile.world_summary_alpha)
 
 				if (okay) then
 					if (gold) then worldSummary.TotalGold = worldSummary.TotalGold + gold end
@@ -2779,7 +2779,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 						local timePriority = WorldQuestTracker.db.profile.sort_time_priority and WorldQuestTracker.db.profile.sort_time_priority * 60 --4 8 12 16 24
 
 						--reset the widget alpha
-						widget:SetAlpha(WQT_WORLDWIDGET_BLENDED)
+						widget:SetAlpha(WorldQuestTracker.db.profile.world_summary_alpha)
 
 						if (timePriority and timePriority > 0) then
 							if (timeLeft <= timePriority) then
@@ -2805,7 +2805,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 						widget.timeLeftText:Show()
 					else
 						widget.timeLeftText:Hide()
-						widget:SetAlpha(WQT_WORLDWIDGET_BLENDED)
+						widget:SetAlpha(WorldQuestTracker.db.profile.world_summary_alpha)
 					end
 				end
 

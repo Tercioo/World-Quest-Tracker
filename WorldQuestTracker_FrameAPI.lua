@@ -762,7 +762,7 @@ function WorldQuestTracker.OnQuestButtonClick (self, button)
 			self:SetAlpha(WQT_ZONEWIDGET_ALPHA)
 		else
 			if (self.IsWorldQuestButton) then
-				self:SetAlpha(WorldQuestTrackerAddon.WorldWidgetAlpha)
+				self:SetAlpha(WorldQuestTracker.db.profile.world_summary_alpha)
 			end
 		end
 	end
@@ -800,7 +800,7 @@ function WorldQuestTracker.OnEndClickAnimation (self)
 				widget.trackingBorder:Hide()
 			end
 			
-			widget:SetAlpha(WorldQuestTrackerAddon.WorldWidgetAlpha)
+			widget:SetAlpha(WorldQuestTracker.db.profile.world_summary_alpha)
 		end
 	end
 end

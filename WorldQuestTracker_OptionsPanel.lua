@@ -757,6 +757,47 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 name = "S_OPTIONS_SHOW_FILTER_BUTTON",
                 desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 30 .. ":" .. 210 .. ":0:0:256:256:" .. (0) .. ":" .. (210) .. ":" .. (37) .. ":" .. (37+30) .. "|t",
             },
+
+            {type = "blank"},
+
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.world_summary_alpha end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.world_summary_alpha = value
+                    WorldQuestTracker.UpdateZoneSummaryFrame()
+                    WorldQuestTracker.RefreshZoneSummaryAlpha()
+                end,
+                min = 0.5,
+                max = 1,
+                step = 0.01,
+                usedecimals = true,
+                thumbscale = 1.8,
+                name = "S_OPTIONS_WORLD_SUMMARY_ALPHA",
+                desc = "S_OPTIONS_WORLD_SUMMARY_ALPHA",
+            },
+
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.worldmap_widget_alpha end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.worldmap_widget_alpha = value
+                    local bForceUpdate = true
+                    if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+                        WorldQuestTracker.UpdateWorldQuestsOnWorldMap(bForceUpdate)
+                    else
+                        WorldQuestTracker.UpdateZoneWidgets(bForceUpdate)
+                    end
+                end,
+                min = 0.5,
+                max = 1,
+                step = 0.01,
+                usedecimals = true,
+                thumbscale = 1.8,
+                name = "S_OPTIONS_WORLDMAP_WIDGET_ALPHA",
+                desc = "S_OPTIONS_WORLDMAP_WIDGET_ALPHA",
+            },
+
             --
 
 			--map_frame_scale_enabled = false,

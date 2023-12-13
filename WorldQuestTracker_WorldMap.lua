@@ -953,8 +953,7 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questID, numObjectives, map
 		else
 			widget.trackingGlowBorder:Hide()
 			widget.trackingGlowInside:Hide()
-			--widget:SetAlpha(WorldQuestTrackerAddon.WorldWidgetAlpha)
-			widget:SetAlpha(WQT_WORLDWIDGET_BLENDED)
+			widget:SetAlpha(WorldQuestTracker.db.profile.world_summary_alpha)
 		end
 	end
 
@@ -1579,7 +1578,7 @@ local scheduledIconUpdate = function(questTable)
 	pin:SetSize(22, 22)
 	pin.IsInUse = true
 
-	button:SetAlpha(WorldQuestTrackerAddon.WorldWidgetSmallAlpha)
+	button:SetAlpha(WorldQuestTracker.db.profile.worldmap_widget_alpha)
 
 	button.highlight:SetSize(30, 30)
 	button.highlight:SetParent(button)
