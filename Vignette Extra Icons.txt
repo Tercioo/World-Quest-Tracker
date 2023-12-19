@@ -1,0 +1,41 @@
+	[zoneIDs.EMERALDDREAM] = {
+		{
+			dataType = "vignette",
+			id = 5971,
+			texture = "SeedPlanting-Full",
+			filterFunc = function() return true end, --this function is called before the icon is added to the map
+			tooltipFunc = function()end, --called on OnEnter
+			amountFunc = function()end, --called to se the number which goes bellow the icon
+			onAddFunc = function()end, --called when the icon is added to the map
+			onRemoveFunc = function()end, --called when the icon is removed from the map
+		}
+	},
+
+
+--[=[
+[1] =  {
+   ["widgetSetID"] = 1005,
+   ["atlasName"] = "SeedPlanting-Full",
+   ["hasTooltip"] = true,
+   ["onMinimap"] = false,
+   ["rewardQuestID"] = 0,
+   ["type"] = 0,
+   ["isDead"] = false,
+   ["objectGUID"] = "Creature-0-3020-2548-66-209880-00005006E7",
+   ["addPaddingAboveWidgets"] = true,
+   ["onWorldMap"] = true,
+   ["name"] = "Emerald Bounty",
+   ["vignetteGUID"] = "Vignette-0-3020-2548-66-5971-00005006E7",
+   ["vignetteID"] = 5971,
+   ["inFogOfWar"] = false,
+   ["isUnique"] = true,
+   ["zoneInfiniteAOI"] = true,
+},
+--]=]
+
+
+
+
+/run LFGListFrame.ApplicationViewer.InfoBackground
+/run LFGListFrame.SearchPanel:Show()
+/run LFGListFrame.ApplicationViewer:Hide()

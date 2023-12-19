@@ -1574,6 +1574,19 @@ local scheduledIconUpdate = function(questTable)
 	WorldQuestTracker.SetupWorldQuestButton(button, worldQuestType, rarity, isElite, tradeskillLineIndex, nil, nil, isCriteria, nil, mapID)
 
 	local newX, newY = HereBeDragons:TranslateZoneCoordinates(x, y, mapID, WorldMapFrame.mapID, false)
+
+	if (mapID == WorldQuestTracker.MapData.ZoneIDs.ZARALEK) then
+		if (x and y) then --no zaralek mapID, but zaralek quests shown on worldmap
+			newX = 0.75 + x * 0.25
+			newY = 0.75 + y * 0.25
+			--button.blackGradient:Hide()
+			--button.flagText:Hide()
+			--self.bgFlag:Hide()
+			WorldQuestTracker.ClearZoneWidget(button)
+			button.circleBorder:Show()
+		end
+	end
+
 	pin:SetPosition(newX, newY)
 	pin:SetSize(22, 22)
 	pin.IsInUse = true

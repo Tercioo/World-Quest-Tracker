@@ -584,6 +584,10 @@ WorldQuestTracker.mapTables = {
 		},
 }
 
+WorldQuestTracker.extraIcons = {
+
+}
+
 WorldQuestTracker.MapData.EquipmentIcons = {
 	["INVTYPE_HEAD"] = "Interface\\ICONS\\" .. "INV_Helmet_29",
 	["INVTYPE_NECK" ] = "Interface\\ICONS\\" .. "INV_Jewelry_Necklace_07",

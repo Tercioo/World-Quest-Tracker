@@ -9,7 +9,7 @@
 ---@field deploy fun(tblReceiving:table, tblGiving:table) : table copy keys/values that does exist on tblGiving but not in tblReceiving
 ---@field copytocompress fun(tblReceiving:table, tblGiving:table) : table copy the values from table2 to table1 overwriting existing values, ignores __index, functions and tables with a 'GetObjectType' key
 ---@field removeduplicate fun(tbl1:table, tbl2:table) remove the keys from table1 which also exists in table2 with the same value
----@field getfrompath fun(tbl:table, path:string) : any get a value from a table using a path, e.g. getfrompath(tbl, "a.b.c") is the same as tbl.a.b.c
+---@field getfrompath fun(tbl:table, path:string, subOffset:number?) : any get a value from a table using a path, e.g. getfrompath(tbl, "a.b.c") is the same as tbl.a.b.c; if subOffset is passed, return the subOffset'th value of the path
 ---@field setfrompath fun(tbl:table, path:string, value:any) : boolean set the value of a table using a path, e.g. setfrompath(tbl, "a.b.c", 10) is the same as tbl.a.b.c = 10
 ---@field dump fun(tbl:table) : string dump a table to a string
 
@@ -57,7 +57,7 @@
 ---@field EditorMixin df_editormixin
 ---@field ClassCache {ID:number, Name:string, FileString:string, Texture:string, TexCoord:number[]}[] only available after calling GetClassList()
 ---@field Math df_math
----@field FontOutlineFlags {key1:outline, key2:string}[]
+---@field FontOutlineFlags table<outline, boolean>
 ---@field table df_table_functions
 ---@field AnchorPoints string[]
 ---@field ClassFileNameToIndex table<string, number> engClass -> classIndex
@@ -103,7 +103,7 @@
 ---@field CommaValue fun(self:table, value:number) : string convert a number to a string with commas, e.g. 1000000 -> 1,000,000
 ---@field SplitTextInLines fun(self:table, text:string) : string[] split a text into lines
 ---@field UnitGroupRolesAssigned fun(unitId: unit, bUseSupport:boolean, specId: specializationid) : string there's no self here
----@field SetAnchor fun(self:table, widget:uiobject, anchorTable:df_anchor, anchorTo:uiobject) only adjust the anchors of a widget, does not save values
+---@field SetAnchor fun(self:table, widget:uiobject, anchorTable:df_anchor, anchorTo:uiobject?) only adjust the anchors of a widget, does not save values
 ---@field AddTextureToText fun(text:string, textureInfo:table, bAddSpace:boolean?, bAddAfterText:boolean) : string textureInfo is a table with .texture .width .height .coords{left, right, top, bottom}
 ---@field CreateTextureInfo fun(texture:atlasname|texturepath|textureid, width:number?, height:number?, left:number?, right:number?, top:number?, bottom:number?, imageWidthnumber?, imageHeightnumber?) : table
 ---@field ApplyStandardBackdrop fun(self:table, frame:frame, bUseSolidColor:boolean?, alphaScale:number?)

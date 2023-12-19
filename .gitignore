@@ -26,3 +26,4 @@ locales/zhTW.lua
 api.lua
 *.png
 media/options_visibility_context.afphoto~lock~
+luac.out

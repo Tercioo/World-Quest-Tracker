@@ -508,18 +508,6 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
             {
                 type = "toggle",
                 get = function()
-                    return DB.profile.show_faction_frame
-                end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("show_faction_frame", not WorldQuestTracker.db.profile.show_faction_frame)
-
-                end,
-                name = "S_OPTIONS_SHOWFACTIONS",
-                desc = "S_OPTIONS_SHOWFACTIONS",
-            },
-            {
-                type = "toggle",
-                get = function()
                     return DB.profile.hoverover_animations
                 end,
                 set = function(self, fixedparam, value)
@@ -706,6 +694,19 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 type = "label",
                 get = function() return "S_VISIBILITY" end,
                 text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
+            },
+
+            {
+                type = "toggle",
+                get = function()
+                    return DB.profile.show_faction_frame
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("show_faction_frame", not WorldQuestTracker.db.profile.show_faction_frame)
+
+                end,
+                name = "S_OPTIONS_SHOWFACTIONS",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 33 .. ":" .. 208 .. ":0:0:256:256:" .. (0) .. ":" .. (208) .. ":" .. (36+30) .. ":" .. (36+30+33) .. "|t\n\n" .. "S_OPTIONS_SHOWFACTIONS",
             },
             {
                 type = "toggle",
