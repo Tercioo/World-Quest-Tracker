@@ -741,33 +741,6 @@ fadeInAnimation:SetScript("OnFinished", function()
 	worldFramePOIs:SetAlpha(1)
 end)
 
---[=[
-	local textureTest = worldFramePOIs:CreateTexture(nil, "overlay")
-	textureTest:SetSize(128, 128)
-	textureTest:SetColorTexture(1, 0, 0)
-	textureTest:SetPoint("center", worldFramePOIs, "center")
---]=]
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------
---> zone map widgets
-
---C_Timer.After (2, function()
---	function WorldMap_DoesWorldQuestInfoPassFilters (info, ignoreTypeFilters, ignoreTimeRequirement)
---		print (info, ignoreTypeFilters, ignoreTimeRequirement)
---		return true
---	end
---end)
-
---[=[
-WorldMapScrollFrame:HookScript ("OnMouseWheel", function (self, delta)
-	--> update widget anchors if the map is a world quest zone
-	if (WorldQuestTracker.ZoneHaveWorldQuest()) then
-		WorldQuestTracker.UpdateZoneWidgetAnchors()
-	end
-end)
---]=]
-
-
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> tutorials
 
@@ -1017,7 +990,6 @@ function WorldQuestTracker.StopLoadingAnimation()
 	WorldQuestTracker.LoadingAnimation.IsPlaying = false
 end
 
-
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> slash commands
 
@@ -1041,6 +1013,10 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 		b:SetPoint("center", UIParent, "center", 0, 0)
 
 	elseif (msg == "options") then
+		if (not WorldQuestTracker.SetupStatusbarButton) then
+			WorldQuestTracker:Msg(L["S_SLASH_OPENMAP_FIRST"])
+			return
+		end
 		WorldQuestTracker.OpenOptionsPanel()
 
 	elseif (msg == "test") then

@@ -93,6 +93,7 @@ function WorldQuestTracker.HighlightOnWorldMap(questID, scale, color)
 	scale = scale or 1
 	for questCounter, button in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
 		if (button.questID == questID) then
+			--print(button.x, button.y)
 			do_highlight_on_quest(button, scale, color)
 		end
 	end
@@ -1341,8 +1342,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 					local questID = quest [1]
 
 					local isWorldQuest = isWorldQuest(questID)
-						if (isWorldQuest) then
-
+					if (isWorldQuest) then
 						local numObjectives = quest [3]
 
 						--is a new quest?
@@ -1422,7 +1422,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 	else
 		local map = WorldQuestTrackerDataProvider:GetMap()
 		for pin in map:EnumeratePinsByTemplate("WorldQuestTrackerWorldMapPinTemplate") do
-		if (pin.Child) then
+			if (pin.Child) then
 				pin.Child:Hide()
 			end
 			map:RemovePin(pin)
@@ -1513,6 +1513,7 @@ lazyUpdate.ShownQuests = {}
 --list of all widgets created
 WorldQuestTracker.WorldMapSmallWidgets = {}
 
+--update the zone widgets in the world map
 local scheduledIconUpdate = function(questTable)
 	local questID, mapID, numObjectives, questCounter, questName, x, y = unpack(questTable)
 
@@ -1579,6 +1580,17 @@ local scheduledIconUpdate = function(questTable)
 		if (x and y) then --no zaralek mapID, but zaralek quests shown on worldmap
 			newX = 0.75 + x * 0.25
 			newY = 0.75 + y * 0.25
+			--button.blackGradient:Hide()
+			--button.flagText:Hide()
+			--self.bgFlag:Hide()
+			WorldQuestTracker.ClearZoneWidget(button)
+			button.circleBorder:Show()
+		end
+
+	elseif (mapID == WorldQuestTracker.MapData.ZoneIDs.EMERALDDREAM) then
+		if (x and y) then --no zaralek mapID, but zaralek quests shown on worldmap
+			newX = 0.70 + x * 0.50
+			newY = 0.30 + y * 0.50
 			--button.blackGradient:Hide()
 			--button.flagText:Hide()
 			--self.bgFlag:Hide()

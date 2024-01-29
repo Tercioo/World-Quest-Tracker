@@ -97,6 +97,12 @@ do
 				racing = true,
 			},
 
+			dragon_racing = {
+				minimap_enabled = true,
+				minimap_scale = 1,
+				minimap_track_color = {1, 1, 1},
+			},
+
 			sort_order = {
 				[WQT_QUESTTYPE_REPUTATION] = 7,
 				[WQT_QUESTTYPE_TRADE] = 5,
@@ -173,10 +179,10 @@ do
 				summary_widgets_per_row = 8,
 			},
 
-			disable_world_map_widgets = false,
-			show_filter_button = false,
-			show_sort_button = false,
-			show_timeleft_button = true,
+			disable_world_map_widgets = false, --a
+			show_filter_button = false, --a
+			show_sort_button = false, --a
+			show_timeleft_button = true, --a
 
 			show_emissary_info = true,
 

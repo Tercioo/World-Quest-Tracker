@@ -2,8 +2,10 @@ local addonId = ...
 local languageTable = DetailsFramework.Language.RegisterLanguage(addonId, "enUS")
 local L = languageTable
 
-
-
+L["S_OPTTIONS_TAB_DRAGONRACE_SETTINGS"] = "Dragon Race"
+L["S_OPTTIONS_DRAGONRACE_MINIMAP"] = "Show Track Minimap"
+L["S_OPTTIONS_DRAGONRACE_TRACKCOLOR"] = "Track Color"
+L["S_SLASH_OPENMAP_FIRST"] = "World Quest Tracker did not loaded yet, open the map to load."
 L["S_OPTIONS_WORLD_SUMMARY_ALPHA"] = "Summary Alpha"
 L["S_OPTIONS_WORLDMAP_WIDGET_ALPHA"] = "Pin Alpha"
 L["S_OPTIONS_SHOW_TIMELEFT_BUTTON"] = "Show Time Left Button"

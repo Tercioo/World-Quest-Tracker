@@ -10,6 +10,8 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
         return
     end
 
+    local unpack = unpack
+
     local languageInfo = {
 		language_addonId = addonId,
 	}
@@ -79,6 +81,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 		{name = "WorldMapConfig",	    	text = "S_OPTTIONS_TAB_WORLDMAP_SETTINGS"},
 		{name = "ZoneMapConfig",			text = "S_OPTTIONS_TAB_ZONEMAP_SETTINGS"},
 		{name = "GroupFinderConfig",		text = "S_OPTTIONS_TAB_GROUPFINDER_SETTINGS"},
+		{name = "DragonRacingConfig",		text = "S_OPTTIONS_TAB_DRAGONRACE_SETTINGS"},
 		--{name = "RaresConfig",				text = "S_OPTTIONS_TAB_RARES_SETTINGS"},
 		--{name = "IgnoredQuestsPanel",		text = "S_OPTTIONS_TAB_IGNOREDQUESTS_SETTINGS"},
 	},
@@ -162,6 +165,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
     local worldMapSettingsFrame = tabContainer.AllFrames[3]
     local zoneMapSettingsFrame = tabContainer.AllFrames[4]
     local groupFinderSettingsFrame = tabContainer.AllFrames[5]
+    local dragonRaceSettingsFrame = tabContainer.AllFrames[6]
     --local raresSettingsFrame = tabContainer.AllFrames[6]
     --local ignoredQuestsSettingsFrame = tabContainer.AllFrames[7]
 
@@ -1348,6 +1352,65 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
         }
 
         DF:BuildMenu(groupFinderSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+    end
+
+    do
+        local optionsTable = {
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.dragon_racing.minimap_enabled
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.dragon_racing.minimap_enabled = value
+                    if (not value) then
+                        if (WorldQuestTrackerDragonRacingFrame and WorldQuestTrackerDragonRacingFrame:IsShown()) then
+                            WorldQuestTrackerDragonRacingFrame:Hide()
+                        end
+                    end
+                end,
+                name = "S_OPTTIONS_DRAGONRACE_MINIMAP",
+                desc = "S_OPTTIONS_DRAGONRACE_MINIMAP",
+            },
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.dragon_racing.minimap_scale end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.dragon_racing.minimap_scale = value
+                    if (WorldQuestTrackerDragonRacingFrame) then
+                        WorldQuestTrackerDragonRacingFrame:SetScale(value)
+                    end
+                end,
+                min = 0.65,
+                max = 2,
+                step = 0.1,
+                thumbscale = 1.8,
+                usedecimals = true,
+                name = "S_SCALE",
+                desc = "S_SCALE",
+            },
+
+            {
+                type = "color",
+                get = function()
+                    local r, g, b = unpack(WorldQuestTracker.db.profile.dragon_racing.minimap_track_color)
+                    return r, g, b
+                end,
+                set = function(widget, r, g, b)
+                    local colorTable = WorldQuestTracker.db.profile.dragon_racing.minimap_track_color
+                    colorTable[1], colorTable[2], colorTable[3] = r, g, b
+                    if (WorldQuestTrackerDragonRacingFrameMinimapTexture) then
+                        WorldQuestTrackerDragonRacingFrameMinimapTexture:SetVertexColor(r, g, b)
+                    end
+                end,
+                name = "S_OPTTIONS_DRAGONRACE_TRACKCOLOR",
+                desc = "S_OPTTIONS_DRAGONRACE_TRACKCOLOR",
+            },
+        }
+
+        optionsTable.always_boxfirst = true
+        optionsTable.language_addonId = addonId
+        DF:BuildMenu(dragonRaceSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
     end
 
     do --Rare Finder Settings

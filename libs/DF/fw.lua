@@ -1,6 +1,6 @@
 
 
-local dversion = 494
+local dversion = 510
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -48,6 +48,12 @@ end
 function DF:MsgWarning(msg, ...)
 	print("|cFFFFFFAA" .. (self.__name or "Details!Framework") .. "|r |cFFFFAA00[Warning]|r", msg, ...)
 end
+
+DF.DefaultRoundedCornerPreset = {
+	roundness = 6,
+	color = {.1, .1, .1, 0.98},
+	border_color = {.05, .05, .05, 0.834},
+}
 
 DF.internalFunctions = DF.internalFunctions or {}
 
@@ -507,6 +513,16 @@ function DF:FadeFrame(frame, t)
 end
 
 ------------------------------------------------------------------------------------------------------------
+function DF:RandomBool(odds)
+	if (odds) then
+		local chance = math.random()
+		return chance <= odds
+	else
+		return math.random(1, 2) == 1
+	end
+end
+
+------------------------------------------------------------------------------------------------------------
 --table
 
 DF.table = {}
@@ -521,6 +537,75 @@ function DF.table.find(t, value)
 			return i
 		end
 	end
+end
+
+---find a value inside a sub table
+---@param index number
+---@param value any
+---@return integer|nil
+function DF.table.findsubtable(t, index, value)
+	for i = 1, #t do
+		if (type(t[i]) == "table") then
+			if (t[i][index] == value) then
+				return i
+			end
+		end
+	end
+end
+
+
+function DF:GetParentKeyPath(object)
+	local parentKey = object:GetParentKey()
+	if (not parentKey) then
+		return ""
+	end
+
+	local path = "" .. parentKey
+	local parent = object:GetParent()
+
+	while (parent) do
+		parentKey = parent:GetParentKey()
+
+		if (parentKey) then
+			path = parentKey .. "." .. path
+		else
+			return path
+		end
+
+		parent = parent:GetParent()
+	end
+
+	return path
+end
+
+function DF:GetParentNamePath(object)
+	local parent = object
+	local path = ""
+	while (parent) do
+		local parentName = parent:GetName()
+
+		if (not parentName) then
+			local parentOfParent = parent:GetParent()
+			if (parentOfParent) then
+				local parentKey = parentOfParent:GetParentKey()
+				if (parentKey) then
+					parentName = parentKey
+				else
+					return path:gsub("%.$", "")
+				end
+			end
+		end
+
+		if (parentName) then
+			path = parentName .. "." .. path
+		else
+			return path:gsub("%.$", "")
+		end
+
+		parent = parent:GetParent()
+	end
+
+	return path:gsub("%.$", "")
 end
 
 ---get a value from a table using a path, e.g. getfrompath(tbl, "a.b.c") is the same as tbl.a.b.c
@@ -627,7 +712,7 @@ end
 function DF.table.duplicate(t1, t2)
 	for key, value in pairs(t2) do
 		if (key ~= "__index" and key ~= "__newindex") then
-			--preserve a wowObject passing it to the new table with copying it
+			--preserve a UIObject passing it to the new table with copying it
 			if (type(value) == "table" and table.GetObjectType and table:GetObjectType()) then
 				t1[key] = value
 
@@ -735,6 +820,7 @@ function DF.table.deploy(t1, t2)
 	return t1
 end
 
+--/run print (DetailsFramework.table.dump({{1, 2}, {2, 3}, {4, 5}}))
 local function tableToString(t, resultString, deep, seenTables)
     resultString = resultString or ""
     deep = deep or 0
@@ -784,7 +870,11 @@ local function tableToString(t, resultString, deep, seenTables)
 			resultString = resultString .. space .. "[\"" .. key .. "\"] = \"|cFFfff1c1" .. value .. "|r\",\n"
 
 		elseif (valueType == "number") then
-			resultString = resultString .. space .. "[\"" .. key .. "\"] = |cFF94CEA8" .. value .. "|r,\n"
+			if (type(key) == "number") then
+				resultString = resultString .. space .. "[" .. key .. "] = |cFFffc1f4" .. value .. "|r,\n"
+			else
+				resultString = resultString .. space .. "[\"" .. key .. "\"] = |cFF94CEA8" .. value .. "|r,\n"
+			end
 
 		elseif (valueType == "function") then
 			resultString = resultString .. space .. "[\"" .. key .. "\"] = |cFFC586C0function|r,\n"
@@ -1971,7 +2061,16 @@ end
 		IsColorTable = true,
 	}
 
-	---convert a any format of color to any other format of color
+	--takes in a color in one format and converts it to another specified format.
+	--here are the parameters it accepts:
+	--newFormat (string): The format to convert the color to. It can be one of the following: "commastring", "tablestring", "table", "tablemembers", "numbers", "hex".
+	--r (number|string): The red component of the color or a string representing the color.
+	--g (number|nil): The green component of the color. This is optional if r is a string.
+	--b (number|nil): The blue component of the color. This is optional if r is a string.
+	--a (number|nil): The alpha component of the color. This is optional and defaults to 1 if not provided.
+	--decimalsAmount (number|nil): The number of decimal places to round the color components to. This is optional and defaults to 4 if not provided.
+	--The function returns the color in the new format. The return type depends on the newFormat parameter. It can be a string, a table, or four separate number values (for the "numbers" format). 
+	--For the "hex" format, it returns a string representing the color in hexadecimal format.	
 	---@param newFormat string
 	---@param r number|string
 	---@param g number|nil
@@ -2029,6 +2128,40 @@ end
 	---@return unknown
 	function DF:IsHtmlColor(colorName)
 		return DF.alias_text_colors[colorName]
+	end
+
+	---return the brightness of a color from zero to one
+	---@param r number
+	---@param g number
+	---@param b number
+	---@return number
+	function DF:GetColorBrightness(r, g, b)
+		r, g, b = DF:ParseColors(r, g, b)
+		return 0.2134 * r + 0.7152 * g + 0.0721 * b
+	end
+
+	---return the hue of a color from red to blue to green to  yellow and back to red
+	---@param r number
+	---@param g number
+	---@param b number
+	---@return number
+	function DF:GetColorHue(r, g, b)
+		r, g, b = DF:ParseColors(r, g, b)
+
+		local minValue, maxValue = math.min(r, g, b), math.max(r, g, b)
+
+		if (maxValue == minValue) then
+			return 0
+
+		elseif (maxValue == r) then
+			return (g - b) / (maxValue - minValue) % 6
+
+		elseif (maxValue == g) then
+			return (b - r) / (maxValue - minValue) + 2
+
+		else
+			return (r - g) / (maxValue - minValue) + 4
+		end
 	end
 
 	---get the values passed and return r g b a color values
@@ -2687,7 +2820,6 @@ function DF:CreateAnimation(animation, animationType, order, duration, arg1, arg
 
 	elseif (animationType == "ROTATION") then
 		anim:SetDegrees(arg1) --degree
-		--print("SetOrigin", arg2, arg3, arg4)
 		anim:SetOrigin(arg2 or "center", arg3 or 0, arg4 or 0) --point, x, y
 
 	elseif (animationType == "TRANSLATION") then
@@ -3756,7 +3888,7 @@ local specs_per_class = {
 	["ROGUE"] = {259, 260, 261},
 	["DRUID"] = {102, 103, 104, 105},
 	["HUNTER"] = {253, 254, 255},
-	["SHAMAN"] = {262, 263, 254},
+	["SHAMAN"] = {262, 263, 264},
 	["PRIEST"] = {256, 257, 258},
 	["WARLOCK"] = {265, 266, 267},
 	["PALADIN"] = {65, 66, 70},

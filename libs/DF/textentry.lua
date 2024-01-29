@@ -148,6 +148,10 @@ detailsFramework.TextEntryCounter = detailsFramework.TextEntryCounter or 1
 		end
 	end
 
+	local smember_fontsize = function(object, value)
+		return detailsFramework:SetFontSize(object.editbox, value)
+	end
+
 	--text horizontal pos
 	local smember_horizontalpos = function(object, value)
 		return object.editbox:SetJustifyH(string.lower(value))
@@ -162,6 +166,8 @@ detailsFramework.TextEntryCounter = detailsFramework.TextEntryCounter or 1
 	TextEntryMetaFunctions.SetMembers["text"] = smember_text
 	TextEntryMetaFunctions.SetMembers["multiline"] = smember_multiline
 	TextEntryMetaFunctions.SetMembers["align"] = smember_horizontalpos
+	TextEntryMetaFunctions.SetMembers["fontsize"] = smember_fontsize
+	TextEntryMetaFunctions.SetMembers["textsize"] = smember_fontsize
 
 	TextEntryMetaFunctions.__newindex = function(object, key, value)
 		local func = TextEntryMetaFunctions.SetMembers[key]
@@ -462,12 +468,14 @@ detailsFramework.TextEntryCounter = detailsFramework.TextEntryCounter or 1
 		magnifyingGlassTexture:SetPoint("left", self.widget, "left", 4, 0)
 		magnifyingGlassTexture:SetSize(self:GetHeight()-10, self:GetHeight()-10)
 		magnifyingGlassTexture:SetAlpha(0.5)
+		self.MagnifyingGlassTexture = magnifyingGlassTexture
 
 		local searchFontString = self:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 		searchFontString:SetText("search")
 		searchFontString:SetAlpha(0.3)
 		searchFontString:SetPoint("left", magnifyingGlassTexture, "right", 2, 0)
 		detailsFramework:SetFontSize(searchFontString, 10)
+		self.SearchFontString = searchFontString
 
 		local clearSearchButton = CreateFrame("button", nil, self.widget, "UIPanelCloseButton")
 		clearSearchButton:SetPoint("right", self.widget, "right", -3, 0)
@@ -477,6 +485,7 @@ detailsFramework.TextEntryCounter = detailsFramework.TextEntryCounter or 1
 		clearSearchButton:GetHighlightTexture():SetAtlas("common-search-clearbutton")
 		clearSearchButton:GetPushedTexture():SetAtlas("common-search-clearbutton")
 		clearSearchButton:Hide()
+		self.ClearSearchButton = clearSearchButton
 
 		clearSearchButton:SetScript("OnClick", function()
 			self:SetText("")
@@ -541,6 +550,7 @@ end
 ---@field text any
 ---@field multiline any
 ---@field align any
+---@field fontsize any
 ---@field ShouldOptimizeAutoComplete boolean?
 ---@field SetTemplate fun(self:df_textentry, template:table)
 ---@field Disable fun(self:df_textentry)
@@ -767,6 +777,9 @@ local AutoComplete_OnTextChanged = function(editboxWidget, byUser, capsule)
 		editboxWidget.ignore_textchange = nil
 	end
 	capsule.characters_count = chars_now
+
+	--call the other hooks for the widget
+	capsule:RunHooksForWidget("OnTextChanged", editboxWidget, byUser, capsule)
 end
 
 local AutoComplete_OnSpacePressed = function(editboxWidget, capsule)

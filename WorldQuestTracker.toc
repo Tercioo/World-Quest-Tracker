@@ -61,3 +61,5 @@ WorldQuestTracker_Taxi.lua
 WorldQuestTracker_OptionsPanel.lua
 
 WorldQuestTrackerMixin.xml
+
+racing_helper.lua
