@@ -158,6 +158,8 @@ WorldQuestTracker.OnMapHasChanged = function(self)
 		C_Timer.After(0.5, check_for_quests_on_unknown_map)
 	end
 
+	WorldQuestTracker.UpdateExtraMapTextures()
+
 	--is the map a zone map with world quests?
 	if (WorldQuestTracker.MapData.WorldQuestZones [mapID]) then
 		--hide the toggle world quests button

@@ -1589,13 +1589,14 @@ local scheduledIconUpdate = function(questTable)
 
 	elseif (mapID == WorldQuestTracker.MapData.ZoneIDs.EMERALDDREAM) then
 		if (x and y) then --no zaralek mapID, but zaralek quests shown on worldmap
-			newX = 0.70 + x * 0.50
-			newY = 0.30 + y * 0.50
+			newX = 0.66 + x * 0.50
+			newY = 0.13 + y * 0.50
 			--button.blackGradient:Hide()
 			--button.flagText:Hide()
 			--self.bgFlag:Hide()
 			WorldQuestTracker.ClearZoneWidget(button)
 			button.circleBorder:Show()
+			WorldQuestTracker.AddExtraMapTexture(WorldQuestTracker.MapData.ZoneIDs.DRAGONISLES, [[Interface\AddOns\WorldQuestTracker\media\maps\emerald_dream]], 0.885, 0.38, 224, 224, mapID)
 		end
 	end
 
