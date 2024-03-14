@@ -59,20 +59,40 @@ dragonRidingRaceFrame:SetPoint("center", UIParent, "center", -400, 125)
 dragonRidingRaceFrame:RegisterEvent("QUEST_WATCH_LIST_CHANGED")
 detailsFramework:AddRoundedCornersToFrame(dragonRidingRaceFrame, detailsFramework.DefaultRoundedCornerPreset)
 dragonRidingRaceFrame:Hide()
+dragonRidingRaceFrame:SetAlpha(0.1)
 
 local title = dragonRidingRaceFrame:CreateFontString("$parentTitle", "overlay", "GameFontNormal")
 title:SetPoint("bottomleft", dragonRidingRaceFrame, "topleft", 6, 2)
 title:SetText("World Quest Tracker - Race Track")
+title:SetIgnoreParentAlpha(true)
 
 local minimapTexture = dragonRidingRaceFrame:CreateTexture("$parentMinimapTexture", "artwork")
 minimapTexture:SetSize(256, 256)
 minimapTexture:SetAllPoints(dragonRidingRaceFrame)
+minimapTexture:SetIgnoreParentAlpha(true)
+minimapTexture:SetAlpha(0.7)
 dragonRidingRaceFrame.MinimapTexture = minimapTexture
 
-local positionBlip = dragonRidingRaceFrame:CreateTexture("$parentPositionBlip", "overlay")
+local positionBlip = dragonRidingRaceFrame:CreateTexture("$parentPositionBlip", "overlay", nil, 0)
 positionBlip:SetTexture([[Interface\COMMON\Indicator-Yellow]])
-positionBlip:SetSize(20, 20)
+positionBlip:SetSize(24, 24)
+positionBlip:SetIgnoreParentAlpha(true)
 dragonRidingRaceFrame.PositionBlip = positionBlip
+
+--make a ring around the position blip
+local ringTexture = dragonRidingRaceFrame:CreateTexture("$parentRingTexture", "overlay", nil, 2)
+ringTexture:SetTexture([[Interface\AddOns\WorldQuestTracker\media\border_zone_whiteT]])
+ringTexture:SetPoint("center", positionBlip, "center", 0, 0)
+ringTexture:SetSize(36, 36)
+ringTexture:SetIgnoreParentAlpha(true)
+
+--make a glow above the positionBlip
+local glowTexture = dragonRidingRaceFrame:CreateTexture("$parentGlowTexture", "overlay", nil, 1)
+glowTexture:SetTexture([[Interface\AddOns\WorldQuestTracker\media\highlight_circleT]])
+glowTexture:SetPoint("center", positionBlip, "center", 0, 0)
+glowTexture:SetSize(24, 24)
+glowTexture:SetAlpha(0.2)
+glowTexture:SetIgnoreParentAlpha(true)
 
 dragonRidingRaceFrame:SetScript("OnEvent", function(self, event, questId, bIsStartingRace)
 	if (bIsStartingRace) then
@@ -98,6 +118,8 @@ dragonRidingRaceFrame:SetScript("OnEvent", function(self, event, questId, bIsSta
 
 		dragonRidingRaceFrame:SetScale(WorldQuestTracker.db.profile.dragon_racing.minimap_scale)
 		minimapTexture:SetVertexColor(unpack(WorldQuestTracker.db.profile.dragon_racing.minimap_track_color))
+
+		SetPortraitTexture(positionBlip, "player")
 
         for i = 1, #playerPathTextures do
             playerPathTextures[i]:Hide()
@@ -143,6 +165,7 @@ dragonRidingRaceFrame:SetScript("OnEvent", function(self, event, questId, bIsSta
 			end
         end
 
+
 		dragonRidingRaceFrame:SetScript("OnUpdate", function()
 			--get the player current position
 			local x, y = translateWorldCoordinateToMinimapCoords()
@@ -178,6 +201,7 @@ dragonRidingRaceFrame:SetScript("OnEvent", function(self, event, questId, bIsSta
 end)
 
 WQT_RaceData = {
+	--thaldrazus
     [70051] =  {
         ["buffId"] = 415668,
         ["mapId"] = 2025,
@@ -1675,6 +1699,308 @@ WQT_RaceData = {
 		   },
 		},
 	},
+	--the waking shores
+	[66710] =  {
+		["toUnrealEngine"] = [[---,x,y
+		 1,"(0.91158306788837)","(0.64878031328809)"
+		 2,"(0.9145865285042)","(0.65976534621105)"
+		 3,"(0.96862260280257)","(0.63194864272751)"
+		 4,"(1)","(0.52073761500601)"
+		 5,"(0.95694712074141)","(0.40523104890814)"
+		 6,"(0.87124362604376)","(0.31544586827299)"
+		 7,"(0.70550929385085)","(0.23868373643925)"
+		 8,"(0.55159791314379)","(0.19893242167343)"
+		 9,"(0.47401711628456)","(0.26839080424921)"
+		 10,"(0.50112527363771)","(0.48691661719683)"
+		 11,"(0.48989998295909)","(0.60427443663505)"
+		 12,"(0.56938518358305)","(0.72315061125317)"
+		 13,"(0.60199722757482)","(0.86326677997736)"
+		 14,"(0.53598090107096)","(0.96657920762961)"
+		 15,"(0.39966344200191)","(1)"
+		 16,"(0.27783239608321)","(0.93320874412501)"
+		 17,"(0.1256824557264)","(0.83004063297947)"
+		 18,"(0.004055409178497)","(0.70664880699365)"
+		 19,"(0)","(0.55968124243172)"
+		 20,"(0.019973504660034)","(0.43768285901914)"
+		 21,"(0.058243868549032)","(0.30926602928897)"
+		 22,"(0.11745325219238)","(0.15013767673466)"
+		 23,"(0.18331719362408)","(0.028880886127606)"
+		 24,"(0.27998544968343)","(0)"
+		 25,"(0.35605263675331)","(0.072300750749021)"
+		 26,"(0.46687427084562)","(0.18447166515175)"
+		 27,"(0.54488518686015)","(0.27263813606136)"
+		 28,"(0.68591060731186)","(0.41382242884681)"
+		 29,"(0.78490765136917)","(0.50270017396809)"
+		 30,"(0.89733383472938)","(0.60782989813559)"
+		 31,"(0.91161583887163)","(0.64732198892401)"
+		 ]],
+			["mapId"] = 2022,
+			["maxXNormalized"] = 1,
+			["startX"] = 0.62841761112213,
+			["minYNormalized"] = 0,
+			["minX"] = 0.49577212333679,
+			["worldPositionsNormalized"] =  {
+			   [1] =  {
+				  [1] = 0.91158306788837,
+				  [2] = 0.64878031328809,
+			   },
+			   [2] =  {
+				  [1] = 0.9145865285042,
+				  [2] = 0.65976534621105,
+			   },
+			   [3] =  {
+				  [1] = 0.96862260280257,
+				  [2] = 0.63194864272751,
+			   },
+			   [4] =  {
+				  [1] = 1,
+				  [2] = 0.52073761500601,
+			   },
+			   [5] =  {
+				  [1] = 0.95694712074141,
+				  [2] = 0.40523104890814,
+			   },
+			   [6] =  {
+				  [1] = 0.87124362604376,
+				  [2] = 0.31544586827299,
+			   },
+			   [7] =  {
+				  [1] = 0.70550929385085,
+				  [2] = 0.23868373643925,
+			   },
+			   [8] =  {
+				  [1] = 0.55159791314379,
+				  [2] = 0.19893242167343,
+			   },
+			   [9] =  {
+				  [1] = 0.47401711628456,
+				  [2] = 0.26839080424921,
+			   },
+			   [10] =  {
+				  [1] = 0.50112527363771,
+				  [2] = 0.48691661719683,
+			   },
+			   [11] =  {
+				  [1] = 0.48989998295909,
+				  [2] = 0.60427443663505,
+			   },
+			   [12] =  {
+				  [1] = 0.56938518358305,
+				  [2] = 0.72315061125317,
+			   },
+			   [13] =  {
+				  [1] = 0.60199722757482,
+				  [2] = 0.86326677997736,
+			   },
+			   [14] =  {
+				  [1] = 0.53598090107096,
+				  [2] = 0.96657920762961,
+			   },
+			   [15] =  {
+				  [1] = 0.39966344200191,
+				  [2] = 1,
+			   },
+			   [16] =  {
+				  [1] = 0.27783239608321,
+				  [2] = 0.93320874412501,
+			   },
+			   [17] =  {
+				  [1] = 0.1256824557264,
+				  [2] = 0.83004063297947,
+			   },
+			   [18] =  {
+				  [1] = 0.004055409178497,
+				  [2] = 0.70664880699365,
+			   },
+			   [19] =  {
+				  [1] = 0,
+				  [2] = 0.55968124243172,
+			   },
+			   [20] =  {
+				  [1] = 0.019973504660034,
+				  [2] = 0.43768285901914,
+			   },
+			   [21] =  {
+				  [1] = 0.058243868549032,
+				  [2] = 0.30926602928897,
+			   },
+			   [22] =  {
+				  [1] = 0.11745325219238,
+				  [2] = 0.15013767673466,
+			   },
+			   [23] =  {
+				  [1] = 0.18331719362408,
+				  [2] = 0.028880886127606,
+			   },
+			   [24] =  {
+				  [1] = 0.27998544968343,
+				  [2] = 0,
+			   },
+			   [25] =  {
+				  [1] = 0.35605263675331,
+				  [2] = 0.072300750749021,
+			   },
+			   [26] =  {
+				  [1] = 0.46687427084562,
+				  [2] = 0.18447166515175,
+			   },
+			   [27] =  {
+				  [1] = 0.54488518686015,
+				  [2] = 0.27263813606136,
+			   },
+			   [28] =  {
+				  [1] = 0.68591060731186,
+				  [2] = 0.41382242884681,
+			   },
+			   [29] =  {
+				  [1] = 0.78490765136917,
+				  [2] = 0.50270017396809,
+			   },
+			   [30] =  {
+				  [1] = 0.89733383472938,
+				  [2] = 0.60782989813559,
+			   },
+			   [31] =  {
+				  [1] = 0.91161583887163,
+				  [2] = 0.64732198892401,
+			   },
+			},
+			["maxY"] = 0.81091785430908,
+			["startY"] = 0.74158334732056,
+			["startYNormalized"] = 0.64732198892401,
+			["maxX"] = 0.64127802848816,
+			["minXNormalized"] = 0,
+			["minY"] = 0.61432349681854,
+			["maxYNormalized"] = 1,
+			["startXNormalized"] = 0.91161583887163,
+			["worldPositions"] =  {
+			   [1] =  {
+				  [1] = 0.62841284275055,
+				  [2] = 0.74187004566193,
+			   },
+			   [2] =  {
+				  [1] = 0.62884986400604,
+				  [2] = 0.74402964115143,
+			   },
+			   [3] =  {
+				  [1] = 0.63671243190765,
+				  [2] = 0.73856103420258,
+			   },
+			   [4] =  {
+				  [1] = 0.64127802848816,
+				  [2] = 0.7166975736618,
+			   },
+			   [5] =  {
+				  [1] = 0.63501358032227,
+				  [2] = 0.69398963451385,
+			   },
+			   [6] =  {
+				  [1] = 0.62254321575165,
+				  [2] = 0.67633837461472,
+			   },
+			   [7] =  {
+				  [1] = 0.59842789173126,
+				  [2] = 0.66124737262726,
+			   },
+			   [8] =  {
+				  [1] = 0.57603287696838,
+				  [2] = 0.65343248844147,
+			   },
+			   [9] =  {
+				  [1] = 0.56474441289902,
+				  [2] = 0.66708761453629,
+			   },
+			   [10] =  {
+				  [1] = 0.56868880987167,
+				  [2] = 0.71004855632782,
+			   },
+			   [11] =  {
+				  [1] = 0.56705546379089,
+				  [2] = 0.73312044143677,
+			   },
+			   [12] =  {
+				  [1] = 0.57862102985382,
+				  [2] = 0.75649082660675,
+			   },
+			   [13] =  {
+				  [1] = 0.58336627483368,
+				  [2] = 0.78403687477112,
+			   },
+			   [14] =  {
+				  [1] = 0.57376050949097,
+				  [2] = 0.8043475151062,
+			   },
+			   [15] =  {
+				  [1] = 0.55392551422119,
+				  [2] = 0.81091785430908,
+			   },
+			   [16] =  {
+				  [1] = 0.53619837760925,
+				  [2] = 0.79778707027435,
+			   },
+			   [17] =  {
+				  [1] = 0.51405966281891,
+				  [2] = 0.77750480175018,
+			   },
+			   [18] =  {
+				  [1] = 0.49636220932007,
+				  [2] = 0.75324666500092,
+			   },
+			   [19] =  {
+				  [1] = 0.49577212333679,
+				  [2] = 0.72435367107391,
+			   },
+			   [20] =  {
+				  [1] = 0.4986783862114,
+				  [2] = 0.70036947727203,
+			   },
+			   [21] =  {
+				  [1] = 0.50424695014954,
+				  [2] = 0.67512345314026,
+			   },
+			   [22] =  {
+				  [1] = 0.51286226511002,
+				  [2] = 0.64383971691132,
+			   },
+			   [23] =  {
+				  [1] = 0.52244585752487,
+				  [2] = 0.62000131607056,
+			   },
+			   [24] =  {
+				  [1] = 0.53651165962219,
+				  [2] = 0.61432349681854,
+			   },
+			   [25] =  {
+				  [1] = 0.54757988452911,
+				  [2] = 0.62853741645813,
+			   },
+			   [26] =  {
+				  [1] = 0.56370508670807,
+				  [2] = 0.65058958530426,
+			   },
+			   [27] =  {
+				  [1] = 0.57505613565445,
+				  [2] = 0.66792261600494,
+			   },
+			   [28] =  {
+				  [1] = 0.59557616710663,
+				  [2] = 0.69567865133286,
+			   },
+			   [29] =  {
+				  [1] = 0.6099808216095,
+				  [2] = 0.71315151453018,
+			   },
+			   [30] =  {
+				  [1] = 0.62633949518204,
+				  [2] = 0.73381942510605,
+			   },
+			   [31] =  {
+				  [1] = 0.62841761112213,
+				  [2] = 0.74158334732056,
+			   },
+			},
+		},
+
 }
 
 WQT_UseSameTrack = {

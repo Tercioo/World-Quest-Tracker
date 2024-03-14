@@ -151,7 +151,7 @@ function detailsFramework:CreateLoadFilterParser(callback)
 						if (not bFoundItem) then
 							filterFrame.FindBackpackItem:Cancel()
 							xpcall(callback, geterrorhandler(), "RACE_STOP")
-							return true
+							return
 						end
 					end)
 				end)

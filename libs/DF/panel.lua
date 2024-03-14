@@ -1986,11 +1986,11 @@ local SimplePanel_frame_backdrop_border_color = {0, 0, 0, 1}
 --the slider was anchoring to with_label and here here were anchoring the slider again
 ---@class df_scalebar : slider
 ---@field thumb texture
-function detailsFramework:CreateScaleBar(frame, config) --~scale
+function detailsFramework:CreateScaleBar(frame, config, bNoRightClick) --~scale
 	---@type df_scalebar
 	local scaleBar, text = detailsFramework:CreateSlider(frame, 120, 14, 0.6, 1.6, 0.1, config.scale, true, "ScaleBar", nil, "Scale:", detailsFramework:GetTemplate("slider", "OPTIONS_SLIDER_TEMPLATE"), detailsFramework:GetTemplate("font", "ORANGE_FONT_TEMPLATE"))
 	scaleBar.thumb:SetWidth(24)
-	scaleBar:SetValueStep(0.1)
+	scaleBar:SetValueStep(0.05)
 	scaleBar:SetObeyStepOnDrag(true)
 	scaleBar.mouseDown = false
 	rawset(scaleBar, "lockdown", true)
@@ -2023,26 +2023,32 @@ function detailsFramework:CreateScaleBar(frame, config) --~scale
 	end)
 
 	editbox:SetScript("OnEscapePressed", function()
+		if (bNoRightClick) then
+			return
+		end
 		editbox:ClearFocus()
 		editbox:Hide()
 		editbox:SetText(editbox.defaultValue)
 	end)
 
 	scaleBar:SetScript("OnMouseDown", function(_, mouseButton)
-		if (mouseButton == "RightButton") then
+		if (mouseButton == "LeftButton" or (mouseButton == "RightButton" and bNoRightClick)) then
+			scaleBar.mouseDown  = true
+
+		elseif (mouseButton == "RightButton") then
+			if (bNoRightClick) then
+				return
+			end
 			editbox:Show()
 			editbox:SetAllPoints()
 			editbox:SetText(config.scale)
 			editbox:SetFocus(true)
 			editbox.defaultValue = config.scale
-
-		elseif (mouseButton == "LeftButton") then
-			scaleBar.mouseDown  = true
 		end
 	end)
 
 	scaleBar:SetScript("OnMouseUp", function(_, mouseButton)
-		if (mouseButton == "LeftButton") then
+		if (mouseButton == "LeftButton" or (mouseButton == "RightButton" and bNoRightClick)) then
 			scaleBar.mouseDown  = false
 			frame:SetScale(config.scale)
 			editbox.defaultValue = config.scale
@@ -2158,6 +2164,7 @@ function detailsFramework:CreateSimplePanel(parent, width, height, title, frameN
 	local titleBar = CreateFrame("frame", frameName .. "TitleBar", simplePanel, "BackdropTemplate")
 
 	if (panelOptions.RoundedCorners) then
+		--a key named "TitleBar" is created by the rounded corners function
 		simplePanel.TitleBar:SetColor(.2, .2, .2, 0.4)
 		simplePanel.TitleBar:SetBorderCornerColor(0, 0, 0, 0)
 
@@ -2169,7 +2176,6 @@ function detailsFramework:CreateSimplePanel(parent, width, height, title, frameN
 		titleBar:SetBackdrop(SimplePanel_frame_backdrop)
 		titleBar:SetBackdropColor(.2, .2, .2, 1)
 		titleBar:SetBackdropBorderColor(0, 0, 0, 1)
-		simplePanel.TitleBar = titleBar
 	end
 
 	local close = CreateFrame("button", frameName and frameName .. "CloseButton", titleBar)
@@ -3810,6 +3816,7 @@ end
 ---@field SetData fun(self:df_scrollbox, data:table)
 ---@field GetData fun(self:df_scrollbox): table
 ---@field OnSetData fun(self:df_scrollbox, data:table)? if exists, this function is called after the SetData with the same parameters
+---@field ScrollBar statusbar
 ---@field
 
 ---create a scrollbox with the methods :Refresh() :SetData() :CreateLine()
@@ -4222,9 +4229,18 @@ detailsFramework.RadioGroupCoreFunctions = {
 			end
 
 			if (optionTable.mask) then
-				checkbox.Icon:SetMask(optionTable.mask)
+				if (not checkbox.Icon.Mask) then
+					checkbox.Icon.Mask = checkbox:CreateMaskTexture(nil, "overlay")
+					checkbox.Icon.Mask:SetAllPoints(checkbox.Icon.widget)
+					checkbox.Icon.Mask:SetTexture(optionTable.mask)
+					checkbox.Icon:AddMaskTexture(checkbox.Icon.Mask)
+				end
+				checkbox.Icon.Mask:SetTexture(optionTable.mask)
 			else
-				checkbox.Icon:SetMask("")
+				--checkbox.Icon:SetMask("")
+				if (checkbox.Icon.Mask) then
+					checkbox.Icon.Mask:SetTexture("")
+				end
 			end
 		else
 			checkbox.Icon:SetTexture("")
@@ -4317,6 +4333,7 @@ detailsFramework.RadioGroupCoreFunctions = {
 ---@field param any?
 ---@field texture string?
 ---@field texcoord table?
+---@field mask any?
 ---@field width number?
 ---@field height number?
 ---@field text_size number?
