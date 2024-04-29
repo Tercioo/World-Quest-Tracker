@@ -11,6 +11,13 @@ local CreateFrame = CreateFrame
 local PixelUtil = PixelUtil
 local _
 
+---@class df_menu : frame
+---@field RefreshOptions fun()
+---@field widget_list table
+---@field widget_list_by_type table
+---@field widgetids table
+---@field GetWidgetById fun(optionsFrame: df_menu, id: string): table this should return a widget from the widgetids table
+
 ---@class df_menu_table : table
 ---@field text_template table
 ---@field id string an unique string or number to identify the button, from parent.widgetids[id], parent is the first argument of BuildMenu and BuildMenuVolatile
@@ -98,10 +105,26 @@ detailsFramework.OptionsFrameMixin = {
 
 }
 
+local onWidgetSetInUse = function(widget, widgetTable)
+    if (widgetTable.childrenids) then
+        widget.childrenids = widgetTable.childrenids
+    end
+    widget.children_follow_enabled = widgetTable.children_follow_enabled
+
+    if (widgetTable.disabled) then
+        widget:Disable()
+    else
+        if (widget.IsEnabled and not widget:IsEnabled()) then
+            widget:Enable()
+        end
+    end
+end
+
 local setWidgetId = function(parent, widgetTable, widgetObject)
     if (widgetTable.id) then
         parent.widgetids[widgetTable.id] = widgetObject
     end
+    widgetTable.widget = widgetObject
 end
 
 local onEnterHighlight = function(self)
@@ -166,6 +189,7 @@ local setLabelProperties = function(parent, widget, widgetTable, currentXOffset,
     end
 
     setWidgetId(parent, widgetTable, widget)
+    onWidgetSetInUse(widget, widgetTable)
 end
 
 local setDropdownProperties = function(parent, widget, widgetTable, currentXOffset, currentYOffset, template, widgetWidth, widgetHeight, bAlignAsPairs, nAlignAsPairsLength, valueChangeHook, maxColumnWidth, maxWidgetWidth)
@@ -224,6 +248,8 @@ local setDropdownProperties = function(parent, widget, widgetTable, currentXOffs
         maxWidgetWidth = widget:GetWidth()
     end
 
+    onWidgetSetInUse(widget, widgetTable)
+
     return maxColumnWidth, maxWidgetWidth
 end
 
@@ -236,7 +262,49 @@ local setToggleProperties = function(parent, widget, widgetTable, currentXOffset
         widget:SetAsCheckBox()
     end
 
-    widget:SetValue(widgetTable.get())
+    if (widgetTable.children_follow_enabled) then
+        widget.SetValueOriginal = widget.SetValue
+
+        local newSetFunc = function(widget, value)
+            --look for children ids
+            local childrenids = widgetTable.childrenids
+            if (type(childrenids) == "table") then
+                for i, childId in ipairs(childrenids) do
+                    local childWidget = parent:GetWidgetById(childId)
+                    if (childWidget) then
+                        --if the children_follow_reverse is true, then the children will be enabled when the toogle is disabeld
+                        --this is used when the main toggle is a kind of "Do This Automatically", if is not doing it automatically
+                        --then the children should be enabled to set the options
+                        if (widgetTable.children_follow_reverse) then
+                            if (value) then
+                                childWidget:Disable()
+                            else
+                                childWidget:Enable()
+                            end
+                        else
+                            if (value) then
+                                childWidget:Enable()
+                            else
+                                childWidget:Disable()
+                            end
+                        end
+                    end
+                end
+            end
+
+            widget.SetValueOriginal(widget, value)
+            return value
+        end
+
+        widget:SetValue(widgetTable.get())
+        rawset(widget, "SetValue", newSetFunc)
+    else
+        if (widget.SetValueOriginal) then
+            rawset(widget, "SetValue", widget.SetValueOriginal)
+            rawset(widget, "SetValueOriginal", nil)
+        end
+        widget:SetValue(widgetTable.get())
+    end
 
     if (widgetWidth) then
         PixelUtil.SetWidth(widget.widget, widgetWidth)
@@ -302,6 +370,8 @@ local setToggleProperties = function(parent, widget, widgetTable, currentXOffset
         maxWidgetWidth = widget:GetWidth()
     end
 
+    onWidgetSetInUse(widget, widgetTable)
+
     return maxColumnWidth, maxWidgetWidth, extraPaddingY
 end
 
@@ -312,15 +382,18 @@ local setRangeProperties = function(parent, widget, widgetTable, currentXOffset,
 
     widget.bAttachButtonsToLeft = bAttachSliderButtonsToLeft
 
+    local currentValue = widgetTable.get()
+
     if (bIsDecimals) then
         widget.slider:SetValueStep(0.01)
     else
         widget.slider:SetValueStep(widgetTable.step or 1)
+        currentValue = math.floor(currentValue)
     end
     widget.useDecimals = bIsDecimals
 
     widget.slider:SetMinMaxValues(widgetTable.min, widgetTable.max)
-    widget.slider:SetValue(widgetTable.get() or 0)
+    widget.slider:SetValue(currentValue or 0)
     widget.ivalue = widget.slider:GetValue()
 
     if (widgetWidth) then
@@ -377,6 +450,8 @@ local setRangeProperties = function(parent, widget, widgetTable, currentXOffset,
     if (widget:GetWidth() > maxWidgetWidth) then
         maxWidgetWidth = widget:GetWidth()
     end
+
+    onWidgetSetInUse(widget, widgetTable)
 
     return maxColumnWidth, maxWidgetWidth
 end
@@ -456,6 +531,8 @@ local setColorProperties = function(parent, widget, widgetTable, currentXOffset,
         maxWidgetWidth = widget:GetWidth()
     end
 
+    onWidgetSetInUse(widget, widgetTable)
+
     return maxColumnWidth, maxWidgetWidth, extraPaddingY
 end
 
@@ -521,6 +598,8 @@ local setExecuteProperties = function(parent, widget, widgetTable, currentXOffse
     if (widget:GetWidth() > maxWidgetWidth) then
         maxWidgetWidth = widget:GetWidth()
     end
+
+    onWidgetSetInUse(widget, widgetTable)
 
     return maxColumnWidth, maxWidgetWidth, latestInlineWidget
 end
@@ -590,7 +669,42 @@ local setTextEntryProperties = function(parent, widget, widgetTable, currentXOff
         maxWidgetWidth = widget:GetWidth()
     end
 
+    onWidgetSetInUse(widget, widgetTable)
+
     return maxColumnWidth, maxWidgetWidth
+end
+
+local onMenuBuilt = function(parent)
+    --refresh the options to find children to disable or enable
+    if (parent.build_menu_options) then
+        for index, widgetTable in ipairs(parent.build_menu_options) do
+            if (widgetTable.children_follow_enabled) then --not found, bug
+                local widget = widgetTable.widget
+                local childrenids = widgetTable.childrenids
+                if (type(childrenids) == "table") then
+                    for i, childId in ipairs(childrenids) do
+                        local childWidget = parent:GetWidgetById(childId)
+                        if (childWidget) then
+                            local value = widget:GetValue()
+                            if (widgetTable.children_follow_reverse) then
+                                if (value) then
+                                    childWidget:Disable()
+                                else
+                                    childWidget:Enable()
+                                end
+                            else
+                                if (value) then
+                                    childWidget:Enable()
+                                else
+                                    childWidget:Disable()
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
 
 local refreshOptions = function(self)
@@ -621,6 +735,8 @@ local refreshOptions = function(self)
             end
         end
     end
+
+    onMenuBuilt(self)
 end
 
 detailsFramework.internalFunctions.RefreshOptionsPanel = refreshOptions
@@ -839,6 +955,12 @@ local getMenuWidgetVolative = function(parent, widgetType, indexTable)
         end
     end
 
+    --clean children ids, children ids are used to disable or enable other widgets when a widget is disabled or enabled
+    if (widgetObject.childrenids) then
+        table.wipe(widgetObject.childrenids)
+    end
+    widgetObject.children_follow_enabled = nil
+
     return widgetObject
 end
 
@@ -919,9 +1041,12 @@ function detailsFramework:BuildMenuVolatile(parent, menuOptions, xOffset, yOffse
     }
 
     parseOptionsTypes(menuOptions)
+
     local bUseBoxFirstOnAllWidgets, widgetWidth, widgetHeight, bAlignAsPairs, nAlignAsPairsLength, nAlignAsPairsSpacing, bUseScrollFrame, languageAddonId, bAttachSliderButtonsToLeft = parseOptionsTable(menuOptions)
     parent, height = parseParent(bUseScrollFrame, parent, height, yOffset)
     local languageTable = parseLanguageTable(languageAddonId)
+
+    parent.build_menu_options = menuOptions
 
     for index, widgetTable in ipairs(menuOptions) do
         if (not widgetTable.hidden) then
@@ -956,7 +1081,7 @@ function detailsFramework:BuildMenuVolatile(parent, menuOptions, xOffset, yOffse
 
                 --dropdowns
                 elseif (widgetTable.type:find("select")) then
-                    assert(widgetTable.get, "DetailsFramework:BuildMenu(): .get() not found in the widget table for 'select'")
+                    assert(widgetTable.get, "DetailsFramework:BuildMenu: .get() not found in the widget table for 'select'")
                     local dropdown = getMenuWidgetVolative(parent, "dropdown", widgetIndexes)
                     widgetCreated = dropdown
                     local defaultHeight = 18
@@ -1117,6 +1242,7 @@ function detailsFramework:BuildMenuVolatile(parent, menuOptions, xOffset, yOffse
     end
 
     detailsFramework.RefreshUnsafeOptionsWidgets()
+    onMenuBuilt(parent)
 end
 
 local getDescripttionPhraseID = function(widgetTable, languageAddonId, languageTable)
@@ -1151,9 +1277,12 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
 
     --parse settings and the options table
     parseOptionsTypes(menuOptions)
+
     local bUseBoxFirstOnAllWidgets, widgetWidth, widgetHeight, bAlignAsPairs, nAlignAsPairsLength, nAlignAsPairsSpacing, bUseScrollFrame, languageAddonId, bAttachSliderButtonsToLeft = parseOptionsTable(menuOptions)
     parent, height = parseParent(bUseScrollFrame, parent, height, yOffset)
     local languageTable = parseLanguageTable(languageAddonId)
+
+    parent.build_menu_options = menuOptions
 
     if (not parent.widget_list) then
         detailsFramework:SetAsOptionsPanel(parent)
@@ -1197,7 +1326,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
 
             elseif (widgetTable.type:find("select")) then
                 ---@cast widgetTable df_menu_dropdown
-                assert(widgetTable.get, "DetailsFramework:BuildMenu(): .get not found in the widget table for 'select'")
+                assert(widgetTable.get, "DetailsFramework:BuildMenu: .get not found in the widget table for 'select'")
                 local defaultHeight = 18
 
                 local dropdown
@@ -1267,7 +1396,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
             elseif (widgetTable.type == "range") then
                 ---@cast widgetTable df_menu_range
 
-                assert(widgetTable.get, "DetailsFramework:BuildMenu(): .get not found in the widget table for 'range'")
+                assert(widgetTable.get, "DetailsFramework:BuildMenu: .get not found in the widget table for 'range'")
                 local bIsDecimals = widgetTable.usedecimals
                 local slider = detailsFramework:NewSlider(parent, nil, "$parentWidget" .. index, nil, widgetWidth or 140, widgetHeight or 18, widgetTable.min, widgetTable.max, widgetTable.step, widgetTable.get(),  bIsDecimals, nil, nil, sliderTemplate)
 
@@ -1290,7 +1419,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
 
             elseif (widgetTable.type == "color") then
                 ---@cast widgetTable df_menu_color
-                assert(widgetTable.get, "DetailsFramework:BuildMenu(): .get not found in the widget table for 'color'")
+                assert(widgetTable.get, "DetailsFramework:BuildMenu: .get not found in the widget table for 'color'")
                 local colorpick = detailsFramework:NewColorPickButton(parent, "$parentWidget" .. index, nil, widgetTable.set, nil, buttonTemplate)
 
                 local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
@@ -1404,6 +1533,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
     end
 
     detailsFramework.RefreshUnsafeOptionsWidgets()
+    onMenuBuilt(parent)
 end
 
 
