@@ -756,10 +756,9 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.IconButton = IconButton
 
 	f.Circle = f:CreateTexture(nil, "overlay")
-	f.Circle:SetTexture([[Interface\Transmogrify\Transmogrify]])
-	f.Circle:SetTexCoord(381/512, 405/512, 93/512, 117/512)
-	f.Circle:SetSize(18, 18)
-	f.Circle:SetPoint("topleft", f, "topleft", -14, -1)
+	f.Circle:SetAtlas("transmog-nav-slot-selected")
+	f.Circle:SetSize(22, 22)
+	f.Circle:SetPoint("topleft", f, "topleft", -16, 0)
 	f.Circle:SetDesaturated (true)
 	f.Circle:SetAlpha(.7)
 
