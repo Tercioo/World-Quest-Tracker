@@ -478,6 +478,21 @@ function WorldQuestTracker:OnInit()
 				local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData (questID)
 				local questHistory = WorldQuestTracker.db.profile.history
 
+				--check if the map is opened in the player screen
+				if (WorldMapFrame and WorldMapFrame:IsShown()) then
+					C_Timer.After(1, function()
+						--update quest on current map shown
+						if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+							WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
+
+						elseif (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
+							WorldQuestTracker.UpdateZoneWidgets()
+						end
+					end)
+				end
+
+
+
 				local guid = UnitGUID("player")
 				local today = date("%y%m%d") --YYMMDD
 
