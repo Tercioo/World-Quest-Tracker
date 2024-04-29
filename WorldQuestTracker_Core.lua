@@ -3498,6 +3498,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 			local setup_button = function(button, name)
 				button:SetSize(buttons_width, 16)
+				button:SetFrameLevel(1000)
 
 				button.Text = button:CreateFontString(nil, "overlay", "GameFontNormal")
 				button.Text:SetText(name)
