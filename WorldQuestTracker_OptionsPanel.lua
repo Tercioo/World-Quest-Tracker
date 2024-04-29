@@ -909,6 +909,21 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 name = "S_MAPBAR_OPTIONSMENU_ARROWSPEED",
                 desc = "S_MAPBAR_OPTIONSMENU_ARROWSPEED",
             },
+            {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.tracker_background_alpha end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.tracker_background_alpha = value
+                    WorldQuestTracker.RefreshTrackerWidgets()
+                end,
+                min = 0,
+                max = 0.85,
+                step = 0.1,
+                usedecimals = true,
+                thumbscale = 1.8,
+                name = "S_TRACKEROPTIONS_BACKGROUNDALPHA",
+                desc = "S_TRACKEROPTIONS_BACKGROUNDALPHA",
+            },
 
             {type = "blank"},
 

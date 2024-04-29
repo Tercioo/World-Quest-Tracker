@@ -237,6 +237,7 @@ do
 			tracker_scale = 1,
 			tracker_show_time = false,
 			tracker_textsize = 12,
+			tracker_background_alpha = 0.15,
 
 			talking_heads_heard = {},--a
 			talking_heads_torgast = false,--a

@@ -2,6 +2,9 @@ local addonId = ...
 local languageTable = DetailsFramework.Language.RegisterLanguage(addonId, "enUS")
 local L = languageTable
 
+
+L["S_TRACKEROPTIONS_BACKGROUNDALPHA"] = "Background Alpha"
+
 L["S_OPTTIONS_TAB_DRAGONRACE_SETTINGS"] = "Dragon Race"
 L["S_OPTTIONS_DRAGONRACE_MINIMAP"] = "Show Track Minimap"
 L["S_OPTTIONS_DRAGONRACE_TRACKCOLOR"] = "Track Color"
