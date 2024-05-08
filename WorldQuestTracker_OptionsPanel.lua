@@ -1218,6 +1218,9 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
         }
 
         DF:BuildMenu(zoneMapSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+
+        --local zonesIgnoredOptionTable = {
+        --}
     end
 
     do --Group Finder Settings
