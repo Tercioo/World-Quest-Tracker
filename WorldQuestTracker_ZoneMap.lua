@@ -20,9 +20,9 @@ local L = DF.Language.GetLanguageTable(addonId)
 local _
 local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
-local GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
+local GetNumQuestLogRewardCurrencies = WorldQuestTrackerAddon.GetNumQuestLogRewardCurrencies
 local GetQuestLogRewardInfo = GetQuestLogRewardInfo
-local GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
+local GetQuestLogRewardCurrencyInfo = WorldQuestTrackerAddon.GetQuestLogRewardCurrencyInfo
 local IsQuestCriteriaForBounty = C_QuestLog.IsQuestCriteriaForBounty
 
 local worldFramePOIs = WorldMapFrame.BorderFrame
@@ -69,16 +69,18 @@ local on_show_alpha_animation = function(self)
 	self:GetParent():Show()
 end
 
+local emptyFunction = function()end
+
 function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --~zone --~zoneicon ~create
 	local anchorFrame
 
 	if (pinTemplate) then
-		anchorFrame = CreateFrame("frame", name .. index .. "Anchor", parent, pinTemplate)
+		anchorFrame = CreateFrame("button", name .. index .. "Anchor", parent, pinTemplate)
 		anchorFrame.dataProvider = WorldQuestTracker.DataProvider
 		anchorFrame.worldQuest = true
 		anchorFrame.owningMap = WorldQuestTracker.DataProvider:GetMap()
 	else
-		anchorFrame = CreateFrame("frame", name .. index .. "Anchor", parent, WorldQuestTracker.DataProvider:GetPinTemplate())
+		anchorFrame = CreateFrame("button", name .. index .. "Anchor", parent, WorldQuestTracker.DataProvider:GetPinTemplate())
 		anchorFrame.dataProvider = WorldQuestTracker.DataProvider
 		anchorFrame.worldQuest = true
 		anchorFrame.owningMap = WorldQuestTracker.DataProvider:GetMap()
@@ -89,11 +91,15 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	end
 
 	local button = CreateFrame("button", name .. index, parent, "BackdropTemplate")
+
+	button.OnLegendPinMouseEnter = emptyFunction
+	button.OnLegendPinMouseLeave = emptyFunction
+
 	button:SetPoint("center", anchorFrame, "center", 0, 0)
 	button.AnchorFrame = anchorFrame
 	button:SetSize(20, 20)
-	button:SetScript("OnEnter", function() TaskPOI_OnEnter(button) end)
-	button:SetScript("OnLeave", function() TaskPOI_OnLeave(button) end)
+	button:SetScript("OnEnter", function() TaskPOI_OnEnter(button) end) --error | /WorldMapFrame.lua:184: attempt to call method 'OnLegendPinMouseLeave' (a nil value)
+	button:SetScript("OnLeave", function() TaskPOI_OnLeave(button) end) --error | /WorldMapFrame.lua:184: attempt to call method 'OnLegendPinMouseLeave' (a nil value)
 	button:SetScript("OnClick", WorldQuestTracker.OnQuestButtonClick)
 
 	button:RegisterForClicks("LeftButtonDown", "MiddleButtonDown", "RightButtonDown")
@@ -1541,7 +1547,7 @@ ZoneSumaryFrame.IconTimeSize = 20
 
 WorldQuestTracker.ZoneSumaryWidgets = {}
 
-ZoneSumaryFrame.Header = CreateFrame("frame", "WorldQuestTrackerSummaryHeader", ZoneSumaryFrame, "ObjectiveTrackerHeaderTemplate")
+ZoneSumaryFrame.Header = CreateFrame("frame", "WorldQuestTrackerSummaryHeader", ZoneSumaryFrame, "ObjectiveTrackerContainerHeaderTemplate") --ObjectiveTrackerHeaderTemplate
 ZoneSumaryFrame.Header:SetAlpha(0)
 ZoneSumaryFrame.Header.Title = ZoneSumaryFrame.Header:CreateFontString(nil, "overlay", "GameFontNormal")
 ZoneSumaryFrame.Header.Title:SetText("Quest Summary")

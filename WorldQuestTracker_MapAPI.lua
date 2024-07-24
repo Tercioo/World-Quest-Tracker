@@ -20,9 +20,9 @@ local L = DF.Language.GetLanguageTable(addonId)
 local _
 local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
-local GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
+local GetNumQuestLogRewardCurrencies = WorldQuestTrackerAddon.GetNumQuestLogRewardCurrencies
 local GetQuestLogRewardInfo = GetQuestLogRewardInfo
-local GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
+local GetQuestLogRewardCurrencyInfo = WorldQuestTrackerAddon.GetQuestLogRewardCurrencyInfo
 local GetQuestLogRewardMoney = GetQuestLogRewardMoney
 local GetNumQuestLogRewards = GetNumQuestLogRewards
 
@@ -454,12 +454,36 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 
 	--resource amount
 	function WorldQuestTracker.GetQuestReward_Resource(questID)
-		local numQuestCurrencies = GetNumQuestLogRewardCurrencies(questID)
+		--local a = C_QuestLog.GetQuestRewardCurrencies(questID) --returning an empty table
+		--print(type(a))
+		--if (next(a)) then
+		--	dumpt(a)
+		--end
+
+		--local r = C_QuestInfoSystem.GetQuestRewardCurrencies(questID) --?
+		--dumpt(r)
+
+		--local p = C_QuestLog.GetQuestRewardCurrencies(questID)
+		--dumpt(p)
+
+		--C_Timer.After(3, function()
+		--	local p = C_QuestLog.GetQuestRewardCurrencies(questID) --got data after waiting
+		--	dumpt(p)
+		--end)
+
+		--dumpt(C_QuestLog.GetQuestRewardCurrencyInfo(questID))
+		--GetNumQuestRewards
 		--print(numQuestCurrencies, C_QuestLog.GetTitleForQuestID(questID))
 
+		---@type number
+		local numQuestCurrencies = GetNumQuestLogRewardCurrencies(questID)
+
 		if (numQuestCurrencies == 2) then
-			for i = 1, numQuestCurrencies do
-				local name, texture, numItems = GetQuestLogRewardCurrencyInfo(i, questID)
+			for currencyIndex = 1, numQuestCurrencies do
+				---@type questrewardcurrencyinfo
+				local questRewardCurrencyInfo = WorldQuestTracker.GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
+				----local name, texture, numItems = GetQuestLogRewardCurrencyInfo(i, questID)
+				local name, texture, numItems, currencyId, bonusAmount = questRewardCurrencyInfo.name, questRewardCurrencyInfo.texture, questRewardCurrencyInfo.baseRewardAmount, questRewardCurrencyInfo.currencyID, questRewardCurrencyInfo.bonusRewardAmount
 				--legion invasion quest
 				if (texture and
 						(
@@ -468,15 +492,17 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 						)
 					) then -- [[Interface\Icons\inv_datacrystal01]]
 
-				--BFA invasion quest (this check will force it to get the second reward
-				elseif (not WorldQuestTracker.MapData.IgnoredRewardTexures [texture]) then
-					return name, texture, numItems
+					--BFA invasion quest (this check will force it to get the second reward
+				elseif (not WorldQuestTracker.MapData.IgnoredRewardTexures[texture]) then
+					return name, texture, numItems, currencyId, bonusAmount
 				end
 			end
 		else
-			for i = 1, numQuestCurrencies do
-				local name, texture, numItems = GetQuestLogRewardCurrencyInfo(i, questID)
-				return name, texture, numItems
+			for currencyIndex = 1, numQuestCurrencies do
+				---@type questrewardcurrencyinfo
+				local questRewardCurrencyInfo = WorldQuestTracker.GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
+				local name, texture, numItems, currencyId, bonusAmount = questRewardCurrencyInfo.name, questRewardCurrencyInfo.texture, questRewardCurrencyInfo.baseRewardAmount, questRewardCurrencyInfo.currencyID, questRewardCurrencyInfo.bonusRewardAmount
+				return name, texture, numItems, currencyId, bonusAmount
 			end
 		end
 	end

@@ -429,4 +429,61 @@ end
 
 
 
+--old to new api of wow v11
+--C_Reputation.GetFactionDataByID
+if (not GetFactionInfoByID) then
+	WorldQuestTrackerAddon.GetFactionDataByID = function(id)
+		---@type factioninfo
+		local fD = C_Reputation.GetFactionDataByID(id)
+		return fD.name, fD.description, fD.currentStanding, 0, fD.nextReactionThreshold, fD.currentReactionThreshold, fD.atWarWith, fD.canToggleAtWar, fD.isHeader, fD.isCollapsed, fD.isHeaderWithRep, fD.isWatched, fD.isChild, fD.factionID,	fD.hasBonusRepGain, false
 
+		--[=[]]
+		--hasBonusRepGain=false,
+		--description="Centaur clans roam the Ohn'ahran Plains, where they follow the call of the wind and seek the thrill of the hunt.",
+		--isHeaderWithRep=false,
+		--isHeader=false,
+		--currentReactionThreshold=3000,
+		canSetInactive=true,
+		--atWarWith=false,
+		--isWatched=false,
+		--isCollapsed=false,
+		--canToggleAtWar=false,
+		--nextReactionThreshold=9000,
+		--factionID=2503,
+		--name="Maruuk Centaur",
+		--currentStanding=3000,
+		isAccountWide=true,
+		--isChild=false,
+		reaction=5
+		--]=]
+
+		--local name, description, standingID, barMin, barMax, barValue, atWarWith, canToggleAtWar, isHeader, isCollapsed, hasRep, isWatched, isChild, factionID, hasBonusRepGain, canBeLFGBonus = GetFactionInfoByID (id)
+		--return name
+	end
+else
+	WorldQuestTrackerAddon.GetFactionDataByID = GetFactionInfoByID
+end
+
+if (not GetNumQuestLogRewardCurrencies) then
+	WorldQuestTrackerAddon.GetNumQuestLogRewardCurrencies = function(questID)
+		---@type questrewardcurrencyinfo[]
+		local tQuestCurrencies = C_QuestLog.GetQuestRewardCurrencies(questID) or {}
+		return #tQuestCurrencies
+	end
+else
+	WorldQuestTrackerAddon.GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
+end
+
+
+if (not GetQuestLogRewardCurrencyInfo) then
+	WorldQuestTrackerAddon.GetQuestLogRewardCurrencyInfo = function(i, questID)
+		---@type questrewardcurrencyinfo
+		local tQuestCurrencies = C_QuestLog.GetQuestRewardCurrencies(questID) or {}
+		local questRewardCurrencyInfo = tQuestCurrencies[i]
+		if (questRewardCurrencyInfo) then
+			return questRewardCurrencyInfo.name, questRewardCurrencyInfo.texture, questRewardCurrencyInfo.baseRewardAmount, questRewardCurrencyInfo.currencyID, questRewardCurrencyInfo.bonusRewardAmount
+		end
+	end
+else
+	WorldQuestTrackerAddon.GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
+end

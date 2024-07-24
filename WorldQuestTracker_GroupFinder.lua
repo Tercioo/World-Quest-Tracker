@@ -33,16 +33,6 @@ local GameCooltip = GameCooltip2
 local _
 local C_TaskQuest = _G.C_TaskQuest
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
-local GetNumQuestLogRewardCurrencies = _G.GetNumQuestLogRewardCurrencies
-local GetQuestLogRewardInfo = _G.GetQuestLogRewardInfo
-local GetQuestLogRewardCurrencyInfo = _G.GetQuestLogRewardCurrencyInfo
-local GetQuestLogRewardMoney = _G.GetQuestLogRewardMoney
-local GetNumQuestLogRewards = _G.GetNumQuestLogRewards
-local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
-
-local MapRangeClamped = DF.MapRangeClamped
-local FindLookAtRotation = DF.FindLookAtRotation
-local GetDistance_Point = DF.GetDistance_Point
 
 --create tick frame
 	ff.TickFrame = CreateFrame("frame", nil, UIParent, "BackdropTemplate")
@@ -943,6 +933,9 @@ local playerEnteredWorldQuestZone = function(questID, npcID, npcName)
 	end
 end
 
+--QuestObjectiveSetupBlockButton_AddRightButton
+
+--[=[
 hooksecurefunc("QuestObjectiveSetupBlockButton_AddRightButton", function(block, groupFinderButton, buttonType)
 	if (buttonType == "groupFinder") then
 --		for a, b in pairs(block.TrackedQuest) do
@@ -965,6 +958,7 @@ hooksecurefunc("QuestObjectiveSetupBlockButton_AddRightButton", function(block, 
 		end
 	end
 end)
+--]=]
 
 function ff:PlayerEnteredWorldQuestZone(questID, npcID, npcName)
 	C_Timer.After(0.6, function()

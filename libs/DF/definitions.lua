@@ -5,6 +5,7 @@
 ---@field reverse fun(tbl:table) : table reverse the order of an array
 ---@field append fun(tbl1:table, tbl2:table) : table append the array of table2 to table1
 ---@field duplicate fun(tblReceiving:table, tblGiving:table) : table copy the values from table2 to table1 overwriting existing values, ignores __index and __newindex, keys pointing to a UIObject are preserved
+---@field countkeys fun(tbl:table) : number count the keys of a table
 ---@field copy fun(tblReceiving:table, tblGiving:table) : table copy the values from table2 to table1 overwriting existing values, ignores __index and __newindex, threat UIObjects as regular tables
 ---@field deploy fun(tblReceiving:table, tblGiving:table) : table copy keys/values that does exist on tblGiving but not in tblReceiving
 ---@field copytocompress fun(tblReceiving:table, tblGiving:table) : table copy the values from table2 to table1 overwriting existing values, ignores __index, functions and tables with a 'GetObjectType' key
@@ -13,6 +14,7 @@
 ---@field setfrompath fun(tbl:table, path:string, value:any) : boolean set the value of a table using a path, e.g. setfrompath(tbl, "a.b.c", 10) is the same as tbl.a.b.c = 10
 ---@field dump fun(tbl:table, resultString:string, deep:number) : string dump a table to a string
 ---@field findsubtable fun(tbl:table, index:number, value:any) : integer|nil find the value passed inside a sub table, return the index of the main table where the sub table with the value found is located
+---@field remove fun(tbl:table, value:any) : boolean, number remove all values found inside the array, return true if any value was removed and the amount of values removed
 
 ---@class df_language : table
 ---@field Register fun(addonId:any, languageId:string, gameLanguageOnly:boolean?) : table
@@ -177,6 +179,8 @@
 ---@field IsShadowlandsWow fun():boolean
 ---@field IsDragonflightWow fun():boolean
 ---@field IsWarWow fun():boolean
+---@field IsTWWWow fun():boolean
+---@field ExpansionHasAugEvoker fun():boolean
 ---@field LoadSpellCache fun(self:table, hashMap:table, indexTable:table, allSpellsSameName:table) : hashMap:table, indexTable:table, allSpellsSameName:table load all spells in the game and add them into the passed tables
 ---@field UnloadSpellCache fun(self:table) wipe the table contents filled with LoadSpellCache()
 ---@field GetCurrentClassName fun(self:table) : string return the name of the class the player is playing
@@ -232,7 +236,13 @@
 ---@field CreateColorDropDown fun(self:table, parent:frame, func:function, default:any, width:number?, height:number?, member:string?, name:string?, template:table?) : df_dropdown
 ---@field CreateOutlineDropDown fun(self:table, parent:frame, func:function, default:any, width:number?, height:number?, member:string?, name:string?, template:table?) : df_dropdown
 ---@field CreateAnchorPointDropDown fun(self:table, parent:frame, func:function, default:any, width:number?, height:number?, member:string?, name:string?, template:table?) : df_dropdown
+---@field CreateAudioDropDown fun(self:table, parent:frame, func:function, default:any, width:number?, height:number?, member:string?, name:string?, template:table?) : df_dropdown
 ---@field CreateFontListGenerator fun(self:table, callback:function) : function return a function which when called returns a table filled with all fonts available and ready to be used on dropdowns
+---@field CreateAnchorPointListGenerator fun(self:table, callback:function) : function return a function which when called returns a table filled with all anchor points available and ready to be used on dropdowns
+---@field CreateColorListGenerator fun(self:table, callback:function) : function return a function which when called returns a table filled with all colors available and ready to be used on dropdowns
+---@field CreateOutlineListGenerator fun(self:table, callback:function) : function return a function which when called returns a table filled with all outline options available and ready to be used on dropdowns
+---@field CreateAudioListGenerator fun(self:table, callback:function) : function return a function which when called returns a table filled with all audio options available and ready to be used on dropdowns
+---@field BuildDropDownFontList fun(self:table, onClick:function, icon:atlasname|texturepath|textureid|nil, iconTexcoord:table?, iconSize:number?, bIncludeDefault:boolean?) : table build a list of fonts to be used as optionsTable for a dropdown
 ---@field CreateTextEntry fun(self:table, parent:frame, textChangedCallback:function, width:number, height:number, member:string?, name:string?, labelText:string?, textentryTemplate:table?, labelTemplate:table?) : df_textentry
 ---@field ReskinSlider fun(self:table, slider:frame)
 ---@field GetAvailableSpells fun(self:table) : table<spellid, boolean>
@@ -270,6 +280,7 @@
 ---@field CreateColorPickButton fun(self:table, parent:frame, name:string?, member:string?, callback:function, alpha:number?, buttonTemplate:table?) : df_colorpickbutton
 ---@field CreateSlider fun(self:table, parent:frame, width:number?, height:number?, minValue:number?, maxValue:number?, step:number?, defaultv:number?, isDecemal:boolean?, member:string?, name:string?, label:string?, sliderTemplate:string|table?, labelTemplate:string|table?) : df_slider, df_label?
 ---@field CreateFrameContainer fun(self:table, parent:frame, options:table?, frameName:string?) : df_framecontainer create a frame container, which is a frame that envelops another frame, and can be moved, resized, etc.
+---@field CreateAnimationHub fun(self:table, parent:uiobject, onPlay:function?, onFinished:function?) : animationgroup
 ---@field CreateAnimation fun(self:table, animationGroup:animationgroup, animationType:animationtype, order:number, duration:number, arg1:any, arg2:any, arg3:any, arg4:any, arg5:any, arg6:any, arg7:any, arg8:any) : animation
 ---@field NewImage fun(self:table, parent:frame, texture:atlasname|texturepath|textureid|df_gradienttable|nil, width:number?, height:number?, layer:drawlayer?, texCoord:table?, member:string?, name:string?) : df_image
 ---@field CreateTexture fun(self:table, parent:frame, texture:atlasname|texturepath|textureid|nil, width:number?, height:number?, layer:drawlayer?, coords:table?, member:string?, name:string?) : df_image
@@ -299,7 +310,7 @@
 ---@field ParseTexture fun(self:table, texture:texturepath|textureid|atlasname|atlasinfo, width: number?, height: number?, leftTexCoord: number?, rightTexCoord: number?, topTexCoord: number?, bottomTexCoord: number?, vertexRed:number|string?, vertexGreenvertexRed:number?, vertexBluevertexRed:number?, vertexAlphavertexRed:number?) : any, number?, number?, number?, number?, number?, number?, number?, number?, number?, number?, number?, number?
 ---@field IsTexture fun(self:table, texture:any, bCheckTextureObject: boolean?) : boolean
 ---@field CreateAtlasString fun(self:table, atlas:atlasinfo|atlasname, textureHeight:number?, textureWidth:number?) : string
----@field SetMask fun(self:table, texture:texture, maskTexture:atlasname|texturepath|textureid|table) : nil
+---@field SetMask fun(self:table, texture:texture, maskTexture:atlasname|texturepath|textureid|table|string) : nil
 ---@field GetClientRegion fun(self:table) : string
 ---@field GetBestFontPathForLanguage fun(self:table, languageId:string) : string
 ---@field SetTemplate fun(self:table, frame:uiobject, template:string)
@@ -317,8 +328,9 @@
 ---@field CreateMenuWithGridScrollBox fun(self:table, parent:frame, name:string?, refreshMeFunc:function, refreshButtonFunc:function, clickFunc:function, onCreateButton:function, gridScrollBoxOptions:df_gridscrollbox_options) : df_gridscrollbox create a scrollbox with a grid layout to be used as a menu
 ---@field CreateSearchBox fun(self:table, parent:frame, callback:function) : df_searchbox
 ---@field ConvertAnchorPointToInside fun(self:table, anchorPoint:anchorid) : anchorid
+---@field CreateHeader fun(self:table, parent:frame, headerTable:df_headercolumndata[], options:table?, frameName:string?) : df_headerframe
 ---@field
-
+---@field
 
 
 

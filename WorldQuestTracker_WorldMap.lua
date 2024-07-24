@@ -306,6 +306,8 @@ end
 
 local worldSquareBackdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1.8, bgFile = [[Interface\TARGETINGFRAME\UI-TargetingFrame-LevelBackground]], tile = true, tileSize = 16}
 
+local emptyFunction = function()end
+
 --cria uma square widget no world map ~world ~createworld ~createworldwidget
 --index and name are only for the glogal name
 local create_worldmap_square = function(mapName, index, parent)
@@ -315,6 +317,8 @@ local create_worldmap_square = function(mapName, index, parent)
 	button:SetFrameLevel(302)
 	button:SetBackdrop(worldSquareBackdrop)
 	button:SetBackdropColor(.1, .1, .1, .6)
+	button.OnLegendPinMouseEnter = emptyFunction
+	button.OnLegendPinMouseLeave = emptyFunction
 
 	button:SetScript("OnEnter", questButton_OnEnter)
 	button:SetScript("OnLeave", questButton_OnLeave)
@@ -392,7 +396,7 @@ local create_worldmap_square = function(mapName, index, parent)
 	overlayBorder2:SetPoint("topleft", 0, 0)
 	overlayBorder2:SetPoint("bottomright", 0, 0)
 
-	local borderAnimation = CreateFrame("frame", "$parentBorderShineAnimation", button, "AutoCastShineTemplate")
+	local borderAnimation = CreateFrame("frame", "$parentBorderShineAnimation", button, "AnimatedShineTemplate")
 	borderAnimation:SetFrameLevel(303)
 	borderAnimation:SetPoint("topleft", 2, -2)
 	borderAnimation:SetPoint("bottomright", -2, 2)

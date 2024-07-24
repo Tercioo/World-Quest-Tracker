@@ -15,7 +15,7 @@
 -- make into AceTimer.
 -- @class file
 -- @name AceTimer-3.0
--- @release $Id: AceTimer-3.0.lua 1202 2019-05-15 23:11:22Z nevcairiel $
+-- @release $Id: AceTimer-3.0.lua 1342 2024-05-26 11:49:35Z nevcairiel $
 
 local MAJOR, MINOR = "AceTimer-3.0", 17 -- Bump minor on changes
 local AceTimer, oldminor = LibStub:NewLibrary(MAJOR, MINOR)
@@ -61,11 +61,11 @@ local function new(self, loop, func, delay, ...)
 				-- Compensate delay to get a perfect average delay, even if individual times don't match up perfectly
 				-- due to fps differences
 				local time = GetTime()
-				local delay = timer.delay - (time - timer.ends)
+				local ndelay = timer.delay - (time - timer.ends)
 				-- Ensure the delay doesn't go below the threshold
-				if delay < 0.01 then delay = 0.01 end
-				C_TimerAfter(delay, timer.callback)
-				timer.ends = time + delay
+				if ndelay < 0.01 then ndelay = 0.01 end
+				C_TimerAfter(ndelay, timer.callback)
+				timer.ends = time + ndelay
 			else
 				activeTimers[timer.handle or timer] = nil
 			end
@@ -78,7 +78,7 @@ end
 
 --- Schedule a new one-shot timer.
 -- The timer will fire once in `delay` seconds, unless canceled before.
--- @param callback Callback function for the timer pulse (funcref or method name).
+-- @param func Callback function for the timer pulse (funcref or method name).
 -- @param delay Delay for the timer, in seconds.
 -- @param ... An optional, unlimited amount of arguments to pass to the callback function.
 -- @usage
@@ -107,7 +107,7 @@ end
 
 --- Schedule a repeating timer.
 -- The timer will fire every `delay` seconds, until canceled.
--- @param callback Callback function for the timer pulse (funcref or method name).
+-- @param func Callback function for the timer pulse (funcref or method name).
 -- @param delay Delay for the timer, in seconds.
 -- @param ... An optional, unlimited amount of arguments to pass to the callback function.
 -- @usage

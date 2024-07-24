@@ -1,4 +1,4 @@
-local Type, Version = "MultiLineEditBox", 29
+local Type, Version = "MultiLineEditBox", 33
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -6,13 +6,9 @@ if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 local pairs = pairs
 
 -- WoW APIs
-local GetCursorInfo, GetSpellInfo, ClearCursor = GetCursorInfo, GetSpellInfo, ClearCursor
+local GetCursorInfo, ClearCursor = GetCursorInfo, ClearCursor
 local CreateFrame, UIParent = CreateFrame, UIParent
 local _G = _G
-
--- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
--- List them here for Mikk's FindGlobals script
--- GLOBALS: ACCEPT, ChatFontNormal
 
 --[[-----------------------------------------------------------------------------
 Support functions
@@ -104,9 +100,13 @@ local function OnMouseUp(self)                                                  
 end
 
 local function OnReceiveDrag(self)                                               -- EditBox / ScrollFrame
-	local type, id, info = GetCursorInfo()
+	local type, id, info, extra = GetCursorInfo()
 	if type == "spell" then
-		info = GetSpellInfo(id, info)
+		if C_Spell and C_Spell.GetSpellName then
+			info = C_Spell.GetSpellName(extra)
+		else
+			info = GetSpellInfo(id, info)
+		end
 	elseif type ~= "item" then
 		return
 	end
@@ -143,6 +143,14 @@ end
 local function OnVerticalScroll(self, offset)                                    -- ScrollFrame
 	local editBox = self.obj.editBox
 	editBox:SetHitRectInsets(0, 0, offset, editBox:GetHeight() - offset - self:GetHeight())
+end
+
+local function OnScrollRangeChanged(self, xrange, yrange)
+	if yrange == 0 then
+		self.obj.editBox:SetHitRectInsets(0, 0, 0, 0)
+	else
+		OnVerticalScroll(self, self:GetVerticalScroll())
+	end
 end
 
 local function OnShowFocus(frame)
@@ -220,7 +228,7 @@ local methods = {
 		return self.editBox:GetText()
 	end,
 
-	["SetMaxLetters"] = function(self, num)
+	["SetMaxLetters"] = function (self, num)
 		self.editBox:SetMaxLetters(num or 0)
 	end,
 
@@ -257,8 +265,6 @@ local methods = {
 	["SetCursorPosition"] = function(self, ...)
 		return self.editBox:SetCursorPosition(...)
 	end,
-
-
 }
 
 --[[-----------------------------------------------------------------------------
@@ -297,7 +303,7 @@ local function Constructor()
 	text:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -5, 1)
 	text:SetJustifyV("MIDDLE")
 
-	local scrollBG = CreateFrame("Frame", nil, frame, BackdropTemplateMixin and "BackdropTemplate" or nil)
+	local scrollBG = CreateFrame("Frame", nil, frame, "BackdropTemplate")
 	scrollBG:SetBackdrop(backdrop)
 	scrollBG:SetBackdropColor(0, 0, 0)
 	scrollBG:SetBackdropBorderColor(0.4, 0.4, 0.4)
@@ -321,6 +327,7 @@ local function Constructor()
 	scrollFrame:SetScript("OnReceiveDrag", OnReceiveDrag)
 	scrollFrame:SetScript("OnSizeChanged", OnSizeChanged)
 	scrollFrame:HookScript("OnVerticalScroll", OnVerticalScroll)
+	scrollFrame:HookScript("OnScrollRangeChanged", OnScrollRangeChanged)
 
 	local editBox = CreateFrame("EditBox", ("%s%dEdit"):format(Type, widgetNum), scrollFrame)
 	editBox:SetAllPoints()

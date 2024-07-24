@@ -26,9 +26,9 @@ local pi = math.pi
 local pipi = math.pi*2
 local GetPlayerFacing = GetPlayerFacing
 
-local GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
+local GetNumQuestLogRewardCurrencies = WorldQuestTrackerAddon.GetNumQuestLogRewardCurrencies
 local GetQuestLogRewardInfo = GetQuestLogRewardInfo
-local GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
+local GetQuestLogRewardCurrencyInfo = WorldQuestTrackerAddon.GetQuestLogRewardCurrencyInfo
 local GetQuestLogRewardMoney = GetQuestLogRewardMoney
 local GetNumQuestLogRewards = GetNumQuestLogRewards
 local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
@@ -318,7 +318,7 @@ function WorldQuestTracker.UpdateTrackerScale()
 end
 
 --cria o header
-local WorldQuestTrackerHeader = CreateFrame ("frame", "WorldQuestTrackerQuestsHeader", WorldQuestTrackerFrame, "ObjectiveTrackerHeaderTemplate") -- "ObjectiveTrackerHeaderTemplate"
+local WorldQuestTrackerHeader = CreateFrame ("frame", "WorldQuestTrackerQuestsHeader", WorldQuestTrackerFrame, "ObjectiveTrackerContainerHeaderTemplate") -- "ObjectiveTrackerHeaderTemplate"
 WorldQuestTrackerHeader.Text:SetText ("World Quest Tracker")
 local minimizeButton = CreateFrame ("button", "WorldQuestTrackerQuestsHeaderMinimizeButton", WorldQuestTrackerFrame, "BackdropTemplate")
 local minimizeButtonText = minimizeButton:CreateFontString (nil, "overlay", "GameFontNormal")
@@ -518,7 +518,7 @@ local buildTooltip = function(self)
 
 	--belongs to what faction
 	if (factionID) then
-		local factionName = GetFactionInfoByID (factionID)
+		local factionName = WorldQuestTracker.GetFactionDataByID (factionID)
 		if (factionName) then
 			if (capped) then
 				GameTooltip:AddLine (factionName, GRAY_FONT_COLOR:GetRGB())
@@ -1439,7 +1439,7 @@ end
 
 
 --ao completar uma world quest remover a quest do tracker e da refresh nos widgets
-hooksecurefunc ("BonusObjectiveTracker_OnTaskCompleted", function (questID, xp, money)
+hooksecurefunc(BonusObjectiveTracker, "OnQuestTurnedIn", function(self, questID)
 	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
 		if (WorldQuestTracker.QuestTrackList[i].questID == questID) then
 			tremove (WorldQuestTracker.QuestTrackList, i)
@@ -1541,14 +1541,25 @@ local On_ObjectiveTracker_Update = function()
 	WorldQuestTracker.RefreshTrackerAnchor()
 end
 
---quando houver uma atualiza��o no quest tracker, atualizar as ancores do nosso tracker
-hooksecurefunc ("ObjectiveTracker_Update", function (reason, id)
+--quando houver uma atualiza��o no quest tracker, atualizar as ancoras do nosso tracker
+--hooksecurefunc ("ObjectiveTracker_Update", function (reason, id) --v10
+--	On_ObjectiveTracker_Update()
+--end)
+
+hooksecurefunc(ObjectiveTrackerManager, "UpdateAll", function()
+	On_ObjectiveTracker_Update() --v11
+end)
+hooksecurefunc(ObjectiveTrackerManager, "UpdateModule", function()
+	On_ObjectiveTracker_Update() --v11
+end)
+
+ObjectiveTrackerFrame.Header.MinimizeButton:HookScript("OnClick", function() --v11
 	On_ObjectiveTracker_Update()
 end)
 --quando o jogador clicar no bot�o de minizar o quest tracker, atualizar as ancores do nosso tracker
-ObjectiveTrackerFrame.HeaderMenu.MinimizeButton:HookScript ("OnClick", function()
-	On_ObjectiveTracker_Update()
-end)
+--ObjectiveTrackerFrame.HeaderMenu.MinimizeButton:HookScript ("OnClick", function() --v10
+--	On_ObjectiveTracker_Update()
+--end)
 
 function WorldQuestTracker:FullTrackerUpdate()
 	On_ObjectiveTracker_Update()

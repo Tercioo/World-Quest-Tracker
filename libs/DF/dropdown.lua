@@ -399,6 +399,10 @@ function DropDownMetaFunctions:Select(optionName, byOptionNumber, bOnlyShown, ru
 
 	local runOkay, optionsTable = xpcall(self.func, geterrorhandler(), self)
 
+	if (type(optionsTable) ~= "table") then
+		error("optionsTable for Dropdown:Select() is not of type 'table'. Check if the dropdown menu function is returning a table.")
+	end
+
 	if (#optionsTable == 0) then
 		self:NoOption(true)
 		return true
@@ -643,7 +647,16 @@ end
 function DetailsFrameworkDropDownOptionOnEnter(self)
 	if (self.table.desc) then
 		GameCooltip2:Preset(2)
-		GameCooltip2:AddLine(self.table.desc)
+
+		local addonId = self.table.addonId
+		if (addonId) then
+			local phraseId = self.table.desc
+			local text = DF.Language.GetText(addonId, phraseId)
+			GameCooltip2:AddLine(text or phraseId)
+		else
+			GameCooltip2:AddLine(self.table.desc)
+		end
+
 		if (self.table.descfont) then
 			GameCooltip2:SetOption("TextFont", self.table.descfont)
 		end
@@ -999,15 +1012,21 @@ local iconSizeTable = {16, 16}
 function DF:BuildDropDownFontList(onClick, icon, iconTexcoord, iconSize, bIncludeDefault)
 	local fontTable = {}
 
+	if (not iconSize) then
+		iconSize = iconSizeTable
+	else
+		iconSize = {iconSize, iconSize}
+	end
+
 	local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
 	for name, fontPath in pairs(SharedMedia:HashTable("font")) do
-		fontTable[#fontTable+1] = {value = name, label = name, onclick = onClick, icon = icon, iconsize = iconSizeTable, texcoord = iconTexcoord, font = fontPath, descfont = "abcdefg ABCDEFG"}
+		fontTable[#fontTable+1] = {value = name, label = name, onclick = onClick, icon = icon, iconsize = iconSize, texcoord = iconTexcoord, font = fontPath, descfont = "abcdefg ABCDEFG"}
 	end
 
 	table.sort(fontTable, function(t1, t2) return t1.label < t2.label end)
 
 	if (bIncludeDefault) then
-		table.insert(fontTable, 1, {value = "DEFAULT", label = "DEFAULT", onclick = onClick, icon = icon, iconsize = iconSizeTable, texcoord = iconTexcoord, font = "", descfont = "abcdefg ABCDEFG"})
+		table.insert(fontTable, 1, {value = "DEFAULT", label = "DEFAULT", onclick = onClick, icon = icon, iconsize = iconSize, texcoord = iconTexcoord, font = "", descfont = "abcdefg ABCDEFG"})
 	end
 
 	return fontTable
@@ -1193,6 +1212,40 @@ function DF:CreateAnchorPointListGenerator(callback)
 	return newGenerator
 end
 
+function DF:CreateAudioListGenerator(callback)
+	local newGenerator = function()
+		local dropdownOptions = {
+			{
+				label = "--x--x--",
+				value = "",
+				onclick = callback
+			}
+		}
+
+		--fetch all audio cues from the libsharedmedia
+		DF.AudioCues = {}
+		local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
+		for audioName, audioPath in pairs(SharedMedia:HashTable("sound")) do
+			DF.AudioCues[#DF.AudioCues+1] = {audioName, audioPath}
+		end
+
+		--sort the audio cues by name
+		table.sort(DF.AudioCues, function(t1, t2) return t1[1] < t2[1] end)
+
+		for i, audioInfo in ipairs(DF.AudioCues) do
+			table.insert(dropdownOptions, {
+				label = audioInfo[1],
+				value = audioInfo[2],
+				onclick = callback
+			})
+		end
+
+		return dropdownOptions
+	end
+
+	return newGenerator
+end
+
 ---create a dropdown object with a list of fonts
 ---@param parent frame
 ---@param callback function
@@ -1223,6 +1276,12 @@ end
 
 function DF:CreateAnchorPointDropDown(parent, callback, default, width, height, member, name, template)
 	local func = DF:CreateAnchorPointListGenerator(callback)
+	local dropDownObject = DF:NewDropDown(parent, parent, name, member, width, height, func, default, template)
+	return dropDownObject
+end
+
+function DF:CreateAudioDropDown(parent, callback, default, width, height, member, name, template)
+	local func = DF:CreateAudioListGenerator(callback)
 	local dropDownObject = DF:NewDropDown(parent, parent, name, member, width, height, func, default, template)
 	return dropDownObject
 end

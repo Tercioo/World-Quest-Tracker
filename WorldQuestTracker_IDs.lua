@@ -10,8 +10,6 @@ end
 --localization
 local L = DetailsFramework.Language.GetLanguageTable(addonId)
 
-local GetFactionInfoByID = _G.GetFactionInfoByID
-
 --convert a filter type to a quest type
 WorldQuestTracker.FilterToQuestType = {
 	pet_battles =		WQT_QUESTTYPE_PETBATTLE,
@@ -810,7 +808,7 @@ WorldQuestTracker.MapData.FactionIcons = {
 	[1859] = "Interface\\ICONS\\INV_Legion_Faction_NightFallen", --The Nightfallen
 	[1894] = "Interface\\ICONS\\INV_Legion_Faction_Warden", --The Wardens
 	[1948] = "Interface\\ICONS\\INV_Legion_Faction_Valarjar", --Valarjar
---	/run for i =1, 3000 do local N={GetFactionInfoByID(i)}if(N[1])then print(N[1].." "..N[14])end end
+--	/run for i =1, 3000 do local N={WorldQuestTracker.GetFactionDataByID(i)}if(N[1])then print(N[1].." "..N[14])end end
 }
 
 local DragonflightFactions = {
@@ -927,122 +925,123 @@ function WorldQuestTracker.GetFactionsAllowedOnMap(mapId)
 	end
 end
 
+
 --reputation IDs for each faction -- UnitFactionGroup ("player")
---/run for i = 1, 5000 do local name = GetFactionInfoByID (i) if(name)then print (i,name) end end
+--/run for i = 1, 5000 do local name = WorldQuestTracker.GetFactionDataByID (i) if(name)then print (i,name) end end
 WorldQuestTracker.MapData.ReputationByFaction = {
 	["Alliance"] = {
 		--Dragonflight
-		[2503] = GetFactionInfoByID(2503), --Maruuk Centaur
-		[2507] = GetFactionInfoByID(2507), --Dragonscale Expedition
-		[2510] = GetFactionInfoByID(2510), --Valdrakken Accord
-		[2511] = GetFactionInfoByID(2511), --Iskaara Tuskarr
-		[2564] = GetFactionInfoByID(2564), --Loamm Niffen
-		[2574] = GetFactionInfoByID(2574), --Dream Wardens
+		[2503] = WorldQuestTracker.GetFactionDataByID(2503), --Maruuk Centaur
+		[2507] = WorldQuestTracker.GetFactionDataByID(2507), --Dragonscale Expedition
+		[2510] = WorldQuestTracker.GetFactionDataByID(2510), --Valdrakken Accord
+		[2511] = WorldQuestTracker.GetFactionDataByID(2511), --Iskaara Tuskarr
+		[2564] = WorldQuestTracker.GetFactionDataByID(2564), --Loamm Niffen
+		[2574] = WorldQuestTracker.GetFactionDataByID(2574), --Dream Wardens
 
 		--Shadowlands
-		[2410] = GetFactionInfoByID(2410), --The Undying Army
-		[2407] = GetFactionInfoByID(2407), --The Ascended
-		[2465] = GetFactionInfoByID(2465), --The Wild Hunt
-		[2413] = GetFactionInfoByID(2413), --Court of Harvesters
-		[2470] = GetFactionInfoByID(2470), --Death's Advance
-		[2472] = GetFactionInfoByID(2472), --The Archivists' Codex
-		[2432] = GetFactionInfoByID(2432), --Ve'nari
-		[2478] = GetFactionInfoByID(2478), --The Enlightened
+		[2410] = WorldQuestTracker.GetFactionDataByID(2410), --The Undying Army
+		[2407] = WorldQuestTracker.GetFactionDataByID(2407), --The Ascended
+		[2465] = WorldQuestTracker.GetFactionDataByID(2465), --The Wild Hunt
+		[2413] = WorldQuestTracker.GetFactionDataByID(2413), --Court of Harvesters
+		[2470] = WorldQuestTracker.GetFactionDataByID(2470), --Death's Advance
+		[2472] = WorldQuestTracker.GetFactionDataByID(2472), --The Archivists' Codex
+		[2432] = WorldQuestTracker.GetFactionDataByID(2432), --Ve'nari
+		[2478] = WorldQuestTracker.GetFactionDataByID(2478), --The Enlightened
 		--[2462] = Stitchmasters
 		--[2464] = Court of Night
 
 		--BFA
-		[2159] = GetFactionInfoByID (2159), --7th Legion
-		[2160] = GetFactionInfoByID (2160), --Proudmoore Admiralty
-		[2161] = GetFactionInfoByID (2161), --Order of Embers
-		[2162] = GetFactionInfoByID (2162), --Storm's Wake
-		[2163] = GetFactionInfoByID (2163), --Tortollan Seekers
-		[2164] = GetFactionInfoByID (2164), --Champions of Azeroth
-		[GetFactionInfoByID (2159) or "NotFound"] = 2159, --7th Legion
-		[GetFactionInfoByID (2160) or "NotFound"] = 2160, --Proudmoore Admiralty
-		[GetFactionInfoByID (2161) or "NotFound"] = 2161, --Order of Embers
-		[GetFactionInfoByID (2162) or "NotFound"] = 2162, --Storm's Wake
-		[GetFactionInfoByID (2163) or "NotFound"] = 2163, --Tortollan Seekers
-		[GetFactionInfoByID (2164) or "NotFound"] = 2164, --Champions of Azeroth
+		[2159] = WorldQuestTracker.GetFactionDataByID (2159), --7th Legion
+		[2160] = WorldQuestTracker.GetFactionDataByID (2160), --Proudmoore Admiralty
+		[2161] = WorldQuestTracker.GetFactionDataByID (2161), --Order of Embers
+		[2162] = WorldQuestTracker.GetFactionDataByID (2162), --Storm's Wake
+		[2163] = WorldQuestTracker.GetFactionDataByID (2163), --Tortollan Seekers
+		[2164] = WorldQuestTracker.GetFactionDataByID (2164), --Champions of Azeroth
+		[WorldQuestTracker.GetFactionDataByID (2159) or "NotFound"] = 2159, --7th Legion
+		[WorldQuestTracker.GetFactionDataByID (2160) or "NotFound"] = 2160, --Proudmoore Admiralty
+		[WorldQuestTracker.GetFactionDataByID (2161) or "NotFound"] = 2161, --Order of Embers
+		[WorldQuestTracker.GetFactionDataByID (2162) or "NotFound"] = 2162, --Storm's Wake
+		[WorldQuestTracker.GetFactionDataByID (2163) or "NotFound"] = 2163, --Tortollan Seekers
+		[WorldQuestTracker.GetFactionDataByID (2164) or "NotFound"] = 2164, --Champions of Azeroth
 
 		--Legion
-		[2170] = GetFactionInfoByID (2170), --Argussian Reach
-		[2045] = GetFactionInfoByID (2045), --Armies of Legionfall
-		[2165] = GetFactionInfoByID (2165), --Army of the Light
-		--[2135] = GetFactionInfoByID (2135), --Chromie
-		[1900] = GetFactionInfoByID (1900), --Court of Farondis
-		[1883] = GetFactionInfoByID (1883), --Dreamwavers
-		[1828] = GetFactionInfoByID (1828), --Highmountain Tribe
-		[1859] = GetFactionInfoByID (1859), --The Nightfallen
-		[1894] = GetFactionInfoByID (1894), --The Wardens
-		[1948] = GetFactionInfoByID (1948), --Valarjar
-		[GetFactionInfoByID (2170) or "NotFound"] = 2170, --Argussian Reach
-		[GetFactionInfoByID (2045) or "NotFound"] = 2045, --Armies of Legionfall
-		[GetFactionInfoByID (2165) or "NotFound"] = 2165, --Army of the Light
-		--[GetFactionInfoByID (2135) or "NotFound"] = 2135, --Chromie
-		[GetFactionInfoByID (1900) or "NotFound"] = 1900, --Court of Farondis
-		[GetFactionInfoByID (1883) or "NotFound"] = 1883, --Dreamwavers
-		[GetFactionInfoByID (1828) or "NotFound"] = 1828, --Highmountain Tribe
-		[GetFactionInfoByID (1859) or "NotFound"] = 1859, --The Nightfallen
-		[GetFactionInfoByID (1894) or "NotFound"] = 1894, --The Wardens
-		[GetFactionInfoByID (1948) or "NotFound"] = 1948, --Valarjar
+		[2170] = WorldQuestTracker.GetFactionDataByID (2170), --Argussian Reach
+		[2045] = WorldQuestTracker.GetFactionDataByID (2045), --Armies of Legionfall
+		[2165] = WorldQuestTracker.GetFactionDataByID (2165), --Army of the Light
+		--[2135] = WorldQuestTracker.GetFactionDataByID (2135), --Chromie
+		[1900] = WorldQuestTracker.GetFactionDataByID (1900), --Court of Farondis
+		[1883] = WorldQuestTracker.GetFactionDataByID (1883), --Dreamwavers
+		[1828] = WorldQuestTracker.GetFactionDataByID (1828), --Highmountain Tribe
+		[1859] = WorldQuestTracker.GetFactionDataByID (1859), --The Nightfallen
+		[1894] = WorldQuestTracker.GetFactionDataByID (1894), --The Wardens
+		[1948] = WorldQuestTracker.GetFactionDataByID (1948), --Valarjar
+		[WorldQuestTracker.GetFactionDataByID (2170) or "NotFound"] = 2170, --Argussian Reach
+		[WorldQuestTracker.GetFactionDataByID (2045) or "NotFound"] = 2045, --Armies of Legionfall
+		[WorldQuestTracker.GetFactionDataByID (2165) or "NotFound"] = 2165, --Army of the Light
+		--[WorldQuestTracker.GetFactionDataByID (2135) or "NotFound"] = 2135, --Chromie
+		[WorldQuestTracker.GetFactionDataByID (1900) or "NotFound"] = 1900, --Court of Farondis
+		[WorldQuestTracker.GetFactionDataByID (1883) or "NotFound"] = 1883, --Dreamwavers
+		[WorldQuestTracker.GetFactionDataByID (1828) or "NotFound"] = 1828, --Highmountain Tribe
+		[WorldQuestTracker.GetFactionDataByID (1859) or "NotFound"] = 1859, --The Nightfallen
+		[WorldQuestTracker.GetFactionDataByID (1894) or "NotFound"] = 1894, --The Wardens
+		[WorldQuestTracker.GetFactionDataByID (1948) or "NotFound"] = 1948, --Valarjar
 	},
 	--Legion
 
 	["Horde"] = {
 		--Dragonflight
-		[2503] = GetFactionInfoByID(2503), --Maruuk Centaur
-		[2507] = GetFactionInfoByID(2507), --Dragonscale Expedition
-		[2510] = GetFactionInfoByID(2510), --Valdrakken Accord
-		[2511] = GetFactionInfoByID(2511), --Iskaara Tuskarr
-		[2564] = GetFactionInfoByID(2564), --Loamm Niffen
-		[2574] = GetFactionInfoByID(2574), --Dream Wardens
+		[2503] = WorldQuestTracker.GetFactionDataByID(2503), --Maruuk Centaur
+		[2507] = WorldQuestTracker.GetFactionDataByID(2507), --Dragonscale Expedition
+		[2510] = WorldQuestTracker.GetFactionDataByID(2510), --Valdrakken Accord
+		[2511] = WorldQuestTracker.GetFactionDataByID(2511), --Iskaara Tuskarr
+		[2564] = WorldQuestTracker.GetFactionDataByID(2564), --Loamm Niffen
+		[2574] = WorldQuestTracker.GetFactionDataByID(2574), --Dream Wardens
 
 		--Shadowlands
-		[2410] = GetFactionInfoByID(2410), --The Undying Army
-		[2407] = GetFactionInfoByID(2407), --The Ascended
-		[2465] = GetFactionInfoByID(2465), --The Wild Hunt
-		[2413] = GetFactionInfoByID(2413), --Court of Harvesters
-		[2470] = GetFactionInfoByID(2470), --Death's Advance
-		[2472] = GetFactionInfoByID(2472), --The Archivists' Codex
-		[2432] = GetFactionInfoByID(2432), --Ve'nari
-		[2478] = GetFactionInfoByID(2478), --The Enlightened
+		[2410] = WorldQuestTracker.GetFactionDataByID(2410), --The Undying Army
+		[2407] = WorldQuestTracker.GetFactionDataByID(2407), --The Ascended
+		[2465] = WorldQuestTracker.GetFactionDataByID(2465), --The Wild Hunt
+		[2413] = WorldQuestTracker.GetFactionDataByID(2413), --Court of Harvesters
+		[2470] = WorldQuestTracker.GetFactionDataByID(2470), --Death's Advance
+		[2472] = WorldQuestTracker.GetFactionDataByID(2472), --The Archivists' Codex
+		[2432] = WorldQuestTracker.GetFactionDataByID(2432), --Ve'nari
+		[2478] = WorldQuestTracker.GetFactionDataByID(2478), --The Enlightened
 
 		--BFA
-		[2103] = GetFactionInfoByID (2103), --Zandalari Empire
-		[2156] = GetFactionInfoByID (2156), --Talanji's Expedition
-		[2157] = GetFactionInfoByID (2157), --The Honorbound
-		[2158] = GetFactionInfoByID (2158), --Voldunai
-		[2163] = GetFactionInfoByID (2163), --Tortollan Seekers
-		[2164] = GetFactionInfoByID (2164), --Champions of Azeroth
-		[GetFactionInfoByID (2103) or "NotFound"] = 2103, --Zandalari Empire
-		[GetFactionInfoByID (2156) or "NotFound"] = 2156, --Talanji's Expedition
-		[GetFactionInfoByID (2157) or "NotFound"] = 2157, --The Honorbound
-		[GetFactionInfoByID (2158) or "NotFound"] = 2158, --Voldunai
-		[GetFactionInfoByID (2163) or "NotFound"] = 2163, --Tortollan Seekers
-		[GetFactionInfoByID (2164) or "NotFound"] = 2164, --Champions of Azeroth
+		[2103] = WorldQuestTracker.GetFactionDataByID (2103), --Zandalari Empire
+		[2156] = WorldQuestTracker.GetFactionDataByID (2156), --Talanji's Expedition
+		[2157] = WorldQuestTracker.GetFactionDataByID (2157), --The Honorbound
+		[2158] = WorldQuestTracker.GetFactionDataByID (2158), --Voldunai
+		[2163] = WorldQuestTracker.GetFactionDataByID (2163), --Tortollan Seekers
+		[2164] = WorldQuestTracker.GetFactionDataByID (2164), --Champions of Azeroth
+		[WorldQuestTracker.GetFactionDataByID (2103) or "NotFound"] = 2103, --Zandalari Empire
+		[WorldQuestTracker.GetFactionDataByID (2156) or "NotFound"] = 2156, --Talanji's Expedition
+		[WorldQuestTracker.GetFactionDataByID (2157) or "NotFound"] = 2157, --The Honorbound
+		[WorldQuestTracker.GetFactionDataByID (2158) or "NotFound"] = 2158, --Voldunai
+		[WorldQuestTracker.GetFactionDataByID (2163) or "NotFound"] = 2163, --Tortollan Seekers
+		[WorldQuestTracker.GetFactionDataByID (2164) or "NotFound"] = 2164, --Champions of Azeroth
 
 		--Legion
-		[2170] = GetFactionInfoByID (2170), --Argussian Reach
-		[2045] = GetFactionInfoByID (2045), --Armies of Legionfall
-		[2165] = GetFactionInfoByID (2165), --Army of the Light
-		--[2135] = GetFactionInfoByID (2135), --Chromie
-		[1900] = GetFactionInfoByID (1900), --Court of Farondis
-		[1883] = GetFactionInfoByID (1883), --Dreamwavers
-		[1828] = GetFactionInfoByID (1828), --Highmountain Tribe
-		[1859] = GetFactionInfoByID (1859), --The Nightfallen
-		[1894] = GetFactionInfoByID (1894), --The Wardens
-		[1948] = GetFactionInfoByID (1948), --Valarjar
-		[GetFactionInfoByID (2170) or "NotFound"] = 2170, --Argussian Reach
-		[GetFactionInfoByID (2045) or "NotFound"] = 2045, --Armies of Legionfall
-		[GetFactionInfoByID (2165) or "NotFound"] = 2165, --Army of the Light
-		--[GetFactionInfoByID (2135) or "NotFound"] = 2135, --Chromie
-		[GetFactionInfoByID (1900) or "NotFound"] = 1900, --Court of Farondis
-		[GetFactionInfoByID (1883) or "NotFound"] = 1883, --Dreamwavers
-		[GetFactionInfoByID (1828) or "NotFound"] = 1828, --Highmountain Tribe
-		[GetFactionInfoByID (1859) or "NotFound"] = 1859, --The Nightfallen
-		[GetFactionInfoByID (1894) or "NotFound"] = 1894, --The Wardens
-		[GetFactionInfoByID (1948) or "NotFound"] = 1948, --Valarjar
+		[2170] = WorldQuestTracker.GetFactionDataByID (2170), --Argussian Reach
+		[2045] = WorldQuestTracker.GetFactionDataByID (2045), --Armies of Legionfall
+		[2165] = WorldQuestTracker.GetFactionDataByID (2165), --Army of the Light
+		--[2135] = WorldQuestTracker.GetFactionDataByID (2135), --Chromie
+		[1900] = WorldQuestTracker.GetFactionDataByID (1900), --Court of Farondis
+		[1883] = WorldQuestTracker.GetFactionDataByID (1883), --Dreamwavers
+		[1828] = WorldQuestTracker.GetFactionDataByID (1828), --Highmountain Tribe
+		[1859] = WorldQuestTracker.GetFactionDataByID (1859), --The Nightfallen
+		[1894] = WorldQuestTracker.GetFactionDataByID (1894), --The Wardens
+		[1948] = WorldQuestTracker.GetFactionDataByID (1948), --Valarjar
+		[WorldQuestTracker.GetFactionDataByID (2170) or "NotFound"] = 2170, --Argussian Reach
+		[WorldQuestTracker.GetFactionDataByID (2045) or "NotFound"] = 2045, --Armies of Legionfall
+		[WorldQuestTracker.GetFactionDataByID (2165) or "NotFound"] = 2165, --Army of the Light
+		--[WorldQuestTracker.GetFactionDataByID (2135) or "NotFound"] = 2135, --Chromie
+		[WorldQuestTracker.GetFactionDataByID (1900) or "NotFound"] = 1900, --Court of Farondis
+		[WorldQuestTracker.GetFactionDataByID (1883) or "NotFound"] = 1883, --Dreamwavers
+		[WorldQuestTracker.GetFactionDataByID (1828) or "NotFound"] = 1828, --Highmountain Tribe
+		[WorldQuestTracker.GetFactionDataByID (1859) or "NotFound"] = 1859, --The Nightfallen
+		[WorldQuestTracker.GetFactionDataByID (1894) or "NotFound"] = 1894, --The Wardens
+		[WorldQuestTracker.GetFactionDataByID (1948) or "NotFound"] = 1948, --Valarjar
 	},
 }
 --end of factions
