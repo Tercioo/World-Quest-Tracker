@@ -434,7 +434,11 @@ end
 if (not GetFactionInfoByID) then
 	WorldQuestTrackerAddon.GetFactionDataByID = function(id)
 		---@type factioninfo
-		local fD = C_Reputation.GetFactionDataByID(id)
+		local fD = C_Reputation.GetFactionDataByID(id) --sometimes he data isn't yet loaded, calling the function will make the client download the quest info.
+		if (not fD) then
+			return
+		end
+
 		return fD.name, fD.description, fD.currentStanding, 0, fD.nextReactionThreshold, fD.currentReactionThreshold, fD.atWarWith, fD.canToggleAtWar, fD.isHeader, fD.isCollapsed, fD.isHeaderWithRep, fD.isWatched, fD.isChild, fD.factionID,	fD.hasBonusRepGain, false
 
 		--[=[]]

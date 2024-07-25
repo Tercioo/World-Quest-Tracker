@@ -443,7 +443,7 @@ local TrackerIconButtonOnClick = function(self, button)
 	if (self.questID == C_SuperTrack.GetSuperTrackedQuestID()) then
 		WorldQuestTracker.SuperTracked = nil
 		--C_SuperTrack.SetSuperTrackedQuestID(0)
-		QuestSuperTracking_ChooseClosestQuest()
+		--QuestSuperTracking_ChooseClosestQuest() --need to find the new equivalent function
 		return
 	end
 
