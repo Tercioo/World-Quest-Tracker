@@ -670,7 +670,8 @@ end
 			--	BonusObjectiveTracker_UntrackWorldQuest(watchedWorldQuestID)
 			--end
 		--end
-		BonusObjectiveTracker_TrackWorldQuest(questID, 0)
+		--BonusObjectiveTracker_TrackWorldQuest(questID, 0)
+		QuestUtil.TrackWorldQuest(questID, Enum.QuestWatchType.Automatic) --0
 		C_SuperTrack.SetSuperTrackedQuestID(questID)
 	end
 --
