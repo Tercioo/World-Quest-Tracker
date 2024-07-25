@@ -442,8 +442,33 @@ local TrackerIconButtonOnClick = function(self, button)
 
 	if (self.questID == C_SuperTrack.GetSuperTrackedQuestID()) then
 		WorldQuestTracker.SuperTracked = nil
-		--C_SuperTrack.SetSuperTrackedQuestID(0)
-		--QuestSuperTracking_ChooseClosestQuest() --need to find the new equivalent function
+		C_SuperTrack.SetSuperTrackedQuestID(0)
+		C_SuperTrack.ClearSuperTrackedContent()
+		C_SuperTrack.IsSuperTrackingMapPin()
+
+		--started on wow 11.0, the objective tracker isn't always selecting a quest to supertrack.
+		--[=[
+		["SetSuperTrackedMapPin"] = function,
+		["IsSuperTrackingMapPin"] = function,
+		["ClearSuperTrackedContent"] = function,
+		["ClearSuperTrackedMapPin"] = function,
+		["GetSuperTrackedVignette"] = function,
+		["GetHighestPrioritySuperTrackingType"] = function,
+		["SetSuperTrackedContent"] = function,
+		["SetSuperTrackedQuestID"] = function,
+		["IsSuperTrackingAnything"] = function,
+		["SetSuperTrackedVignette"] = function,
+		["GetSuperTrackedMapPin"] = function,
+		["IsSuperTrackingQuest"] = function,
+		["GetSuperTrackedContent"] = function,
+		["GetSuperTrackedQuestID"] = function,
+		["SetSuperTrackedUserWaypoint"] = function,
+		["IsSuperTrackingContent"] = function,
+		["IsSuperTrackingUserWaypoint"] = function,
+		["ClearAllSuperTracked"] = function,
+		["IsSuperTrackingCorpse"] = function,
+		--]=]
+
 		return
 	end
 

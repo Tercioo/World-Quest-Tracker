@@ -837,7 +837,6 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 					local isNotBanned = not bannedQuests[questID]
 
 					if (isWorldQuest and isNotBanned and WorldQuestTracker.CanShowQuest(info)) then
-
 						local isSuppressed = WorldQuestTracker.DataProvider:IsQuestSuppressed(questID)
 						local passFilters = WorldQuestTracker.DataProvider:DoesWorldQuestInfoPassFilters(info)
 
@@ -929,7 +928,6 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 									end
 
 									local inProgress
-
 									WorldQuestTracker.SetupWorldQuestButton(widget, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget, mapID)
 
 									widget.AnchorFrame.questID = questID
@@ -1020,9 +1018,9 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 					end --is world quest
 
 				else --have quest data
-
+					local questName = C_QuestLog.GetTitleForQuestID(questID)
 					if (WorldQuestTracker.__debug) then
-						WorldQuestTracker:Msg("no HaveQuestData(7) for quest", questID)
+						WorldQuestTracker:Msg("no HaveQuestData for quest", questID, questName)
 					end
 
 					local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info(questID)
@@ -1413,7 +1411,6 @@ function WorldQuestTracker.SetupWorldQuestButton(self, worldQuestType, rarity, i
 
 			-- items
 			local itemName, itemTexture, itemLevel, itemQuantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable = WorldQuestTracker.GetQuestReward_Item(questID)
-
 			if (itemName) then
 				if (isArtifact) then
 					local texture = WorldQuestTracker.GetArtifactPowerIcon(isArtifact, true, questID)

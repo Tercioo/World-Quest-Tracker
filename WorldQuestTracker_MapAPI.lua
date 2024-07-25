@@ -480,10 +480,8 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 
 		if (numQuestCurrencies == 2) then
 			for currencyIndex = 1, numQuestCurrencies do
-				---@type questrewardcurrencyinfo
-				local questRewardCurrencyInfo = WorldQuestTracker.GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
-				----local name, texture, numItems = GetQuestLogRewardCurrencyInfo(i, questID)
-				local name, texture, numItems, currencyId, bonusAmount = questRewardCurrencyInfo.name, questRewardCurrencyInfo.texture, questRewardCurrencyInfo.baseRewardAmount, questRewardCurrencyInfo.currencyID, questRewardCurrencyInfo.bonusRewardAmount
+				--name, texture, baseRewardAmount, currencyID, bonusRewardAmount
+				local name, texture, numItems, currencyId, bonusAmount = WorldQuestTracker.GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
 				--legion invasion quest
 				if (texture and
 						(
@@ -499,10 +497,10 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 			end
 		else
 			for currencyIndex = 1, numQuestCurrencies do
-				---@type questrewardcurrencyinfo
-				local questRewardCurrencyInfo = WorldQuestTracker.GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
-				local name, texture, numItems, currencyId, bonusAmount = questRewardCurrencyInfo.name, questRewardCurrencyInfo.texture, questRewardCurrencyInfo.baseRewardAmount, questRewardCurrencyInfo.currencyID, questRewardCurrencyInfo.bonusRewardAmount
-				return name, texture, numItems, currencyId, bonusAmount
+				local name, texture, numItems, currencyId, bonusAmount = WorldQuestTracker.GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
+				if (name) then
+					return name, texture, numItems, currencyId, bonusAmount
+				end
 			end
 		end
 	end
@@ -568,8 +566,8 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 		["5"] = 1
 	 }
 	 --]=]
-	 	
-	aaaa = {}
+
+	--aaaa = {}
 	function WorldQuestTracker.GetQuestReward_Item(questID)
 		if (not HaveQuestData(questID)) then
 			if (WorldQuestTracker.__debug) then
@@ -579,6 +577,7 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 		end
 
 		local numQuestCurrencies = GetNumQuestLogRewardCurrencies(questID)
+
 		if (numQuestCurrencies == 1) then
 
 			--is artifact power? bfa

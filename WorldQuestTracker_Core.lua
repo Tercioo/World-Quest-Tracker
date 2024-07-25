@@ -2418,7 +2418,6 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				end
 
 				--create buttons
-				--for factionID, factionInfo in pairs(WorldQuestTracker.MapData.ReputationByFaction [playerFaction]) do
 				for factionID, _ in pairs(WorldQuestTracker.MapData.AllFactionIds) do --creates one button for each faction registered
 					if (type(factionID) == "number") then
 						local factionName = WorldQuestTracker.GetFactionDataByID(factionID)

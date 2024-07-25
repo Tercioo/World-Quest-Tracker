@@ -3,6 +3,7 @@
 
 do
 	WQT_VERSION = 414
+	ARROW_UPDATE_FREQUENCE = 0.2
 
 	--update quest type max when a new type of world quest is added to the filtering
 	WQT_QUESTTYPE_MAX = 		11			--[[global]]
@@ -478,12 +479,12 @@ else
 	WorldQuestTrackerAddon.GetNumQuestLogRewardCurrencies = GetNumQuestLogRewardCurrencies
 end
 
-
 if (not GetQuestLogRewardCurrencyInfo) then
-	WorldQuestTrackerAddon.GetQuestLogRewardCurrencyInfo = function(i, questID)
-		---@type questrewardcurrencyinfo
-		local tQuestCurrencies = C_QuestLog.GetQuestRewardCurrencies(questID) or {}
-		local questRewardCurrencyInfo = tQuestCurrencies[i]
+	WorldQuestTrackerAddon.GetQuestLogRewardCurrencyInfo = function(currencyIndex, questID)
+		---@type questrewardcurrencyinfo[]
+		local tQuestCurrencies = C_QuestLog.GetQuestRewardCurrencies(questID)
+		tQuestCurrencies = tQuestCurrencies or {}
+		local questRewardCurrencyInfo = tQuestCurrencies[currencyIndex]
 		if (questRewardCurrencyInfo) then
 			return questRewardCurrencyInfo.name, questRewardCurrencyInfo.texture, questRewardCurrencyInfo.baseRewardAmount, questRewardCurrencyInfo.currencyID, questRewardCurrencyInfo.bonusRewardAmount
 		end
@@ -491,3 +492,5 @@ if (not GetQuestLogRewardCurrencyInfo) then
 else
 	WorldQuestTrackerAddon.GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
 end
+
+--WorldQuestTrackerAddon.__debug = true
