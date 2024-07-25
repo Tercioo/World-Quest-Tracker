@@ -767,10 +767,10 @@ function WorldQuestTracker.InitializeWorldWidgets()
 
 	--schedule cleanup: anchors isn't used anymore in the new anchoring system
 	for mapId, configTable in pairs(WorldQuestTracker.mapTables) do
-		local anchor = CreateFrame("frame", nil, worldFramePOIs, "BackdropTemplate")
+		local anchor = CreateFrame("button", nil, worldFramePOIs, "BackdropTemplate")
 		anchor:SetSize(1, 1)
 
-		local anchorFrame = CreateFrame("frame", nil, worldFramePOIs, WorldQuestTracker.DataProvider:GetPinTemplate())
+		local anchorFrame = CreateFrame("button", nil, worldFramePOIs, WorldQuestTracker.DataProvider:GetPinTemplate())
 		anchorFrame.dataProvider = WorldQuestTracker.DataProvider
 		anchorFrame.worldQuest = true
 		anchorFrame.owningMap = WorldQuestTracker.DataProvider:GetMap()
@@ -789,7 +789,7 @@ function WorldQuestTracker.InitializeWorldWidgets()
 		anchorText:SetPoint("bottomleft", anchor, "topleft", 0, 0)
 		anchor.Title = anchorText
 
-		local factionFrame = CreateFrame("frame", "WorldQuestTrackerFactionFrame" .. mapId, worldFramePOIs, "BackdropTemplate")
+		local factionFrame = CreateFrame("button", "WorldQuestTrackerFactionFrame" .. mapId, worldFramePOIs, "BackdropTemplate")
 		table.insert(faction_frames, factionFrame)
 		factionFrame:SetSize(20, 20)
 		configTable.factionFrame = factionFrame

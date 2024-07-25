@@ -1860,7 +1860,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				anchorButton.Anchor = anchor
 
 				--anchor pin - hack to set the anchor location in the map based in a x y coordinate
-				local pinAnchor = CreateFrame("frame", nil, worldFramePOIs, WorldQuestTracker.DataProvider:GetPinTemplate())
+				local pinAnchor = CreateFrame("button", nil, worldFramePOIs, WorldQuestTracker.DataProvider:GetPinTemplate())
 				pinAnchor.dataProvider = WorldQuestTracker.DataProvider
 				pinAnchor.worldQuest = true
 				pinAnchor.owningMap = WorldQuestTracker.DataProvider:GetMap()

@@ -98,8 +98,8 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button:SetPoint("center", anchorFrame, "center", 0, 0)
 	button.AnchorFrame = anchorFrame
 	button:SetSize(20, 20)
-	button:SetScript("OnEnter", function() TaskPOI_OnEnter(button) end) --error | /WorldMapFrame.lua:184: attempt to call method 'OnLegendPinMouseLeave' (a nil value)
-	button:SetScript("OnLeave", function() TaskPOI_OnLeave(button) end) --error | /WorldMapFrame.lua:184: attempt to call method 'OnLegendPinMouseLeave' (a nil value)
+	button:SetScript("OnEnter", function() TaskPOI_OnEnter(button) end)
+	button:SetScript("OnLeave", function() TaskPOI_OnLeave(button) end)
 	button:SetScript("OnClick", WorldQuestTracker.OnQuestButtonClick)
 
 	button:RegisterForClicks("LeftButtonDown", "MiddleButtonDown", "RightButtonDown")
