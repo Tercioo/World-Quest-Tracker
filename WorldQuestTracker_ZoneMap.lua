@@ -1018,8 +1018,8 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 					end --is world quest
 
 				else --have quest data
-					local questName = C_QuestLog.GetTitleForQuestID(questID)
 					if (WorldQuestTracker.__debug) then
+						local questName = C_QuestLog.GetTitleForQuestID(questID)
 						WorldQuestTracker:Msg("no HaveQuestData for quest", questID, questName)
 					end
 

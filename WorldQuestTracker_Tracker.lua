@@ -1511,29 +1511,82 @@ function WorldQuestTracker.IsQuestOnObjectiveTracker (quest)
 	end
 end
 
-local getBlizzardObjectiveTrackerHeight = function()
-	local blizzObjectiveTracker = ObjectiveTrackerFrame
-	if (not blizzObjectiveTracker.initialized) then
+local latestTrackerPositionUpdate = GetTime()
+local bHasScheduledSizeUpdate = false
+
+local onObjectiveTrackerChanges = function() --this will be called several times in a single frame
+	if (ObjectiveTrackerFrame:IsCollapsed()) then
 		return
 	end
 
-	local y = 0
-
-	--get the height of the tracker
-	for i = 1, #blizzObjectiveTracker.MODULES do
-		local module = blizzObjectiveTracker.MODULES[i]
-		if (module.Header:IsShown()) then
-			y = y + module.contentsHeight
-			--this may need to be included on the new stuff for the tracker anchor
-			if (WorldQuestTracker.db.profile.groupfinder.tracker_buttons) then
-				for questID, block in pairs(module.usedBlocks) do
-					ff.HandleBTrackerBlock(questID, block)
-				end
-			end
+	local objectiveTrackerHeight = 0
+    for moduleFrame in pairs (ObjectiveTrackerManager.moduleToContainerMap) do
+		if (type(moduleFrame) == "table" and moduleFrame.GetObjectType and moduleFrame:GetObjectType() == "Frame") then
+        	objectiveTrackerHeight = objectiveTrackerHeight + moduleFrame:GetHeight()
 		end
+    end
+	WorldQuestTracker.TrackerHeight = objectiveTrackerHeight + 10
+	WorldQuestTracker.RefreshTrackerAnchor()
+
+	--need to refresh again on next tick due to some modules being updated after the tracker
+	if (not bHasScheduledSizeUpdate) then
+		C_Timer.After(0, WorldQuestTracker.OnObjectiveTrackerChanges)
+		bHasScheduledSizeUpdate = true
 	end
 end
 
+function WorldQuestTracker.OnObjectiveTrackerChanges()
+	--check the time to make sure only one update is triggered
+	if (GetTime() == latestTrackerPositionUpdate) then
+		return
+	end
+
+	latestTrackerPositionUpdate = GetTime()
+	onObjectiveTrackerChanges()
+	bHasScheduledSizeUpdate = false
+end
+
+if (ObjectiveTrackerManager) then
+	hooksecurefunc(ObjectiveTrackerManager, "ReleaseFrame", onObjectiveTrackerChanges)
+	hooksecurefunc(ObjectiveTrackerManager, "AcquireFrame", onObjectiveTrackerChanges)
+
+	ObjectiveTrackerFrame.Header.MinimizeButton:HookScript("OnClick", function()
+		if (ObjectiveTrackerFrame:IsCollapsed()) then
+			WorldQuestTracker.TrackerHeight = 35
+			WorldQuestTracker.RefreshTrackerAnchor()
+		end
+	end)
+else
+	C_Timer.After(0, function()
+		hooksecurefunc(ObjectiveTrackerManager, "ReleaseFrame", onObjectiveTrackerChanges)
+		hooksecurefunc(ObjectiveTrackerManager, "AcquireFrame", onObjectiveTrackerChanges)
+	end)
+end
+
+--[=[
+	["1"] = "ReleaseFrame",
+	["2"] = "ShowRewardsToast",
+	["3"] = "AddContainer",
+	["4"] = "OnVariablesLoaded",
+	["5"] = "HideRewardsToast",
+	["6"] = "HasRewardsToastForBlock",
+	["7"] = "UpdateModule",
+	["8"] = "SetTextSize",
+	["9"] = "OnCVarChanged",
+	["10"] = "UpdateAll",
+	["11"] = "UpdatePOIEnabled",
+	["12"] = "AssignModulesOrder",
+	["13"] = "OnPlayerEnteringWorld",
+	["14"] = "GetContainerForModule",
+	["15"] = "CanShowPOIs",
+	["16"] = "SetModuleContainer",
+	["17"] = "AcquireFrame",
+	["18"] = "SetOpacity",
+--]=]
+
+
+
+local bHooked = false
 --dispara quando o tracker da interface � atualizado, precisa dar refresh na nossa ancora
 local On_ObjectiveTracker_Update = function()
 	local blizzObjectiveTracker = ObjectiveTrackerFrame
@@ -1543,28 +1596,34 @@ local On_ObjectiveTracker_Update = function()
 
 	WorldQuestTracker.UpdateQuestsInArea()
 
-
-
-	WorldQuestTracker.TrackerAttachToModule = nil
-
-	if (blizzObjectiveTracker.collapsed) then
-		WorldQuestTracker.TrackerHeight = 20
-	else
-		for moduleId = #blizzObjectiveTracker.MODULES_UI_ORDER, 1, -1 do
-			local module = blizzObjectiveTracker.MODULES_UI_ORDER[moduleId]
-			if (module.Header:IsShown()) then
-				WorldQuestTracker.TrackerAttachToModule = module
-				--for k,v in pairs(module) do
-				--	print(k)
-				--end
-				WorldQuestTracker.TrackerHeight = module.contentsHeight
-				break
-			end
-		end
+	if (not bHooked) then
+		bHooked = true
 	end
 
-	--update world quest tracker anchor
 	WorldQuestTracker.RefreshTrackerAnchor()
+
+	--[=[]] v7 up to v10
+		WorldQuestTracker.TrackerAttachToModule = nil
+
+		if (blizzObjectiveTracker.collapsed) then
+			WorldQuestTracker.TrackerHeight = 20
+		else
+			for moduleId = #blizzObjectiveTracker.MODULES_UI_ORDER, 1, -1 do
+				local module = blizzObjectiveTracker.MODULES_UI_ORDER[moduleId]
+				if (module.Header:IsShown()) then
+					WorldQuestTracker.TrackerAttachToModule = module
+					--for k,v in pairs(module) do
+					--	print(k)
+					--end
+					WorldQuestTracker.TrackerHeight = module.contentsHeight
+					break
+				end
+			end
+		end
+	--]=]
+	--update world quest tracker anchor
+	--WorldQuestTracker.RefreshTrackerAnchor()
+	
 end
 
 --quando houver uma atualiza��o no quest tracker, atualizar as ancoras do nosso tracker
