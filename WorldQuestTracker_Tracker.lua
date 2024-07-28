@@ -1464,20 +1464,6 @@ function WorldQuestTracker.UpdateQuestsInArea()
 end
 
 
---ao completar uma world quest remover a quest do tracker e da refresh nos widgets
-hooksecurefunc(BonusObjectiveTracker, "OnQuestTurnedIn", function(self, questID)
-	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
-		if (WorldQuestTracker.QuestTrackList[i].questID == questID) then
-			tremove (WorldQuestTracker.QuestTrackList, i)
-			WorldQuestTracker.RefreshTrackerWidgets()
-			break
-		end
-	end
-end)
-
-
-
-
 -- ~blizzard objective tracker
 function WorldQuestTracker.IsQuestOnObjectiveTracker (quest)
 	local tracker = ObjectiveTrackerFrame
@@ -1521,11 +1507,12 @@ local onObjectiveTrackerChanges = function() --this will be called several times
 
 	local objectiveTrackerHeight = 0
     for moduleFrame in pairs (ObjectiveTrackerManager.moduleToContainerMap) do
-		if (type(moduleFrame) == "table" and moduleFrame.GetObjectType and moduleFrame:GetObjectType() == "Frame") then
+		if (type(moduleFrame) == "table" and moduleFrame.GetObjectType and moduleFrame:GetObjectType() == "Frame" and moduleFrame:IsShown()) then
         	objectiveTrackerHeight = objectiveTrackerHeight + moduleFrame:GetHeight()
 		end
     end
-	WorldQuestTracker.TrackerHeight = objectiveTrackerHeight + 10
+	WorldQuestTracker.TrackerHeight = objectiveTrackerHeight + 50
+
 	WorldQuestTracker.RefreshTrackerAnchor()
 
 	--need to refresh again on next tick due to some modules being updated after the tracker
@@ -1562,6 +1549,39 @@ else
 		hooksecurefunc(ObjectiveTrackerManager, "AcquireFrame", onObjectiveTrackerChanges)
 	end)
 end
+
+--ao completar uma world quest remover a quest do tracker e da refresh nos widgets
+hooksecurefunc(BonusObjectiveTracker, "OnQuestTurnedIn", function(self, questID)
+	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
+		if (WorldQuestTracker.QuestTrackList[i].questID == questID) then
+			local questRemoved = tremove(WorldQuestTracker.QuestTrackList, i)
+			WorldQuestTracker.RefreshTrackerWidgets()
+			onObjectiveTrackerChanges()
+			break
+		end
+	end
+end)
+
+local questEventFrame = CreateFrame("frame")
+questEventFrame:RegisterEvent("QUEST_TURNED_IN")
+questEventFrame:SetScript("OnEvent", function(self, event, ...)
+	C_Timer.After(0, onObjectiveTrackerChanges)
+end)
+
+hooksecurefunc(C_SuperTrack, "SetSuperTrackedQuestID", function()
+	C_Timer.After(0, onObjectiveTrackerChanges)
+end)
+
+hooksecurefunc(QuestUtil, "TrackWorldQuest", function()
+	C_Timer.After(0, onObjectiveTrackerChanges)
+end)
+
+hooksecurefunc(QuestUtil, "UntrackWorldQuest", function()
+	C_Timer.After(0, onObjectiveTrackerChanges)
+end)
+
+
+
 
 --[=[
 	["1"] = "ReleaseFrame",
