@@ -1610,7 +1610,7 @@ local bHooked = false
 --dispara quando o tracker da interface � atualizado, precisa dar refresh na nossa ancora
 local On_ObjectiveTracker_Update = function()
 	local blizzObjectiveTracker = ObjectiveTrackerFrame
-	if (not blizzObjectiveTracker.initialized) then
+	if (not blizzObjectiveTracker.init) then
 		return
 	end
 
