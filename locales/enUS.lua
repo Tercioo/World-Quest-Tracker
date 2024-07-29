@@ -3,6 +3,9 @@ local languageTable = DetailsFramework.Language.RegisterLanguage(addonId, "enUS"
 local L = languageTable
 
 
+L["S_OPTTIONS_AUTOACCEPT_ABANDONQUEST"] = "Auto Accept Abandon Quests"
+L["S_OPTTIONS_AUTOACCEPT_ABANDONQUEST_DESC"] = "Don't show the confirmation dialog when abandoning a quest."
+
 L["S_TRACKEROPTIONS_BACKGROUNDALPHA"] = "Background Alpha"
 
 L["S_OPTTIONS_TAB_DRAGONRACE_SETTINGS"] = "Dragon Race"

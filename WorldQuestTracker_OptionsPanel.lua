@@ -589,6 +589,17 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 name = "S_MAPBAR_OPTIONSMENU_SOUNDENABLED",
                 desc = "S_MAPBAR_OPTIONSMENU_SOUNDENABLED",
             },
+            {
+                type = "toggle",
+                get = function()
+                    return DB.profile.close_blizz_popups.ABANDON_QUEST
+                end,
+                set = function(self, fixedparam, value)
+                    DB.profile.close_blizz_popups.ABANDON_QUEST = value
+                end,
+                name = "S_OPTTIONS_AUTOACCEPT_ABANDONQUEST",
+                desc = "S_OPTTIONS_AUTOACCEPT_ABANDONQUEST_DESC",
+            },
 
             {type = "blank"},
 

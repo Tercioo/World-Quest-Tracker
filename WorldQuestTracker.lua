@@ -228,6 +228,15 @@ function WorldQuestTracker:OnInit()
 		DF.Language.SetCurrentLanguage(addonId, WQTrackerLanguage.language)
 	end
 
+    hooksecurefunc(_G, "StaticPopup_Show", function(token)
+		if (token == "ABANDON_QUEST") then
+			if (WorldQuestTracker.db.profile.close_blizz_popups.ABANDON_QUEST) then
+				---@diagnostic disable-next-line: undefined-global
+				StaticPopup1Button1:Click()
+			end
+		end
+	end)
+
 	WorldQuestTracker.InitAt = GetTime()
 	WorldQuestTracker.LastMapID = WorldQuestTracker.GetCurrentMapAreaID()
 

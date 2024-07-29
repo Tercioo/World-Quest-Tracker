@@ -104,6 +104,10 @@ do
 				minimap_track_color = {1, 1, 1},
 			},
 
+			close_blizz_popups = {
+				ABANDON_QUEST = false,
+			},
+
 			sort_order = {
 				[WQT_QUESTTYPE_REPUTATION] = 7,
 				[WQT_QUESTTYPE_TRADE] = 5,
