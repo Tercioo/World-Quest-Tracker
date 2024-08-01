@@ -822,7 +822,17 @@ function C_Item.IsBoundToAccountUntilEquip() end
 function C_Item.LockItem() end
 function C_Item.DoesItemMatchTargetEnchantingSpell() end
 function C_Item.IsItemCorruptionRelated() end
-function C_Item.GetItemIconByID() end
+
+---return the item's icon texture
+---@param itemInfo number|string
+---@return number
+function C_Item.GetItemIconByID(itemInfo) return 0 end
+
+---return the item's icon texture
+---@param itemLocation table
+---@return number
+function C_Item.GetItemIcon(itemLocation) return 0 end
+
 function C_Item.ConfirmOnUse() end
 function C_Item.GetItemIDForItemInfo() end
 function C_Item.IsCorruptedItem() end
@@ -879,7 +889,6 @@ function C_Item.GetItemClassInfo() end
 function C_Item.GetItemUniquenessByID() end
 function C_Item.GetItemGemID() end
 function C_Item.IsHarmfulItem() end
-function C_Item.GetItemIcon() end
 function C_Item.DropItemOnUnit() end
 
 ---@param itemInfo number|string
@@ -3707,9 +3716,9 @@ GuildUninvite = function(unit) end
 ---@return boolean
 IsGuildLeader = function(unit) return true end
 
----@param unit string
+---return true if the player is in a guild
 ---@return boolean
-IsInGuild = function(unit) return true end
+IsInGuild = function() return true end
 
 ---@param eventIndex number
 QueryGuildEventLog = function(eventIndex) end
@@ -5737,9 +5746,11 @@ function FocusUnit(unit) end
 
 function ClearFocus() end
 
----@param unit string
+---if bFullName is true, return the full name of the unit if the unit is from another realm, otherwise return the short name
+---@param unit unit
+---@param bFullName boolean
 ---@return string
-function GetUnitName(unit) return "" end
+function GetUnitName(unit, bFullName) return "" end
 
 ---@param unit string
 ---@return number

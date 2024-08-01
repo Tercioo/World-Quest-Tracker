@@ -14,6 +14,8 @@ if (not DF) then
 	return
 end
 
+local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
+
 --localization
 local L = DF.Language.GetLanguageTable(addonId)
 

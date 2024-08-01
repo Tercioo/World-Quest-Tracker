@@ -1941,6 +1941,8 @@ if (bountyBoard) then
 
 	local UpdateBountyBoard = function(self, mapID)
 
+		do return end
+
 		if (WorldMapFrame.mapID == 905) then --argus
 			--the bounty board in argus is above the world quest tracker widgets
 			C_Timer.After(0.5, function()
