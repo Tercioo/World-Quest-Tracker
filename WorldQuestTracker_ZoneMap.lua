@@ -1569,19 +1569,26 @@ ZoneSumaryFrame.Header.BlackBackground:SetSize(150, ZoneSumaryFrame.Header.Backg
 ZoneSumaryFrame.Header.BlackBackground:SetPoint("topleft", ZoneSumaryFrame.Header.Background, "topleft", 8, -14)
 ZoneSumaryFrame.Header.BlackBackground:SetPoint("bottomright", ZoneSumaryFrame.Header.Background, "bottomright", 0, 0)
 
-local GetOrCreateZoneSummaryWidget = function(index)
+function WorldQuestTracker.GetOrCreateZoneSummaryWidget(index, parent, pool)
+	if (not pool) then
+		pool = WorldQuestTracker.ZoneSumaryWidgets
+	end
 
-	local widget = WorldQuestTracker.ZoneSumaryWidgets [index]
+	local widget = pool[index]
 	if (widget) then
 		return widget
 	end
 
-	local button = CreateFrame("button", "WorldQuestTrackerZoneSummaryFrame_Widget" .. index, ZoneSumaryFrame, "BackdropTemplate")
+	parent = parent or ZoneSumaryFrame
+
+	local button = CreateFrame("button", "WorldQuestTrackerZoneSummaryFrame_Widget" .. index, parent, "BackdropTemplate")
 	button:SetAlpha(WorldQuestTracker.db.profile.world_summary_alpha)
 
+	pool[index] = button
+
 	--button:SetPoint("bottomleft", ZoneSumaryFrame, "bottomleft", 0,((index-1)*(ZoneSumaryFrame.WidgetHeight + 1)) -2) --grow bottom to top
-	button:SetPoint("topleft", ZoneSumaryFrame, "topleft", 0,(((index-1) *(ZoneSumaryFrame.WidgetHeight + 1)) -2) * -1) --grow top to bottom
-	button:SetSize(ZoneSumaryFrame.WidgetWidth, ZoneSumaryFrame.WidgetHeight)
+	button:SetPoint("topleft", parent, "topleft", 0,(((index-1) *(parent.WidgetHeight + 1)) -2) * -1) --grow top to bottom
+	button:SetSize(parent.WidgetWidth, parent.WidgetHeight)
 	button:SetFrameLevel(WorldQuestTracker.DefaultFrameLevel + 1)
 
 	--create a square icon
@@ -1590,7 +1597,7 @@ local GetOrCreateZoneSummaryWidget = function(index)
 	--squareIcon.isWorldMapWidget = false --required when updating borders
 	squareIcon.IsZoneSummaryQuestButton = true
 	squareIcon:SetPoint("left", button, "left", 2, 0)
-	squareIcon:SetSize(ZoneSumaryFrame.IconSize, ZoneSumaryFrame.IconSize)
+	squareIcon:SetSize(parent.IconSize, parent.IconSize)
 	squareIcon:SetFrameLevel(WorldQuestTracker.DefaultFrameLevel + 2)
 	squareIcon.IsZoneSummaryButton = true
 	button.Icon = squareIcon
@@ -1700,12 +1707,12 @@ local GetOrCreateZoneSummaryWidget = function(index)
 		--mouseoverHighlight:Hide()
 	end)
 
-	WorldQuestTracker.ZoneSumaryWidgets [index] = button
-
 	--disable mouse click
 	button:SetMouseClickEnabled(false)
 	return button
 end
+
+
 
 function WorldQuestTracker.ClearZoneSummaryButtons()
 	for _, button in ipairs(WorldQuestTracker.ZoneSumaryWidgets) do
@@ -1902,7 +1909,7 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 	if (not isSummaryMinimized) then
 		for i = 1, #WorldQuestTracker.Cache_ShownWidgetsOnZoneMap do
 			local zoneWidget = WorldQuestTracker.Cache_ShownWidgetsOnZoneMap [i]
-			local summaryWidget = GetOrCreateZoneSummaryWidget(index)
+			local summaryWidget = WorldQuestTracker.GetOrCreateZoneSummaryWidget(index)
 
 			summaryWidget._Twin = zoneWidget
 			WorldQuestTracker.SetupZoneSummaryButton(summaryWidget, zoneWidget)

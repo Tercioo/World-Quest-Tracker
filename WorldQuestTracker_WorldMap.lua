@@ -1441,7 +1441,7 @@ local mapRangeValues = {
 	[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = {0.18, .38, 5.2, 3.3},
 	[WorldQuestTracker.MapData.ZoneIDs.ZANDALAR] = {0.18, .38, 5.2, 3.3},
 	[WorldQuestTracker.MapData.ZoneIDs.KULTIRAS] = {0.18, .38, 5.2, 3.3},
-	[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = {0.18/3.0, .38/3.0, 5.2/3.0, 3.3/3.0},
+	[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] = {0.18/3.0, .38/3.0, 5.2/3.0, 3.3/3.0}, --0.06, 0.126, 1.733, 1.1
 	[WorldQuestTracker.MapData.ZoneIDs.ARGUS] = {0.18/2.5, .38/2.5, 5.2/2.5, 3.3/2.5},
 	["default"] = {0.18, .38, 5.2, 3.3},
 }
@@ -1557,6 +1557,10 @@ local scheduledIconUpdate = function(questTable)
 	end
 
 	local pinScale = DF:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
+
+	local finalScaleScalar = WorldQuestTracker.MapData.HubMapIconsScale[WorldMapFrame.mapID] or 1
+	pinScale = pinScale * finalScaleScalar
+
 	if (WorldMapFrame.mapID == WorldQuestTracker.MapData.ZoneIDs.THESHADOWLANDS) then
 		pinScale = pinScale - 1
 		local conduitType = WorldQuestTracker.GetConduitQuestData(questID)

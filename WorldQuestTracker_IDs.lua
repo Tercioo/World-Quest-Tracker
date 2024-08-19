@@ -194,6 +194,15 @@ WorldQuestTracker.MapData.ExpMaps = {
 	[zoneIDs.BROKENISLES] = 7,
 }
 
+WorldQuestTracker.MapData.HubMapIconsScale = {
+	[zoneIDs.DRAGONISLES] = 1,
+	[zoneIDs.THESHADOWLANDS] = 1,
+	[zoneIDs.ZANDALAR] = 1,
+	[zoneIDs.KULTIRAS] = 1,
+	[zoneIDs.AZEROTH] = 1,
+	[zoneIDs.BROKENISLES] = 0.8,
+}
+
 --list of map ids for world quest hubs
 WorldQuestTracker.MapData.QuestHubs = {
 	[zoneIDs.DRAGONISLES] = true, --dragon isles hub

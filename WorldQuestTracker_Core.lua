@@ -1340,7 +1340,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				elseif (option == "untrack_quests") then
 					WorldQuestTracker.RemoveAllQuestsFromTracker()
 
-					if (TomTom and IsAddOnLoaded("TomTom")) then
+					if (TomTom and C_AddOns.IsAddOnLoaded("TomTom")) then
 						for questID, t in pairs(WorldQuestTracker.TomTomUIDs) do
 							TomTom:RemoveWaypoint(t)
 						end
@@ -4022,7 +4022,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				--]=]
 
 				--
-				if (TomTom and IsAddOnLoaded("TomTom")) then
+				if (TomTom and C_AddOns.IsAddOnLoaded("TomTom")) then
 					GameCooltip:AddLine("$div")
 
 					GameCooltip:AddLine("TomTom")

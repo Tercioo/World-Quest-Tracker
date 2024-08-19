@@ -112,7 +112,7 @@ function WorldQuestTracker.AddQuestToTracker(self, questID, mapID)
 		return
 	end
 
-	if (WorldQuestTracker.db.profile.tomtom.enabled and TomTom and IsAddOnLoaded ("TomTom")) then
+	if (WorldQuestTracker.db.profile.tomtom.enabled and TomTom and C_AddOns.IsAddOnLoaded("TomTom")) then
 		WorldQuestTracker.AddQuestTomTom (self.questID, self.mapID or mapID)
 		--return true
 	end

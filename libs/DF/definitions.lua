@@ -332,7 +332,11 @@
 ---@field CreateHeader fun(self:table, parent:frame, headerTable:df_headercolumndata[], options:table?, frameName:string?) : df_headerframe
 ---@field CreateGraphicMultiLineFrame fun(self:table, parent:frame, name:string) : df_chartmulti
 ---@field CreateGraphicLineFrame fun(self:table, parent:frame, name:string) : df_chart
----@field
+---@field CreateFlashAnimation fun(self:table, frame:uiobject, onFinishFunc:function?, onLoopFunc:function?) : animationgroup
+---@field CreateTimeBar fun(self:table, parent:frame, texture:texturepath|textureid, width:number?, height:number?, value:number?, member:string?, name:string?) : df_timebar
+---@field CreatePool fun(self:table, func:function, ...) : table
+---@field CreateObjectPool fun(self:table, func:function, ...) : table alias of CreatePool
+
 
 --[=[
     Wrapped objects: when using the following functions, the object will be wrapped in a table, e.g. detailsFramework:CreateButton() will return a table with the button, the button will be accessible through the "button" key.
