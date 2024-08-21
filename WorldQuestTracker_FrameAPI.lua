@@ -693,10 +693,8 @@ function WorldQuestTracker.OnQuestButtonClick (self, button)
 	
 	--isn't using the tracker
 	if (not WorldQuestTracker.db.profile.use_tracker or IsShiftKeyDown()) then
-		local defaultPin = WorldQuestTracker.GetDefaultPinForQuest (self.questID)
-		if (defaultPin) then
-			defaultPin:OnClick()
-		end
+		QuestUtil.TrackWorldQuest(self.questID, Enum.QuestWatchType.Automatic) --0
+		C_SuperTrack.SetSuperTrackedQuestID(self.questID)
 
 		if (self.IsZoneQuestButton) then
 			WorldQuestTracker.UpdateZoneWidgets()
