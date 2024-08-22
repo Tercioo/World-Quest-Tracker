@@ -1267,6 +1267,11 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 	else
 		WorldQuestTracker:Msg("version:", WQT_VERSION)
 
+		if (not WorldQuestTracker.SetupStatusbarButton) then
+			WorldQuestTracker:Msg(L["S_SLASH_OPENMAP_FIRST"])
+			return
+		end
+		WorldQuestTracker.OpenOptionsPanel()
 	end
 end
 

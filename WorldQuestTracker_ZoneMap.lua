@@ -721,8 +721,14 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 	--]=]
 
 	for pin in map:EnumeratePinsByTemplate("DungeonEntrancePinTemplate") do
-		pin.Texture:SetAlpha(0.834)
+		pin.Texture:SetAlpha(0.934)
 	end
+
+	--for pin in map:EnumeratePinsByTemplate("DelveEntrancePinTemplate") do
+		--pin.Texture:SetTexture([[Interface\AddOns\WorldQuestTracker\media\well.png]], nil, nil, "TRILINEAR")
+		--pin.Texture:SetAlpha(0.834)
+		--pin.Texture:SetScale(0.7)
+	--end
 
 	for pin in map:EnumeratePinsByTemplate("QuestPinTemplate") do
 		pin:SetAlpha(0.923)
@@ -735,7 +741,7 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 		flightPoints[#flightPoints + 1] = {x = x, y = y, pin = pin}
 
 		local texture = pin.Texture
-		texture:SetAlpha(0.75)
+		texture:SetAlpha(0.85)
 
 		if (not pin.TextureShadow) then
 			pin.TextureShadow = texture:GetParent():CreateTexture(nil, "BACKGROUND")
@@ -1613,7 +1619,7 @@ function WorldQuestTracker.GetOrCreateZoneSummaryWidget(index, parent, pool)
 	local art2 = button:CreateTexture(nil, "artwork")
 	art2:SetAllPoints()
 	art2:SetTexture([[Interface\AddOns\WorldQuestTracker\media\background_summaryzoneT]])
-	art2:SetAlpha(.5)
+	art2:SetAlpha(0.834)
 	button.BlackBackground = art2
 
 	--hover over highlight
@@ -2147,4 +2153,289 @@ if (bountyBoard) then
 	end
 end
 
---doo
+function WorldQuestTracker.UpdateQuestIdentification(self, event)
+	if (not WorldQuestTracker.db.profile.numerate_quests) then
+		return
+	end
+
+	local map = WorldQuestTrackerDataProvider:GetMap()
+
+	do
+		--world map quest log
+		local questContents = WorldMapFrame.QuestLog.QuestsFrame.Contents
+		local children = {questContents:GetChildren()}
+		for i = 1, #children do
+			local child = children[i]
+			if (child.Display and child.Display.WQTText) then
+				child.Display.WQTText:Hide()
+				child.Display.Icon:Show()
+			end
+		end
+	end
+
+	local questIndex = 1
+
+	--world map quest pins
+	local questsOnMapFound = {}
+	for pin in map:EnumeratePinsByTemplate("QuestPinTemplate") do
+		local questId = pin:GetQuestID()
+		if (questId) then
+			--get the quest name
+			local questTitle = C_QuestLog.GetTitleForQuestID(questId)
+			questsOnMapFound[#questsOnMapFound+1] = {questId = questId, pin = pin, questName = questTitle}
+			pin.Display.Icon:Show()
+			if (pin.Display.WQTText) then
+				pin.Display.WQTText:Hide()
+			end
+		end
+	end
+
+	table.sort(questsOnMapFound, function(t1, t2) return t1.questName < t2.questName end)
+
+	local bFoundQuestsOnMap = #questsOnMapFound > 0
+
+	local questsOnTrackerFound = {}
+	local questsOnTrackerQuestId_to_Info = {}
+
+    for moduleFrame in pairs (ObjectiveTrackerManager.moduleToContainerMap) do
+		if (type(moduleFrame) == "table" and moduleFrame.GetObjectType and moduleFrame:GetObjectType() == "Frame" and moduleFrame:IsShown()) then
+			local contentsFrame = moduleFrame.ContentsFrame
+        	local children = {contentsFrame:GetChildren()}
+
+			local bHasOneChildren = #children == 1
+			local bModuleIsCampaing = moduleFrame == CampaignQuestObjectiveTracker
+
+			for i = 1, #children do
+				local child = children[i]
+				if (child.poiQuestID and child.poiQuestID > 0) then
+					local questId = child.poiQuestID
+					local questTitle = C_QuestLog.GetTitleForQuestID(questId)
+					questsOnTrackerFound[#questsOnTrackerFound+1] = {questId = questId, questName = questTitle, child = child, poiButton = child.poiButton}
+					questsOnTrackerQuestId_to_Info[questId] = questsOnTrackerFound[#questsOnTrackerFound]
+
+					if (bModuleIsCampaing and bHasOneChildren) then
+						local playerLevel = UnitLevel("player")
+						if (playerLevel < 80) then
+							QuestUtil.TrackWorldQuest(questId, Enum.QuestWatchType.Automatic)
+							C_SuperTrack.SetSuperTrackedQuestID(questId)
+						end
+					end
+
+					local poiButton = child.poiButton
+					if (not poiButton) then
+						local parent = WorldMapFrame.QuestLog.QuestsFrame.Contents
+						local parentChilds = {parent:GetChildren()}
+						for j = 1, #parentChilds do
+							if (parentChilds[j].shouldShowGlow and parentChilds[j].questID == child.questID) then
+								poiButton = parentChilds[j]
+							end
+						end
+					end
+
+					if (poiButton) then
+					poiButton.Display.Icon:Show()
+
+						if (not poiButton.Display.WQTText) then
+							poiButton.Display.WQTText = poiButton.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
+							DetailsFramework:SetFontOutline(poiButton.Display.WQTText, "OUTLINE")
+							poiButton.Display.WQTText:ClearAllPoints()
+							poiButton.Display.WQTText:SetPoint("center")
+							poiButton.Display.WQTText:Hide()
+
+						else
+							poiButton.Display.WQTText:Hide()
+						end
+
+						if (not bFoundQuestsOnMap and not child.poiIsComplete) then
+							poiButton.Display.Icon:Hide()
+							poiButton.Display.WQTText:Show()
+							poiButton.Display.WQTText:SetText(questIndex)
+							questIndex = questIndex + 1
+						end
+					end
+				end
+			end
+		end
+    end
+
+	for i = 1, #questsOnMapFound do
+		local questId = questsOnMapFound[i].questId
+		local pin = questsOnMapFound[i].pin
+
+		--world map
+		if (not pin.Display.WQTText) then
+			pin.Display.WQTText = pin.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
+			DetailsFramework:SetFontOutline(pin.Display.WQTText, "OUTLINE")
+			pin.Display.WQTText:ClearAllPoints()
+			pin.Display.WQTText:SetPoint("center", pin.Display, "center", 0, 0)
+		end
+
+		pin.Display.Icon:Hide()
+		pin.Display.WQTText:SetText(i)
+		pin.Display.WQTText:Show()
+
+		local trackerFrame = questsOnTrackerQuestId_to_Info[questId]
+		if (trackerFrame) then
+			local poiButton = trackerFrame.poiButton
+			if (poiButton) then
+				--quest tracker
+				if (not poiButton.Display.WQTText) then
+					poiButton.Display.WQTText = poiButton.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
+					DetailsFramework:SetFontOutline(poiButton.Display.WQTText, "OUTLINE")
+					poiButton.Display.WQTText:ClearAllPoints()
+					poiButton.Display.WQTText:SetPoint("center")
+				end
+				poiButton.Display.Icon:Hide()
+				poiButton.Display.WQTText:SetText(i)
+				poiButton.Display.WQTText:Show()
+			end
+		end
+
+		--quest log on map
+		local questContents = WorldMapFrame.QuestLog.QuestsFrame.Contents
+		local button = questContents:FindButtonByQuestID(questId)
+
+		if (button) then
+			if (not button.Display.WQTText) then
+				button.Display.WQTText = button.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
+				DetailsFramework:SetFontOutline(button.Display.WQTText, "OUTLINE")
+				button.Display.WQTText:ClearAllPoints()
+				button.Display.WQTText:SetPoint("center", button.Display, "center", 0, 0)
+			end
+
+			button.Display.Icon:Hide()
+			button.Display.WQTText:SetText(i)
+			button.Display.WQTText:Show()
+		end
+
+		questIndex = questIndex + 1
+	end
+end
+
+local c = CreateFrame("frame")
+c:RegisterEvent("QUEST_LOG_UPDATE")
+c:SetScript("OnEvent", function()
+	C_Timer.After(0, WorldQuestTracker.UpdateQuestIdentification)
+end)
+
+local d = CreateFrame("frame")
+d:RegisterEvent("CINEMATIC_START")
+d:SetScript("OnEvent", function()
+	if (WorldQuestTracker.db.profile.speed_run.cancel_cinematic) then
+		CinematicFrame_CancelCinematic()
+		C_Timer.After(1, function()
+			print("Cinematic Skipped")
+		end)
+	end
+end)
+
+QuestFrame:HookScript("OnShow", function()
+	local bAutoComplete = WorldQuestTracker.db.profile.speed_run.auto_complete
+	if (not bAutoComplete) then
+		return
+	end
+
+	local progressPanel = QuestFrameProgressPanel
+	local completeButton = QuestFrameCompleteButton
+
+	if (completeButton.Text:GetText() == CONTINUE) then
+		completeButton:Click()
+	end
+end)
+
+QuestFrameRewardPanel:HookScript("OnShow", function()
+	local bAutoComplete = WorldQuestTracker.db.profile.speed_run.auto_complete
+	if (not bAutoComplete) then
+		return
+	end
+
+	local completeButton = QuestFrameCompleteQuestButton
+	if (completeButton:IsShown() and completeButton.Text:GetText() == COMPLETE_QUEST) then
+		--check for rewards
+		if (QuestInfoRewardsFrame and QuestInfoRewardsFrame:IsShown()) then
+			if (QuestInfoRewardsFrameQuestInfoItem1 and QuestInfoRewardsFrameQuestInfoItem1:IsShown()) then
+				if (QuestInfoRewardsFrameQuestInfoItem2 and QuestInfoRewardsFrameQuestInfoItem2:IsShown()) then
+					QuestInfoRewardsFrameQuestInfoItem1:Click()
+				end
+			end
+		end
+
+		completeButton:Click()
+	end
+end)
+
+QuestFrameDetailPanel:HookScript("OnShow", function()
+	local bAutoAccept = WorldQuestTracker.db.profile.speed_run.auto_accept
+	if (not bAutoAccept) then
+		return
+	end
+
+	local questAcceptButton = QuestFrameAcceptButton
+	if (questAcceptButton:IsShown() and questAcceptButton.Text:GetText() == ACCEPT) then
+		questAcceptButton:Click()
+	end
+end)
+
+local npcOptionsCache = {}
+
+--a frame with multiple quests to accept
+GossipFrame:HookScript("OnShow", function()
+	local bAutoAccept = WorldQuestTracker.db.profile.speed_run.auto_accept
+	local bAutoComplete = WorldQuestTracker.db.profile.speed_run.auto_complete
+
+	--do return end
+	C_Timer.After(0, function()
+		local greetingsFrame = GossipFrame.GreetingPanel
+		local scrollBox = GossipFrame.GreetingPanel.ScrollBox
+		local scrollTarget = GossipFrame.GreetingPanel.ScrollBox.ScrollTarget
+		local children = {scrollTarget:GetChildren()}
+
+		for i = 1, #children do
+			local child = children[i]
+			if (child.IsObjectType and child:IsObjectType("Button") and child:IsShown() and child:IsEnabled()) then
+				if (child.GetData) then
+					local data = child:GetData()
+					if (data and type(data) == "table" and data.info and data.info.questID and child.Icon:GetTexture() ~= 5666025) then
+						if (data.availableQuestButton and data.info.isComplete) then
+							--print("data.availableQuestButton and data.info.questID and data.info.isComplete")
+
+						elseif (data.availableQuestButton and not data.info.isComplete and child.Icon:GetTexture() == 3595324) then
+							if (bAutoAccept) then
+								--print("auto accepted quest")
+								data.availableQuestButton:Click()
+							end
+
+						elseif (data.activeQuestButton and not data.info.isComplete) then
+							--print("data.activeQuestButton and not data.info.isComplete")
+							--data.activeQuestButton:Click()
+
+						elseif (data.activeQuestButton and data.info.isComplete) then
+							if (bAutoComplete) then
+								--print("auto completed quest")
+								data.activeQuestButton:Click()
+							end
+						end
+
+					elseif (data and type(data) == "table" and data.info and (data.info.icon == 132053 or data.info.icon == 132060)) then
+						local children = {child:GetRegions()}
+						for j = 1, #children do
+							local childRegion = children[j]
+							if (childRegion:GetObjectType() == "FontString") then
+								local text = childRegion:GetText()
+								if (text:find("%(") and text:find("%)") and text:find("%|c")) then
+									if (bAutoAccept) then
+										if (not npcOptionsCache[text]) then
+											child:Click()
+											npcOptionsCache[text] = true
+											return
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end)
+end)

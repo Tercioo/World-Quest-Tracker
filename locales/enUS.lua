@@ -2,6 +2,13 @@ local addonId = ...
 local languageTable = DetailsFramework.Language.RegisterLanguage(addonId, "enUS")
 local L = languageTable
 
+L["S_SPEEDRUN"] = "Speed Run"
+L["S_SPEEDRUN_AUTO_ACCEPT"] = "Auto Accept Quests"
+L["S_SPEEDRUN_AUTO_COMPLETE"] = "Auto Complete Quests"
+L["S_SPEEDRUN_CANCEL_CINEMATIC"] = "Auto Skip Cinematics"
+
+L["S_OPTTIONS_NUMERATE_QUEST"] = "Enumerate Quests"
+L["S_OPTTIONS_NUMERATE_QUEST_DESC"] = "Show a number for each quest in the map frame and in the objective tracker."
 
 L["S_OPTTIONS_AUTOACCEPT_ABANDONQUEST"] = "Auto Accept Abandon Quests"
 L["S_OPTTIONS_AUTOACCEPT_ABANDONQUEST_DESC"] = "Don't show the confirmation dialog when abandoning a quest."

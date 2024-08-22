@@ -105,7 +105,7 @@ do
 			},
 
 			close_blizz_popups = {
-				ABANDON_QUEST = false,
+				ABANDON_QUEST = true,
 			},
 
 			sort_order = {
@@ -184,10 +184,17 @@ do
 				summary_widgets_per_row = 8,
 			},
 
+			speed_run = {
+				auto_accept = false,
+				auto_complete = false,
+				cancel_cinematic = false,
+			},
+
 			disable_world_map_widgets = false, --a
 			show_filter_button = false, --a
 			show_sort_button = false, --a
 			show_timeleft_button = true, --a
+			numerate_quests = true,
 
 			show_emissary_info = true,
 
@@ -206,8 +213,8 @@ do
 
 			last_news_time = 0,
 
-			world_summary_alpha = 0.843, --parei fazendo a substituição dos valores hardcoded to these values, parei na criação da opção de mudar o alpha, parei procurando as funções que atualiza of frames com o novo alpha
-			worldmap_widget_alpha = 0.843,
+			world_summary_alpha = 0.934, --parei fazendo a substituição dos valores hardcoded to these values, parei na criação da opção de mudar o alpha, parei procurando as funções que atualiza of frames com o novo alpha
+			worldmap_widget_alpha = 0.933,
 
 			hoverover_animations = true, --hover and shown slider animations
 			anchor_options = {}, --store the anchor options of each anchor
@@ -266,7 +273,7 @@ do
 
 			zone_map_config = {
 				summary_show = true,
-				quest_summary_scale = 1,
+				quest_summary_scale = 1.2,
 				show_widgets = true,
 				scale = 1,
 			},

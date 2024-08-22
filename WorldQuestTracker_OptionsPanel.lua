@@ -600,6 +600,17 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 name = "S_OPTTIONS_AUTOACCEPT_ABANDONQUEST",
                 desc = "S_OPTTIONS_AUTOACCEPT_ABANDONQUEST_DESC",
             },
+            {
+                type = "toggle",
+                get = function()
+                    return DB.profile.numerate_quests
+                end,
+                set = function(self, fixedparam, value)
+                    DB.profile.numerate_quests = value
+                end,
+                name = "S_OPTTIONS_NUMERATE_QUEST",
+                desc = "S_OPTTIONS_NUMERATE_QUEST_DESC",
+            },
 
             {type = "blank"},
 
@@ -813,6 +824,51 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 name = "S_OPTIONS_WORLDMAP_WIDGET_ALPHA",
                 desc = "S_OPTIONS_WORLDMAP_WIDGET_ALPHA",
             },
+
+            {type = "blank"},
+            {
+                type = "label",
+                get = function() return "S_SPEEDRUN" end,
+                text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.speed_run.auto_accept
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.speed_run.auto_accept = not WorldQuestTracker.db.profile.speed_run.auto_accept
+                    WorldQuestTracker.RefreshStatusBarButtons()
+                end,
+                name = "S_SPEEDRUN_AUTO_ACCEPT",
+                desc = "S_SPEEDRUN_AUTO_ACCEPT",
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.speed_run.auto_complete
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.speed_run.auto_complete = not WorldQuestTracker.db.profile.speed_run.auto_complete
+                    WorldQuestTracker.RefreshStatusBarButtons()
+                end,
+                name = "S_SPEEDRUN_AUTO_COMPLETE",
+                desc = "S_SPEEDRUN_AUTO_COMPLETE",
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.speed_run.cancel_cinematic
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.speed_run.cancel_cinematic = not WorldQuestTracker.db.profile.speed_run.cancel_cinematic
+                    WorldQuestTracker.RefreshStatusBarButtons()
+                end,
+                name = "S_SPEEDRUN_CANCEL_CINEMATIC",
+                desc = "S_SPEEDRUN_CANCEL_CINEMATIC",
+            },
+
+            
 
             --
 

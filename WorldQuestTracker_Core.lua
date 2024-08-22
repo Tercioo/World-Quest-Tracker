@@ -12,6 +12,7 @@ if (not WorldQuestTracker) then
 end
 
 --framework
+---@type detailsframework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
 	print("|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r")
@@ -221,6 +222,7 @@ WorldQuestTracker.OnMapHasChanged = function(self)
 		end
 	end)
 
+	DF.Schedules.RunNextTick(WorldQuestTracker.UpdateQuestIdentification)
 end
 
 hooksecurefunc(WorldMapFrame, "OnMapChanged", WorldQuestTracker.OnMapHasChanged)

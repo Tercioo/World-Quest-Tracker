@@ -1545,8 +1545,6 @@ local scheduledIconUpdate = function(questTable)
 	button:SetParent(pin)
 	button:SetPoint("center")
 
-	lazyUpdate.ShownQuests[questID] = button
-
 	button:Show()
 
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
@@ -1568,6 +1566,7 @@ local scheduledIconUpdate = function(questTable)
 			pinScale = pinScale - 1
 		end
 	end
+
 	button:SetScale(pinScale + WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset)
 
 	local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID)
@@ -1583,6 +1582,12 @@ local scheduledIconUpdate = function(questTable)
 	WorldQuestTracker.SetupWorldQuestButton(button, worldQuestType, rarity, isElite, tradeskillLineIndex, nil, nil, isCriteria, nil, mapID)
 
 	local newX, newY = HereBeDragons:TranslateZoneCoordinates(x, y, mapID, WorldMapFrame.mapID, false)
+	if (mapID == 2248 and not newX) then
+		local xCoord, yCoord, instance = HereBeDragons:GetWorldCoordinatesFromZone(x, y, mapID)
+		newX, newY = HereBeDragons:GetZoneCoordinatesFromWorld(xCoord, yCoord, mapID, true)
+		newX = 0.51 + x * 0.42
+		newY = 0.06 + y * 0.38
+	end
 
 	if (mapID == WorldQuestTracker.MapData.ZoneIDs.ZARALEK) then
 		if (x and y) then --no zaralek mapID, but zaralek quests shown on worldmap
@@ -1619,6 +1624,10 @@ local scheduledIconUpdate = function(questTable)
 	button.highlight:ClearAllPoints()
 	button.highlight:SetPoint("center", button, "center")
 	button.highlight:Show()
+
+	if (x and newX) then
+		lazyUpdate.ShownQuests[questID] = button
+	end
 end
 
 --this function show the small quest icon in the map when the player hover over a squere in the azeroth map
