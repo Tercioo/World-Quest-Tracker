@@ -2153,6 +2153,9 @@ if (bountyBoard) then
 	end
 end
 
+local questTracker_EnumerationXOffset = 1
+local zoneMap_EnumerationXOffset = 1
+
 function WorldQuestTracker.UpdateQuestIdentification(self, event)
 	if (not WorldQuestTracker.db.profile.numerate_quests) then
 		return
@@ -2161,31 +2164,38 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 	local map = WorldQuestTrackerDataProvider:GetMap()
 
 	do
-		--world map quest log
+		--world map quest log, reset widgets
 		local questContents = WorldMapFrame.QuestLog.QuestsFrame.Contents
 		local children = {questContents:GetChildren()}
 		for i = 1, #children do
 			local child = children[i]
-			if (child.Display and child.Display.WQTText) then
-				child.Display.WQTText:Hide()
+			if (child.Display) then
 				child.Display.Icon:Show()
+				if (child.Display.WQTText) then
+					child.Display.WQTText:Hide()
+				end
 			end
 		end
 	end
 
 	local questIndex = 1
 
-	--world map quest pins
+	--world map quest pins, reset widgets and build a table with the quest pins
 	local questsOnMapFound = {}
 	for pin in map:EnumeratePinsByTemplate("QuestPinTemplate") do
 		local questId = pin:GetQuestID()
 		if (questId) then
-			--get the quest name
-			local questTitle = C_QuestLog.GetTitleForQuestID(questId)
-			questsOnMapFound[#questsOnMapFound+1] = {questId = questId, pin = pin, questName = questTitle}
-			pin.Display.Icon:Show()
-			if (pin.Display.WQTText) then
-				pin.Display.WQTText:Hide()
+			if (pin.Display) then
+				pin.Display.Icon:Show()
+				if (pin.Display.WQTText) then
+					pin.Display.WQTText:Hide()
+				end
+			end
+
+			if (pin.style ~= POIButtonUtil.Style.QuestComplete) then
+				--get the quest name
+				local questTitle = C_QuestLog.GetTitleForQuestID(questId)
+				questsOnMapFound[#questsOnMapFound+1] = {questId = questId, pin = pin, questName = questTitle}
 			end
 		end
 	end
@@ -2207,9 +2217,20 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 
 			for i = 1, #children do
 				local child = children[i]
-				if (child.poiQuestID and child.poiQuestID > 0) then
+				local poiButton = child.poiButton
+
+				--reset the wqt text
+				if (poiButton and poiButton.Display) then
+					poiButton.Display.Icon:Show()
+					if (poiButton.Display.WQTText) then
+						poiButton.Display.WQTText:Hide()
+					end
+				end
+
+				if (poiButton and child.poiQuestID and child.poiQuestID > 0 and not child.poiIsComplete) then
 					local questId = child.poiQuestID
 					local questTitle = C_QuestLog.GetTitleForQuestID(questId)
+
 					questsOnTrackerFound[#questsOnTrackerFound+1] = {questId = questId, questName = questTitle, child = child, poiButton = child.poiButton}
 					questsOnTrackerQuestId_to_Info[questId] = questsOnTrackerFound[#questsOnTrackerFound]
 
@@ -2221,7 +2242,6 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 						end
 					end
 
-					local poiButton = child.poiButton
 					if (not poiButton) then
 						local parent = WorldMapFrame.QuestLog.QuestsFrame.Contents
 						local parentChilds = {parent:GetChildren()}
@@ -2233,15 +2253,14 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 					end
 
 					if (poiButton) then
-					poiButton.Display.Icon:Show()
+						poiButton.Display.Icon:Show()
 
 						if (not poiButton.Display.WQTText) then
 							poiButton.Display.WQTText = poiButton.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
 							DetailsFramework:SetFontOutline(poiButton.Display.WQTText, "OUTLINE")
 							poiButton.Display.WQTText:ClearAllPoints()
-							poiButton.Display.WQTText:SetPoint("center")
+							poiButton.Display.WQTText:SetPoint("center", poiButton.Display, "center", 1, 0) --creating on quest tracker at the right side of the screen
 							poiButton.Display.WQTText:Hide()
-
 						else
 							poiButton.Display.WQTText:Hide()
 						end
@@ -2267,7 +2286,7 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 			pin.Display.WQTText = pin.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
 			DetailsFramework:SetFontOutline(pin.Display.WQTText, "OUTLINE")
 			pin.Display.WQTText:ClearAllPoints()
-			pin.Display.WQTText:SetPoint("center", pin.Display, "center", 0, 0)
+			pin.Display.WQTText:SetPoint("center", pin.Display, "center", zoneMap_EnumerationXOffset, 0)
 		end
 
 		pin.Display.Icon:Hide()
@@ -2283,7 +2302,7 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 					poiButton.Display.WQTText = poiButton.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
 					DetailsFramework:SetFontOutline(poiButton.Display.WQTText, "OUTLINE")
 					poiButton.Display.WQTText:ClearAllPoints()
-					poiButton.Display.WQTText:SetPoint("center")
+					poiButton.Display.WQTText:SetPoint("center", poiButton.Display, "center", questTracker_EnumerationXOffset, 0)
 				end
 				poiButton.Display.Icon:Hide()
 				poiButton.Display.WQTText:SetText(i)
@@ -2300,7 +2319,7 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 				button.Display.WQTText = button.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
 				DetailsFramework:SetFontOutline(button.Display.WQTText, "OUTLINE")
 				button.Display.WQTText:ClearAllPoints()
-				button.Display.WQTText:SetPoint("center", button.Display, "center", 0, 0)
+				button.Display.WQTText:SetPoint("center", button.Display, "center", 1, 0)
 			end
 
 			button.Display.Icon:Hide()
