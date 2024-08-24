@@ -2397,17 +2397,46 @@ end)
 
 local npcOptionsCache = {}
 
+local findSkipConversationOption = function(children)
+	for i = 1, #children do
+		local child = children[i]
+		if (child.IsObjectType and child:IsObjectType("Button") and child:IsShown() and child:IsEnabled()) then
+			if (child.GetData) then
+				local data = child:GetData()
+				if (data and type(data) == "table" and data.info and data.info.gossipOptionID) then
+					local name = data.info.name
+					if (name and type(name) == "string" and name:len() > 2) then
+						if (name:find("<") and name:find(">") and name:find("%|c") and name:find("^%|cFF")) then
+							child:Click()
+							return true
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
 --a frame with multiple quests to accept
 GossipFrame:HookScript("OnShow", function()
 	local bAutoAccept = WorldQuestTracker.db.profile.speed_run.auto_accept
 	local bAutoComplete = WorldQuestTracker.db.profile.speed_run.auto_complete
 
 	--do return end
+
+	--find <skip conversation>
+
 	C_Timer.After(0, function()
 		local greetingsFrame = GossipFrame.GreetingPanel
 		local scrollBox = GossipFrame.GreetingPanel.ScrollBox
 		local scrollTarget = GossipFrame.GreetingPanel.ScrollBox.ScrollTarget
 		local children = {scrollTarget:GetChildren()}
+
+		if (findSkipConversationOption(children)) then
+			return
+		end
+
+		do return end
 
 		for i = 1, #children do
 			local child = children[i]
