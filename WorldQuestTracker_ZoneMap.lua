@@ -2422,10 +2422,6 @@ GossipFrame:HookScript("OnShow", function()
 	local bAutoAccept = WorldQuestTracker.db.profile.speed_run.auto_accept
 	local bAutoComplete = WorldQuestTracker.db.profile.speed_run.auto_complete
 
-	--do return end
-
-	--find <skip conversation>
-
 	C_Timer.After(0, function()
 		local greetingsFrame = GossipFrame.GreetingPanel
 		local scrollBox = GossipFrame.GreetingPanel.ScrollBox
@@ -2435,8 +2431,6 @@ GossipFrame:HookScript("OnShow", function()
 		if (findSkipConversationOption(children)) then
 			return
 		end
-
-		do return end
 
 		for i = 1, #children do
 			local child = children[i]
