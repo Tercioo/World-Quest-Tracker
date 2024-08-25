@@ -961,6 +961,7 @@ local LegionFactions = {
 WorldQuestTracker.MapData.ReputationByMap = {
 	--world maps
 		[zoneIDs.KHAZALGAR] = WOW11Factions,
+		[zoneIDs.DRAGONISLES] = DragonflightFactions,
 		[zoneIDs.THESHADOWLANDS] = ShadowlandsFactions,
 		[zoneIDs.KULTIRAS] = BFAFactions,
 		[zoneIDs.ZANDALAR] = BFAFactions,

@@ -2223,7 +2223,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					factionButton:ClearAllPoints()
 					local mapId = WorldQuestTracker.GetCurrentMapAreaID()
 					local factionsOfTheMap = WorldQuestTracker.GetFactionsAllowedOnMap(mapId)
-
+					--dumpt(factionsOfTheMap) = none
 					if (factionsOfTheMap) then
 						if (factionsOfTheMap[factionButton.FactionID]) then
 							if (anchorSide == "left") then
@@ -2419,7 +2419,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					end
 				end
 
-				--create buttons
+				--create buttons, one for each faction, amount of buttons created is around ~42 button
 				for factionID, _ in pairs(WorldQuestTracker.MapData.AllFactionIds) do --creates one button for each faction registered
 					if (type(factionID) == "number") then
 						local factionName = WorldQuestTracker.GetFactionDataByID(factionID)
