@@ -2428,8 +2428,10 @@ GossipFrame:HookScript("OnShow", function()
 		local scrollTarget = GossipFrame.GreetingPanel.ScrollBox.ScrollTarget
 		local children = {scrollTarget:GetChildren()}
 
-		if (findSkipConversationOption(children)) then
-			return
+		if (bAutoComplete) then
+			if (findSkipConversationOption(children)) then
+				return
+			end
 		end
 
 		for i = 1, #children do
