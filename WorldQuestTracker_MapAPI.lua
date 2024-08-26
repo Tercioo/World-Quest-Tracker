@@ -583,10 +583,20 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 		if (numQuestCurrencies == 1) then
 
 			--is artifact power? bfa
-			local name, texture, numItems, currencyId, quality = GetQuestLogRewardCurrencyInfo(1, questID)
-			if (texture == 1830317 or texture == 2065624) then --azerite textures
-				--numItems are now given the amount of azerite (BFA 17-09-2018), no more tooltip scan required
-				return name, texture, 0, 1, 1, false, 0, 8, numItems or 0, false, 1
+			do
+				local name, texture, numItems, currencyId, quality = GetQuestLogRewardCurrencyInfo(1, questID)
+				if (texture == 1830317 or texture == 2065624) then --azerite textures
+					--numItems are now given the amount of azerite (BFA 17-09-2018), no more tooltip scan required
+					return name, texture, 0, 1, 1, false, 0, 8, numItems or 0, false, 1
+				end
+			end
+
+			--is artifact power wow11
+			do
+				local name, texture, numItems, currencyId, quality = GetQuestLogRewardCurrencyInfo(1, questID)
+				if (texture == 2967113) then --resonance crystals
+					return name, texture, 0, 1, 1, false, 0, 8, numItems or 0, false, 1
+				end
 			end
 
 			--print("currency: ", name, texture, numItems, currencyId, quality)
