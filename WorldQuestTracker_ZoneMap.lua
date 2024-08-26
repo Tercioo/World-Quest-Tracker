@@ -1814,7 +1814,21 @@ function WorldQuestTracker.SetupZoneSummaryButton(summaryWidget, zoneWidget)
 	summaryWidget.timeLeftText:SetJustifyH("center")
 	summaryWidget.timeLeftText:Show()
 
-	summaryWidget.factionIcon:SetTexture(WorldQuestTracker.MapData.FactionIcons [widget.FactionID]) --faction texture
+	local factionID = widget.FactionID
+	if (factionID) then
+		local factionTexture = WorldQuestTracker.MapData.FactionIcons[factionID]
+		if (factionTexture) then
+			--check if this quest is realy giving reputation
+			local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(questID, factionID)
+			if (bAwardReputation) then
+				summaryWidget.factionIcon:SetTexture(factionTexture)
+			end
+		else
+			summaryWidget.factionIcon:SetTexture("")
+		end
+	else
+		summaryWidget.factionIcon:SetTexture("")
+	end
 
 	summaryWidget:Show()
 end

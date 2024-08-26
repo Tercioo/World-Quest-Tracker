@@ -576,7 +576,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                     WorldQuestTracker.SetSetting("use_old_icons", not WorldQuestTracker.db.profile.use_old_icons)
                 end,
                 name = "S_MAPBAR_OPTIONSMENU_EQUIPMENTICONS",
-                desc = "S_MAPBAR_OPTIONSMENU_EQUIPMENTICONS",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 49 .. ":" .. 87 .. ":0:0:256:256:" .. (0) .. ":" .. (87) .. ":" .. (131) .. ":" .. (131+49) .. "|t"
             },
             {
                 type = "toggle",
@@ -598,7 +598,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                     DB.profile.close_blizz_popups.ABANDON_QUEST = value
                 end,
                 name = "S_OPTTIONS_AUTOACCEPT_ABANDONQUEST",
-                desc = "S_OPTTIONS_AUTOACCEPT_ABANDONQUEST_DESC",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 36 .. ":" .. 173 .. ":0:0:256:256:" .. (80) .. ":" .. (253) .. ":" .. (0) .. ":" .. (36) .. "|t"
             },
             {
                 type = "toggle",
@@ -609,7 +609,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                     DB.profile.numerate_quests = value
                 end,
                 name = "S_OPTTIONS_NUMERATE_QUEST",
-                desc = "S_OPTTIONS_NUMERATE_QUEST_DESC",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 30 .. ":" .. 90 .. ":0:0:256:256:" .. (0) .. ":" .. (90) .. ":" .. (100) .. ":" .. (130) .. "|t"
             },
 
             {type = "blank"},
@@ -628,7 +628,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                     WorldQuestTracker.SetSetting("pathdots", "enabled", value)
                 end,
                 name = "S_ENABLE",
-                desc = "S_ENABLE",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 30 .. ":" .. 134 .. ":0:0:256:256:" .. (91) .. ":" .. (225) .. ":" .. (100) .. ":" .. (130) .. "|t"
             },
 
             {type = "blank"},
@@ -732,7 +732,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 
                 end,
                 name = "S_OPTIONS_SHOWFACTIONS",
-                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 33 .. ":" .. 208 .. ":0:0:256:256:" .. (0) .. ":" .. (208) .. ":" .. (36+30) .. ":" .. (36+30+33) .. "|t\n\n" .. "S_OPTIONS_SHOWFACTIONS",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 33 .. ":" .. 208 .. ":0:0:256:256:" .. (0) .. ":" .. (208) .. ":" .. (36+30) .. ":" .. (36+30+33) .. "|t",
             },
             {
                 type = "toggle",

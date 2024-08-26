@@ -2381,14 +2381,20 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					--play quick flash on squares showing quests of this faction
 					for _, widget in ipairs(WorldQuestTracker.WorldSummaryQuestsSquares) do
 						if (widget.FactionID == self.MyObject.FactionID) then
-							widget.LoopFlash:Play()
+							local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(widget.questID, factionID)
+							if (bAwardReputation) then
+								widget.LoopFlash:Play()
+							end
 						end
 					end
 
 					--play quick flash on widgets shown in the world map(quest locations)
 					for questCounter, button in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
 						if (button.FactionID == self.MyObject.FactionID) then
-							button.FactionPulseAnimation:Play()
+							local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(button.questID, factionID)
+							if (bAwardReputation) then
+								button.FactionPulseAnimation:Play()
+							end
 						end
 					end
 
@@ -3476,7 +3482,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				button.Text = button:CreateFontString(nil, "overlay", "GameFontNormal")
 				button.Text:SetText(name)
 
-				WorldQuestTracker:SetFontSize(button.Text, 10)
+				WorldQuestTracker:SetFontSize(button.Text, 11)
 				WorldQuestTracker:SetFontColor(button.Text, "orange")
 				button.Text:SetPoint("center")
 

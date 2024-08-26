@@ -1161,9 +1161,13 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 		return
 
 	elseif (msg == "info") then
-		local widget = GetMouseFocus()
+		--local widget = GetMouseFocus()
+        ---@type uiobject[]
+        local uiObjects = GetMouseFoci()
 
-		if (widget) then
+		if (uiObjects and uiObjects[1]) then
+			local widget = uiObjects[1]
+
 			local info = {}
 
 			--quest info

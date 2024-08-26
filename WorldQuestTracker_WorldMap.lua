@@ -913,6 +913,12 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questID, numObjectives, map
 	widget.IsCriteria = isCriteria
 	widget.TimeLeft = timeLeft
 
+	local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(questID, factionID)
+	if (not bAwardReputation) then
+		widget.FactionID = nil
+		factionID = nil
+	end
+
 	if (isArtifact) then
 		artifactPowerIcon = WorldQuestTracker.GetArtifactPowerIcon(isArtifact, true, questID)
 		widget.isArtifact = isArtifact
