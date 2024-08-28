@@ -2381,7 +2381,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					--play quick flash on squares showing quests of this faction
 					for _, widget in ipairs(WorldQuestTracker.WorldSummaryQuestsSquares) do
 						if (widget.FactionID == self.MyObject.FactionID) then
-							local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(widget.questID, factionID)
+							local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(widget.questID or 0, factionID or 0)
 							if (bAwardReputation) then
 								widget.LoopFlash:Play()
 							end
@@ -2391,7 +2391,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					--play quick flash on widgets shown in the world map(quest locations)
 					for questCounter, button in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
 						if (button.FactionID == self.MyObject.FactionID) then
-							local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(button.questID, factionID)
+							local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(button.questID or 0, factionID or 0)
 							if (bAwardReputation) then
 								button.FactionPulseAnimation:Play()
 							end

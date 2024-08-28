@@ -186,7 +186,7 @@ local onleave_scale_animation = function(self, scale)
 	local originalScale = self.OriginalScale
 
 	if (self.OnLeaveAnimation.ScaleAnimation.SetScaleFrom) then
-		self.OnLeaveAnimation.ScaleAnimation:SetScaleFrom(currentScale, currentScale)
+		self.OnLeaveAnimation.ScaleAnimation:SetScaleFrom(currentScale, currentScale) --error bad argument #1 to 'SetScaleFrom' (Usage: self:SetScaleFrom(scale))
 		self.OnLeaveAnimation.ScaleAnimation:SetScaleTo(originalScale, originalScale)
 	else
 		self.OnLeaveAnimation.ScaleAnimation:SetFromScale(currentScale, currentScale)
@@ -913,7 +913,7 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questID, numObjectives, map
 	widget.IsCriteria = isCriteria
 	widget.TimeLeft = timeLeft
 
-	local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(questID, factionID)
+	local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(questID or 0, factionID or 0)
 	if (not bAwardReputation) then
 		widget.FactionID = nil
 		factionID = nil

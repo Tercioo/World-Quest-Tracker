@@ -1819,7 +1819,7 @@ function WorldQuestTracker.SetupZoneSummaryButton(summaryWidget, zoneWidget)
 		local factionTexture = WorldQuestTracker.MapData.FactionIcons[factionID]
 		if (factionTexture) then
 			--check if this quest is realy giving reputation
-			local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(questID, factionID)
+			local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(questID or 0, factionID or 0)
 			if (bAwardReputation) then
 				summaryWidget.factionIcon:SetTexture(factionTexture)
 			end
