@@ -593,9 +593,9 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 
 			--is artifact power wow11
 			do
-				local name, texture, numItems, currencyId, quality = GetQuestLogRewardCurrencyInfo(1, questID)
+				local name, texture, baseRewardAmount, currencyId, bonusRewardAmount = GetQuestLogRewardCurrencyInfo(1, questID)
 				if (texture == 2967113) then --resonance crystals
-					return name, texture, 0, 1, 1, false, 0, 8, numItems or 0, false, 1
+					return name, texture, 0, 1, 1, false, 0, 8, baseRewardAmount or 0, false, 1
 				end
 			end
 

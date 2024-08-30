@@ -745,6 +745,7 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 	WorldQuestTrackerDataProvider:GetMap():RemoveAllPinsByTemplate("WorldQuestTrackerPOIPinTemplate")
 	WorldQuestTracker.HideAllPOIPins()
 
+	--~locked
     for pin in map:EnumeratePinsByTemplate("AreaPOIPinTemplate") do
         local atlasName = pin.Texture:GetAtlas()
 		pin.Texture:SetAlpha(0.934)
@@ -897,7 +898,6 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 	WorldQuestTracker.CurrentZoneQuestsMapID = mapID
 
 	if (taskInfo and #taskInfo > 0) then
-
 		local needAnotherUpdate = false
 
 		for i, info  in ipairs(taskInfo) do

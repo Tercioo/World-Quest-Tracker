@@ -501,7 +501,7 @@ if (not GetQuestLogRewardCurrencyInfo) then
 		tQuestCurrencies = tQuestCurrencies or {}
 		local questRewardCurrencyInfo = tQuestCurrencies[currencyIndex]
 		if (questRewardCurrencyInfo) then
-			return questRewardCurrencyInfo.name, questRewardCurrencyInfo.texture, questRewardCurrencyInfo.baseRewardAmount, questRewardCurrencyInfo.currencyID, questRewardCurrencyInfo.bonusRewardAmount
+			return questRewardCurrencyInfo.name, questRewardCurrencyInfo.texture, questRewardCurrencyInfo.totalRewardAmount, questRewardCurrencyInfo.currencyID, questRewardCurrencyInfo.bonusRewardAmount
 		end
 	end
 else
