@@ -1189,6 +1189,42 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
         DF:BuildMenu(worldMapSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
     end
 
+    do
+        local worldMapPinScaleFrame = CreateFrame("frame", "WorldQuestTrackerWorldMapPinScaleFrameOptions", worldMapSettingsFrame, "BackdropTemplate")
+        worldMapPinScaleFrame:SetPoint("topright", WQTOptionsPanelContainerWorldMapConfig, "topright", -5, yStart)
+        worldMapPinScaleFrame:SetSize(250, 300)
+
+        local optionsTable = {
+            {
+                type = "label",
+                get = function() return "S_OPTTIONS_QUESTLOCATIONSCALE_BYWORLDMAP" end,
+                text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
+            },
+        }
+
+        for hubMapID, scale in pairs(WorldQuestTracker.db.profile.world_map_hubscale) do
+            local mapInfo = C_Map.GetMapInfo(hubMapID)
+            optionsTable[#optionsTable+1] = {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.world_map_hubscale[hubMapID] end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.world_map_hubscale[hubMapID] = value
+                    WorldQuestTracker.UpdateWorldQuestsOnWorldMap()
+                end,
+                min = 0.6,
+                max = 1.5,
+                step = 1,
+                thumbscale = 1.8,
+                usedecimals = true,
+                name = mapInfo.name,
+                desc = "S_SCALE",
+            }
+        end
+
+        DF:BuildMenu(worldMapPinScaleFrame, optionsTable, xStart, -5, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+    end
+
+
     do --Zone Map Settings
         local optionsTable = {
             always_boxfirst = true,

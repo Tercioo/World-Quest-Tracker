@@ -1619,7 +1619,7 @@ local scheduledIconUpdate = function(questTable)
 
 	local pinScale = DF:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
 
-	local finalScaleScalar = WorldQuestTracker.MapData.HubMapIconsScale[WorldMapFrame.mapID] or 1
+	local finalScaleScalar = WorldQuestTracker.db.profile.world_map_hubscale[WorldMapFrame.mapID] or 1
 	pinScale = pinScale * finalScaleScalar
 
 	if (WorldMapFrame.mapID == WorldQuestTracker.MapData.ZoneIDs.THESHADOWLANDS) then

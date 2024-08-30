@@ -176,13 +176,15 @@ do
 
 			world_map_config = {
 				onmap_show = true,
-				onmap_scale_offset = 0.6,
+				onmap_scale_offset = 1.0,
 				summary_show = true,
 				summary_scale = 0.95,
 				summary_showby = "bytype", --"bytype" or "byzone"
 				summary_anchor = "left",
 				summary_widgets_per_row = 8,
 			},
+
+			world_map_hubscale = {},
 
 			speed_run = {
 				auto_accept = false,

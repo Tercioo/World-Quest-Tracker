@@ -214,13 +214,13 @@ WorldQuestTracker.MapData.ExpMaps = {
 }
 
 WorldQuestTracker.MapData.HubMapIconsScale = {
-	[zoneIDs.DRAGONISLES] = 1,
+	[zoneIDs.DRAGONISLES] = 0.85,
 	[zoneIDs.THESHADOWLANDS] = 1,
-	[zoneIDs.ZANDALAR] = 1,
-	[zoneIDs.KULTIRAS] = 1,
+	[zoneIDs.ZANDALAR] = 0.9,
+	[zoneIDs.KULTIRAS] = 0.9,
 	[zoneIDs.AZEROTH] = 1,
-	[zoneIDs.BROKENISLES] = 0.8,
-	[zoneIDs.KHAZALGAR] = 0.8,
+	[zoneIDs.BROKENISLES] = 0.30,
+	[zoneIDs.KHAZALGAR] = 0.95,
 }
 
 --list of map ids for world quest hubs

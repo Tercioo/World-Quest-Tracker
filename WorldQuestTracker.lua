@@ -228,6 +228,12 @@ function WorldQuestTracker:OnInit()
 		DF.Language.SetCurrentLanguage(addonId, WQTrackerLanguage.language)
 	end
 
+	for hubMapID, defaultScale in pairs(WorldQuestTracker.MapData.HubMapIconsScale) do
+		if (not WorldQuestTracker.db.profile.world_map_hubscale[hubMapID]) then
+			WorldQuestTracker.db.profile.world_map_hubscale[hubMapID] = defaultScale
+		end
+	end
+
     hooksecurefunc(_G, "StaticPopup_Show", function(token)
 		if (token == "ABANDON_QUEST") then
 			if (WorldQuestTracker.db.profile.close_blizz_popups.ABANDON_QUEST) then
