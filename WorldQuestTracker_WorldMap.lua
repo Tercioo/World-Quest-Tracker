@@ -1217,44 +1217,47 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 
 	for poiId, poiInfo in pairs(WorldQuestTracker.db.profile.pins_discovered["worldquest-Capstone-questmarker-epic-Locked"]) do
 		---@cast poiInfo wqt_poidata
+		local worldMapID = WorldQuestTracker.GetCurrentMapAreaID()
 
-		--double check if the quest is on the map
-		if (C_AreaPoiInfo.GetAreaPOIInfo(poiInfo.mapID, poiInfo.poiID)) then
-			local pin = WorldQuestTrackerDataProvider:GetMap():AcquirePin("WorldQuestTrackerPOIPinTemplate")
+		if (poiInfo.continentID == worldMapID) then
+			--double check if the quest is on the map
+			if (C_AreaPoiInfo.GetAreaPOIInfo(poiInfo.mapID, poiInfo.poiID)) then
+				local pin = WorldQuestTrackerDataProvider:GetMap():AcquirePin("WorldQuestTrackerPOIPinTemplate")
 
-			if (not pin.widget) then
-				local button = WorldQuestTracker.CreateZoneWidget(worldQuestLockedIndex, "WorldQuestTrackerLockedQuestButton", worldFramePOIs) --, "WorldQuestTrackerPOIPinTemplate"
-				button.IsWorldZoneQuestButton = true
-				button:SetPoint("center", pin, "center", 0, 0)
-				worldQuestLockedIndex = worldQuestLockedIndex + 1
-				pin.button = button
-				pin.widget = button
-				pin:SetSize(20, 20)
+				if (not pin.widget) then
+					local button = WorldQuestTracker.CreateZoneWidget(worldQuestLockedIndex, "WorldQuestTrackerLockedQuestButton", worldFramePOIs) --, "WorldQuestTrackerPOIPinTemplate"
+					button.IsWorldZoneQuestButton = true
+					button:SetPoint("center", pin, "center", 0, 0)
+					worldQuestLockedIndex = worldQuestLockedIndex + 1
+					pin.button = button
+					pin.widget = button
+					pin:SetSize(20, 20)
 
-				button:SetScript("OnEnter", function(self)
-					GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-					if (poiInfo.tooltipSetId) then
-						GameTooltip_AddWidgetSet(GameTooltip, poiInfo.tooltipSetId, 0)
-					end
-					GameTooltip:Show()
-				end)
+					button:SetScript("OnEnter", function(self)
+						GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+						if (poiInfo.tooltipSetId) then
+							GameTooltip_AddWidgetSet(GameTooltip, poiInfo.tooltipSetId, 0)
+						end
+						GameTooltip:Show()
+					end)
 
-				button:SetScript("OnHide", function(self)
-					GameTooltip:Hide()
-				end)
+					button:SetScript("OnHide", function(self)
+						GameTooltip:Hide()
+					end)
 
-				button.UpdateTooltip = nil
+					button.UpdateTooltip = nil
 
-				WorldQuestTracker.POIPins[#WorldQuestTracker.POIPins+1] = button
+					WorldQuestTracker.POIPins[#WorldQuestTracker.POIPins+1] = button
+				end
+
+				WorldQuestTracker.ResetWorldQuestZoneButton(pin.button)
+				pin:SetPosition(poiInfo.worldX, poiInfo.worldY)
+				pin.button.Texture:SetMask("")
+				pin.button.Texture:SetAtlas("worldquest-Capstone-questmarker-epic-Locked")
+				pin.button.Texture:SetSize(32, 32)
+				pin.button.poiInfo = poiInfo
+				pin.button:Show()
 			end
-
-			WorldQuestTracker.ResetWorldQuestZoneButton(pin.button)
-			pin:SetPosition(poiInfo.worldX, poiInfo.worldY)
-			pin.button.Texture:SetMask("")
-			pin.button.Texture:SetAtlas("worldquest-Capstone-questmarker-epic-Locked")
-			pin.button.Texture:SetSize(32, 32)
-			pin.button.poiInfo = poiInfo
-			pin.button:Show()
 		end
 	end
 
