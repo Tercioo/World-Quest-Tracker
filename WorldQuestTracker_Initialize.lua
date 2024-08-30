@@ -271,6 +271,10 @@ do
 			quest_summary_minimized = false,
 			show_summary_minimize_button = true,
 
+			pins_discovered = {
+				["worldquest-Capstone-questmarker-epic-Locked"] = {},
+			},
+
 			zone_map_config = {
 				summary_show = true,
 				quest_summary_scale = 1.2,

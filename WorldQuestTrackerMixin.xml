@@ -13,5 +13,6 @@
 	<Frame name="WorldQuestTrackerPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
 	<Frame name="WorldQuestTrackerRarePinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
 	<Frame name="WorldQuestTrackerWorldMapPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
+	<Frame name="WorldQuestTrackerPOIPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
 	<Frame name="WorldQuestTrackerExtraMapTextureTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
 </Ui>

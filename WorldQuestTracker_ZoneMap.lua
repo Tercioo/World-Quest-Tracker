@@ -187,7 +187,6 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 			button:SetFrameLevel(button.OriginalFrameLevel + 50)
 
 			if (self.OnEnterAnimation) then
-
 				if (not WorldQuestTracker.db.profile.hoverover_animations) then
 					return
 				end
@@ -220,12 +219,10 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 					end
 					self.OnEnterAnimation:Play()
 				end
-
 			end
 		end)
 
 		button:HookScript("OnLeave", function(self)
-
 			if (button.OriginalFrameLevel) then
 				button:SetFrameLevel(button.OriginalFrameLevel)
 			end
@@ -730,6 +727,75 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 		--pin.Texture:SetScale(0.7)
 	--end
 
+	---@class poiinfo : table
+	---@field areaPoiID number
+	---@field description string
+	---@field addPaddingAboveTooltipWidgets boolean
+	---@field isAlwaysOnFlightmap boolean
+	---@field isPrimaryMapForPOI boolean
+	---@field tooltipWidgetSet number
+	---@field highlightVignettesOnHover boolean
+	---@field name string
+	---@field position table
+	---@field shouldGlow boolean
+	---@field isCurrentEvent boolean
+	---@field highlightWorldQuestsOnHover boolean
+	---@field atlasName string
+
+	WorldQuestTrackerDataProvider:GetMap():RemoveAllPinsByTemplate("WorldQuestTrackerPOIPinTemplate")
+	WorldQuestTracker.HideAllPOIPins()
+
+    for pin in map:EnumeratePinsByTemplate("AreaPOIPinTemplate") do
+        local atlasName = pin.Texture:GetAtlas()
+		pin.Texture:SetAlpha(0.934)
+        if (atlasName == "worldquest-Capstone-questmarker-epic-Locked") then
+			--how to identify the point of interest?
+			if (not WorldQuestTracker.db.profile.pins_discovered["worldquest-Capstone-questmarker-epic-Locked"][pin.areaPoiID]) then
+				local poiInfo = pin:GetPoiInfo() --table
+				local mapData = pin:GetMap() --function
+
+				local poiId = poiInfo.areaPoiID
+				local mapId = mapData:GetMapID()
+				local position = poiInfo.position
+				local mapInfo = C_Map.GetMapInfo(mapId)
+				local parentMapInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
+
+				--need check if a waypoint already exists
+				local mapPoint = UiMapPoint.CreateFromCoordinates(mapId, position.x, position.y)
+				C_Map.SetUserWaypoint(mapPoint)
+				local worldPosition = C_Map.GetUserWaypointPositionForMap(parentMapInfo.mapID)
+				C_Map.ClearUserWaypoint()
+
+				---@class wqt_poidata
+				---@field poiID number
+				---@field mapID number
+				---@field zoneX number
+				---@field zoneY number
+				---@field continentID number
+				---@field worldX number
+				---@field worldY number
+				---@field tooltipSetId number
+
+				local pointOfInterestData = {
+					["poiID"] = poiId,
+					["mapID"] = mapId,
+					["zoneX"] = pin.normalizedX,
+					["zoneY"] = pin.normalizedY,
+					["continentID"] = parentMapInfo.mapID,
+					["worldX"] = worldPosition.x,
+					["worldY"] = worldPosition.y,
+					["tooltipSetId"] = poiInfo.tooltipWidgetSet,
+				}
+
+				WorldQuestTracker.db.profile.pins_discovered["worldquest-Capstone-questmarker-epic-Locked"][poiId] = pointOfInterestData
+			end
+
+			pin.Texture:SetScale(1.2)
+		else
+			pin.Texture:SetScale(1)
+        end
+    end
+
 	for pin in map:EnumeratePinsByTemplate("QuestPinTemplate") do
 		pin:SetAlpha(0.923)
 	end
@@ -1073,7 +1139,6 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 	end
 
 	if (WorldQuestTracker.WorldMap_GoldIndicator) then
-
 		WorldQuestTracker.WorldMap_GoldIndicator.text = floor(total_Gold / 10000)
 
 		if (total_Resources >= 1000) then
@@ -1164,7 +1229,6 @@ function WorldQuestTracker.UpdateZonePOIs(forceUpdate)
 						end
 					end
 				end
-
 			--elseif (iconData.dataType == "icon") then
 			end
 		end
@@ -1521,6 +1585,7 @@ function WorldQuestTracker.ScheduleZoneMapUpdate(seconds, isForceUpdate)
 		end
 		WorldQuestTracker.ScheduledZoneUpdate:Cancel()
 	end
+
 	WorldQuestTracker.ScheduledZoneUpdate = C_Timer.NewTimer(seconds or 1, do_zonemap_update)
 	WorldQuestTracker.ScheduledZoneUpdate.IsForceUpdate = isForceUpdate
 end
@@ -1657,14 +1722,14 @@ function WorldQuestTracker.GetOrCreateZoneSummaryWidget(index, parent, pool)
 	local on_enter_animation = DF:CreateAnimationHub(button, nil, function()
 		--button:SetScale(1.1, 1.1)
 	end)
-	on_enter_animation.Step1 = DF:CreateAnimation(on_enter_animation, "scale", 1, 0.05, 1, 1, 1.05, 1.05)
-	on_enter_animation.Step2 = DF:CreateAnimation(on_enter_animation, "scale", 2, 0.05, 1.05, 1.05, 1.0, 1.0)
+	on_enter_animation.Step1 = DF:CreateAnimation(on_enter_animation, "Scale", 1, 0.05, 1, 1, 1.05, 1.05)
+	on_enter_animation.Step2 = DF:CreateAnimation(on_enter_animation, "Scale", 2, 0.05, 1.05, 1.05, 1.0, 1.0)
 	button.OnEnterAnimation = on_enter_animation
 
 	local on_leave_animation = DF:CreateAnimationHub(button, nil, function()
 		--button:SetScale(1.0, 1.0)
 	end)
-	on_leave_animation.Step1 = DF:CreateAnimation(on_leave_animation, "scale", 1, 0.1, 1.1, 1.1, 1, 1)
+	on_leave_animation.Step1 = DF:CreateAnimation(on_leave_animation, "Scale", 1, 0.1, 1.1, 1.1, 1, 1)
 	button.OnLeaveAnimation = on_leave_animation
 
 	local mouseoverHighlight = WorldQuestTracker.AnchoringFrame:CreateTexture(nil, "overlay")
@@ -1836,7 +1901,6 @@ end
 -- ~summary
 
 function WorldQuestTracker.UpdateZoneSummaryToggleButton(canShow)
-
 	if (not WorldQuestTracker.ZoneSummaryToogleButton) then
 		local button = CreateFrame("button", nil, ZoneSumaryFrame, "BackdropTemplate")
 		button:SetSize(12, 12)

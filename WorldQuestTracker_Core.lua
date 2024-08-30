@@ -114,6 +114,9 @@ end
 WorldQuestTracker.OnMapHasChanged = function(self)
 	WorldQuestTracker.AdjustThatThingInTheBottomLeftCorner()
 
+	WorldQuestTrackerDataProvider:GetMap():RemoveAllPinsByTemplate("WorldQuestTrackerPOIPinTemplate")
+	WorldQuestTracker.HideAllPOIPins()
+
 	local mapID = WorldMapFrame.mapID
 	WorldQuestTracker.InitializeWorldWidgets()
 

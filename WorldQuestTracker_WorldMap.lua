@@ -1176,14 +1176,14 @@ function WorldQuestTracker.BuildMapChildrenTable(parentMap, t)
 	t = t or {}
 	local newChildren = {}
 	for mapID, mapTable in pairs(WorldQuestTracker.mapTables) do
-		if (mapTable.show_on_map [parentMap]) then
-			t [mapID] = true
-			newChildren [mapID] = true
+		if (mapTable.show_on_map[parentMap]) then
+			t[mapID] = true
+			newChildren[mapID] = true
 		end
 	end
 
 	if (next(newChildren)) then
-		for newMapChildren, _ in pairs(newChildren) do
+		for newMapChildren in pairs(newChildren) do
 			WorldQuestTracker.BuildMapChildrenTable(newMapChildren, t)
 		end
 	end
@@ -1191,6 +1191,15 @@ function WorldQuestTracker.BuildMapChildrenTable(parentMap, t)
 	return t
 end
 
+WorldQuestTracker.POIPins = {}
+--hide all poi pins
+function WorldQuestTracker.HideAllPOIPins()
+	for i = 1, #WorldQuestTracker.POIPins do
+		WorldQuestTracker.POIPins[i]:Hide()
+	end
+end
+
+local worldQuestLockedIndex = 1
 -- ~world -- ~update
 function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQuestFlaggedRecheck, forceCriteriaAnimation, questList)
 	if (UnitLevel("player") < 50) then --this has to be improved
@@ -1202,6 +1211,51 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 			WorldQuestTracker:Msg("World quests aren't shown because you're below level 50.") --> localize-me
 		end
 		return
+	end
+
+	WorldQuestTrackerDataProvider:GetMap():RemoveAllPinsByTemplate("WorldQuestTrackerPOIPinTemplate")
+
+	for poiId, poiInfo in pairs(WorldQuestTracker.db.profile.pins_discovered["worldquest-Capstone-questmarker-epic-Locked"]) do
+		---@cast poiInfo wqt_poidata
+
+		--double check if the quest is on the map
+		if (C_AreaPoiInfo.GetAreaPOIInfo(poiInfo.mapID, poiInfo.poiID)) then
+			local pin = WorldQuestTrackerDataProvider:GetMap():AcquirePin("WorldQuestTrackerPOIPinTemplate")
+
+			if (not pin.widget) then
+				local button = WorldQuestTracker.CreateZoneWidget(worldQuestLockedIndex, "WorldQuestTrackerLockedQuestButton", worldFramePOIs) --, "WorldQuestTrackerPOIPinTemplate"
+				button.IsWorldZoneQuestButton = true
+				button:SetPoint("center", pin, "center", 0, 0)
+				worldQuestLockedIndex = worldQuestLockedIndex + 1
+				pin.button = button
+				pin.widget = button
+				pin:SetSize(20, 20)
+
+				button:SetScript("OnEnter", function(self)
+					GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+					if (poiInfo.tooltipSetId) then
+						GameTooltip_AddWidgetSet(GameTooltip, poiInfo.tooltipSetId, 0)
+					end
+					GameTooltip:Show()
+				end)
+
+				button:SetScript("OnHide", function(self)
+					GameTooltip:Hide()
+				end)
+
+				button.UpdateTooltip = nil
+
+				WorldQuestTracker.POIPins[#WorldQuestTracker.POIPins+1] = button
+			end
+
+			WorldQuestTracker.ResetWorldQuestZoneButton(pin.button)
+			pin:SetPosition(poiInfo.worldX, poiInfo.worldY)
+			pin.button.Texture:SetMask("")
+			pin.button.Texture:SetAtlas("worldquest-Capstone-questmarker-epic-Locked")
+			pin.button.Texture:SetSize(32, 32)
+			pin.button.poiInfo = poiInfo
+			pin.button:Show()
+		end
 	end
 
 	WorldQuestTracker.RefreshStatusBarVisibility()
@@ -1388,14 +1442,14 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 		end
 
 		--quantidade de quest para a faccao
-		configTable.factionFrame.amount = factionAmountForEachMap [mapId]
+		configTable.factionFrame.amount = factionAmountForEachMap[mapId]
 	end
 
 	--force retry in case the game just opened and the server might not has sent all quests
-	forceRetryForHub [WorldMapFrame.mapID] = forceRetryForHub [WorldMapFrame.mapID] or forceRetryForHubAmount
-	if (forceRetryForHub [WorldMapFrame.mapID] > 0) then
+	forceRetryForHub[WorldMapFrame.mapID] = forceRetryForHub[WorldMapFrame.mapID] or forceRetryForHubAmount
+	if (forceRetryForHub[WorldMapFrame.mapID] > 0) then
 		needAnotherUpdate = true
-		forceRetryForHub [WorldMapFrame.mapID] = forceRetryForHub [WorldMapFrame.mapID] - 1
+		forceRetryForHub[WorldMapFrame.mapID] = forceRetryForHub[WorldMapFrame.mapID] - 1
 	end
 
 	if (needAnotherUpdate) then
