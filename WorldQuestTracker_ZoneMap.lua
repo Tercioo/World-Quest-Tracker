@@ -745,7 +745,7 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 	WorldQuestTrackerDataProvider:GetMap():RemoveAllPinsByTemplate("WorldQuestTrackerPOIPinTemplate")
 	WorldQuestTracker.HideAllPOIPins()
 
-	--~locked
+	--~locked ~poi ~areapoi
     for pin in map:EnumeratePinsByTemplate("AreaPOIPinTemplate") do
         local atlasName = pin.Texture:GetAtlas()
 		pin.Texture:SetAlpha(0.934)
@@ -918,17 +918,17 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 						end
 
 						if (timeLeft > 0) then --not isSuppressed and passFilters and timeLeft
-							local can_cache = true
+							local bCanCache = true
 							if (not HaveQuestRewardData(questID)) then
 								C_TaskQuest.RequestPreloadRewardData(questID)
-								can_cache = false
+								bCanCache = false
 								needAnotherUpdate = true
 							end
 							WorldQuestTracker.CurrentZoneQuests [questID] = true
 
-							local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, can_cache)
+							local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, bCanCache)
 							local filter, order = WorldQuestTracker.GetQuestFilterTypeAndOrder(worldQuestType, gold, rewardName, itemName, isArtifact, stackAmount, numRewardItems, rewardTexture, tagID)
-							local passFilter = filters [filter]
+							local passFilter = filters[filter]
 
 							if (not passFilter) then
 								if (rarity == LE_WORLD_QUEST_QUALITY_EPIC) then
@@ -1013,8 +1013,8 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 
 									widget:Show()
 
-									tinsert(WorldQuestTracker.Cache_ShownQuestOnZoneMap, questID)
-									tinsert(WorldQuestTracker.Cache_ShownWidgetsOnZoneMap, widget)
+									table.insert(WorldQuestTracker.Cache_ShownQuestOnZoneMap, questID)
+									table.insert(WorldQuestTracker.Cache_ShownWidgetsOnZoneMap, widget)
 
 									widget:SetScale(scale) --affect only zones(not the world map)
 
@@ -1067,8 +1067,8 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 										end
 
 										--> add the widget to cache tables
-										tinsert(WorldQuestTracker.Cache_ShownQuestOnZoneMap, questID)
-										tinsert(WorldQuestTracker.Cache_ShownWidgetsOnZoneMap, widget)
+										table.insert(WorldQuestTracker.Cache_ShownQuestOnZoneMap, questID)
+										table.insert(WorldQuestTracker.Cache_ShownWidgetsOnZoneMap, widget)
 									end
 								end
 
@@ -1089,7 +1089,7 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 
 					end --is world quest
 
-				else --have quest data
+				else --don't have quest data
 					if (WorldQuestTracker.__debug) then
 						local questName = C_QuestLog.GetTitleForQuestID(questID)
 						WorldQuestTracker:Msg("no HaveQuestData for quest", questID, questName)
@@ -1135,7 +1135,7 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 	end
 
 	for i = index, #ZoneWidgetPool do
-		ZoneWidgetPool [i]:Hide()
+		ZoneWidgetPool[i]:Hide()
 	end
 
 	if (WorldQuestTracker.WorldMap_GoldIndicator) then
@@ -1183,7 +1183,6 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 	end
 
 	WorldQuestTracker.UpdateZoneSummaryFrame()
-
 end
 
 --check if the zone has extra data to show like quests, pois, etc
@@ -1280,7 +1279,7 @@ function WorldQuestTracker.ResetWorldQuestZoneButton(self)
 	self.Amount = nil
 end
 
---this function does not check if the quest reward is in the client cache
+--this function does not check if the quest reward is in the client cache ~update ~setup ~button
 function WorldQuestTracker.SetupWorldQuestButton(self, worldQuestType, rarity, isElite, tradeskillLineIndex, inProgress, selected, isCriteria, isSpellTarget, mapID)
 	if (type(worldQuestType) == "boolean" and worldQuestType) then
 		--quick refresh
@@ -1558,6 +1557,11 @@ function WorldQuestTracker.SetupWorldQuestButton(self, worldQuestType, rarity, i
 			end
 
 			if (not okay) then
+				self.Texture:SetTexture([[Interface\Icons\INV_Misc_QuestionMark]])
+				self.circleBorder:Show()
+				self.circleBorder:SetTexture("Interface\\AddOns\\WorldQuestTracker\\media\\border_zone_whiteT")
+				self.Texture:SetSize(16, 16)
+
 				if (UpdateDebug) then print("NeedUpdate 4") end
 				WorldQuestTracker.ScheduleZoneMapUpdate()
 			end
@@ -1826,7 +1830,11 @@ function WorldQuestTracker.SetupZoneSummaryButton(summaryWidget, zoneWidget)
 	widget.trackingGlowBorder:Hide()
 
 	--set the amount text
-	summaryWidget.Text:SetText(type(zoneWidget.IconText) == "number" and floor(zoneWidget.IconText) or zoneWidget.IconText)
+	if (okay) then
+		summaryWidget.Text:SetText(type(zoneWidget.IconText) == "number" and floor(zoneWidget.IconText) or zoneWidget.IconText)
+	else
+		summaryWidget.Text:SetText("")
+	end
 
 	if (widget.criteriaIndicator:IsShown()) then
 		summaryWidget.timeLeftText:SetPoint("left", widget, "right", 66, 0)
@@ -1987,24 +1995,24 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 		return t1.Order > t2.Order
 	end)
 
-	local LastWidget
+	local lastWidget
 	local isSummaryMinimized = WorldQuestTracker.db.profile.quest_summary_minimized
 
 	if (not isSummaryMinimized) then
 		for i = 1, #WorldQuestTracker.Cache_ShownWidgetsOnZoneMap do
-			local zoneWidget = WorldQuestTracker.Cache_ShownWidgetsOnZoneMap [i]
+			local zoneWidget = WorldQuestTracker.Cache_ShownWidgetsOnZoneMap[i]
 			local summaryWidget = WorldQuestTracker.GetOrCreateZoneSummaryWidget(index)
 
 			summaryWidget._Twin = zoneWidget
 			WorldQuestTracker.SetupZoneSummaryButton(summaryWidget, zoneWidget)
-			LastWidget = summaryWidget
+			lastWidget = summaryWidget
 
 			index = index + 1
 		end
 	end
 
 	--attach the header to the last widget
-	if (LastWidget) then
+	if (lastWidget) then
 		ZoneSumaryFrame.Header:Show()
 		--ZoneSumaryFrame.Header:SetPoint("bottomleft", LastWidget, "topleft", 20, 0)
 	end

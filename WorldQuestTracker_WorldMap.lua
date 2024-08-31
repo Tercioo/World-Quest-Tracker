@@ -1151,6 +1151,10 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questID, numObjectives, map
 	if (okay) then
 		local conduitType, borderTexture, borderColor, itemLink = WorldQuestTracker.GetConduitQuestData(questID)
 		WorldQuestTracker.UpdateBorder(widget, rarity, worldQuestType, nil, nil, nil, conduitType, borderTexture, borderColor, itemLink)
+	else
+		widget.texture:SetTexture([[Interface\Icons\INV_Misc_QuestionMark]])
+		widget.amountText:SetText("")
+		widget.IconText = ""
 	end
 
 	return okay, amountGold, amountResources, amountAPower
