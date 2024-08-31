@@ -1570,7 +1570,6 @@ function WorldQuestTracker.SetupWorldQuestButton(self, worldQuestType, rarity, i
 		--	print("no time left:", title, timeLeft)
 			--self:Hide()
 		end
-
 	else
 		if (UpdateDebug) then print("NeedUpdate 5") end
 		WorldQuestTracker.ScheduleZoneMapUpdate()
@@ -1581,17 +1580,24 @@ end
 local do_zonemap_update = function(self)
 	WorldQuestTracker.UpdateZoneWidgets(self.IsForceUpdate)
 end
-function WorldQuestTracker.ScheduleZoneMapUpdate(seconds, isForceUpdate)
+
+function WorldQuestTracker.ScheduleZoneMapUpdate(seconds, bForceUpdate)
+	if (time() > WorldQuestTracker.MapChangedTime + 4) then
+		if (not bForceUpdate) then
+			return
+		end
+	end
+
 	if (WorldQuestTracker.ScheduledZoneUpdate and not WorldQuestTracker.ScheduledZoneUpdate._cancelled) then
 		--> if the previous schedule was a force update, make the new schedule be be a force update too
 		if (WorldQuestTracker.ScheduledZoneUpdate.IsForceUpdate) then
-			isForceUpdate = true
+			bForceUpdate = true
 		end
 		WorldQuestTracker.ScheduledZoneUpdate:Cancel()
 	end
 
 	WorldQuestTracker.ScheduledZoneUpdate = C_Timer.NewTimer(seconds or 1, do_zonemap_update)
-	WorldQuestTracker.ScheduledZoneUpdate.IsForceUpdate = isForceUpdate
+	WorldQuestTracker.ScheduledZoneUpdate.IsForceUpdate = bForceUpdate
 end
 
 

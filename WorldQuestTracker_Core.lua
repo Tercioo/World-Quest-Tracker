@@ -122,6 +122,7 @@ WorldQuestTracker.OnMapHasChanged = function(self)
 
 	--set the current map in the addon
 	WorldQuestTracker.LastMapID = WorldQuestTracker.CurrentMapID
+	WorldQuestTracker.MapChangedTime = time()
 	WorldQuestTracker.CurrentMapID = mapID
 
 	--update the status bar

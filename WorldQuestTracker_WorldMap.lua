@@ -912,6 +912,7 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questID, numObjectives, map
 	widget.WorldQuestType = worldQuestType
 	widget.IsCriteria = isCriteria
 	widget.TimeLeft = timeLeft
+	widget.isArtifact = false
 
 	local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(questID or 0, factionID or 0)
 	if (not bAwardReputation) then
@@ -1043,14 +1044,14 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questID, numObjectives, map
 		amountGold = gold
 
 		if (not widget.IsZoneSummaryQuestButton) then
-			DF.table.addunique(WorldQuestTracker.Cache_ShownQuestOnWorldMap [WQT_QUESTTYPE_GOLD], questID)
+			DF.table.addunique(WorldQuestTracker.Cache_ShownQuestOnWorldMap[WQT_QUESTTYPE_GOLD], questID)
 		end
 
 		okay = true
 	end
 
 	if (rewardName and not okay) then
-		widget.texture:SetTexture(WorldQuestTracker.MapData.ReplaceIcon [rewardTexture] or rewardTexture)
+		widget.texture:SetTexture(WorldQuestTracker.MapData.ReplaceIcon[rewardTexture] or rewardTexture)
 
 		if (numRewardItems >= 1000) then
 			widget.amountText:SetText(format("%.1fK", numRewardItems/1000))
@@ -1077,7 +1078,6 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questID, numObjectives, map
 		end
 
 		okay = true
-
 		--print(title, rewardTexture) --show the quest name and the texture ID
 	end
 
