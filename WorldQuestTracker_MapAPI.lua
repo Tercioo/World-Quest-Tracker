@@ -46,49 +46,48 @@ local triggerScheduledWidgetUpdate = function(timerObject)
 		return
 	end
 
-	if (HaveQuestRewardData (questID)) then
+	if (HaveQuestRewardData(questID)) then
 		--is a zone widget placed in the world hub
 		if (widget.IsWorldZoneQuestButton) then
-			WorldQuestTracker.SetupWorldQuestButton (widget, true)
+			WorldQuestTracker.SetupWorldQuestButton(widget, true)
 
 		--is a square button in the world map
 		elseif (widget.IsWorldQuestButton) then
-			WorldQuestTracker.UpdateWorldWidget (widget, true)
+			WorldQuestTracker.UpdateWorldWidget(widget, widget.questData)
 
 		--is a zone widget placed in the zone
 		elseif (widget.IsZoneQuestButton) then
-			WorldQuestTracker.SetupWorldQuestButton (widget, true)
+			WorldQuestTracker.SetupWorldQuestButton(widget, true)
 
 		--is a zone widget placed in the taxi map
 		elseif (widget.IsTaxiQuestButton) then
-			WorldQuestTracker.SetupWorldQuestButton (widget, true)
+			WorldQuestTracker.SetupWorldQuestButton(widget, true)
 
 		--is a zone widget placed in the zone summary frame
 		elseif (widget.IsZoneSummaryButton) then
-			WorldQuestTracker.SetupWorldQuestButton (widget, true)
-
+			WorldQuestTracker.SetupWorldQuestButton(widget, true)
 		end
 	else
-		WorldQuestTracker.CheckQuestRewardDataForWidget (widget, false, true)
+		WorldQuestTracker.CheckQuestRewardDataForWidget(widget, false, true)
 	end
 end
 
-function WorldQuestTracker.CheckQuestRewardDataForWidget (widget, noScheduleRefresh, noRequestData)
+function WorldQuestTracker.CheckQuestRewardDataForWidget(widget, noScheduleRefresh, noRequestData)
 	local questID = widget.questID
 
 	if (not questID) then
 		return false
 	end
 
-	if (not HaveQuestRewardData (questID)) then
+	if (not HaveQuestRewardData(questID)) then
 		--if this is from a re-schedule it already requested the data
 		if (not noRequestData) then
 			--ask que server for the reward data
-			C_TaskQuest.RequestPreloadRewardData (questID)
+			C_TaskQuest.RequestPreloadRewardData(questID)
 		end
 
 		if (not noScheduleRefresh) then
-			local timer = C_Timer.NewTimer (1, triggerScheduledWidgetUpdate)
+			local timer = C_Timer.NewTimer(1, triggerScheduledWidgetUpdate)
 			timer.widget = widget
 			return false, true
 		end
@@ -331,8 +330,46 @@ function WorldQuestTracker.GetCurrentMapAreaID()
 	end
 end
 
-function WorldQuestTracker.CanShowQuest (info)
-	local canShowQuest = WorldQuestTracker.DataProvider:ShouldShowQuest (info)
+---@param mapID number
+---@return boolean
+function WorldQuestTracker.DoesMapHasWorldQuests(mapID)
+	return WorldQuestTracker.MapData.WorldQuestZones[mapID] and true or false
+end
+
+function WorldQuestTracker.PreloadWorldQuestsForQuestHub(questHubMapId)
+	if (questHubMapId) then
+		--get the zones of this quest hub
+		local zones = WorldQuestTracker.mapTables
+		for mapID, zoneInfo in pairs(zones) do
+			if (zoneInfo.show_on_map[questHubMapId]) then
+				WorldQuestTracker.PreloadWorldQuestsForMap(mapID)
+			end
+		end
+	end
+end
+
+function WorldQuestTracker.PreloadWorldQuestsForMap(mapID)
+	if (WorldQuestTracker.DoesMapHasWorldQuests(mapID)) then
+		local taskInfo = GetQuestsForPlayerByMapID(mapID)
+		if (taskInfo and #taskInfo > 0) then
+			for i, info in ipairs(taskInfo) do
+				local questID = info.questId
+				local bIsWorldQuest = isWorldQuest(questID)
+				if (bIsWorldQuest) then
+					if (not HaveQuestData(questID) or not HaveQuestRewardData(questID)) then
+						C_Timer.After(RandomFloatInRange(0.1, 2), function()
+							C_TaskQuest.RequestPreloadRewardData(questID)
+						end)
+					end
+				end
+			end
+		end
+	end
+end
+
+--not in use
+function WorldQuestTracker.CanShowQuest(info)
+	local canShowQuest = WorldQuestTracker.DataProvider:ShouldShowQuest(info)
 	return canShowQuest
 end
 

@@ -1221,6 +1221,9 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
             }
         end
 
+        optionsTable.always_boxfirst = true
+        optionsTable.language_addonId = addonId
+
         DF:BuildMenu(worldMapPinScaleFrame, optionsTable, xStart, -5, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
     end
 

@@ -52,8 +52,10 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		RINGINGDEEPS =	2214,
 		DORN = 			2248,
 		AZJKAHET = 		2255,
+		AZJKAHET_LOWER =	2256,
 		HALLOWFALL = 	2215,
 		CITYTHREADS = 	2213,
+		CITYTHREADS_LOWER =	2216,
 
 	--Dragonflight
 		DRAGONISLES = 	1978,
@@ -124,18 +126,32 @@ WorldQuestTracker.DotLineScale = {
 	[zoneIDs.RINGINGDEEPS] = 3,
 	[zoneIDs.DORN] = 3,
 	[zoneIDs.AZJKAHET] = 3,
+	[zoneIDs.AZJKAHET_LOWER] = 3,
 	[zoneIDs.HALLOWFALL] = 3,
 	[zoneIDs.CITYTHREADS] = 3,
+	[zoneIDs.CITYTHREADS_LOWER] = 3,
+}
+
+WorldQuestTracker.MapData.ZoneToHub = {
+	[zoneIDs.DORN] = zoneIDs.KHAZALGAR,
+	[zoneIDs.HALLOWFALL] = zoneIDs.KHAZALGAR,
+	[zoneIDs.RINGINGDEEPS] = zoneIDs.KHAZALGAR,
+	[zoneIDs.AZJKAHET] = zoneIDs.KHAZALGAR,
+	[zoneIDs.AZJKAHET_LOWER] = zoneIDs.KHAZALGAR,
+	[zoneIDs.CITYTHREADS] = zoneIDs.KHAZALGAR,
+	[zoneIDs.CITYTHREADS_LOWER] = zoneIDs.KHAZALGAR,
 }
 
 --all zones with world quests
 WorldQuestTracker.MapData.WorldQuestZones = {
 	--wow 11
 		[zoneIDs.DORN] = true,
-		[zoneIDs.AZJKAHET] = true,
 		[zoneIDs.HALLOWFALL] = true,
+		[zoneIDs.RINGINGDEEPS] = true,
 		[zoneIDs.AZJKAHET] = true,
+		[zoneIDs.AZJKAHET_LOWER] = true,
 		[zoneIDs.CITYTHREADS] = true,
+		[zoneIDs.CITYTHREADS_LOWER] = true,
 
 	--Dragonflight
 		[zoneIDs.AZURESSPAN] = 		true,
@@ -275,6 +291,16 @@ WorldQuestTracker.mapTables = {
 		widgets = {},
 		Anchor_X = 0.002,
 		Anchor_Y = 0.78,
+		GrowRight = true,
+		show_on_map = {
+			[zoneIDs.KHAZALGAR] = true,
+		},
+	},
+
+	[zoneIDs.AZJKAHET_LOWER] = 		{
+		widgets = {},
+		Anchor_X = 0.002,
+		Anchor_Y = 0.88,
 		GrowRight = true,
 		show_on_map = {
 			[zoneIDs.KHAZALGAR] = true,
@@ -960,6 +986,13 @@ local LegionFactions = {
 	[1948] = true, --Valarjar
 }
 
+WorldQuestTracker.MapData.OverrideMapId = {
+	--wow11
+	[zoneIDs.AZJKAHET_LOWER] =	zoneIDs.AZJKAHET,
+	[zoneIDs.CITYTHREADS] =		zoneIDs.AZJKAHET,
+	[zoneIDs.CITYTHREADS_LOWER] =	zoneIDs.AZJKAHET,
+}
+
 --what are the factionIds belong to the map
 WorldQuestTracker.MapData.ReputationByMap = {
 	--world maps
@@ -978,6 +1011,9 @@ WorldQuestTracker.MapData.ReputationByMap = {
 		[zoneIDs.RINGINGDEEPS] = WOW11Factions,
 		[zoneIDs.HALLOWFALL] = WOW11Factions,
 		[zoneIDs.AZJKAHET] = WOW11Factions,
+		[zoneIDs.AZJKAHET_LOWER] = WOW11Factions,
+		[zoneIDs.CITYTHREADS] = WOW11Factions,
+		[zoneIDs.CITYTHREADS_LOWER] = WOW11Factions,
 
 		--Dragonflight
 		[zoneIDs.OHNAHRANPLAINS] = DragonflightFactions,

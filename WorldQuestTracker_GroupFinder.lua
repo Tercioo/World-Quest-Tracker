@@ -867,31 +867,41 @@ local playerEnteredWorldQuestZone = function(questID, npcID, npcName)
 		end
 
 		ff.CurrentQuestName = title
-
 		ff:SetTitle(title)
-		ff.QuestIcon.mapID = WorldQuestTracker.GetCurrentStandingMapAreaID()
-		ff.QuestIcon.questID = questID
-		ff.QuestIcon.numObjectives = 1
-		ff.QuestIcon.questName = title
-		ff.QuestIcon.Order = 1
-		ff.QuestIcon.Currency_Gold = 0
-		ff.QuestIcon.Currency_ArtifactPower = 0
-		ff.QuestIcon.Currency_Resources = 0
-		ff.QuestIcon.worldQuestType = worldQuestType
-		ff.QuestIcon.rarity = rarity
-		ff.QuestIcon.isElite = isElite
-		ff.QuestIcon.tradeskillLineIndex = tradeskillLineIndex
-		ff.QuestIcon.inProgress = false
-		ff.QuestIcon.selected = false
-		ff.QuestIcon.isSelected = false
-		ff.QuestIcon.isCriteria = false
-		ff.QuestIcon.isSpellTarget = false
+		ff.QuestIcon:Show()
 
-		WorldQuestTracker.SetupWorldQuestButton(ff.QuestIcon, worldQuestType, rarity, isElite, tradeskillLineIndex)
+		local questData = WorldQuestTracker.GetQuestDataFromCache(questID, true)
+		if (questData) then
+			WorldQuestTracker.SetupWorldQuestButton(ff.QuestIcon, questData)
+		else
+			ff.QuestIcon.mapID = WorldQuestTracker.GetCurrentStandingMapAreaID()
+			ff.QuestIcon.questID = questID
+			ff.QuestIcon.numObjectives = 1
+			ff.QuestIcon.questName = title
+			ff.QuestIcon.Order = 1
+			ff.QuestIcon.Currency_Gold = 0
+			ff.QuestIcon.Currency_ArtifactPower = 0
+			ff.QuestIcon.Currency_Resources = 0
+			ff.QuestIcon.worldQuestType = worldQuestType
+			ff.QuestIcon.rarity = rarity
+			ff.QuestIcon.isElite = isElite
+			ff.QuestIcon.tradeskillLineIndex = tradeskillLineIndex
+			ff.QuestIcon.inProgress = false
+			ff.QuestIcon.selected = false
+			ff.QuestIcon.isSelected = false
+			ff.QuestIcon.isCriteria = false
+			ff.QuestIcon.isSpellTarget = false
+			ff.QuestIcon:Hide()
+		end
 
 		--update a second time
 		C_Timer.After(1.5, function()
-			WorldQuestTracker.SetupWorldQuestButton(ff.QuestIcon, worldQuestType, rarity, isElite, tradeskillLineIndex)
+			questData = WorldQuestTracker.GetQuestDataFromCache(questID, true)
+			if (questData) then
+				WorldQuestTracker.SetupWorldQuestButton(ff.QuestIcon, questData)
+			else
+				ff.QuestIcon:Hide()
+			end
 
 			ff.QuestIcon:SetParent(ff)
 			ff.QuestIcon:SetPoint("left", ff.TitleBar, "left", 2, 0)

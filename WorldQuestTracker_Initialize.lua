@@ -334,6 +334,7 @@ do
 	--create the addon object
 	local WorldQuestTracker = DF:CreateAddOn("WorldQuestTrackerAddon", "WQTrackerDB", default_config)
 	WorldQuestTracker.__debug = false
+	WorldQuestTracker.MapChangedTime = time()-1
 
 	--create the group finder and rare finder frames
 	CreateFrame("frame", "WorldQuestTrackerFinderFrame", UIParent, "BackdropTemplate")
@@ -444,8 +445,6 @@ do
 
 	WorldQuestTracker.ChangeLogTable = {}
 end
-
-
 
 --old to new api of wow v11
 --C_Reputation.GetFactionDataByID

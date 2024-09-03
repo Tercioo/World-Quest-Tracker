@@ -50,8 +50,10 @@ WorldQuestTracker_Tracker.lua
 
 WorldQuestTracker_Core.lua
 
+WorldQuestTracker_MapChange.lua
 WorldQuestTracker_FrameAPI.lua
 WorldQuestTracker_MapAPI.lua
+WorldQuestTracker_Summary.lua
 WorldQuestTracker_GroupFinder.lua
 WorldQuestTracker_RareFinder.lua
 WorldQuestTracker_ZoneMap.lua
