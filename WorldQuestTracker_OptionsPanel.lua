@@ -785,6 +785,23 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. 30 .. ":" .. 210 .. ":0:0:256:256:" .. (0) .. ":" .. (210) .. ":" .. (37) .. ":" .. (37+30) .. "|t",
             },
 
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.show_warband_rep_warning
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.show_warband_rep_warning = not WorldQuestTracker.db.profile.show_warband_rep_warning
+                    if (WorldQuestTrackerAddon.GetCurrentZoneType() == "world") then
+                        WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
+                    else
+                        WorldQuestTracker.UpdateZoneWidgets(true)
+                    end
+                end,
+                name = "S_OPTIONS_SHOW_WARBAND_REP_WARNING",
+                desc = "|TInterface\\AddOns\\WorldQuestTracker\\media\\options_visibility_context:" .. (71-45) .. ":" .. (239-213) .. ":0:0:256:256:" .. (213) .. ":" .. (239) .. ":" .. (45) .. ":" .. (71) .. "|t",
+            },
+
             {type = "blank"},
 
             {
@@ -868,7 +885,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 desc = "S_SPEEDRUN_CANCEL_CINEMATIC",
             },
 
-            
+
 
             --
 
@@ -1194,6 +1211,8 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
         worldMapPinScaleFrame:SetPoint("topright", WQTOptionsPanelContainerWorldMapConfig, "topright", -5, yStart)
         worldMapPinScaleFrame:SetSize(250, 300)
 
+        local mapPinScaleHeightUsed = 30
+
         local optionsTable = {
             {
                 type = "label",
@@ -1219,13 +1238,49 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 name = mapInfo.name,
                 desc = "S_SCALE",
             }
+
+            mapPinScaleHeightUsed = mapPinScaleHeightUsed + 20
         end
 
         optionsTable.always_boxfirst = true
         optionsTable.language_addonId = addonId
 
         DF:BuildMenu(worldMapPinScaleFrame, optionsTable, xStart, -5, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+
+        do
+            local worldMapHubEnabledFrame = CreateFrame("frame", "WorldQuestTrackerWorldMapHubEnabledFrameOptions", worldMapSettingsFrame, "BackdropTemplate")
+            worldMapHubEnabledFrame:SetPoint("topright", WQTOptionsPanelContainerWorldMapConfig, "topright", -5, yStart)
+            worldMapHubEnabledFrame:SetSize(250, 300)
+
+            local optionsTable = {
+                {
+                    type = "label",
+                    get = function() return "S_OPTTIONS_WORLDMAP_HUB_ENABLE" end,
+                    text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
+                },
+            }
+
+            for hubMapID, scale in pairs(WorldQuestTracker.db.profile.world_map_hubenabled) do
+                local mapInfo = C_Map.GetMapInfo(hubMapID)
+                optionsTable[#optionsTable+1] = {
+                    type = "toggle",
+                    get = function() return WorldQuestTracker.db.profile.world_map_hubenabled[hubMapID] end,
+                    set = function(self, fixedparam, value)
+                        WorldQuestTracker.db.profile.world_map_hubenabled[hubMapID] = value
+                        WorldQuestTracker.UpdateWorldQuestsOnWorldMap()
+                    end,
+                    name = mapInfo.name,
+                    desc = mapInfo.name,
+                }
+            end
+
+            optionsTable.always_boxfirst = true
+            optionsTable.language_addonId = addonId
+
+            DF:BuildMenu(worldMapHubEnabledFrame, optionsTable, xStart, -mapPinScaleHeightUsed, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+        end
     end
+
 
 
     do --Zone Map Settings

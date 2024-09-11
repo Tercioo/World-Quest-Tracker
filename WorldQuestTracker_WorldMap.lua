@@ -959,6 +959,8 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questData, bIsUsingTracker)
 	local artifactPower = questData.artifactPower
 	local isStackable = questData.isStackable
 	local stackAmount = questData.stackAmount
+	local bWarband = questData.bWarband
+	local bWarbandRep = questData.bWarbandRep
 
 	if (bIsUsingTracker == nil) then
 		bIsUsingTracker = WorldQuestTracker.db.profile.use_tracker
@@ -1024,6 +1026,21 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questData, bIsUsingTracker)
 		widget.criteriaIndicator:Hide()
 		widget.criteriaHighlight:Hide()
 		widget.criteriaIndicatorGlow:Hide()
+	end
+
+	if (bWarband and WorldQuestTracker.db.profile.show_warband_rep_warning) then
+		if (not bWarbandRep) then
+			widget.criteriaIndicator:Show()
+			widget.criteriaIndicator:SetVertexColor(DF:ParseColors(WorldQuestTracker.db.profile.show_warband_rep_warning_color))
+			widget.criteriaIndicator:SetAlpha(WorldQuestTracker.db.profile.show_warband_rep_warning_alpha)
+			widget.texture:SetDesaturation(WorldQuestTracker.db.profile.show_warband_rep_warning_desaturation)
+			widget.criteriaIndicatorGlow:Show()
+			widget.criteriaIndicatorGlow:SetAlpha(0.7)
+		else
+			widget.criteriaIndicator:Hide()
+			widget.criteriaIndicatorGlow:Hide()
+			widget.texture:SetDesaturation(0)
+		end
 	end
 
 	if (isNew) then
@@ -1432,7 +1449,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 
 								--if is showing the azeroth map, check if this map is a child of azeroth
 								if (bIsNotBanned and (bMapIDMatch or bMapIdAzeroth)) then
-									local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, true)
+									local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, true)
 
 									--time left
 									local timeLeft = WorldQuestTracker.GetQuest_TimeLeft(questID)
@@ -1533,7 +1550,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 						local isNew = WorldQuestTracker.SavedQuestList_IsNew(questID)
 
 						--this runs on the same tick as the quest avaliability check, it's guarantee the client has the quest reward data
-						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, true)
+						local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, true)
 
 						--tempo restante
 						local timeLeft = WorldQuestTracker.GetQuest_TimeLeft(questID)
@@ -1566,6 +1583,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 						---@field isElite boolean
 						---@field tradeskillLineIndex number
 						---@field factionID number
+						---@field bWarband boolean?
+						---@field bWarbandRep boolean?
 						---@field tagID number
 						---@field tagName string
 						---@field gold number
@@ -1588,6 +1607,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 						---@field selected boolean
 						---@field isSpellTarget boolean
 
+						local bWarband, bWarbandRep = WorldQuestTracker.GetQuestWarbandInfo(questID, factionID)
+
 						---@type wqt_questdata
 						local questData = {
 							questID = questID,
@@ -1607,6 +1628,8 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 							isElite = isElite,
 							tradeskillLineIndex = tradeskillLineIndex,
 							factionID = factionID,
+							bWarband = bWarband,
+							bWarbandRep = bWarbandRep,
 							tagID = tagID,
 							tagName = tagName,
 							gold = gold,
@@ -1786,7 +1809,7 @@ function WorldQuestTracker.GetQuestDataFromCache(questID, bCreateQuestData)
 					for i, info in ipairs(taskInfo) do
 						local thisTaskQuestId = info.questId
 						if (thisTaskQuestId == questID) then
-							local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, true)
+							local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, true)
 							local timeLeft = WorldQuestTracker.GetQuest_TimeLeft(questID)
 							if (not timeLeft or timeLeft == 0) then
 								timeLeft = 1
@@ -1925,7 +1948,7 @@ WorldQuestTracker.WorldMapSmallWidgets = {}
 
 --update the zone widgets in the world map
 ---@param questData wqt_questdata
-local scheduledIconUpdate = function(questData)
+local scheduledIconUpdate = function(questData) --~update ~iconupate
 	local questID = questData.questID
 
 	--is already showing this quest?
@@ -2065,7 +2088,7 @@ local lazyUpdateEnded = function()
 	WorldQuestTracker.UpdateResourceIndicators(total_Gold, total_Resources, total_APower)
 end
 
-local lazyUpdateFunc = function(self, deltaTime)
+local lazyUpdateFunc = function(self, deltaTime) --~lazyupdate
 	if (WorldMapFrame:IsShown() and #lazyUpdate.WidgetsToUpdate > 0 and WorldQuestTracker.IsWorldQuestHub(WorldMapFrame.mapID)) then
 
 		--if framerate is low, update more quests at the same time
@@ -2113,10 +2136,20 @@ end
 WorldQuestTracker.WorldMapQuestCounter = 0
 
 --questsToUpdate is a hash table with questIDs to just update / if is nil it's a full refresh
-function WorldQuestTracker.LazyUpdateWorldMapSmallIcons(addToWorldMap, questsToUpdate)
+function WorldQuestTracker.LazyUpdateWorldMapSmallIcons(addToWorldMap, questsToUpdate) --~startlazy ~update
 	---@cast addToWorldMap wqt_questdata[]
 
 	if (not WorldQuestTracker.db.profile.world_map_config.onmap_show) then
+		return
+	end
+
+	if (not WorldQuestTracker.db.profile.world_map_hubenabled[WorldMapFrame.mapID]) then
+		local map = WorldQuestTrackerDataProvider:GetMap()
+		for pin in map:EnumeratePinsByTemplate("WorldQuestTrackerWorldMapPinTemplate") do
+			pin.IsInUse = false
+			pin.Child:Hide()
+			map:RemovePin(pin)
+		end
 		return
 	end
 

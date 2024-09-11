@@ -1820,7 +1820,6 @@ function detailsFramework:IconPick (callback, close_when_select, param1, param2)
 							if type(lineIcon) == "string" and not string.find(lineIcon, "^[Ii]nterface") then
 								lineIcon = "Interface/ICONS/" .. lineIcon
 							end
-							DevTool:AddData(lineIcon, "lineIcon")
 							line.buttons[o].icon:SetTexture(lineIcon)
 							line.buttons[o].texture = lineIcon
 						end
@@ -2142,6 +2141,7 @@ local no_options = {}
 ---@field Title fontstring
 ---@field Close button
 ---@field SetTitle fun(self: simplepanel, title: string)
+
 ---@param parent frame the parent frame
 ---@param width number? the width of the panel
 ---@param height number? the height of the panel
@@ -2149,7 +2149,7 @@ local no_options = {}
 ---@param frameName string? the name of the frame
 ---@param panelOptions table? a table with options described above
 ---@param savedVariableTable table? a table to save the scale of the panel
----@return frame
+---@return simplepanel
 function detailsFramework:CreateSimplePanel(parent, width, height, title, frameName, panelOptions, savedVariableTable)
 	--create a saved variable table if the savedVariableTable has been not passed within the function call
 	if (savedVariableTable and frameName and not savedVariableTable[frameName]) then

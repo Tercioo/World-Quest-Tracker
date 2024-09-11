@@ -232,6 +232,9 @@ function WorldQuestTracker:OnInit()
 		if (not WorldQuestTracker.db.profile.world_map_hubscale[hubMapID]) then
 			WorldQuestTracker.db.profile.world_map_hubscale[hubMapID] = defaultScale
 		end
+		if (not WorldQuestTracker.db.profile.world_map_hubenabled[hubMapID]) then
+			WorldQuestTracker.db.profile.world_map_hubenabled[hubMapID] = true
+		end
 	end
 
     hooksecurefunc(_G, "StaticPopup_Show", function(token)
@@ -505,7 +508,7 @@ function WorldQuestTracker:OnInit()
 			WorldQuestTracker.RemoveQuestFromCache(questID)
 
 			if (isWorldQuest(questID)) then --wait, is this inception?
-				local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData (questID)
+				local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData (questID)
 				local questHistory = WorldQuestTracker.db.profile.history
 
 				--check if the map is opened in the player screen
@@ -1130,7 +1133,7 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 			tinsert (info, "Name: " .. (widget.GetName and widget:GetName() or "-No Name-"))
 
 			if (widget.questID) then
-				local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData (widget.questID)
+				local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData (widget.questID)
 				tinsert (info, "QuestID: " .. widget.questID .. " Quest Name: " .. (title or "-No Name-"))
 			else
 				tinsert (info, "QuestID: no questID found")

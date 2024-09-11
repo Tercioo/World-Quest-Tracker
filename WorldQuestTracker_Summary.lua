@@ -1303,6 +1303,11 @@ function wqtInternal.CreateSummary()
             return
         end
 
+        if (not WorldQuestTracker.db.profile.world_map_hubenabled[WorldMapFrame.mapID]) then
+            worldSummary.HideSummary()
+            return
+        end
+
         if (not WorldQuestTracker.db.profile.world_map_config.summary_show) then
             worldSummary.HideSummary()
             return

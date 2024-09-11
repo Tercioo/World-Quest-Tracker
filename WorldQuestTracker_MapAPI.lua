@@ -158,6 +158,21 @@ function WorldQuestTracker.IsNewEXPZone (mapID)
 	--]=]
 end
 
+---return if the quest is a warband quest and if the quest give reputation
+---@param questID number
+---@param factionID number
+---@return boolean, boolean
+function WorldQuestTracker.GetQuestWarbandInfo(questID, factionID)
+	local bWarband = WorldQuestTracker.MapData.FactionHasWarbandReputation[factionID]
+	if (bWarband) then
+		if (C_QuestLog.DoesQuestAwardReputationWithFaction(questID or 0, factionID or 0)) then
+			return true, true --is warband and give reputation
+		end
+		return true, false --is warband but don't give reputation
+	end
+	return false, false --not warband
+end
+
 --is the current map zone a world quest hub?
 function WorldQuestTracker.IsWorldQuestHub (mapID)
 	return WorldQuestTracker.MapData.QuestHubs [mapID]
@@ -271,29 +286,60 @@ function WorldQuestTracker.HasCachedQuestData(questID)
 	end
 end
 
+local cacheDebug = -1
+local questIDtoDebug = -1
+local bCacheEnabled = false
+function WorldQuestTracker.GetOrLoadQuestData(questID, canCache, dontCatchAP) --func
+	if (questIDtoDebug == questID) then
+		WorldQuestTracker:Msg("=== GetOrLoadQuestData() called ===")
+	end
 
-function WorldQuestTracker.GetOrLoadQuestData(questID, canCache, dontCatchAP)
 	local data = WorldQuestTracker.CachedQuestData[questID]
 	if (data) then
+		if (questIDtoDebug == questID) then
+			WorldQuestTracker:Msg("(debug) GetOrLoadQuestData(): quest data was cached")
+		end
+		if (cacheDebug == questID) then
+			print("RESTORING FROM CACHE")
+			print(unpack(data))
+		end
 		return unpack(data)
 	end
 
 	local gold, goldFormated = WorldQuestTracker.GetQuestReward_Gold(questID)
+	if (questIDtoDebug == questID) then
+		WorldQuestTracker:Msg("(debug) GetOrLoadQuestData(): gold:", gold, goldFormated)
+	end
+
 	local rewardName, rewardTexture, numRewardItems = WorldQuestTracker.GetQuestReward_Resource(questID)
+	if (questIDtoDebug == questID) then
+		WorldQuestTracker:Msg("(debug) GetOrLoadQuestData(): rewardName:", rewardName, rewardTexture, numRewardItems)
+	end
+
 	local title, factionID, tagID, tagName, worldQuestType, questQuality, isElite, tradeskillLineIndex, arg1, arg2 = WorldQuestTracker.GetQuest_Info(questID)
+	if (questIDtoDebug == questID) then
+		WorldQuestTracker:Msg("(debug) GetOrLoadQuestData(): info:", title, factionID, tagID, tagName, worldQuestType, questQuality, isElite, tradeskillLineIndex, arg1, arg2)
+	end
 
 	local itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount, conduitType, borderTexture, borderColor, itemLink
 	if (not dontCatchAP) then
 		itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount, conduitType, borderTexture, borderColor, itemLink = WorldQuestTracker.GetQuestReward_Item (questID)
 	end
+	if (questIDtoDebug == questID) then
+		WorldQuestTracker:Msg("(debug) GetOrLoadQuestData(): item:", itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount, conduitType, borderTexture, borderColor)
+	end
 
 	local allowDisplayPastCritical = false
 
-	if (WorldQuestTracker.CanCacheQuestData and canCache) then
-		WorldQuestTracker.CachedQuestData[questID] = {title, factionID, tagID, tagName, worldQuestType, questQuality, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, questQuality, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount} --31 indexes
+	if (WorldQuestTracker.CanCacheQuestData and canCache and bCacheEnabled) then
+		if (cacheDebug == questID) then
+			print("ADD TO CACHE")
+			print(title, factionID, tagID, tagName, worldQuestType, questQuality, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount)
+		end
+		WorldQuestTracker.CachedQuestData[questID] = {title, factionID, tagID, tagName, worldQuestType, questQuality, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount} --31 indexes
 	end
 
-	return title, factionID, tagID, tagName, worldQuestType, questQuality, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, questQuality, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount, conduitType, borderTexture, borderColor
+	return title, factionID, tagID, tagName, worldQuestType, questQuality, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount, conduitType, borderTexture, borderColor
 end
 
 function WorldQuestTracker.GetCurrentStandingMapAreaID()

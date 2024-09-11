@@ -474,7 +474,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 						for questID, _ in pairs(WorldQuestTracker.db.profile.banned_quests) do
 							if (not alreadyAdded [questID]) then
-								local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID)
+								local title, factionID = WorldQuestTracker.GetOrLoadQuestData(questID)
 								if (title) then
 									table.insert(data, {title, questID, factionID, alreadyBanned [questID]})
 									alreadyAdded [questID] = true
@@ -484,7 +484,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 						for _, questID in ipairs(WorldQuestTracker.Cache_ShownQuestOnZoneMap) do
 							if (not alreadyAdded[questID]) then
-								local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID)
+								local title, factionID = WorldQuestTracker.GetOrLoadQuestData(questID)
 								if (title) then
 									table.insert(data, {title, questID, factionID, alreadyBanned [questID]})
 									alreadyAdded[questID] = true
@@ -496,7 +496,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 							local questID = questButton.questID
 							if (questID) then
 								if (not alreadyAdded[questID]) then
-									local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID)
+									local title, factionID = WorldQuestTracker.GetOrLoadQuestData(questID)
 									if (title) then
 										table.insert(data, {title, questID, factionID, alreadyBanned [questID]})
 										alreadyAdded[questID] = true
@@ -509,7 +509,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 							local questID = summarySquare.questID
 							if (questID) then
 								if (not alreadyAdded[questID]) then
-									local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID)
+									local title, factionID = WorldQuestTracker.GetOrLoadQuestData(questID)
 									if (title) then
 										table.insert(data, {title, questID, factionID, alreadyBanned [questID]})
 										alreadyAdded[questID] = true

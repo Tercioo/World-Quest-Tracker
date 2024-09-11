@@ -2,8 +2,11 @@ local addonId = ...
 local languageTable = DetailsFramework.Language.RegisterLanguage(addonId, "enUS")
 local L = languageTable
 
-L["S_OPTTIONS_QUESTLOCATIONSCALE_BYWORLDMAP"] = "Quest Scale by World Map"
+L["S_OPTTIONS_WORLDMAP_HUB_ENABLE"] = "Which World Maps Show Quests"
+L["S_OPTIONS_SHOW_WARBAND_REP_WARNING"] = "Show Warband no Rep [!]"
 
+
+L["S_OPTTIONS_QUESTLOCATIONSCALE_BYWORLDMAP"] = "Quest Scale by World Map"
 L["S_SPEEDRUN"] = "Speed Run"
 L["S_SPEEDRUN_AUTO_ACCEPT"] = "Auto Accept Quests"
 L["S_SPEEDRUN_AUTO_COMPLETE"] = "Auto Complete Quests"

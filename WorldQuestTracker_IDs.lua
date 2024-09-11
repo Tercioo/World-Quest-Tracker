@@ -924,6 +924,11 @@ local WOW11Factions = { --DLC10 (tww)
 	[2600] = true, --The Severed Threads
 }
 
+WorldQuestTracker.MapData.FactionHasWarbandReputation = {}
+for factionId in pairs (WOW11Factions) do
+	WorldQuestTracker.MapData.FactionHasWarbandReputation[factionId] = true
+end
+
 local DragonflightFactions = {
 	[2503] = true, --Maruuk Centaur
 	[2507] = true, --Dragonscale Expedition
