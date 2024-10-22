@@ -20,7 +20,7 @@ local L = DF.Language.GetLanguageTable(addonId)
 local ff = WorldQuestTrackerFinderFrame
 local rf = WorldQuestTrackerRareFrame
 
-
+local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
 
 ff.cannot_group_quest = {}
 
@@ -1415,7 +1415,7 @@ ff:SetScript("OnEvent", function (self, event, questID, arg2, arg3)
 end)
 
 function ff.CheckForQuestsInTheArea()
-	local allQuestsInTheMap = C_TaskQuest.GetQuestsForPlayerByMapID(WorldQuestTracker.GetCurrentStandingMapAreaID())
+	local allQuestsInTheMap = GetQuestsForPlayerByMapID(WorldQuestTracker.GetCurrentStandingMapAreaID())
 	if (allQuestsInTheMap) then
 		for index, questInfo in ipairs(allQuestsInTheMap) do
 			local questId = questInfo.questId

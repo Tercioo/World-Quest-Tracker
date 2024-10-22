@@ -22,7 +22,7 @@ local HereBeDragons = LibStub("HereBeDragons-2.0")
 local CONST_QUEST_LOADINGTIME = 1.333
 local _
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID
+local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
 local IsQuestCriteriaForBounty = C_QuestLog.IsQuestCriteriaForBounty
 
 local faction_frames = {}
@@ -98,7 +98,7 @@ local loadQuestData = function()
 
 			if (taskInfo and #taskInfo > 0) then
 				for i, info in ipairs(taskInfo) do
-					local questID = info.questId
+					local questID = info.questID
 					if (not WorldQuestTracker.HaveDataForQuest(questID) or not HaveQuestRewardData(questID)) then
 						C_TaskQuest.RequestPreloadRewardData(questID)
 					end
@@ -1421,7 +1421,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 
 			if (taskInfo and #taskInfo > 0) then
 				for i, info in ipairs(taskInfo) do
-					local questID = info.questId
+					local questID = info.questID
 					local canUpdateQuest = false
 
 					if (not questList) then
@@ -1807,7 +1807,7 @@ function WorldQuestTracker.GetQuestDataFromCache(questID, bCreateQuestData)
 				local taskInfo = GetQuestsForPlayerByMapID(mapId, mapId)
 				if (taskInfo and #taskInfo > 0) then
 					for i, info in ipairs(taskInfo) do
-						local thisTaskQuestId = info.questId
+						local thisTaskQuestId = info.questID
 						if (thisTaskQuestId == questID) then
 							local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, true)
 							local timeLeft = WorldQuestTracker.GetQuest_TimeLeft(questID)

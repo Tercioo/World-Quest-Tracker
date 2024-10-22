@@ -20,7 +20,7 @@ local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
 local L = DF.Language.GetLanguageTable(addonId)
 
 local _
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID
+local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
 local GetNumQuestLogRewardCurrencies = WorldQuestTrackerAddon.GetNumQuestLogRewardCurrencies
 local GetQuestLogRewardInfo = GetQuestLogRewardInfo
@@ -241,7 +241,7 @@ function WorldQuestTracker.GetAllWorldQuests_Ids()
 		local taskInfo = GetQuestsForPlayerByMapID (mapId)
 		if (taskInfo and #taskInfo > 0) then
 			for i, info  in ipairs (taskInfo) do
-				local questID = info.questId
+				local questID = info.questID
 				if (HaveQuestData (questID)) then
 					local isWorldQuest = isWorldQuest(questID)
 					if (isWorldQuest) then
@@ -399,7 +399,7 @@ function WorldQuestTracker.PreloadWorldQuestsForMap(mapID)
 		local taskInfo = GetQuestsForPlayerByMapID(mapID)
 		if (taskInfo and #taskInfo > 0) then
 			for i, info in ipairs(taskInfo) do
-				local questID = info.questId
+				local questID = info.questID
 				local bIsWorldQuest = isWorldQuest(questID)
 				if (bIsWorldQuest) then
 					if (not HaveQuestData(questID) or not HaveQuestRewardData(questID)) then

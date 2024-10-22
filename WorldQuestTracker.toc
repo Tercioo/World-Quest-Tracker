@@ -1,5 +1,5 @@
-## Interface: 110002
-## Interface-Mainline: 110002
+## Interface: 110005
+## Interface-Mainline: 110005
 ## Interface-Wrath: 30402
 
 ## Title: World Quest Tracker

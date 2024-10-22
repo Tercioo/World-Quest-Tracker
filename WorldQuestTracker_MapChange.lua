@@ -8,6 +8,8 @@ if (not WorldQuestTracker) then
 	return
 end
 
+local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+
 --framework
 ---@type detailsframework
 local DF = _G ["DetailsFramework"]
@@ -23,7 +25,7 @@ local check_for_quests_on_unknown_map = function()
 	local mapID = WorldMapFrame.mapID
 
 	if (not WorldQuestTracker.MapData.WorldQuestZones[mapID] and not WorldQuestTracker.IsWorldQuestHub(mapID)) then
-		local taskInfo = C_TaskQuest.GetQuestsForPlayerByMapID(mapID, mapID)
+		local taskInfo = GetQuestsForPlayerByMapID(mapID, mapID)
 		if (taskInfo and #taskInfo > 0) then
 			--> there's quests on this map
 			WorldQuestTracker.MapData.WorldQuestZones[mapID] = true

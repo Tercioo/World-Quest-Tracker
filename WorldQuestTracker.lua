@@ -34,6 +34,7 @@ local HaveQuestData = HaveQuestData
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
 local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
 local GetQuestTimeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes
+local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
 
 local _
 
@@ -1098,12 +1099,12 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 			WorldQuestTracker:Msg("Character level too low for shadowlands, minimum is 51 for alts.")
 		end
 
-		local bastionQuests = C_TaskQuest.GetQuestsForPlayerByMapID(1533, 1533)
+		local bastionQuests = GetQuestsForPlayerByMapID(1533, 1533)
 		WorldQuestTracker:Msg("Finding quests on Bastion Map")
 		if (bastionQuests and type(bastionQuests) == "table") then
 			WorldQuestTracker:Msg("Found quests, amount:", #bastionQuests)
 		else
-			WorldQuestTracker:Msg("Blizzard's GetQuestsForPlayerByMapID() returned invalid data.")
+			WorldQuestTracker:Msg("Blizzard's GetQuestsOnMap() returned invalid data.")
 		end
 
 	elseif (msg == "debug") then

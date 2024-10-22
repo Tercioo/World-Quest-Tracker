@@ -1,6 +1,6 @@
 
 
-local dversion = 574
+local dversion = 575
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -1363,6 +1363,19 @@ function DF:AddColorToText(text, color) --wrap text with a color
 	text = "|c" .. hexColor .. text .. "|r"
 
 	return text
+end
+
+function DF:GetClassColorByClassId(classId)
+	local classInfo = C_CreatureInfo.GetClassInfo(classId)
+	if (classInfo) then
+		local color = RAID_CLASS_COLORS[classInfo.classFile]
+		if (color) then
+			return color.r, color.g, color.b
+		else
+			return 1, 1, 1
+		end
+	end
+	return 1, 1, 1
 end
 
 ---receives a string 'text' and a class name and return the string wrapped with the class color using |c and |r scape codes
@@ -4739,6 +4752,7 @@ DF.ClassIndexToFileName = {
 	[13] = "EVOKER",
 }
 
+--GetNumClasses()
 
 DF.ClassFileNameToIndex = {
 	["WARRIOR"] = 1,
@@ -5708,14 +5722,14 @@ local sendTimeBarNotification = function(token, barType, id, msg, timer, icon, s
 end
 
 local createBossModsCallback = function()
-    if (_G.DBM) then
+    if (false and _G.DBM) then
         local DBM = _G.DBM
 
 		--phase change
         local phaseChangeCallback = function(event, mod, modId, phase, encounterId, stageTotal)
             sendPhaseNotification(phase)
         end
-		DBM:RegisterCallback("DBM_SetStage", phaseChangeCallback)
+		--DBM:RegisterCallback("DBM_SetStage", phaseChangeCallback)
 
 		--time bars
         local timerChangeCallback = function(bar_type, id, msg, timer, icon, bartype, spellId, colorId, modid)
@@ -5733,12 +5747,12 @@ local createBossModsCallback = function()
             end
         end
 
-        DBM:RegisterCallback("DBM_TimerStart", timerChangeCallback)
+        --DBM:RegisterCallback("DBM_TimerStart", timerChangeCallback)
     end
 
 	local BigWigsLoader = BigWigsLoader
 
-    if (BigWigsLoader and not _G.DBM) then
+    if (BigWigsLoader) then -- and not _G.DBM
         --Bigwigs change the phase of an encounter
         if (BigWigsLoader.RegisterMessage) then
 			local t = {}
