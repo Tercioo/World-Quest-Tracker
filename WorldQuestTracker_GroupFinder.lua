@@ -1218,6 +1218,10 @@ ff:SetScript("OnEvent", function (self, event, questID, arg2, arg3)
 	elseif (event == "QUEST_ACCEPTED") then
 		--> get quest data
 
+		if (not questID) then
+			return
+		end
+
 		local isInArea, isOnMap = GetTaskInfo(questID)
 
 		-->  do the regular checks
@@ -1285,6 +1289,10 @@ ff:SetScript("OnEvent", function (self, event, questID, arg2, arg3)
 
 
 	elseif (event == "QUEST_TURNED_IN") then
+		if (not questID) then
+			return
+		end
+
 		local isWorldQuest = isWorldQuest(questID)
 		if (isWorldQuest) then
 			ff.WorldQuestFinished (questID)

@@ -233,7 +233,7 @@ function WorldQuestTracker:OnInit()
 		if (not WorldQuestTracker.db.profile.world_map_hubscale[hubMapID]) then
 			WorldQuestTracker.db.profile.world_map_hubscale[hubMapID] = defaultScale
 		end
-		if (not WorldQuestTracker.db.profile.world_map_hubenabled[hubMapID]) then
+		if (WorldQuestTracker.db.profile.world_map_hubenabled[hubMapID] == nil) then
 			WorldQuestTracker.db.profile.world_map_hubenabled[hubMapID] = true
 		end
 	end
