@@ -492,7 +492,7 @@ BackdropTemplateMixin = {}
 ---@field GetRight fun(self: uiobject): number
 ---@field GetTop fun(self: uiobject): number
 ---@field GetBottom fun(self: uiobject): number
----@field SetPoint fun(self: uiobject, point: anchorpoint, relativeFrame: uiobject, relativePoint: anchorpoint, xOffset: number, yOffset: number)
+---@field SetPoint fun(self: uiobject, point: anchorpoint, relativeFrame: uiobject?, relativePoint: anchorpoint?, xOffset: number?, yOffset: number?)
 ---@field ClearAllPoints fun(self: uiobject)
 ---@field CreateAnimationGroup fun(self: uiobject, name: string|nil, templateName: string|nil) : animationgroup
 ---@field SetIgnoreParentAlpha fun(self: region, ignore: boolean)
@@ -615,7 +615,7 @@ BackdropTemplateMixin = {}
 ---@field GetChildren fun(self: frame) : frame[]
 ---@field GetRegions fun(self: frame) : region[]
 ---@field CreateTexture fun(self: frame, name: string?, layer: drawlayer, inherits: string?, subLayer: number?) : texture
----@field CreateMaskTexture fun(self: frame, name: string?, layer: drawlayer, inherits: string?, subLayer: number?) : texture
+---@field CreateMaskTexture fun(self: frame, name: string?, layer: drawlayer?, inherits: string?, subLayer: number?) : texture
 ---@field CreateFontString fun(self: frame, name: string?, layer: drawlayer, inherits: string?, subLayer: number?) : fontstring
 ---@field EnableMouse fun(self: frame, enable: boolean) enable mouse interaction
 ---@field SetResizable fun(self: frame, enable: boolean) enable resizing of the frame
@@ -668,9 +668,8 @@ BackdropTemplateMixin = {}
 ---@field ClearPointsOffset fun(self: frame)
 ---@field GetPoint fun(self: frame, anchorIndex: number?, resolveCollapsed: boolean?) : string, frame, string, number, number
 ---@field GetPointByName fun(self: frame, point: string, resolveCollapsed: boolean?) : string, frame, string, number, number
----@field SetAllPoints fun(self: frame, relativeTo: frame?, doResize: boolean?)
+---@field SetAllPoints fun(self: frame, relativeTo: uiobject?, doResize: boolean?)
 ---@field SetHeight fun(self: frame, height: number)
----@field SetPoint fun(self: frame, point: string, relativeTo: frame?, relativePoint: string?, offsetX: number?, offsetY: number?)
 ---@field SetSize fun(self: frame, x: number, y: number)
 ---@field SetWidth fun(self: frame, width: number)
 ---@field CreateAnimationGroup fun(self: frame, name: string?, templateName: string?) : animationgroup
@@ -891,6 +890,12 @@ BackdropTemplateMixin = {}
 ---@field SetObeyStepOnDrag fun(self: slider, obeyStep: boolean)
 ---@field SetThumbTexture fun(self: slider, texture: textureid|texturepath)
 ---@field SetStepsPerPage fun(self: slider, steps: number)
+
+---get all frames under the cursor that has mouse focus
+---@return uiobject[]
+function GetMouseFoci()
+    return {}
+end
 
 ---@return number
 function debugprofilestop() return 0 end
@@ -5127,13 +5132,13 @@ SetAllowLowLevelRaid = function(enabled) end
 ---@param index number
 SetRaidRosterSelection = function(index) end
 
----@param unit string
----@param subgroup number
-SetRaidSubgroup = function(unit, subgroup) end
+---@param unitNumber number
+---@param subGroup number
+SetRaidSubgroup = function(unitNumber, subGroup) end
 
----@param unit1 string
----@param unit2 string
-SwapRaidSubgroup = function(unit1, unit2) end
+---@param unitNumber1 number
+---@param unitNumber2 number
+SwapRaidSubgroup = function(unitNumber1, unitNumber2) end
 
 ---@param unit string
 ---@param raidTargetIndex number
