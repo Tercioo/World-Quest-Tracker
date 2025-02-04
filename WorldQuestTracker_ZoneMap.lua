@@ -2374,7 +2374,7 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 
 	do
 		--world map quest log, reset widgets
-		local questContents = WorldMapFrame.QuestLog.QuestsFrame.Contents
+		local questContents = WorldMapFrame.QuestLog.QuestsFrame.Contents or WorldMapFrame.QuestLog.QuestsFrame.ScrollFrame.Contents
 		local children = {questContents:GetChildren()}
 		for i = 1, #children do
 			local child = children[i]
@@ -2520,7 +2520,7 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 		end
 
 		--quest log on map
-		local questContents = WorldMapFrame.QuestLog.QuestsFrame.Contents
+		local questContents = WorldMapFrame.QuestLog.QuestsFrame.Contents or WorldMapFrame.QuestLog.QuestsFrame.ScrollFrame.Contents
 		local button = questContents:FindButtonByQuestID(questId)
 
 		if (button) then

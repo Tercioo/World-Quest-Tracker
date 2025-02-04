@@ -56,6 +56,7 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		HALLOWFALL = 	2215,
 		CITYTHREADS = 	2213,
 		CITYTHREADS_LOWER =	2216,
+		UNDERMINE = 	2346,
 
 	--Dragonflight
 		DRAGONISLES = 	1978,
@@ -130,6 +131,7 @@ WorldQuestTracker.DotLineScale = {
 	[zoneIDs.HALLOWFALL] = 3,
 	[zoneIDs.CITYTHREADS] = 3,
 	[zoneIDs.CITYTHREADS_LOWER] = 3,
+	[zoneIDs.UNDERMINE] = 3,
 }
 
 WorldQuestTracker.MapData.ZoneToHub = {
@@ -140,6 +142,7 @@ WorldQuestTracker.MapData.ZoneToHub = {
 	[zoneIDs.AZJKAHET_LOWER] = zoneIDs.KHAZALGAR,
 	[zoneIDs.CITYTHREADS] = zoneIDs.KHAZALGAR,
 	[zoneIDs.CITYTHREADS_LOWER] = zoneIDs.KHAZALGAR,
+	[zoneIDs.UNDERMINE] = zoneIDs.KHAZALGAR,
 }
 
 --all zones with world quests
@@ -152,6 +155,7 @@ WorldQuestTracker.MapData.WorldQuestZones = {
 		[zoneIDs.AZJKAHET_LOWER] = true,
 		[zoneIDs.CITYTHREADS] = true,
 		[zoneIDs.CITYTHREADS_LOWER] = true,
+		[zoneIDs.UNDERMINE] = true,
 
 	--Dragonflight
 		[zoneIDs.AZURESSPAN] = 		true,
@@ -260,7 +264,7 @@ WorldQuestTracker.mapTables = {
 	[zoneIDs.RINGINGDEEPS] = 		{
 		widgets = {},
 		Anchor_X = 0.995,
-		Anchor_Y = 0.65,
+		Anchor_Y = 0.50,
 		GrowRight = false,
 		show_on_map = {
 			[zoneIDs.KHAZALGAR] = true,
@@ -272,6 +276,16 @@ WorldQuestTracker.mapTables = {
 		Anchor_X = 0.002,
 		Anchor_Y = 0.28,
 		GrowRight = true,
+		show_on_map = {
+			[zoneIDs.KHAZALGAR] = true,
+		},
+	},
+
+	[zoneIDs.UNDERMINE] = 		{
+		widgets = {},
+		Anchor_X = 0.995,
+		Anchor_Y = 0.70,
+		GrowRight = false,
 		show_on_map = {
 			[zoneIDs.KHAZALGAR] = true,
 		},
