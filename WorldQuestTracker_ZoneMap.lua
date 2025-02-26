@@ -605,6 +605,7 @@ end
 
 local specialPinsMapBans = {
 	[2369] = true, --Siren Isle
+	[2346] = true, --Undermine (no information for parant map)
 }
 
 --atualiza as quest do mapa da zona ~updatezone ~zoneupdate
