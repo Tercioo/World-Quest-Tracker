@@ -1368,7 +1368,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 			WQTPathFrame:SetScript("OnUpdate", function()
 				--check if the map is opened and if the player is flying
-				if (WorldMapFrame:IsShown() and IsFlying() and not IsInInstance() and WorldQuestTracker.db.profile.path.enabled and GetPlayerFacing()) then
+				if (WorldMapFrame:IsShown() and IsFlying() and not IsInInstance() and WorldQuestTracker.db.profile.path.enabled and GetPlayerFacing() and not InCombatLockdown()) then
 					--get the direction the player is facing
 					local direction = GetPlayerFacing()
 					--build a forward vector based on the the direction the player is facing
