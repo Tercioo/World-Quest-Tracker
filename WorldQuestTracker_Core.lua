@@ -246,7 +246,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 	if (WorldMapFrame:IsShown()) then
 		--� a primeira vez que � mostrado?
-		if (not WorldMapFrame.hadItsFirstRunAlready) then
+		if (not WorldMapFrame.hadItsFirstRunAlready and not InCombatLockdown()) then
 			local currentMapId = WorldMapFrame.mapID
 
 			if (WorldQuestTracker.DoesMapHasWorldQuests(currentMapId)) then
