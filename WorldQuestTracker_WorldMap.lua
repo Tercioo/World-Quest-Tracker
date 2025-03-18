@@ -1307,6 +1307,9 @@ local questLoadFailedAmount = {}
 local worldQuestLockedIndex = 1
 -- ~world -- ~update
 function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQuestFlaggedRecheck, forceCriteriaAnimation, questList)
+	if InCombatLockdown() then
+		return
+	end
 	if (UnitLevel("player") < 50) then --this has to be improved
 		WorldQuestTracker.HideWorldQuestsOnWorldMap()
 
