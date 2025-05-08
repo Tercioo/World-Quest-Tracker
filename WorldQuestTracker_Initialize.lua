@@ -223,7 +223,7 @@ do
 			world_summary_alpha = 0.934, --parei fazendo a substituição dos valores hardcoded to these values, parei na criação da opção de mudar o alpha, parei procurando as funções que atualiza of frames com o novo alpha
 			worldmap_widget_alpha = 0.933,
 
-			hoverover_animations = true, --hover and shown slider animations
+			hoverover_animations = false, --hover and shown slider animations
 			anchor_options = {}, --store the anchor options of each anchor
 
 			filter_always_show_faction_objectives = true,
