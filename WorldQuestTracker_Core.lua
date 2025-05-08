@@ -1262,6 +1262,13 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			local worldQuestTrackerPathProvider = CreateFromMixins(MapCanvasDataProviderMixin)
 
 			function worldQuestTrackerPathProvider:HideLine()
+				if (InCombatLockdown()) then
+					C_Timer.After(0.5, function()
+						worldQuestTrackerPathProvider:HideLine()
+					end)
+					return
+				end
+
 				self:GetMap():RemoveAllPinsByTemplate("WorldQuestTrackerPathPinTemplate")
 				for i = 1, #WQTPathFrame.texturePool do
 					local Dot = WQTPathFrame.texturePool[i]
@@ -1271,6 +1278,13 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			end
 
 			function worldQuestTrackerPathProvider:ShowLine()
+				if (InCombatLockdown()) then
+					C_Timer.After(0.5, function()
+						worldQuestTrackerPathProvider:ShowLine()
+					end)
+					return
+				end
+
 				WQTPathFrame.LinePin = self:GetMap():AcquirePin("WorldQuestTrackerPathPinTemplate")
 				WQTPathFrame.bIsShowingLine = true
 			end
