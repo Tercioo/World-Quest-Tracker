@@ -760,41 +760,45 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 				if (not WorldQuestTracker.db.profile.pins_discovered["worldquest-Capstone-questmarker-epic-Locked"][pin.areaPoiID]) then
 					local poiInfo = pin:GetPoiInfo() --table
 					local mapData = pin:GetMap() --function
-
 					local poiId = poiInfo.areaPoiID
 					local mapId = mapData:GetMapID()
 					local position = poiInfo.position
 					local mapInfo = C_Map.GetMapInfo(mapId)
 					local parentMapInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
+					local worldPosition
 
 					--need check if a waypoint already exists
-					local mapPoint = UiMapPoint.CreateFromCoordinates(mapId, position.x, position.y)
-					C_Map.SetUserWaypoint(mapPoint)
-					local worldPosition = C_Map.GetUserWaypointPositionForMap(parentMapInfo.mapID)
-					C_Map.ClearUserWaypoint()
+					local existingPoint = C_Map.GetUserWaypointPositionForMap(parentMapInfo.mapID)
+					if (not existingPoint) then
+						local mapPoint = UiMapPoint.CreateFromCoordinates(mapId, position.x, position.y)
+						--dumpt(mapPoint)
+						C_Map.SetUserWaypoint(mapPoint)
+						worldPosition = C_Map.GetUserWaypointPositionForMap(parentMapInfo.mapID)
+						C_Map.ClearUserWaypoint()
 
-					---@class wqt_poidata
-					---@field poiID number
-					---@field mapID number
-					---@field zoneX number
-					---@field zoneY number
-					---@field continentID number
-					---@field worldX number
-					---@field worldY number
-					---@field tooltipSetId number
+						---@class wqt_poidata
+						---@field poiID number
+						---@field mapID number
+						---@field zoneX number
+						---@field zoneY number
+						---@field continentID number
+						---@field worldX number
+						---@field worldY number
+						---@field tooltipSetId number
 
-					local pointOfInterestData = {
-						["poiID"] = poiId,
-						["mapID"] = mapId,
-						["zoneX"] = pin.normalizedX,
-						["zoneY"] = pin.normalizedY,
-						["continentID"] = parentMapInfo.mapID,
-						["worldX"] = worldPosition.x,
-						["worldY"] = worldPosition.y,
-						["tooltipSetId"] = poiInfo.tooltipWidgetSet,
-					}
+						local pointOfInterestData = {
+							["poiID"] = poiId,
+							["mapID"] = mapId,
+							["zoneX"] = pin.normalizedX,
+							["zoneY"] = pin.normalizedY,
+							["continentID"] = parentMapInfo.mapID,
+							["worldX"] = worldPosition.x,
+							["worldY"] = worldPosition.y,
+							["tooltipSetId"] = poiInfo.tooltipWidgetSet,
+						}
 
-					WorldQuestTracker.db.profile.pins_discovered["worldquest-Capstone-questmarker-epic-Locked"][poiId] = pointOfInterestData
+						WorldQuestTracker.db.profile.pins_discovered["worldquest-Capstone-questmarker-epic-Locked"][poiId] = pointOfInterestData
+					end
 				end
 
 				pin.Texture:SetScale(1.2)
