@@ -764,8 +764,23 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 					local mapId = mapData:GetMapID()
 					local position = poiInfo.position
 					local mapInfo = C_Map.GetMapInfo(mapId)
-					local parentMapInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
+					local parentMapInfo = mapInfo and mapInfo.parentMapID and C_Map.GetMapInfo(mapInfo.parentMapID)
 					local worldPosition
+
+					-- Validate that we have the required map information
+					if (not mapInfo) then
+						if (WorldQuestTracker.__debug) then
+							print("WQT Error: Failed to get map info for mapId", mapId)
+						end
+						return
+					end
+					
+					if (not parentMapInfo) then
+						if (WorldQuestTracker.__debug) then
+							print("WQT Error: Failed to get parent map info for mapId", mapId, "parentMapID", mapInfo.parentMapID)
+						end
+						return
+					end
 
 					--need check if a waypoint already exists
 					local existingPoint = C_Map.GetUserWaypointPositionForMap(parentMapInfo.mapID)
@@ -776,28 +791,62 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 						worldPosition = C_Map.GetUserWaypointPositionForMap(parentMapInfo.mapID)
 						C_Map.ClearUserWaypoint()
 
-						---@class wqt_poidata
-						---@field poiID number
-						---@field mapID number
-						---@field zoneX number
-						---@field zoneY number
-						---@field continentID number
-						---@field worldX number
-						---@field worldY number
-						---@field tooltipSetId number
+						-- Debug logging to help diagnose the issue
+						if (WorldQuestTracker.__debug) then
+							print("WQT Debug - POI Processing:")
+							print("  mapId:", mapId)
+							print("  parentMapInfo.mapID:", parentMapInfo.mapID)
+							print("  poiId:", poiId)
+							print("  position.x:", position.x)
+							print("  position.y:", position.y)
+							print("  worldPosition:", worldPosition and "exists" or "NIL")
+						end
 
-						local pointOfInterestData = {
-							["poiID"] = poiId,
-							["mapID"] = mapId,
-							["zoneX"] = pin.normalizedX,
-							["zoneY"] = pin.normalizedY,
-							["continentID"] = parentMapInfo.mapID,
-							["worldX"] = worldPosition.x,
-							["worldY"] = worldPosition.y,
-							["tooltipSetId"] = poiInfo.tooltipWidgetSet,
-						}
+						-- Check if worldPosition is valid before using it
+						if (worldPosition and worldPosition.x and worldPosition.y) then
+							---@class wqt_poidata
+							---@field poiID number
+							---@field mapID number
+							---@field zoneX number
+							---@field zoneY number
+							---@field continentID number
+							---@field worldX number
+							---@field worldY number
+							---@field tooltipSetId number
 
-						WorldQuestTracker.db.profile.pins_discovered["worldquest-Capstone-questmarker-epic-Locked"][poiId] = pointOfInterestData
+							local pointOfInterestData = {
+								["poiID"] = poiId,
+								["mapID"] = mapId,
+								["zoneX"] = pin.normalizedX,
+								["zoneY"] = pin.normalizedY,
+								["continentID"] = parentMapInfo.mapID,
+								["worldX"] = worldPosition.x,
+								["worldY"] = worldPosition.y,
+								["tooltipSetId"] = poiInfo.tooltipWidgetSet,
+							}
+
+							WorldQuestTracker.db.profile.pins_discovered["worldquest-Capstone-questmarker-epic-Locked"][poiId] = pointOfInterestData
+						else
+							-- Log the error and store POI data without world coordinates
+							if (WorldQuestTracker.__debug) then
+								print("WQT Error: Failed to get world coordinates for POI", poiId, "in zone", mapId)
+								print("  This might be due to unsupported coordinate system for this zone")
+							end
+							
+							-- Store POI data with fallback values for world coordinates
+							local pointOfInterestData = {
+								["poiID"] = poiId,
+								["mapID"] = mapId,
+								["zoneX"] = pin.normalizedX,
+								["zoneY"] = pin.normalizedY,
+								["continentID"] = parentMapInfo.mapID,
+								["worldX"] = 0, -- Fallback value
+								["worldY"] = 0, -- Fallback value
+								["tooltipSetId"] = poiInfo.tooltipWidgetSet,
+							}
+
+							WorldQuestTracker.db.profile.pins_discovered["worldquest-Capstone-questmarker-epic-Locked"][poiId] = pointOfInterestData
+						end
 					end
 				end
 
