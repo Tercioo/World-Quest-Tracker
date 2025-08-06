@@ -57,6 +57,7 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		CITYTHREADS = 	2213,
 		CITYTHREADS_LOWER =	2216,
 		UNDERMINE = 	2346,
+		KARESH = 15336,
 
 	--Dragonflight
 		DRAGONISLES = 	1978,
@@ -143,6 +144,7 @@ WorldQuestTracker.MapData.ZoneToHub = {
 	[zoneIDs.CITYTHREADS] = zoneIDs.KHAZALGAR,
 	[zoneIDs.CITYTHREADS_LOWER] = zoneIDs.KHAZALGAR,
 	[zoneIDs.UNDERMINE] = zoneIDs.KHAZALGAR,
+	[zoneIDs.KARESH] = zoneIDs.KHAZALGAR,
 }
 
 --all zones with world quests
@@ -156,6 +158,7 @@ WorldQuestTracker.MapData.WorldQuestZones = {
 		[zoneIDs.CITYTHREADS] = true,
 		[zoneIDs.CITYTHREADS_LOWER] = true,
 		[zoneIDs.UNDERMINE] = true,
+		[zoneIDs.KARESH] = true,
 
 	--Dragonflight
 		[zoneIDs.AZURESSPAN] = 		true,
@@ -1033,6 +1036,7 @@ WorldQuestTracker.MapData.ReputationByMap = {
 		[zoneIDs.AZJKAHET_LOWER] = WOW11Factions,
 		[zoneIDs.CITYTHREADS] = WOW11Factions,
 		[zoneIDs.CITYTHREADS_LOWER] = WOW11Factions,
+		[zoneIDs.KARESH] = WOW11Factions,
 
 		--Dragonflight
 		[zoneIDs.OHNAHRANPLAINS] = DragonflightFactions,
