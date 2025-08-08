@@ -318,6 +318,59 @@ function WorldQuestTracker.UpdateBorder(self)
 	local rarity, worldQuestType, mapID, isCriteria, isElite, conduitType, borderColor = questData.rarity, questData.worldQuestType, questData.mapID, questData.isCriteria, questData.isElite, questData.conduitType, questData.borderColor
 	borderColor = borderColor or {1, 1, 1, 1} --border color is used on conduit type
 
+--[=[
+	dumpt(questData)
+["artifactPower"] = 0,
+["order"] = 10,
+["isNew"] = false,
+["isCriteria"] = false,
+["worldQuestType"] = 2,
+["selected"] = false,
+["inProgress"] = false,
+["questCounter"] = 1,
+["rarity"] = 0,
+["questID"] = 86305,
+["isUsable"] = true,
+["tagName"] = "World Quest",
+["y"] = 0.61991685628891,
+["x"] = 0.47944581508636,
+["numObjectives"] = 1,
+["isElite"] = false,
+["mapID"] = 2371,
+["isWarband"] = true,
+["gold"] = 86400,
+["timeLeft"] = 1971,
+["isSpellTarget"] = false,
+["quality"] = 3,
+["isArtifact"] = false,
+["stackAmount"] = 1,
+["itemLevel"] = 655,
+["title"] = "Watch me Make these Bugs Expire",
+["tagID"] = 109,
+["warbandRep"] = true,
+["factionID"] = 2658,
+["itemName"] = "Wastelander's Gilded Loop",
+["quantity"] = 1,
+["itemID"] = 243498,
+["filter"] = "equipment",
+["itemTexture"] = "Interface\ICONS\INV_Jewelry_Ring_22",
+["goldFormated"] = 8,
+["isStackable"] = false,
+--]=]
+
+	--ethereal quests on K'aresh map
+	local isV1120EtherealQuest = false
+	if (questData.mapID == 2371 and questData.title) then
+		--ethereal quests has a prefix on their names
+		local toFindInQuestName = WorldQuestTracker.MapData.KareshDividingQuests[GetLocale()]
+		if (toFindInQuestName) then
+			local isDividingQuest = questData.title:find(toFindInQuestName)
+			if (isDividingQuest) then
+				isV1120EtherealQuest = true
+			end
+		end
+	end
+
 	if (self.isWorldMapWidget) then
 		rarity = rarity or self.Rarity
 		worldQuestType = worldQuestType or self.WorldQuestType
@@ -331,6 +384,8 @@ function WorldQuestTracker.UpdateBorder(self)
 
 		self.overlayBorder:Hide()
 		self.overlayBorder2:Hide()
+
+		self.miscBorder:Hide()
 
 		if (conduitType) then
 			self.overlayBorder:Show()
@@ -410,8 +465,14 @@ function WorldQuestTracker.UpdateBorder(self)
 			end
 		end
 
-		self:SetBackdropColor(.3, .3, .3, 1)
+		if (isV1120EtherealQuest) then
+			self.miscBorder:SetTexture([[Interface\AddOns\WorldQuestTracker\media\border_whiteT]])
+			self.miscBorder:SetAlpha(1)
+			self.miscBorder:Show()
+		end
+
 		self.commonBorder:Hide()
+		self:SetBackdropColor(.3, .3, .3, 1)
 	else
 		if (not isCriteria) then
 			local borderTextureFile = WorldQuestTracker.GetBorderByQuestType (self, rarity, worldQuestType)
@@ -425,6 +486,7 @@ function WorldQuestTracker.UpdateBorder(self)
 
 		self.overlayBorder:Hide()
 		self.overlayBorder2:Hide()
+		self.miscBorder:Hide()
 
 		if (conduitType) then
 			self.overlayBorder:Show()
@@ -484,6 +546,17 @@ function WorldQuestTracker.UpdateBorder(self)
 
 			self.bgFlag:Show()
 			self.flagText:SetPoint("top", self.bgFlag, "top", 0, -3)
+		end
+
+		if (isV1120EtherealQuest) then
+			self.miscBorder:Show()
+			self.miscBorder:SetTexture([[Interface\AddOns\WorldQuestTracker\media\korthia_portal_icon]])
+			self.miscBorder:SetAlpha(0.8)
+			self.miscBorder:SetBlendMode("ADD")
+			self.miscBorder:ClearAllPoints()
+			self.miscBorder:SetPoint("center", self, "center", 2, 2)
+			self.miscBorder:SetSize(48*1.2, 52*1.2)
+			self.circleBorder:SetTexture([[Interface\AddOns\WorldQuestTracker\media\border_zone_whiteT.png]])
 		end
 
 	end

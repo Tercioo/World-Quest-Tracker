@@ -357,6 +357,11 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button.squareBorder:SetPoint("topleft", button, "topleft", -1, 1)
 	button.squareBorder:SetPoint("bottomright", button, "bottomright", 1, -1)
 
+	button.miscBorder = supportFrame:CreateTexture(nil, "OVERLAY", nil, 1)
+	button.miscBorder:SetTexture([[Interface\AddOns\WorldQuestTracker\media\border_zone_browT]])
+	button.miscBorder:SetPoint("topleft", button, "topleft", -1, 1)
+	button.miscBorder:SetPoint("bottomright", button, "bottomright", 1, -1)
+
 	--blip do tempo restante
 	button.timeBlipRed = supportFrame:CreateTexture(nil, "OVERLAY")
 	button.timeBlipRed:SetPoint("bottomright", button, "bottomright", 4, -4)
@@ -486,6 +491,8 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 
 	button.IsTrackingRareGlow:SetDrawLayer("overlay", 0)
 	button.circleBorder:SetDrawLayer("overlay", 1)
+	button.miscBorder:SetDrawLayer("overlay", 1)
+
 	bountyRing:SetDrawLayer("overlay", 7)
 	button.squareBorder:SetDrawLayer("overlay", 1)
 
@@ -774,7 +781,7 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 						end
 						return
 					end
-					
+
 					if (not parentMapInfo) then
 						if (WorldQuestTracker.__debug) then
 							print("WQT Error: Failed to get parent map info for mapId", mapId, "parentMapID", mapInfo.parentMapID)
@@ -832,7 +839,7 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 								print("WQT Error: Failed to get world coordinates for POI", poiId, "in zone", mapId)
 								print("  This might be due to unsupported coordinate system for this zone")
 							end
-							
+
 							-- Store POI data with fallback values for world coordinates
 							local pointOfInterestData = {
 								["poiID"] = poiId,

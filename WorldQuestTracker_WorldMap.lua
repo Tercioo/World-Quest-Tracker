@@ -407,6 +407,11 @@ local create_worldmap_square = function(mapName, index, parent)
 	commonBorder:SetTexture([[Interface\AddOns\WorldQuestTracker\media\border_whiteT]])
 	commonBorder:SetSize(WorldQuestTracker.Constants.WorldMapSquareSize, WorldQuestTracker.Constants.WorldMapSquareSize)
 
+	local miscBorder = button:CreateTexture(nil, "artwork", nil, 1)
+	miscBorder:SetPoint("topleft", button, "topleft")
+	miscBorder:SetTexture([[Interface\AddOns\WorldQuestTracker\media\border_whiteT]])
+	miscBorder:SetSize(WorldQuestTracker.Constants.WorldMapSquareSize, WorldQuestTracker.Constants.WorldMapSquareSize)
+
 	local rareBorder = button:CreateTexture(nil, "artwork", nil, 1)
 	rareBorder:SetPoint("topleft", button, "topleft", -1, 1)
 	rareBorder:SetTexture([[Interface\AddOns\WorldQuestTracker\media\border_blueT]])
@@ -584,6 +589,7 @@ local create_worldmap_square = function(mapName, index, parent)
 	criteriaHighlight:SetTexCoord(unpack(WorldQuestTracker.MapData.GeneralIcons.CRITERIA.coords))
 
 	commonBorder:Hide()
+	miscBorder:Hide()
 	rareBorder:Hide()
 	epicBorder:Hide()
 	trackingBorder:Hide()
@@ -705,6 +711,7 @@ local create_worldmap_square = function(mapName, index, parent)
 	texture:SetDrawLayer("background", 2)
 
 	commonBorder:SetDrawLayer("border", 1)
+	miscBorder:SetDrawLayer("border", 1)
 	rareBorder:SetDrawLayer("border", 1)
 	epicBorder:SetDrawLayer("border", 1)
 	trackingBorder:SetDrawLayer("border", 2)
@@ -728,6 +735,7 @@ local create_worldmap_square = function(mapName, index, parent)
 	button.background = background
 	button.texture = texture
 	button.commonBorder = commonBorder
+	button.miscBorder = miscBorder
 	button.rareBorder = rareBorder
 	button.epicBorder = epicBorder
 	button.invasionBorder = invasionBorder
