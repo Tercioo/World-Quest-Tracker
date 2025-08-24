@@ -1,0 +1,30 @@
+{
+    "Lua.runtime.version": "Lua 5.1",
+    "Lua.runtime.builtin": {
+        "basic": "disable",
+        "debug": "disable",
+        "io": "disable",
+        "math": "disable",
+        "os": "disable",
+        "package": "disable",
+        "string": "disable",
+        "table": "disable",
+        "utf8": "disable"
+    },
+    "Lua.workspace.library": [
+        "~\\.vscode\\extensions\\ketho.wow-api-0.21.0\\Annotations\\Core"
+    ],
+    "Lua.diagnostics.globals": [
+        "QuestUtils_IsQuestWorldQuest",
+        "SlashCmdList",
+        "WorldQuestDataProviderMixin",
+        "WorldQuestPinMixin",
+        "WorldMapFrame",
+        "MainMenuMicroButton_UpdateAlertsEnabled",
+        "WORLD_QUESTS_AVAILABLE_QUEST_ID",
+        "UISpecialFrames",
+        "GetCVarBitfield",
+        "WORLD_QUESTS_TIME_CRITICAL_MINUTES",
+        "SecondsToTime"
+    ]
+}

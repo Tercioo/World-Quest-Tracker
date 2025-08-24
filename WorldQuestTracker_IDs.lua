@@ -58,6 +58,7 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		CITYTHREADS_LOWER =	2216,
 		UNDERMINE = 	2346,
 		KARESH = 2371,
+		TAZAVESH = 2472,
 
 	--Dragonflight
 		DRAGONISLES = 	1978,
@@ -134,6 +135,7 @@ WorldQuestTracker.DotLineScale = {
 	[zoneIDs.CITYTHREADS_LOWER] = 3,
 	[zoneIDs.UNDERMINE] = 3,
 	[zoneIDs.KARESH] = 3,
+	[zoneIDs.TAZAVESH] = 3,
 }
 
 WorldQuestTracker.MapData.ZoneToHub = {
@@ -146,6 +148,7 @@ WorldQuestTracker.MapData.ZoneToHub = {
 	[zoneIDs.CITYTHREADS_LOWER] = zoneIDs.KHAZALGAR,
 	[zoneIDs.UNDERMINE] = zoneIDs.KHAZALGAR,
 	[zoneIDs.KARESH] = zoneIDs.KHAZALGAR,
+	[zoneIDs.TAZAVESH] = zoneIDs.KHAZALGAR,
 }
 
 --all zones with world quests
@@ -160,6 +163,7 @@ WorldQuestTracker.MapData.WorldQuestZones = {
 		[zoneIDs.CITYTHREADS_LOWER] = true,
 		[zoneIDs.UNDERMINE] = true,
 		[zoneIDs.KARESH] = true,
+		[zoneIDs.TAZAVESH] = true,
 
 	--Dragonflight
 		[zoneIDs.AZURESSPAN] = 		true,
@@ -276,6 +280,16 @@ WorldQuestTracker.mapTables = {
 	},
 
 	[zoneIDs.KARESH] = 		{
+		widgets = {},
+		Anchor_X = 0.002,
+		Anchor_Y = 0.25,
+		GrowRight = true,
+		show_on_map = {
+			[zoneIDs.KHAZALGAR] = true,
+		},
+	},
+    -- coppied from KARESH as I don't know what I should put there
+	[zoneIDs.TAZAVESH] = 		{
 		widgets = {},
 		Anchor_X = 0.002,
 		Anchor_Y = 0.25,
@@ -1057,6 +1071,7 @@ WorldQuestTracker.MapData.ReputationByMap = {
 		[zoneIDs.CITYTHREADS] = WOW11Factions,
 		[zoneIDs.CITYTHREADS_LOWER] = WOW11Factions,
 		[zoneIDs.KARESH] = WOW11Factions,
+		[zoneIDs.TAZAVESH] = WOW11Factions,
 
 		--Dragonflight
 		[zoneIDs.OHNAHRANPLAINS] = DragonflightFactions,
