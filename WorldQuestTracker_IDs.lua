@@ -135,7 +135,7 @@ WorldQuestTracker.DotLineScale = {
 	[zoneIDs.CITYTHREADS_LOWER] = 3,
 	[zoneIDs.UNDERMINE] = 3,
 	[zoneIDs.KARESH] = 3,
-	[zoneIDs.TAZAVESH] = 3,
+	[zoneIDs.TAZAVESH] = 2,
 }
 
 WorldQuestTracker.MapData.ZoneToHub = {
