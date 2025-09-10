@@ -1,4 +1,5 @@
-<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\FrameXML\UI.xsd">
 	<Frame name="WorldQuestTrackerPathPinTemplate" hidden="true" enableMouse="true" mixin="WorldQuestTrackerPathPinMixin" virtual="true">
 		<Size x="30" y="30"/>
 		<Layers>
@@ -8,11 +9,10 @@
 			</Layer>
 		</Layers>
 	</Frame>
-
-	<Frame name="WorldQuestTrackerTaxiPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
-	<Frame name="WorldQuestTrackerPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
-	<Frame name="WorldQuestTrackerRarePinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
-	<Frame name="WorldQuestTrackerWorldMapPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
-	<Frame name="WorldQuestTrackerPOIPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
-	<Frame name="WorldQuestTrackerExtraMapTextureTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"></Frame>
+	<Frame name="WorldQuestTrackerTaxiPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
+	<Frame name="WorldQuestTrackerPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
+	<Frame name="WorldQuestTrackerRarePinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
+	<Frame name="WorldQuestTrackerWorldMapPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
+	<Frame name="WorldQuestTrackerPOIPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
+	<Frame name="WorldQuestTrackerExtraMapTextureTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
 </Ui>
