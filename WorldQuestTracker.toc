@@ -39,6 +39,9 @@ locales\ruRU.lua
 locales\zhCN.lua
 locales\zhTW.lua
 
+WorldQuestTrackerPathPinMixin.lua
+WorldQuestTrackerMixin.xml
+
 WorldQuestTracker.xml
 
 WorldQuestTracker_Initialize.lua
@@ -60,7 +63,5 @@ WorldQuestTracker_WorldMap.lua
 WorldQuestTracker_Taxi.lua
 
 WorldQuestTracker_OptionsPanel.lua
-
-WorldQuestTrackerMixin.xml
 
 racing_helper.lua

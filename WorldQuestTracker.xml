@@ -1,7 +1,5 @@
-<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
-..\FrameXML\UI.xsd">
-
-	<Frame name="WorldQuestTrackerProviderTemplate" mixin="WorldMapMixin, MapCanvasDataProviderMixin MapCanvasPinMixin MapCanvasPinMixin" virtual="true">
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
+	<Frame name="WorldQuestTrackerProviderTemplate" mixin="WorldMapMixin, MapCanvasDataProviderMixin, MapCanvasPinMixin" virtual="true">
 		<Scripts>
 			<OnLoad>
 				WorldMapFrame:AddDataProvider (self);
@@ -9,10 +7,8 @@
 			</OnLoad>
 		</Scripts>
 	</Frame>
-	
 	<Frame name="WorldQuestTrackerDataProvider" inherits="WorldQuestTrackerProviderTemplate">
-	</Frame>
-
+    </Frame>
 	<Frame name="WorldQuestTrackerPinProviderTemplate" mixin="MapCanvasPinMixin" virtual="true">
 		<Scripts>
 			<OnLoad>
@@ -20,10 +16,8 @@
 			</OnLoad>
 		</Scripts>
 	</Frame>
-
 	<Frame name="WorldQuestTrackerPinMixin" inherits="WorldQuestTrackerPinProviderTemplate">
-	</Frame>
-
+    </Frame>
 	<Frame name="MicroButtonAlertTemplate_BFA" inherits="GlowBoxTemplate" parent="UIParent" enableMouse="true" hidden="true" frameStrata="DIALOG" frameLevel="2" toplevel="true" virtual="true">
 		<Size x="220" y="100"/>
 		<Layers>
@@ -59,7 +53,5 @@
 			<OnShow function="MicroButtonAlert_OnShow2"/>
 			<OnHide function="MicroButtonAlert_OnHide2"/>
 		</Scripts>
-	</Frame>	
-
+	</Frame>
 </Ui>
-
