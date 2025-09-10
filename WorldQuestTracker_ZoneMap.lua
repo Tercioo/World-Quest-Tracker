@@ -98,7 +98,11 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button:SetPoint("center", anchorFrame, "center", 0, 0)
 	button.AnchorFrame = anchorFrame
 	button:SetSize(20, 20)
-	button:SetScript("OnEnter", function() TaskPOI_OnEnter(button) end)
+	button:SetScript("OnEnter", function() 
+		if (button.questID) then
+			TaskPOI_OnEnter(button)
+		end
+	end)
 	button:SetScript("OnLeave", function() TaskPOI_OnLeave(button) end)
 	button:SetScript("OnClick", WorldQuestTracker.OnQuestButtonClick)
 
@@ -113,9 +117,17 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	supportFrame:SetSize(20, 20)
 	button.SupportFrame = supportFrame
 
-	button.UpdateTooltip = TaskPOI_OnEnter
+	button.UpdateTooltip = function()
+		if (button.questID) then
+			TaskPOI_OnEnter(button)
+		end
+	end
 	--> looks like something is triggering the tooltip to update on tick
-	button.UpdateTooltip = TaskPOI_OnEnter
+	button.UpdateTooltip = function()
+		if (button.questID) then
+			TaskPOI_OnEnter(button)
+		end
+	end
 	button.worldQuest = true
 	button.ClearWidget = clear_widget
 
