@@ -1,0 +1,12 @@
+## Interface: 100000
+## LoadOnDemand: 1
+## Title: Lib: Graph-2.0
+## Version: 2.0.5
+## Notes: A library allowing for easy creation of graphs
+## Author: Cryect (Updated by Xinhuan)
+## X-Category: Library
+## X-Email: xinhuan AT gmail DOT com
+
+LibStub.lua
+LibGraph-2.0.lua
+

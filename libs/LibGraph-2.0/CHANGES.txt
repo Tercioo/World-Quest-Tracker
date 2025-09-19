@@ -1,0 +1,82 @@
+------------------------------------------------------------------------
+r69 | Meorawr | 2022-12-17 10:06:08 +0000 (Sat, 17 Dec 2022) | 3 lines
+Changed paths:
+   A /tags/2.0.5 (from /trunk:68)
+   M /tags/2.0.5/LibGraph-2.0.toc
+   M /trunk/LibGraph-2.0.toc
+
+- Tag release v2.0.5
+
+
+------------------------------------------------------------------------
+r68 | Ketho | 2022-12-03 16:00:04 +0000 (Sat, 03 Dec 2022) | 1 line
+Changed paths:
+   M /trunk/LibGraph-2.0/LibGraph-2.0.lua
+
+Prepend TextureDirectory path again with "Interface\\AddOns\\"
+------------------------------------------------------------------------
+r66 | Meorawr | 2022-12-03 14:52:43 +0000 (Sat, 03 Dec 2022) | 1 line
+Changed paths:
+   D /trunk/Desktop.ini
+
+Remove errant Desktop.ini file
+------------------------------------------------------------------------
+r64 | Meorawr | 2022-12-03 14:42:06 +0000 (Sat, 03 Dec 2022) | 3 lines
+Changed paths:
+   M /trunk/LibGraph-2.0/LibGraph-2.0.lua
+
+Disabled the SetTextureDirectory method as this function cannot be used safely across library upgrades.
+
+
+------------------------------------------------------------------------
+r63 | Ketho | 2022-12-03 14:23:38 +0000 (Sat, 03 Dec 2022) | 1 line
+Changed paths:
+   A /trunk/Desktop.ini
+
+
+------------------------------------------------------------------------
+r62 | tercioo | 2022-10-30 14:07:47 +0000 (Sun, 30 Oct 2022) | 2 lines
+Changed paths:
+   M /trunk/LibGraph-2.0/LibGraph-2.0.lua
+
+- Reverted the fix for getting the texture path as another fix was already in place.
+- Added: lib:SetTextureDirectory(path) to use a different directory, good if you want to use custom textures.
+------------------------------------------------------------------------
+r61 | Terciob | 2022-10-30 13:28:38 +0000 (Sun, 30 Oct 2022) | 2 lines
+Changed paths:
+   M /trunk/LibGraph-2.0/LibGraph-2.0.lua
+   M /trunk/LibGraph-2.0.toc
+
+Fixed the path to the library directory.
+Toc update for patch 10.0 (Dragonflight).
+------------------------------------------------------------------------
+r60 | Meorawr | 2022-10-09 12:34:55 +0000 (Sun, 09 Oct 2022) | 3 lines
+Changed paths:
+   M /trunk/LibGraph-2.0/LibGraph-2.0.lua
+
+Update SetGradientAlpha usages for 10.x compatibility
+
+
+------------------------------------------------------------------------
+r59 | Meorawr | 2022-10-09 10:08:56 +0000 (Sun, 09 Oct 2022) | 8 lines
+Changed paths:
+   M /trunk/LibGraph-2.0/LibGraph-2.0.lua
+
+Allow forward slashes in texture directory match
+
+In patch 10.0 onwards error messages have changed format slightly to use forward
+slashes as path separators. For compatibility with existing retail clients
+and classic, the pattern for finding the library directory will accept both
+backslashes and forward slashes in the error message.
+
+
+------------------------------------------------------------------------
+r58 | Terciob | 2020-10-25 14:52:19 +0000 (Sun, 25 Oct 2020) | 2 lines
+Changed paths:
+   M /trunk/LibGraph-2.0/LibGraph-2.0.lua
+   M /trunk/LibGraph-2.0.toc
+
+- Added backdrop templates on graph frames, this is required due to 9.0 (Shadowlands) changes.
+- Toc updated to 90001.
+------------------------------------------------------------------------
+
