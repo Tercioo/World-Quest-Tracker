@@ -98,8 +98,8 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button:SetPoint("center", anchorFrame, "center", 0, 0)
 	button.AnchorFrame = anchorFrame
 	button:SetSize(20, 20)
-	button:SetScript("OnEnter", function() 
-		if (button.questID) then
+	button:SetScript("OnEnter", function()
+		if (button.questID and type(button.questID) == "number" and button.questID >= 2) then
 			TaskPOI_OnEnter(button)
 		end
 	end)
@@ -2107,14 +2107,44 @@ end
 function WorldQuestTracker.UpdateZoneSummaryToggleButton(canShow)
 	if (not WorldQuestTracker.ZoneSummaryToogleButton) then
 		local button = CreateFrame("button", nil, ZoneSumaryFrame, "BackdropTemplate")
-		button:SetSize(12, 12)
-		button:SetAlpha(.60)
-		button:SetPoint("bottomleft", ZoneSumaryFrame, "topleft", 2, 2)
+		button:SetSize(80, 16)
+		button:SetAlpha(1)
+		button:SetPoint("bottomleft", ZoneSumaryFrame, "topleft", 0, 2)
+
+		button.Icon = button:CreateTexture(nil, "artwork")
+		button.Icon:SetPoint("left", button, "left", 2, 0)
+		button.Icon:SetSize(16, 16)
+
+		button.Text = button:CreateFontString(nil, "overlay", "GameFontNormal")
+		button.Text:SetPoint("left", button.Icon, "right", 2, 0)
+		DF:SetFontSize(button.Text, 10)
+		DF:SetFontColor(button.Text, "orange")
+		button.Text:SetText("World Quests")
+
+		button.TextBackground = button:CreateTexture(nil, "background")
+		button.TextBackground:SetColorTexture(0, 0, 0, 0.2)
+		button.TextBackground:SetPoint("topleft", button, "topleft", -2, 2)
+		button.TextBackground:SetPoint("bottomright", button.Text, "bottomright", 2, -2)
 
 		button:SetScript("OnClick", function(self)
 			WorldQuestTracker.db.profile.quest_summary_minimized = not WorldQuestTracker.db.profile.quest_summary_minimized
+			if (not WorldQuestTracker.db.profile.quest_summary_minimized) then
+				button.Text:Hide()
+				button.TextBackground:Hide()
+			else
+				button.Text:Show()
+				button.TextBackground:Show()
+			end
 			WorldQuestTracker.UpdateZoneSummaryFrame()
 		end)
+
+		if (not WorldQuestTracker.db.profile.quest_summary_minimized) then
+			button.Text:Hide()
+			button.TextBackground:Hide()
+		else
+			button.Text:Show()
+			button.TextBackground:Show()
+		end
 
 		WorldQuestTracker.ZoneSummaryToogleButton = button
 	end
@@ -2135,20 +2165,14 @@ function WorldQuestTracker.UpdateZoneSummaryToggleButton(canShow)
 	--change the appearance of the minimize button
 	if (not isMinimized) then
 		--is showing the summary, not minimized
-		button:SetNormalTexture([[Interface\BUTTONS\UI-SpellbookIcon-PrevPage-Up]])
-		button:SetPushedTexture([[Interface\BUTTONS\UI-SpellbookIcon-PrevPage-Down]])
-		button:SetHighlightTexture([[Interface\BUTTONS\UI-Panel-MinimizeButton-Highlight]])
+		button.Icon:SetTexture([[Interface\BUTTONS\UI-SpellbookIcon-PrevPage-Up]])
 	else
 		--the summary is minimized
-		button:SetNormalTexture([[Interface\BUTTONS\UI-SpellbookIcon-NextPage-Up]])
-		button:SetPushedTexture([[Interface\BUTTONS\UI-SpellbookIcon-NextPage-Down]])
-		button:SetHighlightTexture([[Interface\BUTTONS\UI-Panel-MinimizeButton-Highlight]])
+		button.Icon:SetTexture([[Interface\BUTTONS\UI-SpellbookIcon-NextPage-Up]])
 	end
 
-	local normalTexture = button:GetNormalTexture()
-	normalTexture:SetTexCoord(.25, .75, .25, .75)
-	local pushedTexture = button:GetPushedTexture()
-	pushedTexture:SetTexCoord(.25, .75, .28, .75)
+	button.Icon:SetTexCoord(.25, .75, .25, .75)
+	button.Icon:SetTexCoord(.25, .75, .28, .75)
 
 	local isZoneMap = WorldQuestTrackerAddon.GetCurrentZoneType() == "zone"
 

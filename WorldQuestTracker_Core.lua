@@ -784,7 +784,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			--toggle between by zone and by type
 			local ToggleQuestsSummaryButton = CreateFrame("button", "WorldQuestTrackerToggleQuestsSummaryButton", anchorFrame, "BackdropTemplate")
 			WorldQuestTracker.ToggleQuestsSummaryButton = ToggleQuestsSummaryButton
-			ToggleQuestsSummaryButton:SetSize(100, 14)
+			ToggleQuestsSummaryButton:SetSize(100, 20)
 			ToggleQuestsSummaryButton:SetFrameLevel(1025)
 
 			ToggleQuestsSummaryButton.Highlight = ToggleQuestsSummaryButton:CreateTexture(nil, "highlight")
@@ -799,10 +799,19 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			--ToggleQuestsSummaryButton.ShadowBelow:SetTexture([[Interface\ENCOUNTERJOURNAL\DungeonJournal]])
 			--ToggleQuestsSummaryButton.ShadowBelow:SetTexCoord(900/1024, 934/1024, 15/512, 46/512)
 			ToggleQuestsSummaryButton.ShadowBelow:SetPoint("left", ToggleQuestsSummaryButton, "left", 0, 0)
-			ToggleQuestsSummaryButton.ShadowBelow:SetSize(100, 13)
+			ToggleQuestsSummaryButton.ShadowBelow:SetSize(100, 20)
+			ToggleQuestsSummaryButton.ShadowBelow:SetColorTexture(0, 0, 0, 0.3)
+
 
 			ToggleQuestsSummaryButton.TextLabel = DF:CreateLabel(ToggleQuestsSummaryButton, "Toggle Summary", DF:GetTemplate("font", "WQT_TOGGLEQUEST_TEXT"))
 			ToggleQuestsSummaryButton.TextLabel:SetPoint("center", ToggleQuestsSummaryButton, "center")
+			ToggleQuestsSummaryButton.TextLabel.textsize = 10
+
+			if (not WorldQuestTracker.db.profile.clicked_order_by_once) then
+				WorldQuestTracker.db.profile.clicked_order_by_once = true
+				ToggleQuestsSummaryButton.ShadowBelow:SetColorTexture(0, 0, 0, 1)
+				ToggleQuestsSummaryButton.TextLabel.textsize = 12
+			end
 
 			function ToggleQuestsSummaryButton:UpdateText()
 				if (WorldQuestTracker.db.profile.world_map_config.summary_showby == "byzone") then
@@ -1224,7 +1233,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 						if (not WorldQuestTracker.db.profile.tracker_is_locked) then
 							WorldQuestTrackerScreenPanel:EnableMouse(true)
-							
+
 						end
 					end
 

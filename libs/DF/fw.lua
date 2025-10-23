@@ -1,6 +1,5 @@
 
-
-local dversion = 620
+local dversion = 628
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -57,7 +56,6 @@ local GetOverrideSpell = C_SpellBook and C_SpellBook.GetOverrideSpell or C_Spell
 local HasPetSpells = HasPetSpells or C_SpellBook.HasPetSpells
 local GetSpecialization = GetSpecialization or C_SpecializationInfo.GetSpecialization
 local GetSpecializationInfo = GetSpecializationInfo or C_SpecializationInfo.GetSpecializationInfo
-local GetSpecializationRole = GetSpecializationRole or C_SpecializationInfo.GetSpecializationRole
 
 local spellBookPetEnum = Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Pet or "pet"
 
@@ -144,6 +142,10 @@ end
 ---@return boolean
 function DF.IsDragonflightOrBelow()
 	return buildInfo < 110000
+end
+
+function DF.IsWarWowOrBelow()
+	return buildInfo < 120000
 end
 
 ---return if the wow version the player is playing is a classic version of wow
@@ -234,6 +236,12 @@ function DF.IsTWWWow()
 	return DF.IsWarWow()
 end
 
+function DF.IsMidnightWow()
+	if (buildInfo < 130000 and buildInfo >= 120000) then		return true	end
+	return false
+end
+
+
 ---return true if the player is playing in the WotLK version of wow with the retail api
 ---@return boolean
 function DF.IsNonRetailWowWithRetailAPI()
@@ -248,6 +256,9 @@ DF.IsWotLKWowWithRetailAPI = DF.IsNonRetailWowWithRetailAPI -- this is still in 
 function DF.ExpansionHasAugEvoker()
 	return DF.IsDragonflightWow() or DF.IsWarWow()
 end
+
+
+local GetSpecializationRole = not DF.IsClassicWow() and GetSpecializationRole or C_SpecializationInfo.GetSpecializationRole
 
 ---for classic wow, get the role using the texture from the talents frame
 local roleBySpecTextureName = {
@@ -1131,6 +1142,7 @@ DF.strings = {}
 
 ---@class df_strings
 ---@field Acronym fun(phrase:string):string return the first upper case letter of each word of a string
+---@field GetSortValueFromString fun(value:string):number return a number based on the first two letters of the string, useful to sort strings
 ---@field FormatDateByLocale fun(timestamp:number, ignoreYear:boolean?):string given a timestamp return a formatted date string
 
 function DF.string.Acronym(phrase)
@@ -1143,6 +1155,13 @@ function DF.string.Acronym(phrase)
 		end
 	end)
 	return acronym
+end
+
+---@param value string
+function DF.string.GetSortValueFromString(value)
+	value = value:upper()
+	local byte1 = math.abs(string.byte(value, 2) - 91) / 1000000
+	return byte1 + math.abs(string.byte(value, 1) - 91) / 10000
 end
 
 function DF.string.FormatDateByLocale(timestamp, ignoreYear)
@@ -3652,7 +3671,7 @@ function DF:CreateAnimation(animationGroup, animationType, order, duration, arg1
 		anim:SetToAlpha(arg2)
 
 	elseif (animationType == "SCALE") then
-		if (DF.IsDragonflight() or DF.IsNonRetailWowWithRetailAPI() or DF.IsWarWow()) then
+		if (detailsFramework.IsDragonflightAndBeyond() or DF.IsNonRetailWowWithRetailAPI()) then
 			anim:SetScaleFrom(arg1, arg2)
 			anim:SetScaleTo(arg3, arg4)
 		else
@@ -4662,6 +4681,85 @@ function DF:ReskinSlider(slider, heightOffset)
 		slider.slider.thumb:SetSize(12, 12)
 		slider.slider.thumb:SetVertexColor(0.6, 0.6, 0.6, 0.95)
 
+	elseif (slider.scrollBar and slider.scrollDown and slider.scrollUp and slider.ScrollChild) then --classic
+		local offset = 1 --space between the scrollbox and the scrollar
+
+		local backgroundColor_Red = 0.1
+		local backgroundColor_Green = 0.1
+		local backgroundColor_Blue = 0.1
+		local backgroundColor_Alpha = 1
+		local backdrop_Alpha = 0.3
+
+		local scrollBar = slider.scrollBar
+
+		DF:Mixin(scrollBar, BackdropTemplateMixin)
+		scrollBar:SetBackdrop({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
+		scrollBar:SetBackdropBorderColor(0, 0, 0, backdrop_Alpha)
+
+		local regions = {slider:GetRegions()}
+		for _, region in ipairs(regions) do
+			if region:GetObjectType() == "Texture" and region:GetTexture() == 136569 then
+				region:Hide()
+			end
+		end
+
+		scrollBar.thumbTexture:SetColorTexture(.5, .5, .5, .3)
+		scrollBar.thumbTexture:SetSize(12, 8)
+
+		local children = {scrollBar:GetChildren()}
+		for _, child in ipairs(children) do
+			if child.Normal and child.Pushed and child.Disabled then
+				local isUpButton = child.direction == 1
+				if (isUpButton) then
+					local normalTexture = child.Normal
+					normalTexture:SetTexture([[Interface\Buttons\Arrow-Up-Up]])
+					normalTexture:SetTexCoord(0, 1, .2, 1)
+
+					normalTexture:SetPoint("topleft", child, "topleft", offset, 0)
+					normalTexture:SetPoint("bottomright", child, "bottomright", offset, 0)
+
+					local pushedTexture = child.Pushed
+					pushedTexture:SetTexture([[Interface\Buttons\Arrow-Up-Down]])
+					pushedTexture:SetTexCoord(0, 1, .2, 1)
+
+					pushedTexture:SetPoint("topleft", child, "topleft", offset, 0)
+					pushedTexture:SetPoint("bottomright", child, "bottomright", offset, 0)
+
+					local disabledTexture = child.Disabled
+					disabledTexture:SetTexture([[Interface\Buttons\Arrow-Up-Disabled]])
+					disabledTexture:SetTexCoord(0, 1, .2, 1)
+					disabledTexture:SetAlpha(.5)
+
+					disabledTexture:SetPoint("topleft", child, "topleft", offset, 0)
+					disabledTexture:SetPoint("bottomright", child, "bottomright", offset, 0)
+
+				else
+					--down button
+					local normalTexture = child.Normal
+					normalTexture:SetTexture([[Interface\Buttons\Arrow-Down-Up]])
+					normalTexture:SetTexCoord(0, 1, 0, .8)
+
+					normalTexture:SetPoint("topleft", child, "topleft", offset, -4)
+					normalTexture:SetPoint("bottomright", child, "bottomright", offset, -4)
+
+					local pushedTexture = child.Pushed
+					pushedTexture:SetTexture([[Interface\Buttons\Arrow-Down-Down]])
+					pushedTexture:SetTexCoord(0, 1, 0, .8)
+
+					pushedTexture:SetPoint("topleft", child, "topleft", offset, -4)
+					pushedTexture:SetPoint("bottomright", child, "bottomright", offset, -4)
+
+					local disabledTexture = child.Disabled
+					disabledTexture:SetTexture([[Interface\Buttons\Arrow-Down-Disabled]])
+					disabledTexture:SetTexCoord(0, 1, 0, .8)
+					disabledTexture:SetAlpha(.5)
+
+					disabledTexture:SetPoint("topleft", child, "topleft", offset, -4)
+					disabledTexture:SetPoint("bottomright", child, "bottomright", offset, -4)
+				end
+			end
+		end
+
 	else
 		--up button
 		local offset = 1 --space between the scrollbox and the scrollar
@@ -5587,6 +5685,42 @@ end
 			end
 		end
 	end
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+---repair
+--return the player gear durability in percent (0-100) and the durability of the lowest item equipped
+---@param self detailsframework
+---@return number gearDurability
+---@return number lowestGearDurability
+function DF:GetDurability()
+    local durabilityTotalPercent, totalItems = 0, 0
+    --hold the lowest item durability of all the player gear
+    --this prevent the case where the player has an average of 80% durability but an item with 15% durability
+    local lowestGearDurability = 100
+
+    for i = INVSLOT_FIRST_EQUIPPED, INVSLOT_LAST_EQUIPPED do
+        local durability, maxDurability = GetInventoryItemDurability(i)
+        if (durability and maxDurability) then
+            local itemDurability = durability / maxDurability * 100
+
+            if (itemDurability < lowestGearDurability) then
+                lowestGearDurability = itemDurability
+            end
+
+            durabilityTotalPercent = durabilityTotalPercent + itemDurability
+            totalItems = totalItems + 1
+        end
+    end
+
+    if (totalItems == 0) then
+        return 100, lowestGearDurability
+    end
+
+    return floor(durabilityTotalPercent / totalItems), lowestGearDurability
+end
+
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------

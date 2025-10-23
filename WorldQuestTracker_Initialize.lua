@@ -81,6 +81,7 @@ do
 
 	local default_config = {
 		profile = {
+			clicked_order_by_once = false,
 			ignore_maps = {
 				[1978] = false, --dragon isles
 			},
@@ -459,6 +460,12 @@ if (not GetFactionInfoByID) then
 		local fD = C_Reputation.GetFactionDataByID(id) --sometimes he data isn't yet loaded, calling the function will make the client download the quest info.
 		if (not fD) then
 			return
+		end
+
+		local majorFactionData = C_MajorFactions.GetMajorFactionData(id)
+		if (majorFactionData) then
+			local minValue, maxValue, currentValue = 0, majorFactionData.renownLevelThreshold, majorFactionData.renownReputationEarned
+			fD.nextReactionThreshold, fD.currentReactionThreshold = maxValue, currentValue
 		end
 
 		return fD.name, fD.description, fD.currentStanding, 0, fD.nextReactionThreshold, fD.currentReactionThreshold, fD.atWarWith, fD.canToggleAtWar, fD.isHeader, fD.isCollapsed, fD.isHeaderWithRep, fD.isWatched, fD.isChild, fD.factionID,	fD.hasBonusRepGain, false

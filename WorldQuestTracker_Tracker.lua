@@ -364,6 +364,7 @@ local TrackerWidgetPool = {}
 --height of the quest tracker
 WorldQuestTracker.TrackerHeight = 0
 
+
 --refresh the tracker positioning
 function WorldQuestTracker.RefreshTrackerAnchor()
 	--if not using the tracker, hide it and return
@@ -376,21 +377,52 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 	--when attached to the objective tracker, it'll ignore the locked setting
 	--also on automatic it should never save the position in the libwindow
 	if (WorldQuestTracker.db.profile.tracker_attach_to_questlog) then
+
+		local questLogParts = {
+			ObjectiveTrackerFrame.Header,
+			ScenarioObjectiveTracker,
+			UIWidgetObjectiveTracker,
+			CampaignQuestObjectiveTracker,
+			QuestObjectiveTracker,
+			AdventureObjectiveTracker,
+			AchievementObjectiveTracker,
+			MonthlyActivitiesObjectiveTracker,
+			ProfessionsRecipeTracker,
+			BonusObjectiveTracker,
+			WorldQuestObjectiveTracker,
+		}
+
+		local totalHeight = 0
+		for _, part in ipairs(questLogParts) do
+			if (part and part:IsShown()) then
+				totalHeight = totalHeight + part:GetHeight()
+			end
+		end
+
 		WorldQuestTrackerScreenPanel:EnableMouse(false)
 		WorldQuestTrackerScreenPanel:ClearAllPoints()
-
-		for i = 1, ObjectiveTrackerFrame:GetNumPoints() do
-			local point, relativeTo, relativePoint, xOfs, yOfs = ObjectiveTrackerFrame:GetPoint (i)
-			WorldQuestTrackerScreenPanel:SetPoint(point, relativeTo, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
-		end
-
-		if (WorldQuestTracker.TrackerAttachToModule) then
-			WorldQuestTrackerScreenPanel:ClearAllPoints()
-			WorldQuestTrackerScreenPanel:SetPoint("top", WorldQuestTracker.TrackerAttachToModule.Header, "bottom", 0, -WorldQuestTracker.TrackerHeight + 10)
-		end
+		WorldQuestTrackerScreenPanel:SetPoint("topleft", ObjectiveTrackerFrame, "topleft", 7, -totalHeight - WorldQuestTrackerHeader:GetHeight() - 5)
 
 		WorldQuestTrackerHeader:ClearAllPoints()
-		WorldQuestTrackerHeader:SetPoint("bottom", WorldQuestTrackerFrame, "top", 0, -20)
+		WorldQuestTrackerHeader:SetPoint("topright", ObjectiveTrackerFrame, "topright", 0, -totalHeight - WorldQuestTrackerHeader:GetHeight() - 5)
+
+		WorldQuestTrackerHeader:ClearAllPoints()
+		WorldQuestTrackerHeader:SetPoint("top", WorldQuestTrackerScreenPanel, "top", 0, 0)
+
+		--DF:DebugVisibility(WorldQuestTrackerScreenPanel)
+
+		--for i = 1, ObjectiveTrackerFrame:GetNumPoints() do
+			--local point, relativeTo, relativePoint, xOfs, yOfs = ObjectiveTrackerFrame:GetPoint (i)
+			--WorldQuestTrackerScreenPanel:SetPoint(point, relativeTo, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
+		--end
+
+		--if (WorldQuestTracker.TrackerAttachToModule) then
+			--WorldQuestTrackerScreenPanel:ClearAllPoints()
+			--WorldQuestTrackerScreenPanel:SetPoint("top", WorldQuestTracker.TrackerAttachToModule.Header, "bottom", 0, -WorldQuestTracker.TrackerHeight + 10)
+		--end
+
+		--WorldQuestTrackerHeader:ClearAllPoints()
+		--WorldQuestTrackerHeader:SetPoint("bottom", WorldQuestTrackerFrame, "top", 0, -26)
 
 		--hide the unlocked widgets
 		WorldQuestTrackerFrame_QuestHolder.LockButton:Hide()
