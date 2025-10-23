@@ -280,9 +280,9 @@ end
 
 --~trackerframe
 --this is the main frame for the quest tracker, every thing on the tracker is parent of this frame
-local WorldQuestTrackerFrame = CreateFrame("frame", "WorldQuestTrackerScreenPanel", UIParent, "BackdropTemplate")
-WorldQuestTrackerFrame:SetSize(235, 500)
-WorldQuestTrackerFrame:SetFrameStrata("LOW") --thanks @p3lim on curseforge
+local WorldQuestTrackerFrame_ScreenPanel = CreateFrame("frame", "WorldQuestTrackerScreenPanel", UIParent, "BackdropTemplate")
+WorldQuestTrackerFrame_ScreenPanel:SetSize(235, 500)
+WorldQuestTrackerFrame_ScreenPanel:SetFrameStrata("LOW") --thanks @p3lim on curseforge
 
 function WorldQuestTracker.TrackerFrameOnInit()
 	LibWindow.RegisterConfig(WorldQuestTrackerScreenPanel, WorldQuestTracker.db.profile)
@@ -296,7 +296,7 @@ function WorldQuestTracker.TrackerFrameOnInit()
 	WorldQuestTracker.RefreshTrackerAnchor()
 end
 
-local WorldQuestTrackerFrame_QuestHolder = CreateFrame ("frame", "WorldQuestTrackerScreenPanel_QuestHolder", WorldQuestTrackerFrame, "BackdropTemplate")
+local WorldQuestTrackerFrame_QuestHolder = CreateFrame ("frame", "WorldQuestTrackerScreenPanel_QuestHolder", WorldQuestTrackerFrame_ScreenPanel, "BackdropTemplate")
 WorldQuestTrackerFrame_QuestHolder:SetAllPoints()
 WorldQuestTrackerFrame_QuestHolder:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
 WorldQuestTrackerFrame_QuestHolder.MoveMeLabel = WorldQuestTracker:CreateLabel (WorldQuestTrackerFrame_QuestHolder, "== Move Me ==")
@@ -313,14 +313,14 @@ WorldQuestTrackerFrame_QuestHolder.MoveMeLabel:Hide()
 WorldQuestTrackerFrame_QuestHolder.LockButton:Hide()
 
 function WorldQuestTracker.UpdateTrackerScale()
-	WorldQuestTrackerFrame:SetScale (WorldQuestTracker.db.profile.tracker_scale)
+	WorldQuestTrackerFrame_ScreenPanel:SetScale (WorldQuestTracker.db.profile.tracker_scale)
 	--WorldQuestTrackerFrame_QuestHolder:SetScale (WorldQuestTracker.db.profile.tracker_scale) --aumenta s� as quests sem mexer no cabe�alho
 end
 
 --cria o header
-local WorldQuestTrackerHeader = CreateFrame ("frame", "WorldQuestTrackerQuestsHeader", WorldQuestTrackerFrame, "ObjectiveTrackerContainerHeaderTemplate") -- "ObjectiveTrackerHeaderTemplate"
+local WorldQuestTrackerHeader = CreateFrame ("frame", "WorldQuestTrackerQuestsHeader", WorldQuestTrackerFrame_ScreenPanel, "ObjectiveTrackerContainerHeaderTemplate") -- "ObjectiveTrackerHeaderTemplate"
 WorldQuestTrackerHeader.Text:SetText ("World Quest Tracker")
-local minimizeButton = CreateFrame ("button", "WorldQuestTrackerQuestsHeaderMinimizeButton", WorldQuestTrackerFrame, "BackdropTemplate")
+local minimizeButton = CreateFrame ("button", "WorldQuestTrackerQuestsHeaderMinimizeButton", WorldQuestTrackerFrame_ScreenPanel, "BackdropTemplate")
 local minimizeButtonText = minimizeButton:CreateFontString (nil, "overlay", "GameFontNormal")
 
 --hide the default minimize button from the blizz template
@@ -330,19 +330,19 @@ minimizeButtonText:SetText (L["S_WORLDQUESTS"])
 minimizeButtonText:SetPoint("right", minimizeButton, "left", -3, 1)
 minimizeButtonText:Hide()
 
-WorldQuestTrackerFrame.MinimizeButton = minimizeButton
+WorldQuestTrackerFrame_ScreenPanel.MinimizeButton = minimizeButton
 minimizeButton:SetSize(16, 16)
 minimizeButton:SetPoint("topright", WorldQuestTrackerHeader, "topright", 0, -4)
 minimizeButton:SetScript("OnClick", function()
-	if (WorldQuestTrackerFrame.collapsed) then
-		WorldQuestTrackerFrame.collapsed = false
+	if (WorldQuestTrackerFrame_ScreenPanel.collapsed) then
+		WorldQuestTrackerFrame_ScreenPanel.collapsed = false
 		minimizeButton:GetNormalTexture():SetTexCoord(0, 0.5, 0.5, 1)
 		minimizeButton:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
 		WorldQuestTrackerFrame_QuestHolder:Show()
 		WorldQuestTrackerHeader:Show()
 		minimizeButtonText:Hide()
 	else
-		WorldQuestTrackerFrame.collapsed = true
+		WorldQuestTrackerFrame_ScreenPanel.collapsed = true
 		minimizeButton:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
 		minimizeButton:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
 		WorldQuestTrackerFrame_QuestHolder:Hide()
@@ -451,7 +451,7 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 		LibWindow.RestorePosition(WorldQuestTrackerScreenPanel)
 
 		WorldQuestTrackerHeader:ClearAllPoints()
-		WorldQuestTrackerHeader:SetPoint("bottom", WorldQuestTrackerFrame, "top", 0, -20)
+		WorldQuestTrackerHeader:SetPoint("bottom", WorldQuestTrackerFrame_ScreenPanel, "top", 0, -20)
 
 		WorldQuestTrackerScreenPanel:Show()
 	end
@@ -1197,7 +1197,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 			if (not quest.isDisabled and title and (not onlyCurrentMap or (onlyCurrentMap and Sort_currentMapID == quest.mapID))) then
 				local widget = WorldQuestTracker.GetOrCreateTrackerWidget(nextWidget)
 				widget:ClearAllPoints()
-				widget:SetPoint("topleft", WorldQuestTrackerFrame, "topleft", 0, y)
+				widget:SetPoint("topleft", WorldQuestTrackerFrame_ScreenPanel, "topleft", 0, y-10)
 				widget.questID = quest.questID
 				widget.questMapID = quest.mapID
 				widget.info = quest
@@ -1346,7 +1346,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 		WorldQuestTrackerHeader:Hide()
 		minimizeButton:Hide()
 	else
-		if (not WorldQuestTrackerFrame.collapsed) then
+		if (not WorldQuestTrackerFrame_ScreenPanel.collapsed) then
 			WorldQuestTrackerHeader:Show()
 		end
 		minimizeButton:Show()
