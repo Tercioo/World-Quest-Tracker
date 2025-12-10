@@ -1,5 +1,5 @@
 
-local dversion = 628
+local dversion = 642
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -111,6 +111,17 @@ if (not PixelUtil) then
 		}
 	end
 end
+
+DF.FrameStrataLevels = {
+	"BACKGROUND",
+	"LOW",
+	"MEDIUM",
+	"HIGH",
+	"DIALOG",
+	"FULLSCREEN",
+	"FULLSCREEN_DIALOG",
+	"TOOLTIP",
+}
 
 ---return r, g, b, a for the default backdrop color used in addons
 ---@return number
@@ -239,6 +250,10 @@ end
 function DF.IsMidnightWow()
 	if (buildInfo < 130000 and buildInfo >= 120000) then		return true	end
 	return false
+end
+
+function DF.IsAddonApocalypseWow()
+	return buildInfo >= 120000
 end
 
 
@@ -762,6 +777,9 @@ function DF:GetParentNamePath(object)
 		end
 
 		if (parentName) then
+			if (type(parentName) == "table") then
+				parentName = tostring(parentName)
+			end
 			path = parentName .. "." .. path
 		else
 			local result = path:gsub("%.$", "")
@@ -828,7 +846,12 @@ function DF.table.setfrompath(t, path, value)
 		end
 
 		if (lastTable and lastKey) then
-			lastTable[lastKey] = value
+			local numericKey = tonumber(lastKey)
+			if (numericKey) then
+				lastTable[numericKey] = value
+			else
+				lastTable[lastKey] = value
+			end
 			return true
 		end
 	else
@@ -1603,7 +1626,7 @@ function DF:AddClassIconToText(text, playerName, englishClassName, useSpec, icon
 		end
 	end
 
-	if (spec) then --if spec is valid, the user has Details! installed
+	if (spec and Details.class_specs_coords[spec]) then --if spec is valid, the user has Details! installed
 		local specString = ""
 		local L, R, T, B = unpack(Details.class_specs_coords[spec])
 		if (L) then
@@ -3071,6 +3094,11 @@ function detailsFramework:SetTemplate(frame, template)
 		if (template.height) then
 			PixelUtil.SetHeight(frame, template.height)
 		end
+	end
+
+	if (template.backdrop and not frame.SetBackdrop and frame:GetObjectType() ~= "Texture") then
+		--mixin the backdrop function from blizzard interface code into the frame
+		Mixin(frame, BackdropTemplateMixin)
 	end
 
 	if (frame.SetBackdrop) then
@@ -4680,6 +4708,50 @@ function DF:ReskinSlider(slider, heightOffset)
 		slider.slider.thumb:SetTexCoord(482/512, 492/512, 104/512, 120/512)
 		slider.slider.thumb:SetSize(12, 12)
 		slider.slider.thumb:SetVertexColor(0.6, 0.6, 0.6, 0.95)
+
+	elseif (slider.Background and slider.Background:GetObjectType() == "Frame" and slider.Track and slider.Back and slider.Forward) then --classic
+		slider:SetWidth(slider:GetWidth() * 0.7)
+
+		local backdrop_Alpha = 0.3
+		DF:Mixin(slider.Background, BackdropTemplateMixin)
+		slider.Background:SetBackdrop({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
+		slider.Background:SetBackdropBorderColor(0, 0, 0, backdrop_Alpha)
+
+		slider.Background.Begin:Hide()
+		slider.Background.End:Hide()
+		slider.Background.Middle:Hide()
+
+		local thumb = slider.Track.Thumb.thumbTexture
+		thumb:SetTexture([[Interface\AddOns\Details\images\icons2]])
+		thumb:SetTexCoord(482/512, 492/512, 104/512, 120/512)
+		thumb:SetSize(12, 12)
+		thumb:SetVertexColor(0.6, 0.6, 0.6, 0.95)
+
+		slider.Back:SetNormalTexture([[Interface\Buttons\Arrow-Up-Up]])
+		slider.Back:SetPushedTexture([[Interface\Buttons\Arrow-Up-Down]])
+		slider.Back:SetDisabledTexture([[Interface\Buttons\Arrow-Up-Disabled]])
+		slider.Back:GetNormalTexture():ClearAllPoints()
+		slider.Back:GetPushedTexture():ClearAllPoints()
+		slider.Back:GetDisabledTexture():ClearAllPoints()
+		slider.Back:GetNormalTexture():SetPoint("center", slider.Back, "center", 1, 1)
+		slider.Back:GetPushedTexture():SetPoint("center", slider.Back, "center", 1, 1)
+		slider.Back:GetDisabledTexture():SetPoint("center", slider.Back, "center", 1, 1)
+		slider.Back:SetSize(16, 16)
+		slider.Back.Texture:SetTexture([[Interface\Buttons\Arrow-Up-Up]])
+		slider.Back.Texture:Hide()
+
+		slider.Forward:SetNormalTexture([[Interface\Buttons\Arrow-Down-Up]])
+		slider.Forward:SetPushedTexture([[Interface\Buttons\Arrow-Down-Down]])
+		slider.Forward:SetDisabledTexture([[Interface\Buttons\Arrow-Down-Disabled]])
+		slider.Forward:GetNormalTexture():ClearAllPoints()
+		slider.Forward:GetPushedTexture():ClearAllPoints()
+		slider.Forward:GetDisabledTexture():ClearAllPoints()
+		slider.Forward:GetNormalTexture():SetPoint("center", slider.Forward, "center", 1, -5)
+		slider.Forward:GetPushedTexture():SetPoint("center", slider.Forward, "center", 1, -5)
+		slider.Forward:GetDisabledTexture():SetPoint("center", slider.Forward, "center", 1, -5)
+		slider.Forward:SetSize(16, 16)
+		slider.Forward.Texture:SetTexture([[Interface\Buttons\Arrow-Down-Up]])
+		slider.Forward.Texture:Hide()
 
 	elseif (slider.scrollBar and slider.scrollDown and slider.scrollUp and slider.ScrollChild) then --classic
 		local offset = 1 --space between the scrollbox and the scrollar

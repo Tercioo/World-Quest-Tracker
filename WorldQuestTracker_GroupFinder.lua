@@ -764,6 +764,7 @@ end
 	ff:RegisterEvent ("PLAYER_ENTERING_WORLD")
 	ff:RegisterEvent ("PLAYER_LOGIN")
 
+	--[=[
 	ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", function (_, _, msg)
 		if (not WorldQuestTracker.db.profile.groupfinder.send_whispers) then
 			if (msg:find ("World Quest Tracker")) then
@@ -773,6 +774,7 @@ end
 			end
 		end
 	end)
+	--]=]
 
 local playerEnteredWorldQuestZone = function(questID, npcID, npcName)
 
