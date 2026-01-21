@@ -1052,7 +1052,10 @@ function ff:PlayerLeftWorldQuestZone (questID, questCompleted)
 		end
 	end
 
-	ff:UnregisterEvent ("COMBAT_LOG_EVENT_UNFILTERED")
+	--add appocalypse
+	if not DF.IsAddonApocalypseWow() then
+		ff:UnregisterEvent ("COMBAT_LOG_EVENT_UNFILTERED")
+	end
 
 	--> check to left the group
 
