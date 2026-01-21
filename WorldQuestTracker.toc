@@ -1,4 +1,4 @@
-## Interface: 110207
+## Interface: 120000
 ## Interface-Wrath: 30402
 
 ## Title: World Quest Tracker
