@@ -933,7 +933,9 @@ local playerEnteredWorldQuestZone = function(questID, npcID, npcName)
 		wipe(ff.PlayersNearby)
 		wipe(ff.PlayersInvited)
 
-		ff:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		if not DF.IsAddonApocalypseWow() then
+			ff:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		end
 
 		--> check for active timers and disable them
 		if (ff.QuestCompletedHidingTimer and not ff.QuestCompletedHidingTimer._cancelled) then
