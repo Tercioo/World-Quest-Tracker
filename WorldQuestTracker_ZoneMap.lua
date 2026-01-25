@@ -100,7 +100,9 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button:SetSize(20, 20)
 	button:SetScript("OnEnter", function()
 		if (button.questID and type(button.questID) == "number" and button.questID >= 2) then
-			TaskPOI_OnEnter(button)
+			GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
+			GameTooltip_AddQuest(button)
+			--TaskPOI_OnEnter(button)
 		end
 	end)
 	button:SetScript("OnLeave", function() TaskPOI_OnLeave(button) end)
@@ -117,15 +119,13 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	supportFrame:SetSize(20, 20)
 	button.SupportFrame = supportFrame
 
-	button.UpdateTooltip = function()
-		if (button.questID) then
-			TaskPOI_OnEnter(button)
-		end
-	end
 	--> looks like something is triggering the tooltip to update on tick
 	button.UpdateTooltip = function()
 		if (button.questID) then
-			TaskPOI_OnEnter(button)
+			--print("updatin tooltip")
+			if not DF.IsAddonApocalypseWow() then
+				TaskPOI_OnEnter(button) --not calling this make stop the width issue
+			end
 		end
 	end
 	button.worldQuest = true
