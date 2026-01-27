@@ -259,7 +259,9 @@ end
 local questButton_OnEnter = function(self)
 	if (self.questID) then
 		WorldQuestTracker.CurrentHoverQuest = self.questID
-		self.UpdateTooltip = TaskPOI_OnEnter -- function()end
+		if not DF.IsAddonApocalypseWow() then
+			self.UpdateTooltip = TaskPOI_OnEnter -- function()end
+		end
 		TaskPOI_OnEnter(self)
 
 		--[=[
