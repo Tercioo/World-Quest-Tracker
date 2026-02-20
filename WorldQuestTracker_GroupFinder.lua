@@ -782,6 +782,10 @@ local playerEnteredWorldQuestZone = function(questID, npcID, npcName)
 		--return
 	end
 
+	if not QuestObjectiveFindGroup_AcquireButton then
+		return
+	end
+
 	if (ff.buttonAcquired) then
 		ff.buttonAcquired:Hide()
 		QuestObjectiveFindGroup_ReleaseButton(ff.buttonAcquired)
