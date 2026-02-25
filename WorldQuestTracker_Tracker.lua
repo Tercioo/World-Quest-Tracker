@@ -38,6 +38,12 @@ local FindLookAtRotation = DF.FindLookAtRotation
 local GetDistance_Point = DF.GetDistance_Point
 
 local LibWindow = LibStub ("LibWindow-1.1")
+
+-- Helper to safely check if a value is greater than 0 (guards against secret values in 12.0+)
+local function safeGT0(value)
+	if issecretvalue and issecretvalue(value) then return false end
+	return value and value > 0
+end
 if (not LibWindow) then
 	print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
 end
@@ -625,48 +631,58 @@ local buildTooltip = function(self)
 	end
 
 	-- rewards
-	if ( GetQuestLogRewardXP(questID) > 0 or GetNumQuestLogRewardCurrencies(questID) > 0 or GetNumQuestLogRewards(questID) > 0 or GetQuestLogRewardMoney(questID) > 0 or GetQuestLogRewardArtifactXP(questID) > 0 ) then
+	if ( safeGT0(GetQuestLogRewardXP(questID)) or safeGT0(GetNumQuestLogRewardCurrencies(questID)) or safeGT0(GetNumQuestLogRewards(questID)) or safeGT0(GetQuestLogRewardMoney(questID)) or safeGT0(GetQuestLogRewardArtifactXP(questID)) ) then
 		GameTooltip:AddLine(" ");
 		GameTooltip:AddLine(QUEST_REWARDS, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, true);
 		local hasAnySingleLineRewards = false;
 		-- xp
 		local xp = GetQuestLogRewardXP(questID);
-		if ( xp > 0 ) then
+		if ( safeGT0(xp) ) then
 			GameTooltip:AddLine(BONUS_OBJECTIVE_EXPERIENCE_FORMAT:format(xp), HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
 			hasAnySingleLineRewards = true;
 		end
 		-- money
 		local money = GetQuestLogRewardMoney(questID);
-		if ( money > 0 ) then
-			SetTooltipMoney(GameTooltip, money, nil);
+		if ( safeGT0(money) ) then
+			pcall(SetTooltipMoney, GameTooltip, money, nil);
 			hasAnySingleLineRewards = true;
 		end
 		local artifactXP = GetQuestLogRewardArtifactXP(questID);
-		if ( artifactXP > 0 ) then
+		if ( safeGT0(artifactXP) ) then
 			GameTooltip:AddLine(BONUS_OBJECTIVE_ARTIFACT_XP_FORMAT:format(artifactXP), HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
 			hasAnySingleLineRewards = true;
 		end
 		-- currency
 		local numQuestCurrencies = GetNumQuestLogRewardCurrencies(questID);
-		for i = 1, numQuestCurrencies do
-			local name, texture, numItems = GetQuestLogRewardCurrencyInfo(i, questID);
-			local text = BONUS_OBJECTIVE_REWARD_WITH_COUNT_FORMAT:format(texture, numItems, name);
-			GameTooltip:AddLine(text, HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
-			hasAnySingleLineRewards = true;
+		if not (issecretvalue and issecretvalue(numQuestCurrencies)) then
+			for i = 1, numQuestCurrencies do
+				local name, texture, numItems = GetQuestLogRewardCurrencyInfo(i, questID);
+				if name and texture and numItems and not (issecretvalue and issecretvalue(numItems)) then
+					local text = BONUS_OBJECTIVE_REWARD_WITH_COUNT_FORMAT:format(texture, numItems, name);
+					GameTooltip:AddLine(text, HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
+					hasAnySingleLineRewards = true;
+				end
+			end
 		end
 		-- items
 		local numQuestRewards = GetNumQuestLogRewards (questID)
-		for i = 1, numQuestRewards do
-			local name, texture, numItems, quality, isUsable = GetQuestLogRewardInfo(i, questID);
-			local text;
-			if ( numItems > 1 ) then
-				text = string.format(BONUS_OBJECTIVE_REWARD_WITH_COUNT_FORMAT, texture, numItems, name);
-			elseif( texture and name ) then
-				text = string.format(BONUS_OBJECTIVE_REWARD_FORMAT, texture, name);
-			end
-			if( text ) then
-				local color = ITEM_QUALITY_COLORS[quality];
-				GameTooltip:AddLine(text, color.r, color.g, color.b);
+		if not (issecretvalue and issecretvalue(numQuestRewards)) then
+			for i = 1, numQuestRewards do
+				local name, texture, numItems, quality, isUsable = GetQuestLogRewardInfo(i, questID);
+				local text;
+				if name and texture and not (issecretvalue and issecretvalue(numItems or 0)) then
+					if ( numItems and numItems > 1 ) then
+						text = string.format(BONUS_OBJECTIVE_REWARD_WITH_COUNT_FORMAT, texture, numItems, name);
+					elseif( texture and name ) then
+						text = string.format(BONUS_OBJECTIVE_REWARD_FORMAT, texture, name);
+					end
+				end
+				if( text ) then
+					local color = ITEM_QUALITY_COLORS[quality];
+					if color then
+						GameTooltip:AddLine(text, color.r, color.g, color.b);
+					end
+				end
 			end
 		end
 
