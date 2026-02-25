@@ -268,7 +268,8 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 
 				pin._WQT_Twin:SetScript("OnEnter", function(self)
 					if (pin._WQT_Twin.questID) then
-						TaskPOI_OnEnter(pin._WQT_Twin)
+						--TaskPOI_OnEnter(pin._WQT_Twin)
+						WorldQuestTracker.ShowQuestTooltip(pin._WQT_Twin)
 						pin._WQT_Twin.Texture:SetBlendMode("ADD")
 					end
 				end)

@@ -262,7 +262,8 @@ local questButton_OnEnter = function(self)
 		if not DF.IsAddonApocalypseWow() then
 			self.UpdateTooltip = TaskPOI_OnEnter -- function()end
 		end
-		TaskPOI_OnEnter(self)
+		WorldQuestTracker.ShowQuestTooltip(self)
+		--TaskPOI_OnEnter(self)
 
 		--[=[
 		for key, tooltip in pairs(_G) do

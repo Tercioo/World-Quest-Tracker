@@ -40,20 +40,22 @@ if (not LibWindow) then
 end
 
 --on hover over an icon on the world map(possivle deprecated on 8.0)
-hooksecurefunc("TaskPOI_OnEnter", function(self)
-	WorldQuestTracker.CurrentHoverQuest = self.questID
-	if (self.Texture and self.IsZoneQuestButton) then
-		self.Texture:SetBlendMode("ADD")
-	end
-end)
+if not DF.IsAddonApocalypseWow() then
+	hooksecurefunc("TaskPOI_OnEnter", function(self)
+		WorldQuestTracker.CurrentHoverQuest = self.questID
+		if (self.Texture and self.IsZoneQuestButton) then
+			self.Texture:SetBlendMode("ADD")
+		end
+	end)
 
---on leave the hover over of an icon in the world map(possivle deprecated on 8.0)
-hooksecurefunc("TaskPOI_OnLeave", function(self)
-	WorldQuestTracker.CurrentHoverQuest = nil
-	if (self.Texture and self.IsZoneQuestButton) then
-		self.Texture:SetBlendMode("BLEND")
-	end
-end)
+	--on leave the hover over of an icon in the world map(possivle deprecated on 8.0)
+	hooksecurefunc("TaskPOI_OnLeave", function(self)
+		WorldQuestTracker.CurrentHoverQuest = nil
+		if (self.Texture and self.IsZoneQuestButton) then
+			self.Texture:SetBlendMode("BLEND")
+		end
+	end)
+end
 
 --update the zone which the player are current placed(possivle deprecated on 8.0)
 function WorldQuestTracker:UpdateCurrentStandingZone()
@@ -1701,7 +1703,9 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 					if not DF.IsAddonApocalypseWow() then
 						self.UpdateTooltip = TaskPOI_OnEnter
 					end
-					TaskPOI_OnEnter(self)
+					WorldQuestTracker.ShowQuestTooltip(self)
+					--TaskPOI_OnEnter(self)
+
 					self:SetBackdropColor(.5, .50, .50, 0.75)
 				end
 			end

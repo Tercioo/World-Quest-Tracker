@@ -71,6 +71,98 @@ end
 
 local emptyFunction = function()end
 
+---@class wqt_zonewidget : button
+---@field worldQuestType number
+---@field Currency_Gold number
+---@field Currency_Resources number
+---@field mapID number
+---@field OriginalFrameLevel number
+---@field Amount number
+---@field numObjectives number
+---@field IconText number
+---@field rarity number
+---@field QuestType number
+---@field Currency_ArtifactPower number
+---@field TimeLeft number
+---@field FactionID number
+---@field questID number
+---@field Order number
+---@field PosY number
+---@field PosX number
+---@field IconTexture string
+---@field questName string
+---@field worldQuest boolean
+---@field isCriteria boolean
+---@field inProgress boolean
+---@field selected boolean
+---@field isElite boolean
+---@field isSpellTarget boolean
+---@field IsZoneQuestButton boolean
+---@field isSelected boolean
+---@field questData table
+---@field blackGradient texture
+---@field rareGlow texture
+---@field AnchorFrame button
+---@field CriteriaAnimation animationgroup
+---@field rareSerpent texture
+---@field IsTrackingGlow texture
+---@field RareOverlay button
+---@field colorBlindTrackerIcon texture
+---@field overlayBorder2 texture
+---@field timeBlipRed texture
+---@field IsTrackingRareGlow texture
+---@field questTypeBlip texture
+---@field timeBlipGreen texture
+---@field timeBlipYellow texture
+---@field TextureCustom texture
+---@field AddedToTrackerAnimation animationgroup
+---@field criteriaIndicator texture
+---@field miscBorder texture
+---@field blackBackground texture
+---@field SpellTargetGlow texture
+---@field flagTextShadow fontstring
+---@field flagText fontstring
+---@field highlight texture
+---@field SelectedGlow texture
+---@field onEndTrackAnimation animationgroup
+---@field CriteriaMatchGlow texture
+---@field timeBlipOrange texture
+---@field onStartTrackAnimation animationgroup
+---@field Shadow texture
+---@field squareBorder texture
+---@field BountyRing texture
+---@field bgFlag texture
+---@field criteriaIndicatorGlow texture
+---@field OnEnterAnimation animationgroup
+---@field flagCriteriaMatchGlow texture
+---@field overlayBorder texture
+---@field circleBorder texture
+---@field FactionPulseAnimation animationgroup
+---@field OnLeaveAnimation animationgroup
+---@field SupportFrame frame
+---@field Texture texture
+---@field OnShowAlphaAnimation animationgroup
+---@field OnLegendPinMouseLeave fun()
+---@field ApplyBackdrop fun()
+---@field GetBackdropColor fun()
+---@field OnBackdropLoaded fun()
+---@field SetupTextureCoordinates fun()
+---@field SetupPieceVisuals fun()
+---@field SetBackdrop fun()
+---@field GetEdgeSize fun()
+---@field UpdateTooltip fun()
+---@field GetBackdrop fun()
+---@field OnBackdropSizeChanged fun()
+---@field SetBackdropColor fun()
+---@field SetBorderBlendMode fun()
+---@field GetBackdropBorderColor fun()
+---@field ClearWidget fun()
+---@field OnLegendPinMouseEnter fun()
+---@field ClearBackdrop fun()
+---@field SetBackdropBorderColor fun()
+---@field HasBackdropInfo fun()
+
+
 function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --~zone --~zoneicon ~create
 	local anchorFrame
 
@@ -101,12 +193,8 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button:SetScript("OnEnter", function()
 		if (button.questID and type(button.questID) == "number" and button.questID >= 2) then
 			GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
-			-- Wrap in pcall to avoid taint errors from secret values in 12.0+
-			local ok, err = pcall(GameTooltip_AddQuest, button)
-			if not ok then
-				GameTooltip:AddLine("Quest " .. button.questID)
-			end
 			--TaskPOI_OnEnter(button)
+			WorldQuestTracker.ShowQuestTooltip(button)
 		end
 	end)
 	button:SetScript("OnLeave", function() TaskPOI_OnLeave(button) end)
