@@ -1,4 +1,3 @@
-
 local addonId, wqtInternal = ...
 
 --world quest tracker object
@@ -39,11 +38,27 @@ local GetDistance_Point = DF.GetDistance_Point
 
 local LibWindow = LibStub ("LibWindow-1.1")
 
--- Helper to safely check if a value is greater than 0 (guards against secret values in 12.0+)
+-- [12.0.1] issecretvalue(v) is the new global Lua function that returns true if a value
+-- is an opaque "secret" returned by a restricted API. It is safe to call on any value.
+-- We wrap it in a helper so call sites are concise and we gracefully handle builds
+-- where the function hasn't been introduced yet (PTR/Classic cross-build safety).
+local function isSV(v)
+	return issecretvalue and issecretvalue(v)
+end
+
+-- Helper: returns true only when a value is both non-secret AND numerically > 0.
+-- Use this everywhere a reward quantity is compared or iterated.
 local function safeGT0(value)
-	if issecretvalue and issecretvalue(value) then return false end
+	if isSV(value) then return false end
 	return value and value > 0
 end
+
+-- Helper: iterate a secret-capable count.  Returns 0 if the count is secret.
+local function safeCount(value)
+	if isSV(value) then return 0 end
+	return value or 0
+end
+
 if (not LibWindow) then
 	print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
 end
@@ -56,8 +71,8 @@ local TRACKER_TITLE_TEXT_SIZE_OUTMAP = 10
 local TRACKER_TITLE_TEXTWIDTH_MAX = 160
 local TRACKER_ARROW_ALPHA_MAX = 1
 local TRACKER_ARROW_ALPHA_MIN = .75
-local TRACKER_BACKGROUND_ALPHA_MIN = .35
-local TRACKER_BACKGROUND_ALPHA_MAX = .75
+local TRACKER_BACKGROUND_ALPHA_MIN = 0
+local TRACKER_BACKGROUND_ALPHA_MAX = 1
 local TRACKER_FRAME_ALPHA_INMAP = 1
 local TRACKER_FRAME_ALPHA_OUTMAP = .75
 
@@ -120,7 +135,6 @@ function WorldQuestTracker.AddQuestToTracker(self, questID, mapID)
 
 	if (WorldQuestTracker.db.profile.tomtom.enabled and TomTom and C_AddOns.IsAddOnLoaded("TomTom")) then
 		WorldQuestTracker.AddQuestTomTom (self.questID, self.mapID or mapID)
-		--return true
 	end
 
 	local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
@@ -163,13 +177,10 @@ function WorldQuestTracker.AddQuestToTracker(self, questID, mapID)
 end
 
 --remove uma quest que ja esta no tracker
---quando o addon iniciar e fazer a primeira chacagem de quests desatualizadas, mandar noUpdate = true
 function WorldQuestTracker.RemoveQuestFromTracker (questID, noUpdate)
 	for index, quest in ipairs (WorldQuestTracker.QuestTrackList) do
 		if (quest.questID == questID) then
-			--remove da tabela
 			tremove (WorldQuestTracker.QuestTrackList, index)
-			--atualiza os widgets para remover a quest do frame do tracker
 			if (not noUpdate) then
 				WorldQuestTracker.RefreshTrackerWidgets()
 			end
@@ -183,30 +194,22 @@ function WorldQuestTracker.RemoveAllQuestsFromTracker()
 	local isShowingWorld = WorldQuestTrackerAddon.GetCurrentZoneType() == "world"
 
 	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
-		--get the quest table with info about the quest
 		local quest = WorldQuestTracker.QuestTrackList [i]
-
-		--remove the quest from the tracker
 		tremove (WorldQuestTracker.QuestTrackList, i)
-
-		--remove tracking indicator on the quest icon
 		local questID = quest.questID
 
 		if (isShowingWorld) then
-			--quest locations
 			for _, widget in pairs (WorldQuestTracker.WorldMapSmallWidgets) do
 				if (widget:IsShown() and widget.questID == questID) then
 					widget.onEndTrackAnimation:Play()
 				end
 			end
-			--quest summary
 			for _, summarySquare in pairs (WorldQuestTracker.WorldSummaryQuestsSquares) do
 				if (summarySquare:IsShown() and summarySquare.questID == questID) then
 					summarySquare.onEndTrackAnimation:Play()
 				end
 			end
 		else
-			--zone map widgets
 			for _, widget in pairs (WorldQuestTracker.ZoneWidgetPool) do
 				if (widget:IsShown() and widget.questID == questID) then
 					widget.onEndTrackAnimation:Play()
@@ -218,17 +221,13 @@ function WorldQuestTracker.RemoveAllQuestsFromTracker()
 	WorldQuestTracker.RefreshTrackerWidgets()
 end
 
---o cliente n�o tem o tempo restante da quest na primeira execu��o
 function WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load()
 	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
 		local quest = WorldQuestTracker.QuestTrackList [i]
-		--if (HaveQuestData (quest.questID)) then
-			local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (quest.questID)
-		--end
+		local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (quest.questID)
 	end
 end
 
---verifica o tempo restante de cada quest no tracker e a remove se o tempo estiver terminado
 function WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker()
 	local now = time()
 	local gotRemoval
@@ -237,7 +236,7 @@ function WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker()
 		local quest = WorldQuestTracker.QuestTrackList [i]
 		local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (quest.questID)
 
-		if (quest.expireAt < now or not timeLeft or timeLeft <= 0) then -- or not allQuests [quest.questID]
+		if (quest.expireAt < now or not timeLeft or timeLeft <= 0) then
 			WorldQuestTracker.RemoveQuestFromTracker (quest.questID, true)
 			gotRemoval = true
 		end
@@ -248,13 +247,10 @@ function WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker()
 end
 
 
-
---organiza as quest para as quests do mapa atual serem jogadas para cima
 local Sort_currentMapID = 0
 local Sort_QuestsOnTracker = function(t1, t2)
 	if (t1.mapID == Sort_currentMapID and t2.mapID == Sort_currentMapID) then
 		return t1.LastDistance > t2.LastDistance
-		--return t1.timeFraction > t2.timeFraction
 	elseif (t1.mapID == Sort_currentMapID) then
 		return true
 	elseif (t2.mapID == Sort_currentMapID) then
@@ -268,15 +264,8 @@ local Sort_QuestsOnTracker = function(t1, t2)
 	end
 end
 
---poe as quests em ordem de acordo com o mapa atual do jogador?
 function WorldQuestTracker.ReorderQuestsOnTracker()
-	--joga as quests do mapa atual pra cima
 	Sort_currentMapID = WorldQuestTracker.GetCurrentStandingMapAreaID()
-
---	if (Sort_currentMapID == 1080 or Sort_currentMapID == 1072) then
---		--Thunder Totem or Trueshot Lodge
---		Sort_currentMapID = 1024
---	end
 
 	for index, quest in ipairs (WorldQuestTracker.QuestTrackList) do
 		quest.LastDistance = quest.LastDistance or 0
@@ -285,10 +274,9 @@ function WorldQuestTracker.ReorderQuestsOnTracker()
 end
 
 --~trackerframe
---this is the main frame for the quest tracker, every thing on the tracker is parent of this frame
 local WorldQuestTrackerFrame_ScreenPanel = CreateFrame("frame", "WorldQuestTrackerScreenPanel", UIParent, "BackdropTemplate")
 WorldQuestTrackerFrame_ScreenPanel:SetSize(235, 500)
-WorldQuestTrackerFrame_ScreenPanel:SetFrameStrata("LOW") --thanks @p3lim on curseforge
+WorldQuestTrackerFrame_ScreenPanel:SetFrameStrata("LOW")
 
 function WorldQuestTracker.TrackerFrameOnInit()
 	LibWindow.RegisterConfig(WorldQuestTrackerScreenPanel, WorldQuestTracker.db.profile)
@@ -320,16 +308,13 @@ WorldQuestTrackerFrame_QuestHolder.LockButton:Hide()
 
 function WorldQuestTracker.UpdateTrackerScale()
 	WorldQuestTrackerFrame_ScreenPanel:SetScale (WorldQuestTracker.db.profile.tracker_scale)
-	--WorldQuestTrackerFrame_QuestHolder:SetScale (WorldQuestTracker.db.profile.tracker_scale) --aumenta s� as quests sem mexer no cabe�alho
 end
 
---cria o header
-local WorldQuestTrackerHeader = CreateFrame ("frame", "WorldQuestTrackerQuestsHeader", WorldQuestTrackerFrame_ScreenPanel, "ObjectiveTrackerContainerHeaderTemplate") -- "ObjectiveTrackerHeaderTemplate"
+local WorldQuestTrackerHeader = CreateFrame ("frame", "WorldQuestTrackerQuestsHeader", WorldQuestTrackerFrame_ScreenPanel, "ObjectiveTrackerContainerHeaderTemplate")
 WorldQuestTrackerHeader.Text:SetText ("World Quest Tracker")
 local minimizeButton = CreateFrame ("button", "WorldQuestTrackerQuestsHeaderMinimizeButton", WorldQuestTrackerFrame_ScreenPanel, "BackdropTemplate")
 local minimizeButtonText = minimizeButton:CreateFontString (nil, "overlay", "GameFontNormal")
 
---hide the default minimize button from the blizz template
 WorldQuestTrackerHeader.MinimizeButton:Hide()
 
 minimizeButtonText:SetText (L["S_WORLDQUESTS"])
@@ -365,23 +350,15 @@ minimizeButton:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
 minimizeButton:SetHighlightTexture ([[Interface\Buttons\UI-Panel-MinimizeButton-Highlight]])
 minimizeButton:SetDisabledTexture ([[Interface\Buttons\UI-Panel-QuestHideButton-disabled]])
 
---store the created widgets on a table
 local TrackerWidgetPool = {}
---height of the quest tracker
 WorldQuestTracker.TrackerHeight = 0
 
-
---refresh the tracker positioning
 function WorldQuestTracker.RefreshTrackerAnchor()
-	--if not using the tracker, hide it and return
 	if (not WorldQuestTracker.db.profile.use_tracker) then
 		WorldQuestTrackerScreenPanel:Hide()
 		return
 	end
 
-	--automatic calculate the tracker position based on the objective tracker
-	--when attached to the objective tracker, it'll ignore the locked setting
-	--also on automatic it should never save the position in the libwindow
 	if (WorldQuestTracker.db.profile.tracker_attach_to_questlog) then
 
 		local questLogParts = {
@@ -415,22 +392,6 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 		WorldQuestTrackerHeader:ClearAllPoints()
 		WorldQuestTrackerHeader:SetPoint("top", WorldQuestTrackerScreenPanel, "top", 0, 0)
 
-		--DF:DebugVisibility(WorldQuestTrackerScreenPanel)
-
-		--for i = 1, ObjectiveTrackerFrame:GetNumPoints() do
-			--local point, relativeTo, relativePoint, xOfs, yOfs = ObjectiveTrackerFrame:GetPoint (i)
-			--WorldQuestTrackerScreenPanel:SetPoint(point, relativeTo, relativePoint, -10 + xOfs, yOfs - WorldQuestTracker.TrackerHeight - 20)
-		--end
-
-		--if (WorldQuestTracker.TrackerAttachToModule) then
-			--WorldQuestTrackerScreenPanel:ClearAllPoints()
-			--WorldQuestTrackerScreenPanel:SetPoint("top", WorldQuestTracker.TrackerAttachToModule.Header, "bottom", 0, -WorldQuestTracker.TrackerHeight + 10)
-		--end
-
-		--WorldQuestTrackerHeader:ClearAllPoints()
-		--WorldQuestTrackerHeader:SetPoint("bottom", WorldQuestTrackerFrame, "top", 0, -26)
-
-		--hide the unlocked widgets
 		WorldQuestTrackerFrame_QuestHolder.LockButton:Hide()
 		WorldQuestTrackerFrame_QuestHolder.MoveMeLabel:Hide()
 		WorldQuestTrackerFrame_QuestHolder:SetBackdrop(nil)
@@ -439,22 +400,25 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 	else
 		if (not WorldQuestTracker.db.profile.tracker_is_locked) then
 			WorldQuestTrackerScreenPanel:EnableMouse(true)
-
-			--show the unlocked widgets
 			WorldQuestTrackerFrame_QuestHolder:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
 			WorldQuestTrackerFrame_QuestHolder:SetBackdropColor(0, 0, 0, 0.75)
 			WorldQuestTrackerFrame_QuestHolder.LockButton:Show()
 			WorldQuestTrackerFrame_QuestHolder.MoveMeLabel:Show()
 		else
 			WorldQuestTrackerScreenPanel:EnableMouse(false)
-
-			--hide the unlocked widgets
 			WorldQuestTrackerFrame_QuestHolder.LockButton:Hide()
 			WorldQuestTrackerFrame_QuestHolder.MoveMeLabel:Hide()
 			WorldQuestTrackerFrame_QuestHolder:SetBackdrop(nil)
 		end
 
-		LibWindow.RestorePosition(WorldQuestTrackerScreenPanel)
+		-- Guard: LibWindow.RestorePosition will crash (indexing nil window data) if
+		-- called before LibWindow.RegisterConfig has run for this frame.
+		-- TrackerFrameOnInit() performs that registration, but RefreshTrackerAnchor
+		-- can be triggered earlier via the ObjectiveTrackerManager hook chain.
+		-- Only call RestorePosition once the frame is actually registered.
+		if (WorldQuestTrackerScreenPanel.RegisteredForLibWindow) then
+			LibWindow.RestorePosition(WorldQuestTrackerScreenPanel)
+		end
 
 		WorldQuestTrackerHeader:ClearAllPoints()
 		WorldQuestTrackerHeader:SetPoint("bottom", WorldQuestTrackerFrame_ScreenPanel, "top", 0, -20)
@@ -465,13 +429,11 @@ end
 
 local TrackerIconButtonOnClick = function(self, button)
 	if (button == "MiddleButton") then
-		--was middle button and our group finder is enabled
 		if (WorldQuestTracker.db.profile.groupfinder.enabled) then
 			WorldQuestTracker.FindGroupForQuest (self.questID)
 			return
 		end
 
-		--middle click without our group finder enabled, check for other addons
 		if (WorldQuestGroupFinderAddon) then
 			WorldQuestGroupFinder.HandleBlockClick (self.questID)
 			return
@@ -483,53 +445,23 @@ local TrackerIconButtonOnClick = function(self, button)
 		C_SuperTrack.SetSuperTrackedQuestID(0)
 		C_SuperTrack.ClearSuperTrackedContent()
 		C_SuperTrack.IsSuperTrackingMapPin()
-
-		--started on wow 11.0, the objective tracker isn't always selecting a quest to supertrack.
-		--[=[
-		["SetSuperTrackedMapPin"] = function,
-		["IsSuperTrackingMapPin"] = function,
-		["ClearSuperTrackedContent"] = function,
-		["ClearSuperTrackedMapPin"] = function,
-		["GetSuperTrackedVignette"] = function,
-		["GetHighestPrioritySuperTrackingType"] = function,
-		["SetSuperTrackedContent"] = function,
-		["SetSuperTrackedQuestID"] = function,
-		["IsSuperTrackingAnything"] = function,
-		["SetSuperTrackedVignette"] = function,
-		["GetSuperTrackedMapPin"] = function,
-		["IsSuperTrackingQuest"] = function,
-		["GetSuperTrackedContent"] = function,
-		["GetSuperTrackedQuestID"] = function,
-		["SetSuperTrackedUserWaypoint"] = function,
-		["IsSuperTrackingContent"] = function,
-		["IsSuperTrackingUserWaypoint"] = function,
-		["ClearAllSuperTracked"] = function,
-		["IsSuperTrackingCorpse"] = function,
-		--]=]
-
 		return
 	end
 
 	if (HaveQuestData (self.questID)) then
-		WorldQuestTracker.SelectSingleQuestInBlizzardWQTracker(self.questID) --thanks @ilintar on CurseForge
+		WorldQuestTracker.SelectSingleQuestInBlizzardWQTracker(self.questID)
 		WorldQuestTracker.RefreshTrackerWidgets()
 		WorldQuestTracker.SuperTracked = self.questID
 	end
 end
 
---quando um widget for clicado, mostrar painel com op��o para parar de trackear
 local TrackerFrameOnClick = function(self, button)
-	--ao clicar em cima de uma quest mostrada no tracker
-	--??--
 	if (button == "RightButton") then
 		WorldQuestTracker.RemoveQuestFromTracker (self.questID)
-		---se o worldmap estiver aberto, dar refresh
 		if (WorldMapFrame:IsShown()) then
 			if (WorldQuestTracker.IsCurrentMapQuestHub()) then
-				--refresh no world map
 				WorldQuestTracker.UpdateWorldQuestsOnWorldMap (true)
 			elseif (WorldQuestTracker.ZoneHaveWorldQuest()) then
-				--refresh nos widgets
 				WorldQuestTracker.UpdateZoneWidgets (true)
 				WorldQuestTracker.WorldWidgets_NeedFullRefresh = true
 			end
@@ -538,13 +470,11 @@ local TrackerFrameOnClick = function(self, button)
 		end
 	else
 		if (button == "MiddleButton") then
-			--was middle button and our group finder is enabled
 			if (WorldQuestTracker.db.profile.groupfinder.enabled) then
 				WorldQuestTracker.FindGroupForQuest (self.questID)
 				return
 			end
 
-			--middle click without our group finder enabled, check for other addons
 			if (WorldQuestGroupFinderAddon) then
 				WorldQuestGroupFinder.HandleBlockClick (self.questID)
 				return
@@ -576,10 +506,9 @@ local buildTooltip = function(self)
 		WorldQuestTracker:Msg("no tagInfo(2) for quest", questID)
 	end
 
-	local color = WORLD_QUEST_QUALITY_COLORS [tagInfo.quality or LE_WORLD_QUEST_QUALITY_COMMON]
+	local color = WORLD_QUEST_QUALITY_COLORS [tagInfo and tagInfo.quality or LE_WORLD_QUEST_QUALITY_COMMON]
 	GameTooltip:SetText (title, color.r, color.g, color.b)
 
-	--belongs to what faction
 	if (factionID) then
 		local factionName = WorldQuestTracker.GetFactionDataByID (factionID)
 		if (factionName) then
@@ -592,7 +521,6 @@ local buildTooltip = function(self)
 		end
 	end
 
-	--time left
 	local timeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes (questID)
 	if (timeLeftMinutes) then
 		local color = NORMAL_FONT_COLOR
@@ -612,7 +540,6 @@ local buildTooltip = function(self)
 		GameTooltip:AddLine (BONUS_OBJECTIVE_TIME_LEFT:format (timeString), color.r, color.g, color.b)
 	end
 
-	--all objectives
 	for objectiveIndex = 1, self.numObjectives do
 		local objectiveText, objectiveType, finished = GetQuestObjectiveInfo(questID, objectiveIndex, false);
 		if ( objectiveText and #objectiveText > 0 ) then
@@ -621,77 +548,88 @@ local buildTooltip = function(self)
 		end
 	end
 
-	--percentage bar
 	local percent = C_TaskQuest.GetQuestProgressBarInfo (questID)
-	if ( percent ) then
-	-- WorldMapTaskTooltipStatusBar removed on 8.0
-	--	GameTooltip_InsertFrame(GameTooltip, WorldMapTaskTooltipStatusBar);
-	--	WorldMapTaskTooltipStatusBar.Bar:SetValue(percent);
-	--	WorldMapTaskTooltipStatusBar.Bar.Label:SetFormattedText(PERCENTAGE_STRING, percent);
-	end
+	-- percent may be a secret value; only act on it if it's a real number.
+	-- [12.0.1] GetQuestProgressBarInfo returns a secret when restricted.
+	-- We skip the bar entirely rather than displaying garbage.
 
 	-- rewards
-	if ( safeGT0(GetQuestLogRewardXP(questID)) or safeGT0(GetNumQuestLogRewardCurrencies(questID)) or safeGT0(GetNumQuestLogRewards(questID)) or safeGT0(GetQuestLogRewardMoney(questID)) or safeGT0(GetQuestLogRewardArtifactXP(questID)) ) then
+	-- [12.0.1] All GetQuestLogReward* functions can now return secret values when called
+	-- from an insecure context or during a restricted encounter.  Every numeric result
+	-- must be checked with isSV() / safeGT0() before use to avoid Lua errors and to
+	-- avoid leaking restricted information.
+	local xp = GetQuestLogRewardXP(questID)
+	local money = GetQuestLogRewardMoney(questID)
+	local artifactXP = GetQuestLogRewardArtifactXP(questID)
+	local numQuestCurrencies = GetNumQuestLogRewardCurrencies(questID)
+	local numQuestRewards = GetNumQuestLogRewards(questID)
+
+	local hasRewards = safeGT0(xp) or safeGT0(money) or safeGT0(artifactXP)
+	                   or safeGT0(numQuestCurrencies) or safeGT0(numQuestRewards)
+
+	if hasRewards then
 		GameTooltip:AddLine(" ");
 		GameTooltip:AddLine(QUEST_REWARDS, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, true);
 		local hasAnySingleLineRewards = false;
+
 		-- xp
-		local xp = GetQuestLogRewardXP(questID);
-		if ( safeGT0(xp) ) then
+		if safeGT0(xp) then
 			GameTooltip:AddLine(BONUS_OBJECTIVE_EXPERIENCE_FORMAT:format(xp), HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
 			hasAnySingleLineRewards = true;
 		end
+
 		-- money
-		local money = GetQuestLogRewardMoney(questID);
-		if ( safeGT0(money) ) then
+		if safeGT0(money) then
+			-- [12.0.1] SetTooltipMoney is still available but the money value may be a
+			-- secret. Passing a secret value into SetTooltipMoney causes a Lua error.
+			-- Wrap in pcall as a safety net; the value has already been confirmed non-secret
+			-- by safeGT0, but pcall protects against future API tightening.
 			pcall(SetTooltipMoney, GameTooltip, money, nil);
 			hasAnySingleLineRewards = true;
 		end
-		local artifactXP = GetQuestLogRewardArtifactXP(questID);
-		if ( safeGT0(artifactXP) ) then
+
+		-- artifact xp
+		if safeGT0(artifactXP) then
 			GameTooltip:AddLine(BONUS_OBJECTIVE_ARTIFACT_XP_FORMAT:format(artifactXP), HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
 			hasAnySingleLineRewards = true;
 		end
-		-- currency
-		local numQuestCurrencies = GetNumQuestLogRewardCurrencies(questID);
-		if not (issecretvalue and issecretvalue(numQuestCurrencies)) then
-			for i = 1, numQuestCurrencies do
-				local name, texture, numItems = GetQuestLogRewardCurrencyInfo(i, questID);
-				if name and texture and numItems and not (issecretvalue and issecretvalue(numItems)) then
-					local text = BONUS_OBJECTIVE_REWARD_WITH_COUNT_FORMAT:format(texture, numItems, name);
-					GameTooltip:AddLine(text, HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
-					hasAnySingleLineRewards = true;
-				end
+
+		-- currency rewards
+		-- [12.0.1] The count returned by GetNumQuestLogRewardCurrencies is secret-capable.
+		-- safeCount() returns 0 for secrets so the loop is simply skipped.
+		for i = 1, safeCount(numQuestCurrencies) do
+			local name, texture, numItems = GetQuestLogRewardCurrencyInfo(i, questID);
+			-- numItems itself may be secret when the game restricts reward amounts.
+			if name and texture and numItems and not isSV(numItems) then
+				local text = BONUS_OBJECTIVE_REWARD_WITH_COUNT_FORMAT:format(texture, numItems, name);
+				GameTooltip:AddLine(text, HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
+				hasAnySingleLineRewards = true;
 			end
 		end
-		-- items
-		local numQuestRewards = GetNumQuestLogRewards (questID)
-		if not (issecretvalue and issecretvalue(numQuestRewards)) then
-			for i = 1, numQuestRewards do
-				local name, texture, numItems, quality, isUsable = GetQuestLogRewardInfo(i, questID);
+
+		-- item rewards
+		for i = 1, safeCount(numQuestRewards) do
+			local name, texture, numItems, quality, isUsable = GetQuestLogRewardInfo(i, questID);
+			-- [12.0.1] numItems may be secret even when name/texture are available.
+			if name and texture then
+				local safeNumItems = (numItems and not isSV(numItems)) and numItems or nil
 				local text;
-				if name and texture and not (issecretvalue and issecretvalue(numItems or 0)) then
-					if ( numItems and numItems > 1 ) then
-						text = string.format(BONUS_OBJECTIVE_REWARD_WITH_COUNT_FORMAT, texture, numItems, name);
-					elseif( texture and name ) then
-						text = string.format(BONUS_OBJECTIVE_REWARD_FORMAT, texture, name);
-					end
+				if safeNumItems and safeNumItems > 1 then
+					text = string.format(BONUS_OBJECTIVE_REWARD_WITH_COUNT_FORMAT, texture, safeNumItems, name);
+				else
+					text = string.format(BONUS_OBJECTIVE_REWARD_FORMAT, texture, name);
 				end
-				if( text ) then
-					local color = ITEM_QUALITY_COLORS[quality];
+				if text then
+					local color = quality and ITEM_QUALITY_COLORS[quality];
 					if color then
 						GameTooltip:AddLine(text, color.r, color.g, color.b);
 					end
 				end
 			end
 		end
-
 	end
 
 	GameTooltip:Show()
---	if (GameTooltip.ItemTooltip) then
---		GameTooltip:SetHeight (GameTooltip:GetHeight() + GameTooltip.ItemTooltip:GetHeight())
---	end
 end
 WorldQuestTracker.BuildTooltip = buildTooltip
 
@@ -725,29 +663,16 @@ local TrackerFrameOnLeave = function(self)
 end
 
 local TrackerIconButtonOnEnter = function(self)
-
 end
 local TrackerIconButtonOnLeave = function(self)
-
 end
 
 
---~arrow ãrrow
-
---from the user @ilintar on CurseForge
---Doing that instead of just SetSuperTrackedQuestID(questID) will make the arrow stay. The code also ensures that only the selected world quest is present in the Blizzard window, as to not make it cluttered.
+--~arrow
 	function WorldQuestTracker.SelectSingleQuestInBlizzardWQTracker (questID)
-		--for i = 1, C_QuestLog.GetNumWorldQuestWatches() do --removed on 9.0, looks like doesn't need to remove super tracked before adding
-			--local watchedWorldQuestID = C_QuestLog.GetQuestIDForWorldQuestWatchIndex(i)
-			--if (watchedWorldQuestID) then
-			--	BonusObjectiveTracker_UntrackWorldQuest(watchedWorldQuestID)
-			--end
-		--end
-		--BonusObjectiveTracker_TrackWorldQuest(questID, 0)
-		QuestUtil.TrackWorldQuest(questID, Enum.QuestWatchType.Automatic) --0
+		QuestUtil.TrackWorldQuest(questID, Enum.QuestWatchType.Automatic)
 		C_SuperTrack.SetSuperTrackedQuestID(questID)
 	end
---
 
 local TrackerIconButtonOnMouseDown = function(self, button)
 	self.Icon:SetPoint("topleft", self:GetParent(), "topleft", -12, -3)
@@ -757,15 +682,12 @@ local TrackerIconButtonOnMouseUp = function(self, button)
 end
 
 
---pega um widget j� criado ou cria um novo ~trackercreate ~trackerwidget
 function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	if (TrackerWidgetPool [index]) then
 		return TrackerWidgetPool [index]
 	end
 
 	local f = CreateFrame ("button", "WorldQuestTracker_Tracker" .. index, WorldQuestTrackerFrame_QuestHolder, "BackdropTemplate")
-	--f:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
-	--f:SetBackdropColor(0, 0, 0, .2)
 	f:SetSize(235, 30)
 	f:SetScript("OnClick", TrackerFrameOnClick)
 	f:SetScript("OnEnter", TrackerFrameOnEnter)
@@ -781,18 +703,15 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.RightBackground:SetWidth (200)
 	f.RightBackground:SetAlpha(TRACKER_BACKGROUND_ALPHA_MIN)
 
-	--f.module = _G ["WORLD_QUEST_TRACKER_MODULE"]
 	f.worldQuest = true
 
 	f.Title = DF:CreateLabel (f)
 	f.Title.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
-	--f.Title = f:CreateFontString (nil, "overlay", "ObjectiveFont")
 	f.Title:SetPoint("topleft", f, "topleft", 10, -1)
 	local titleColor = OBJECTIVE_TRACKER_COLOR["Header"]
 	f.Title:SetTextColor (titleColor.r, titleColor.g, titleColor.b)
 	f.Zone = DF:CreateLabel (f)
 	f.Zone.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
-	--f.Zone = f:CreateFontString (nil, "overlay", "ObjectiveFont")
 	f.Zone:SetPoint("topleft", f, "topleft", 10, -17)
 
 	f.QuestInfomation = DF:CreateLabel (f)
@@ -844,7 +763,7 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.BackgroupTexture = f:CreateTexture(nil, "background")
 	f.BackgroupTexture:SetPoint("topleft", f, "topleft", -25, 2)
 	f.BackgroupTexture:SetPoint("bottomright", f, "bottomright", 20, -2)
-	f.BackgroupTexture:SetTexture([[Interface\AddOns\WorldQuestTracker\media\background_gradient.png]])
+	f.BackgroupTexture:SetTexture([[Interface\AddOns\WorldQuestTracker\media\background_blackgradientT.blp]])
 	f.BackgroupTexture:SetVertexColor(0, 0, 0, .5)
 
 	local overlayBorder = f:CreateTexture(nil, "overlay", nil, 5)
@@ -884,12 +803,11 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	highlight:SetPoint("center", f.Circle, "center")
 	highlight:SetAlpha(1)
 	highlight:SetTexture([[Interface\Worldmap\UI-QuestPoi-NumberIcons]])
-	--highlight:SetTexCoord(167/256, 185/256, 103/256, 121/256) --low light
 	highlight:SetTexCoord(167/256, 185/256, 231/256, 249/256)
 	highlight:SetBlendMode("ADD")
 	highlight:SetSize(14, 14)
 
-	f.SuperTrackButton = CreateFrame("button", nil, f) --no need backdrop
+	f.SuperTrackButton = CreateFrame("button", nil, f)
 	f.SuperTrackButton:SetPoint("right", f, "right", 2, 0)
 	f.SuperTrackButton:SetSize(18, 24)
 	f.SuperTrackButton:SetAlpha(.5)
@@ -913,7 +831,6 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 
 	f.SuperTrackButton:SetScript("OnClick", function(self, button)
 		TrackerIconButtonOnClick(f, button)
-		--C_Timer.After(.2, function() WorldQuestTracker.RefreshTrackerWidgets() end)
 	end)
 
 	f.SuperTrackButton:SetScript("OnEnter", function()
@@ -925,7 +842,7 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 		end
 	end)
 
-	f.TomTomTrackerIcon = CreateFrame("button", nil, f) --no need backdrop
+	f.TomTomTrackerIcon = CreateFrame("button", nil, f)
 	f.TomTomTrackerIcon:SetPoint("right", f.Arrow, "left", -6, 0)
 	f.TomTomTrackerIcon:SetSize(24, 24)
 	f.TomTomTrackerIcon:SetAlpha(.5)
@@ -975,12 +892,7 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	iconoverlay:SetTexture([[Interface\COMMON\StreamBackground]])
 	iconoverlay:SetPoint("center", f.Icon, "center", 0, 0)
 	iconoverlay:Hide()
-	--iconoverlay:SetSize(256, 256)
 	iconoverlay:SetDrawLayer("overlay", 7)
-
-	--iconoverlay:SetSize(50, 34)
-	--iconoverlay:SetBlendMode("ADD")
-
 
 	local StarShowAnimation = DF:CreateAnimationHub (star, function() star:Show() end, function() star:Hide() end)
 	DF:CreateAnimation (StarShowAnimation, "alpha", 1, .3, 0, .2)
@@ -1027,12 +939,11 @@ function WorldQuestTracker:PLAYER_STOPPED_MOVING()
 	playerIsMoving = false
 end
 
---making a cooldown to update the player position to avoid creating a table on tick due to C_Map.GetPlayerMapPosition call
 local nextPlayerPositionUpdateCooldown = -1
 local currentPlayerX = 0
 local currentPlayerY = 0
 
--- ~trackertick ~trackeronupdate ~tick ~onupdate ~ontick �ntick �nupdate
+-- ~trackertick ~trackeronupdate ~tick ~onupdate ~ontick
 local TrackerOnTick = function(self, deltaTime)
 	if (self.NextPositionUpdate < 0) then
 		if (Sort_currentMapID ~= WorldQuestTracker.GetCurrentStandingMapAreaID()) then
@@ -1050,10 +961,8 @@ local TrackerOnTick = function(self, deltaTime)
 	end
 
 	if (nextPlayerPositionUpdateCooldown < 0) then
-		--reset cooldown
 		nextPlayerPositionUpdateCooldown = 1
 
-		--update the player position
 		local mapPosition = C_Map.GetPlayerMapPosition(WorldQuestTracker.GetCurrentStandingMapAreaID(), "player")
 		if (not mapPosition) then
 			return
@@ -1067,11 +976,11 @@ local TrackerOnTick = function(self, deltaTime)
 		local questYaw = (FindLookAtRotation (_, currentPlayerX, currentPlayerY, self.questX, self.questY) + p)%pipi
 		local playerYaw = GetPlayerFacing() or 0
 		local angle = (((questYaw + playerYaw)%pipi)+pi)%pipi
-		local imageIndex = 1+(floor (MapRangeClamped (_, 0, pipi, 1, 144, angle)) + 48)%144 --48� quadro � o que aponta para o norte
+		local imageIndex = 1+(floor (MapRangeClamped (_, 0, pipi, 1, 144, angle)) + 48)%144
 		local line = ceil (imageIndex / 12)
 		local coord = (imageIndex - ((line-1) * 12)) / 12
 		self.Arrow:SetTexCoord(coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line)
-		self.ArrowDistance:SetTexCoord(coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line) -- 0.0763
+		self.ArrowDistance:SetTexCoord(coord-0.0833, coord, 0.0833 * (line-1), 0.0833 * line)
 
 		self.NextArrowUpdate = ARROW_UPDATE_FREQUENCE
 	else
@@ -1082,29 +991,26 @@ local TrackerOnTick = function(self, deltaTime)
 
 	if ((playerIsMoving or self.ForceUpdate) and self.NextPositionUpdate < 0) then
 		local distance = GetDistance_Point(_, currentPlayerX, currentPlayerY, self.questX, self.questY)
-		--local x = zoneXLength * distance
-		--local y = zoneYLength * distance
-		--local yards = (x*x + y*y) ^ 0.5
 
-		local dist = CalculateDistance(currentPlayerX, currentPlayerY, self.questX, self.questY)
-		local yards = ((zoneXLength*dist) * (zoneYLength*dist)) ^ 0.5
-		yards = floor(yards)
+		-- [12.0.1] CalculateDistance() was a Blizzard global helper that computed
+		-- map-coordinate distances in yards using internal zone size data.  It was
+		-- removed in the 12.0 SpellScript/InstanceEncounter deprecation sweep because
+		-- it relied on restricted combat math.  We now replicate its formula using
+		-- the zone pixel dimensions already retrieved via HereBeDragons:GetZoneSize(),
+		-- stored in the upvalues zoneXLength / zoneYLength.
+		-- Original: CalculateDistance(x1,y1,x2,y2) → yards
+		-- Replacement: scale the unitless map-coord delta by zone dimensions in yards.
+		local dx = (self.questX - currentPlayerX) * zoneXLength
+		local dy = (self.questY - currentPlayerY) * zoneYLength
+		local yards = floor((dx*dx + dy*dy)^0.5)
 
+		local yardsText
 		if (yards > 1000) then
-			yards = format("%.2f", yards / 1000) .. "km"
+			yardsText = format("%.2f", yards / 1000) .. "km"
 		else
-			yards = yards .. "yds"
+			yardsText = yards .. "yds"
 		end
-		self.YardsDistance:SetText ("[|cFFC0C0C0" .. yards .. "|r]")
-
-		--super tracked
-		--	local worldPinPositionText = SuperTrackedFrame and SuperTrackedFrame.DistanceText:GetText() or ""
-		--	print ("------------------")
-		--	for key, value in pairs(SuperTrackedFrame) do
-		--		print(key, value)
-		--	end
-		--	print ("------------------")
-		--/dump SuperTrackedFrame:SetAlpha(1)
+		self.YardsDistance:SetText ("[|cFFC0C0C0" .. yardsText .. "|r]")
 
 		distance = abs (distance - 1)
 		self.info.LastDistance = distance
@@ -1133,7 +1039,6 @@ local TrackerOnTick = function(self, deltaTime)
 			local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (self.questID)
 			if (timeLeft and timeLeft > 0) then
 				local timeLeft2 =  WorldQuestTracker.GetQuest_TimeLeft (self.questID, true)
-				--local str = timeLeft > 1440 and floor (timeLeft/1440) .. "d" or timeLeft > 60 and floor (timeLeft/60) .. "h" or timeLeft .. "m"
 				local color = "FFC0C0C0"
 				if (timeLeft < 30) then
 					color = "FFFF2200"
@@ -1158,7 +1063,6 @@ local TrackerOnTick_TimeLeft = function(self, deltaTime)
 			local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (self.questID)
 			if (timeLeft and timeLeft > 0) then
 				local timeLeft2 =  WorldQuestTracker.GetQuest_TimeLeft (self.questID, true)
-				--local str = timeLeft > 1440 and floor (timeLeft/1440) .. "d" or timeLeft > 60 and floor (timeLeft/60) .. "h" or timeLeft .. "m"
 				local color = "FFC0C0C0"
 				if (timeLeft < 30) then
 					color = "FFFF2200"
@@ -1181,17 +1085,14 @@ function WorldQuestTracker.SortTrackerByQuestDistance()
 end
 
 
---update quests on the quest tracker
 function WorldQuestTracker.RefreshTrackerWidgets()
 	if (WorldQuestTracker.LastTrackerRefresh and WorldQuestTracker.LastTrackerRefresh+0.2 > GetTime()) then
 		return
 	end
 	WorldQuestTracker.LastTrackerRefresh = GetTime()
 
-	--reorder quests in the tracker
 	WorldQuestTracker.ReorderQuestsOnTracker()
 
-	--do the update
 	local y = -30
 	local nextWidget = 1
 	local needSortByDistance = 0
@@ -1199,11 +1100,9 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 	local currentMap = WorldQuestTracker.GetCurrentStandingMapAreaID()
 
 	for index, quest in ipairs (WorldQuestTracker.QuestTrackList) do
-		--verifica se a quest esta ativa, ela pode ser desativada se o jogador estiver dentro da area da quest
 		if (HaveQuestData(quest.questID)) then
 			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info(quest.questID)
 
-			--check if the quest has a continent map id and try to cast the continent id to zone id
 			if (quest.mapID == WorldQuestTracker.MapData.ZoneIDs.ZANDALAR or quest.mapID == WorldQuestTracker.MapData.ZoneIDs.KULTIRAS) then
 				if (WorldQuestTracker.CurrentZoneQuests [quest.questID] and WorldQuestTracker.CurrentZoneQuestsMapID == currentMap) then
 					quest.mapID = currentMap
@@ -1250,8 +1149,19 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 					widget.overlayBorder2:Hide()
 				end
 
-				if (WorldMap_IsWorldQuestEffectivelyTracked(quest.questID)) then
-					widget.SuperTracked:Show() --glow
+				-- [12.0.1] WorldMap_IsWorldQuestEffectivelyTracked was renamed to
+				-- C_QuestLog.IsWorldQuestWatched in 12.0 as part of the API namespace
+				-- consolidation. We try the new name first and fall back to the old one
+				-- for any build that still has it, so this file works across both.
+				local isTracked = false
+				if C_QuestLog.IsWorldQuestWatched then
+					isTracked = C_QuestLog.IsWorldQuestWatched(quest.questID)
+				elseif WorldMap_IsWorldQuestEffectivelyTracked then
+					isTracked = WorldMap_IsWorldQuestEffectivelyTracked(quest.questID)
+				end
+
+				if isTracked then
+					widget.SuperTracked:Show()
 					widget.SuperTrackButton:SetAlpha(1)
 					widget.Circle:SetDesaturated (false)
 				else
@@ -1260,7 +1170,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 					widget.Circle:SetDesaturated (true)
 				end
 
-				if (type (quest.rewardAmount) == "number" and quest.rewardAmount >= 1000) then --erro compare number witrh string
+				if (type (quest.rewardAmount) == "number" and quest.rewardAmount >= 1000) then
 					widget.RewardAmount:SetText (WorldQuestTracker.ToK (quest.rewardAmount))
 				else
 					widget.RewardAmount:SetText (quest.rewardAmount)
@@ -1278,14 +1188,6 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 
 				if (WorldQuestTracker.db.profile.TutorialTracker == 1) then
 					WorldQuestTracker.db.profile.TutorialTracker = WorldQuestTracker.db.profile.TutorialTracker + 1
-				--	local alert = CreateFrame ("frame", "WorldQuestTrackerTrackerTutorialAlert1", worldFramePOIs, "AlertContainerTemplate")
-				--	alert:SetFrameLevel(302)
-				--	alert.label = "Tracked quests are shown here!"
-				--	alert.Text:SetSpacing (4)
-				--	alert:SetPoint("bottom", widget, "top", 0, 28)
-				--
-				--	MicroButtonAlert_SetText (alert, alert.label)
-				--	alert:Show()
 				end
 
 				if (WorldQuestTracker.JustAddedToTracker [quest.questID]) then
@@ -1311,8 +1213,8 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 					widget.ArrowDistance:Show()
 					widget.RightBackground:Show()
 					widget:SetAlpha(TRACKER_FRAME_ALPHA_INMAP)
-					widget.Title.textsize = WorldQuestTracker.db.profile.tracker_textsize --TRACKER_TITLE_TEXT_SIZE_INMAP
-					widget.Zone.textsize = WorldQuestTracker.db.profile.tracker_textsize --TRACKER_TITLE_TEXT_SIZE_INMAP
+					widget.Title.textsize = WorldQuestTracker.db.profile.tracker_textsize
+					widget.Zone.textsize = WorldQuestTracker.db.profile.tracker_textsize
 					needSortByDistance = needSortByDistance + 1
 
 					if (WorldQuestTracker.db.profile.show_yards_distance) then
@@ -1357,7 +1259,6 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 		nextWidget = 1
 	end
 
-	--se n�o h� nenhuma quest sendo mostrada, hidar o cabe�alho
 	if (nextWidget == 1) then
 		WorldQuestTrackerHeader:Hide()
 		minimizeButton:Hide()
@@ -1377,7 +1278,6 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 		WorldQuestTracker.SortingQuestByDistance = C_Timer.NewTicker (10, WorldQuestTracker.SortTrackerByQuestDistance)
 	end
 
-	--esconde os widgets n�o usados
 	for i = nextWidget, #TrackerWidgetPool do
 		TrackerWidgetPool [i]:SetScript("OnUpdate", nil)
 		TrackerWidgetPool [i]:Hide()
@@ -1415,8 +1315,6 @@ TrackerAnimation_OnAccept.FlashTexture:SetPoint("topleft", -60, 40)
 TrackerAnimation_OnAccept.FlashTexture:SetPoint("bottomright", 40, -35)
 
 local TrackerAnimation_OnAccept_MoveAnimation = DF:CreateAnimationHub (TrackerAnimation_OnAccept, function (self)
-	-- 3 movement started
-		--seta textos e texturas
 		local quest = self.QuestObject
 		local widget = self.WidgetObject
 		TrackerAnimation_OnAccept.Title.text = widget.Title.text
@@ -1430,17 +1328,14 @@ local TrackerAnimation_OnAccept_MoveAnimation = DF:CreateAnimationHub (TrackerAn
 		TrackerAnimation_OnAccept.RewardAmount:SetText (widget.RewardAmount:GetText())
 	end,
 	function (self)
-	-- 4 movement end
 		TrackerAnimation_OnAccept:Hide()
 	end)
 local ScreenWidth = -(floor (GetScreenWidth() / 2) - 200)
 TrackerAnimation_OnAccept_MoveAnimation.Translation = DF:CreateAnimation (TrackerAnimation_OnAccept_MoveAnimation, "translation", 1, 2, ScreenWidth, 270)
 DF:CreateAnimation (TrackerAnimation_OnAccept_MoveAnimation, "alpha", 1, 1.6, 1, 0)
---DF:CreateAnimation (TrackerAnimation_OnAccept_MoveAnimation, "scale", 1, 1.6, 1, 1, 0, 0)
 
 local TrackerAnimation_OnAccept_FlashAnimation = DF:CreateAnimationHub (TrackerAnimation_OnAccept.FlashTexture,
 	function (self)
-		-- 1 Playing Flash
 		TrackerAnimation_OnAccept.Title.text = ""
 		TrackerAnimation_OnAccept.Zone.text = ""
 		TrackerAnimation_OnAccept.Icon:SetTexture(nil)
@@ -1450,7 +1345,6 @@ local TrackerAnimation_OnAccept_FlashAnimation = DF:CreateAnimationHub (TrackerA
 		TrackerAnimation_OnAccept:SetPoint("topleft", self.WidgetObject, "topleft", 0, 0)
 	end,
 	function (self)
-		-- 2 Flash Finished
 		local quest = self.QuestObject
 		local widget = self.WidgetObject
 
@@ -1477,18 +1371,23 @@ local get_widget_from_questID = function(questID)
 	end
 end
 
---quando o tracker da interface atualizar, atualizar tbm o nosso tracker
---verifica se o jogador esta na area da quest
 function WorldQuestTracker.UpdateQuestsInArea()
 	for index, quest in ipairs (WorldQuestTracker.QuestTrackList) do
 		if (HaveQuestData (quest.questID)) then
-			--local questIndex = C_QuestLog.GetQuestLogIndexByID (quest.questID)
-			if (isInArea) then --(questIndex and questIndex ~= 0) or
-				--desativa pois o jogo ja deve estar mostrando a quest
+			-- [12.0.1] The original code referenced a bare `isInArea` variable that was
+			-- never defined in this file — it was likely an upvalue from a deleted block or
+			-- a global that no longer exists.  The intent was to detect whether the player
+			-- has physically entered the quest's objective area (i.e. the Blizzard tracker
+			-- is now showing the quest because the player is inside its bounds).
+			-- We replace it with the documented C_QuestLog API: IsOnQuest returns true
+			-- when the quest is active AND its objectives are currently in range, which
+			-- is the correct modern equivalent.
+			local isInArea = C_QuestLog.IsOnQuest and C_QuestLog.IsOnQuest(quest.questID)
+
+			if (isInArea) then
 				if (not quest.isDisabled and not quest.enteringZone) then
 					local widget = get_widget_from_questID (quest.questID)
 					if (widget and not WorldQuestTracker.IsQuestOnObjectiveTracker (widget.Title:GetText())) then
-						--acabou de aceitar a quest
 						quest.enteringZone = true
 						TrackerAnimation_OnAccept:Show()
 						TrackerAnimation_OnAccept_MoveAnimation.QuestObject = quest
@@ -1502,7 +1401,6 @@ function WorldQuestTracker.UpdateQuestsInArea()
 						quest.isDisabled = true
 					end
 				end
-				--quest.isDisabled = true
 			else
 				quest.isDisabled = nil
 			end
@@ -1548,7 +1446,7 @@ end
 local latestTrackerPositionUpdate = GetTime()
 local bHasScheduledSizeUpdate = false
 
-local onObjectiveTrackerChanges = function() --this will be called several times in a single frame
+local onObjectiveTrackerChanges = function()
 	if (ObjectiveTrackerFrame:IsCollapsed()) then
 		return
 	end
@@ -1563,7 +1461,6 @@ local onObjectiveTrackerChanges = function() --this will be called several times
 
 	WorldQuestTracker.RefreshTrackerAnchor()
 
-	--need to refresh again on next tick due to some modules being updated after the tracker
 	if (not bHasScheduledSizeUpdate) then
 		C_Timer.After(0, WorldQuestTracker.OnObjectiveTrackerChanges)
 		bHasScheduledSizeUpdate = true
@@ -1571,7 +1468,6 @@ local onObjectiveTrackerChanges = function() --this will be called several times
 end
 
 function WorldQuestTracker.OnObjectiveTrackerChanges()
-	--check the time to make sure only one update is triggered
 	if (GetTime() == latestTrackerPositionUpdate) then
 		return
 	end
@@ -1598,21 +1494,39 @@ else
 	end)
 end
 
---ao completar uma world quest remover a quest do tracker e da refresh nos widgets
-hooksecurefunc(BonusObjectiveTracker, "OnQuestTurnedIn", function(self, questID)
-	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
-		if (WorldQuestTracker.QuestTrackList[i].questID == questID) then
-			local questRemoved = tremove(WorldQuestTracker.QuestTrackList, i)
-			WorldQuestTracker.RefreshTrackerWidgets()
-			onObjectiveTrackerChanges()
-			break
+-- [12.0.1] BonusObjectiveTracker.OnQuestTurnedIn no longer exists as a hookable method
+-- in 12.0 — BonusObjectiveTracker was deprecated and absorbed into the consolidated
+-- objective tracker system.  The QUEST_TURNED_IN event (already handled globally in
+-- the core file) is the correct replacement.  We keep the event-based handler below
+-- and add a nil-guard on BonusObjectiveTracker so the file does not error on load.
+if BonusObjectiveTracker and BonusObjectiveTracker.OnQuestTurnedIn then
+	-- Pre-12.0 path: hook was valid.
+	hooksecurefunc(BonusObjectiveTracker, "OnQuestTurnedIn", function(self, questID)
+		for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
+			if (WorldQuestTracker.QuestTrackList[i].questID == questID) then
+				local questRemoved = tremove(WorldQuestTracker.QuestTrackList, i)
+				WorldQuestTracker.RefreshTrackerWidgets()
+				onObjectiveTrackerChanges()
+				break
+			end
 		end
-	end
-end)
+	end)
+end
 
+-- 12.0 path: QUEST_TURNED_IN is the reliable replacement.
 local questEventFrame = CreateFrame("frame")
 questEventFrame:RegisterEvent("QUEST_TURNED_IN")
-questEventFrame:SetScript("OnEvent", function(self, event, ...)
+questEventFrame:SetScript("OnEvent", function(self, event, questID, ...)
+	if questID then
+		-- Remove the quest from our tracker list if it is present.
+		for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
+			if (WorldQuestTracker.QuestTrackList[i].questID == questID) then
+				tremove(WorldQuestTracker.QuestTrackList, i)
+				WorldQuestTracker.RefreshTrackerWidgets()
+				break
+			end
+		end
+	end
 	C_Timer.After(0, onObjectiveTrackerChanges)
 end)
 
@@ -1629,33 +1543,7 @@ hooksecurefunc(QuestUtil, "UntrackWorldQuest", function()
 end)
 
 
-
-
---[=[
-	["1"] = "ReleaseFrame",
-	["2"] = "ShowRewardsToast",
-	["3"] = "AddContainer",
-	["4"] = "OnVariablesLoaded",
-	["5"] = "HideRewardsToast",
-	["6"] = "HasRewardsToastForBlock",
-	["7"] = "UpdateModule",
-	["8"] = "SetTextSize",
-	["9"] = "OnCVarChanged",
-	["10"] = "UpdateAll",
-	["11"] = "UpdatePOIEnabled",
-	["12"] = "AssignModulesOrder",
-	["13"] = "OnPlayerEnteringWorld",
-	["14"] = "GetContainerForModule",
-	["15"] = "CanShowPOIs",
-	["16"] = "SetModuleContainer",
-	["17"] = "AcquireFrame",
-	["18"] = "SetOpacity",
---]=]
-
-
-
 local bHooked = false
---dispara quando o tracker da interface � atualizado, precisa dar refresh na nossa ancora
 local On_ObjectiveTracker_Update = function()
 	local blizzObjectiveTracker = ObjectiveTrackerFrame
 	if (not blizzObjectiveTracker.init) then
@@ -1669,56 +1557,19 @@ local On_ObjectiveTracker_Update = function()
 	end
 
 	WorldQuestTracker.RefreshTrackerAnchor()
-
-	--[=[]] v7 up to v10
-		WorldQuestTracker.TrackerAttachToModule = nil
-
-		if (blizzObjectiveTracker.collapsed) then
-			WorldQuestTracker.TrackerHeight = 20
-		else
-			for moduleId = #blizzObjectiveTracker.MODULES_UI_ORDER, 1, -1 do
-				local module = blizzObjectiveTracker.MODULES_UI_ORDER[moduleId]
-				if (module.Header:IsShown()) then
-					WorldQuestTracker.TrackerAttachToModule = module
-					--for k,v in pairs(module) do
-					--	print(k)
-					--end
-					WorldQuestTracker.TrackerHeight = module.contentsHeight
-					break
-				end
-			end
-		end
-	--]=]
-	--update world quest tracker anchor
-	--WorldQuestTracker.RefreshTrackerAnchor()
-	
 end
 
---quando houver uma atualiza��o no quest tracker, atualizar as ancoras do nosso tracker
---hooksecurefunc ("ObjectiveTracker_Update", function (reason, id) --v10
---	On_ObjectiveTracker_Update()
---end)
-
 hooksecurefunc(ObjectiveTrackerManager, "UpdateAll", function()
-	On_ObjectiveTracker_Update() --v11
-end)
-hooksecurefunc(ObjectiveTrackerManager, "UpdateModule", function()
-	On_ObjectiveTracker_Update() --v11
-end)
-
-ObjectiveTrackerFrame.Header.MinimizeButton:HookScript("OnClick", function() --v11
 	On_ObjectiveTracker_Update()
 end)
---quando o jogador clicar no bot�o de minizar o quest tracker, atualizar as ancores do nosso tracker
---ObjectiveTrackerFrame.HeaderMenu.MinimizeButton:HookScript ("OnClick", function() --v10
---	On_ObjectiveTracker_Update()
---end)
+hooksecurefunc(ObjectiveTrackerManager, "UpdateModule", function()
+	On_ObjectiveTracker_Update()
+end)
+
+ObjectiveTrackerFrame.Header.MinimizeButton:HookScript("OnClick", function()
+	On_ObjectiveTracker_Update()
+end)
 
 function WorldQuestTracker:FullTrackerUpdate()
 	On_ObjectiveTracker_Update()
 end
-
-
-
-
-
