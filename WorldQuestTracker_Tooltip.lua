@@ -247,6 +247,8 @@ local showTooltip = function(self, questInfo, style, xOffset, yOffset)
             end
         --end
     end
+	GameTooltip:Show();
+do return end
 
     --blizz
     local xpAmount = GetQuestLogRewardXP(questID) --return number  > 0
