@@ -107,7 +107,9 @@ function WorldQuestTracker.GetTrackedQuestsOnDB()
 	C_Timer.After (3, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load)
 	C_Timer.After (4, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load)
 	C_Timer.After (6, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker_Load)
-	C_Timer.After (10, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker)
+	if WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker then
+		C_Timer.After (10, WorldQuestTracker.CheckTimeLeftOnQuestsFromTracker)
+	end
 
 	WorldQuestTracker.RefreshTrackerWidgets()
 end
@@ -1224,38 +1226,12 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 			end
 
 
-			WorldQuestTracker:DumpTable (info)
+			Details:DumpTable (info)
 
 		end
 
 	else
-		WorldQuestTracker.curseforgeVersion = C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata("WorldQuestTracker", "Version")
-		if (not WorldQuestTracker.curseforgeVersion and GetAddOnMetadata) then
-			WorldQuestTracker.curseforgeVersion = GetAddOnMetadata("WorldQuestTracker", "Version")
-		end
-
-		pcall(function() WorldQuestTracker.version_alpha_id = tonumber(WorldQuestTracker.curseforgeVersion:match("%-(%d+)%-")) end)
-
-		WorldQuestTracker.gameVersionPrefix = "R"
-
-		--WD 10288 RELEASE 10.0.2
-		--WD 10288 ALPHA 21 10.0.2
-		function WorldQuestTracker.GetVersionString()
-			local curseforgeVersion = WorldQuestTracker.curseforgeVersion or ""
-			local alphaId = curseforgeVersion:match("%-(%d+)%-")
-
-			if (not alphaId) then
-				--this is a release version
-				alphaId = "RELEASE"
-			else
-				alphaId = "ALPHA " .. alphaId
-			end
-
-			local version, build, date, tvs = GetBuildInfo()
-			return WorldQuestTracker.gameVersionPrefix .. " " .. WorldQuestTracker.Version .. " " .. alphaId .. " " .. version .. ""
-		end
-
-		WorldQuestTracker:Msg("version:", WorldQuestTracker.GetVersionString())
+		WorldQuestTracker:Msg("version:", WQT_VERSION)
 
 		if (not WorldQuestTracker.SetupStatusbarButton) then
 			WorldQuestTracker:Msg(L["S_SLASH_OPENMAP_FIRST"])
