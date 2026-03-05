@@ -261,36 +261,10 @@ local questButton_OnEnter = function(self)
 		WorldQuestTracker.CurrentHoverQuest = self.questID
 		if not DF.IsAddonApocalypseWow() then
 			self.UpdateTooltip = TaskPOI_OnEnter -- function()end
+			TaskPOI_OnEnter(self)
+		else
+			WorldQuestTracker.ShowQuestTooltip(self)
 		end
-		WorldQuestTracker.ShowQuestTooltip(self)
-		--TaskPOI_OnEnter(self)
-
-		--[=[
-		for key, tooltip in pairs(_G) do
-			if (type(tooltip) == "table" and tooltip.GetName) then
-				if (tooltip.IsShown and tooltip.HookScript and not tooltip.widget and not tooltip.MyObject and not tooltip.dframework and not tooltip.WidgetType and not tooltip.dversion) then
-					if (tooltip.GetObjectType) then
-						local run = pcall(function()tooltip:GetObjectType()end)
-						if (run and tooltip:GetObjectType() == "GameTooltip") then
-							if (tooltip:IsShown()) then
-								print(tooltip:GetName())
-
-								if (tooltip:GetName() == "GameTooltipTooltip") then
-									local tooltipData = tooltip:GetTooltipData()
-									print(tooltipData)
-									if (tooltipData) then
-										for a,b in pairs(tooltipData) do
-											print(a,b)
-										end
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-		--]=]
 
 		WorldQuestTracker.HighlightOnWorldMap(self.questID, 1.3, "orange")
 
@@ -322,7 +296,12 @@ local questButton_OnLeave = function(self)
 		onleave_scale_animation(self)
 	end
 
-	TaskPOI_OnLeave(self)
+	if not DF.IsAddonApocalypseWow() then
+		TaskPOI_OnLeave(self)
+	else
+		WorldQuestTracker.HideQuestTooltip(self)
+	end
+
 	WorldQuestTracker.CurrentHoverQuest = nil
 	WorldQuestTracker.HideMapQuestHighlight()
 
@@ -352,7 +331,7 @@ function WorldQuestTracker.HideWorldQuestsOnWorldMap()
 	for _, widget in ipairs(all_widgets) do
 		widget:Hide()
 		widget.isArtifact = nil
-		widget.questID = nil
+		--widget.questID = nil
 	end
 
 	--faction lines(deprecated)

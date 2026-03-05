@@ -678,7 +678,7 @@ function WorldQuestTracker.CheckAddToTracker (self, button, onlyTrack)
 	else
 		--adicionar a quest ao track
 		WorldQuestTracker.AddQuestToTracker (self, questID, mapID)
-		if (not self.AddedToTrackerAnimation:IsPlaying()) then
+		if (self.AddedToTrackerAnimation and not self.AddedToTrackerAnimation:IsPlaying()) then
 			self.AddedToTrackerAnimation:Play()
 		end
 
@@ -699,7 +699,7 @@ function WorldQuestTracker.CheckAddToTracker (self, button, onlyTrack)
 		for _, widget in ipairs (WorldQuestTracker.Cache_ShownWidgetsOnZoneMap) do
 			if (widget.questID == self.questID) then
 				if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
-					if (not widget.AddedToTrackerAnimation:IsPlaying()) then
+					if (widget.AddedToTrackerAnimation and not widget.AddedToTrackerAnimation:IsPlaying()) then
 						widget.AddedToTrackerAnimation:Play()
 					end
 				end
@@ -724,13 +724,20 @@ function WorldQuestTracker.CreateStartTrackingAnimation (button, speed, offset)
 	DF:CreateAnimation (button.AddedToTrackerAnimation, "translation", 2, speed, 0, -offset)
 end
 
+function WorldQuestTracker.FindZoneWidget(questID)
+	for _, widget in ipairs (WorldQuestTracker.Cache_ShownWidgetsOnZoneMap) do
+		if (widget.questID == questID) then
+			return widget
+		end
+	end
+end
+
 --when the user clicks on a quest button -- �nclick ~onclick ~click
 function WorldQuestTracker.OnQuestButtonClick (self, button)
 
 	if (not self.questID) then
 		return
 	end
-
 	if (not HaveQuestData (self.questID)) then
 		WorldQuestTracker:Msg (L["S_ERROR_NOTLOADEDYET"])
 		return
@@ -780,21 +787,33 @@ function WorldQuestTracker.OnQuestButtonClick (self, button)
 		--widget in the world map
 		if (self.trackingGlowBorder) then
 			self.trackingGlowBorder:Show()
+		else
+			local widget = WorldQuestTracker.FindZoneWidget(self.questID)
+			if (widget and widget.trackingGlowBorder) then
+				widget.trackingGlowBorder:Show()
+			end
 		end
 	else
 		--widget in the world map
 		if (self.trackingGlowBorder) then
 			self.trackingGlowBorder:Hide()
+		else
+			local widget = WorldQuestTracker.FindZoneWidget(self.questID)
+			if (widget and widget.trackingGlowBorder) then
+				widget.trackingGlowBorder:Hide()
+			end
 		end
 	end
 
 	if (WorldQuestTracker.IsQuestBeingTracked (self.questID)) then
 		--zone and world widgets have
-		if (self.onEndTrackAnimation:IsPlaying()) then
+		if (self.onEndTrackAnimation and self.onEndTrackAnimation:IsPlaying()) then
 			self.onEndTrackAnimation:Stop()
 		end
 
-		self.onStartTrackAnimation:Play()
+		if self.onStartTrackAnimation then
+			self.onStartTrackAnimation:Play()
+		end
 
 		if (self.OnClickAnimation) then
 			self.OnClickAnimation:Play()
@@ -820,7 +839,9 @@ function WorldQuestTracker.OnQuestButtonClick (self, button)
 			if (self.onStartTrackAnimation:IsPlaying()) then
 				self.onStartTrackAnimation:Stop()
 			end
-			self.onEndTrackAnimation:Play()
+			if (self.onEndTrackAnimation) then
+				self.onEndTrackAnimation:Play()
+			end
 		end
 
 		--if have a anchor frame is a zone widget

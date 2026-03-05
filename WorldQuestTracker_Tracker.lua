@@ -123,7 +123,7 @@ function WorldQuestTracker.AddQuestToTracker(self, questID, mapID)
 		--return true
 	end
 
-	local timeLeft = WorldQuestTracker.GetQuest_TimeLeft (questID)
+	local timeLeft = WorldQuestTracker.GetQuest_TimeLeft(questID)
 	if (timeLeft and timeLeft > 0) then
 		local mapID = self.mapID
 		local iconTexture = self.IconTexture

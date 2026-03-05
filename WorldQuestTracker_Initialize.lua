@@ -1,5 +1,5 @@
 
-
+local VERSION = 551
 
 do
 	WQT_VERSION = 414
@@ -341,6 +341,7 @@ do
 	local WorldQuestTracker = DF:CreateAddOn("WorldQuestTrackerAddon", "WQTrackerDB", default_config)
 	WorldQuestTracker.__debug = false
 	WorldQuestTracker.MapChangedTime = time()-1
+	WorldQuestTracker.Version = VERSION
 
 	--create the group finder and rare finder frames
 	CreateFrame("frame", "WorldQuestTrackerFinderFrame", UIParent, "BackdropTemplate")
@@ -520,5 +521,6 @@ if (not GetQuestLogRewardCurrencyInfo) then
 else
 	WorldQuestTrackerAddon.GetQuestLogRewardCurrencyInfo = GetQuestLogRewardCurrencyInfo
 end
+
 
 --WorldQuestTrackerAddon.__debug = true

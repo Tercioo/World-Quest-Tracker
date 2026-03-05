@@ -275,7 +275,8 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				end)
 
 				pin._WQT_Twin:SetScript("OnLeave", function()
-					TaskPOI_OnLeave(pin._WQT_Twin)
+					--TaskPOI_OnLeave(pin._WQT_Twin)
+					WorldQuestTracker.HideQuestTooltip(pin._WQT_Twin)
 					pin._WQT_Twin.Texture:SetBlendMode("BLEND")
 				end)
 
