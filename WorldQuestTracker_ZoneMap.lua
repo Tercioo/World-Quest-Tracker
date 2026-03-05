@@ -192,12 +192,15 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button:SetSize(20, 20)
 	button:SetScript("OnEnter", function()
 		if (button.questID and type(button.questID) == "number" and button.questID >= 2) then
-			GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
-			--TaskPOI_OnEnter(button)
 			WorldQuestTracker.ShowQuestTooltip(button)
 		end
 	end)
-	button:SetScript("OnLeave", function() WorldQuestTracker.HideQuestTooltip(button) --[[TaskPOI_OnLeave(button)]] end)
+	button:SetScript("OnLeave", function()
+		WorldQuestTrackerGameTooltip:Hide()
+		WorldQuestTrackerGameTooltip.ItemTooltip:Hide()
+		WQT_ShoppingTooltip1:Hide()
+		WQT_ShoppingTooltip2:Hide()
+	end)
 	button:SetScript("OnClick", WorldQuestTracker.OnQuestButtonClick)
 
 	button:RegisterForClicks("LeftButtonDown", "MiddleButtonDown", "RightButtonDown")
@@ -212,14 +215,7 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button.SupportFrame = supportFrame
 
 	--> looks like something is triggering the tooltip to update on tick
-	button.UpdateTooltip = function()
-		if (button.questID) then
-			--print("updatin tooltip")
-			if not DF.IsAddonApocalypseWow() then
-				TaskPOI_OnEnter(button) --not calling this make stop the width issue
-			end
-		end
-	end
+	button.UpdateTooltip = nil
 	button.worldQuest = true
 	button.ClearWidget = clear_widget
 
@@ -287,9 +283,11 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 		end
 
 		button:HookScript("OnEnter", function(self)
-			button.OriginalFrameLevel = button:GetFrameLevel()
-			button:SetFrameLevel(button.OriginalFrameLevel + 50)
-
+			C_Timer.After(0, function()
+				button.OriginalFrameLevel = button:GetFrameLevel()
+				button:SetFrameLevel(button.OriginalFrameLevel + 50)
+			end)
+			-- Animationslogik bleibt direkt, da sie keine geschützten Werte berührt
 			if (self.OnEnterAnimation) then
 				if (not WorldQuestTracker.db.profile.hoverover_animations) then
 					return
@@ -327,9 +325,11 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 		end)
 
 		button:HookScript("OnLeave", function(self)
-			if (button.OriginalFrameLevel) then
-				button:SetFrameLevel(button.OriginalFrameLevel)
-			end
+			C_Timer.After(0, function()
+				if (button.OriginalFrameLevel) then
+					button:SetFrameLevel(button.OriginalFrameLevel)
+				end
+			end)
 
 			if (self.OnLeaveAnimation) then
 				if (not WorldQuestTracker.db.profile.hoverover_animations) then
@@ -619,9 +619,6 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button.criteriaIndicatorGlow = criteriaIndicatorGlow
 
 	button.bgFlag:Hide()
-
-	button:EnableMouse(false)
-	anchorFrame:EnableMouse(false)
 
 	return button
 end
@@ -1533,20 +1530,6 @@ function WorldQuestTracker.ResetWorldQuestZoneButton(self)
 	self.Amount = nil
 end
 
-function WorldQuestTracker.GetTextureForQuest(questData) --not in use
-	local rewardName, rewardTexture, numRewardItems = questData.rewardName, questData.rewardTexture, questData.numRewardItems
-	local texture, text, questType
-	if (rewardName) then
-		if (rewardTexture) then
-			texture = WorldQuestTracker.MapData.ReplaceIcon [rewardTexture] or rewardTexture
-			text = numRewardItems
-			questType = QUESTTYPE_RESOURCE
-		end
-	end
-
-	return texture, text, questType
-end
-
 --this function does not check if the quest reward is in the client cache ~update ~setup ~button
 ---@param self table
 ---@param questData wqt_questdata
@@ -2081,6 +2064,11 @@ function WorldQuestTracker.GetOrCreateZoneSummaryWidget(index, parent, pool)
 
 		WorldQuestTracker.HideMapQuestHighlight()
 
+		WorldQuestTrackerGameTooltip:Hide()
+		WorldQuestTrackerGameTooltip.ItemTooltip:Hide()
+		WQT_ShoppingTooltip1:Hide()
+		WQT_ShoppingTooltip2:Hide()
+
 		--mouseoverHighlight:Hide()
 	end)
 
@@ -2335,93 +2323,10 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 			summaryWidget._Twin = zoneWidget
 			WorldQuestTracker.SetupZoneSummaryButton(summaryWidget, zoneWidget)
 			lastWidget = summaryWidget
+
 			index = index + 1
 		end
 	end
-
-	local first, last
-	local shown = {}
-	for i = 1, #WorldQuestTracker.ZoneSumaryWidgets do
-		local summaryWidget = WorldQuestTracker.ZoneSumaryWidgets[i]
-		if (summaryWidget:IsShown()) then
-			if (not first) then
-				first = summaryWidget
-			end
-			last = summaryWidget
-			shown[#shown + 1] = summaryWidget
-
-			summaryWidget:EnableMouse(false) --test
-		end
-	end
-
-	if not WorldQuestTracker.ZoneSummaryEnterFrame then
-		WorldQuestTracker.ZoneSummaryEnterFrame = CreateFrame("Button", "WorldQuestTrackerZoneEnterFrame", ZoneSumaryFrame, "BackdropTemplate")
-		--DF:ApplyStandardBackdrop(WorldQuestTracker.ZoneSummaryEnterFrame)
-	end
-
-	if first then
-		WorldQuestTracker.ZoneSummaryEnterFrame:SetPoint("topleft", first, "topleft", 0, 4)
-		WorldQuestTracker.ZoneSummaryEnterFrame:SetPoint("bottomright", last, "bottomright", 4, -4)
-	end
-	--WorldQuestTracker.ZoneSummaryEnterFrame:SetScript("OnEnter", function(self)
-	--end)
-
-	WorldQuestTracker.ZoneSummaryEnterFrame:SetScript("OnUpdate", function(self)
-		if self:IsMouseOver() then
-			if not self.IsOver then
-				self.IsOver = false
-				for i = 1, #shown do
-					local widget = shown[i]
-					local questID = widget._Twin.questID
-					local defaultPin = WorldQuestTracker.DefaultWorldQuestPin[questID]
-					if defaultPin then
-						defaultPin:ClearAllPoints()
-						defaultPin:SetAllPoints(widget)
-						defaultPin:SetFrameLevel(1000)
-						defaultPin:SetFrameStrata("DIALOG")
-						defaultPin:SetAlpha(0)
-						defaultPin.DefaultParent = defaultPin:GetParent()
-						defaultPin:SetParent(widget)
-
-						local frameLevel = defaultPin:GetFrameLevel() --default pin frame level
-						local zoneSummaryEnterLevel = WorldQuestTracker.ZoneSummaryEnterFrame:GetFrameLevel() --summary on enter frame level
-
-						if zoneSummaryEnterLevel >= frameLevel then
-							WorldQuestTracker.ZoneSummaryEnterFrame:SetFrameLevel(frameLevel - 1)
-						end
-
-						widget.DefaultPin = defaultPin
-						widget:EnableMouse(false)
-
-						if not defaultPin.Hooked_ then
-							defaultPin.Hooked_ = true
-							--defaultPin:HookScript("OnEnter", function(self)
-							--	print("enter default pin", questID)
-							--end)
-							--defaultPin:HookScript("OnLeave", function(self)
-							--	print("left default pin")
-							--end)
-						end
-					end
-				end
-			end
-		else
-			if self.IsOver then
-				self.IsOver = false
-				for i = 1, #shown do
-					local widget = shown[i]
-					if widget.DefaultPin then
-						widget.DefaultPin:ClearAllPoints()
-						widget.DefaultPin:SetPoint("center", widget._Twin, "center")
-						widget.DefaultPin:SetParent(widget.DefaultPin.DefaultParent)
-						widget.DefaultPin = nil
-						widget.DefaultPin:SetAlpha(1)
-						widget:EnableMouse(true)
-					end
-				end
-			end
-		end
-	end)
 
 	--attach the header to the last widget
 	if (lastWidget) then
