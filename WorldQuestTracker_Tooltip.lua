@@ -777,7 +777,7 @@ local rewardFuncFromScratch = function(tooltip, questID, style)
 			GameTooltip_ShowCompareItem(tooltip)
 		end
 	end
-	do return end
+	--do return end
 
 	--xp (safe)
 	local totalXp, baseXp = GetQuestLogRewardXP(questID)
@@ -802,11 +802,6 @@ local rewardFuncFromScratch = function(tooltip, questID, style)
 		GameTooltip_AddColoredLine(tooltip, BONUS_OBJECTIVE_HOUSING_FAVOR_FORMAT:format(favor, HOUSING_DASHBOARD_REWARD_ESTATE_XP), HIGHLIGHT_FONT_COLOR) --safe
 		hasAnySingleLineRewards = true
 	end
-
-
-
-
-	
 
 	--currency (not safe)
 	local mainRewardIsFirstTimeReputationBonus = false
@@ -852,7 +847,7 @@ local rewardFuncFromScratch = function(tooltip, questID, style)
 		if style.fullItemDescription then
 			-- we want to do a full item description
 			local itemIndex, rewardType = getBestQualityItemRewardIndex(questID) --safe
-			tooltip:SetQuestLogItem("reward", 1, questID)
+			--tooltip:SetQuestLogItem("reward", 1, questID)
 
 			-- check for item compare input of flag
 			if not showRetrievingData then
@@ -890,6 +885,11 @@ end
 
 local isWorldMapHooked = false
 local showTooltip = function(self, questInfo, style, xOffset, yOffset)
+--   if true then
+--      TaskPOI_OnEnter(self)
+--      return
+--   end
+
     if not detailsFramework.IsAddonApocalypseWow() then
         TaskPOI_OnEnter(self)
         return
@@ -1097,7 +1097,7 @@ WorldQuestTracker.HideQuestTooltip = function(button)
 	if not detailsFramework.IsAddonApocalypseWow() then
 		TaskPOI_OnLeave(button)
         return
-    end
+   end
 
 	WQT_ShoppingTooltip1:Hide()
 	WQT_ShoppingTooltip2:Hide()

@@ -47,6 +47,14 @@ WorldQuestTracker.MapData.ZoneIDs = {
 	--Main Hub
 		AZEROTH =		947,
 
+	--wow12
+		WOW12_HUB = 2537,
+		QUELDANAS = 2424,
+		EVERSONG_WOODS = 2395,
+		ZULAMAN = 2437,
+		VOIDSTORM = 2405,
+		HARANDAR = 2413,
+
 	--wow11
 		KHAZALGAR = 	2274,
 		RINGINGDEEPS =	2214,
@@ -115,6 +123,12 @@ WorldQuestTracker.MapData.ZoneIDs = {
 local zoneIDs = WorldQuestTracker.MapData.ZoneIDs
 
 WorldQuestTracker.DotLineScale = {
+	[zoneIDs.QUELDANAS] = 3,
+	[zoneIDs.EVERSONG_WOODS] = 3,
+	[zoneIDs.ZULAMAN] = 3,
+	[zoneIDs.VOIDSTORM] = 3,
+	[zoneIDs.HARANDAR] = 3,
+
 	[zoneIDs.ZARALEK] = 2,
 	[zoneIDs.OHNAHRANPLAINS] = 2,
 	[zoneIDs.WAKINGSHORES] = 2,
@@ -150,6 +164,13 @@ WorldQuestTracker.MapData.ZoneToHub = {
 
 --all zones with world quests
 WorldQuestTracker.MapData.WorldQuestZones = {
+	--wow 12
+		[zoneIDs.QUELDANAS] = true,
+		[zoneIDs.EVERSONG_WOODS] = true,
+		[zoneIDs.ZULAMAN] = true,
+		[zoneIDs.VOIDSTORM] = true,
+		[zoneIDs.HARANDAR] = true,
+
 	--wow 11
 		[zoneIDs.DORN] = true,
 		[zoneIDs.HALLOWFALL] = true,
@@ -231,6 +252,7 @@ WorldQuestTracker.MapData.DragonflightZones = {
 
 --quest hub by expansion
 WorldQuestTracker.MapData.ExpMaps = {
+	[zoneIDs.WOW12_HUB] = 12,
 	[zoneIDs.KHAZALGAR] = 11,
 	[zoneIDs.DRAGONISLES] = 10,
 	[zoneIDs.THESHADOWLANDS] = 9,
@@ -241,6 +263,7 @@ WorldQuestTracker.MapData.ExpMaps = {
 }
 
 WorldQuestTracker.MapData.HubMapIconsScale = {
+	[zoneIDs.WOW12_HUB] = 0.85,
 	[zoneIDs.DRAGONISLES] = 0.85,
 	[zoneIDs.THESHADOWLANDS] = 1,
 	[zoneIDs.ZANDALAR] = 0.9,
@@ -252,6 +275,7 @@ WorldQuestTracker.MapData.HubMapIconsScale = {
 
 --list of map ids for world quest hubs
 WorldQuestTracker.MapData.QuestHubs = {
+	[zoneIDs.WOW12_HUB] = true, --wow12 hub
 	[zoneIDs.KHAZALGAR] = true, --wow11 hub
 	[zoneIDs.DRAGONISLES] = true, --dragon isles hub
 	[zoneIDs.THESHADOWLANDS] = true, --shadowlands hub
@@ -264,6 +288,46 @@ WorldQuestTracker.MapData.QuestHubs = {
 
 --world map anchors
 WorldQuestTracker.mapTables = {
+	[zoneIDs.EVERSONG_WOODS] = 		{
+		widgets = {},
+		Anchor_X = 0.002,
+		Anchor_Y = 0.25,
+		GrowRight = true,
+		show_on_map = {
+			[zoneIDs.WOW12_HUB] = true,
+		},
+	},
+
+	[zoneIDs.ZULAMAN] = 		{
+		widgets = {},
+		Anchor_X = 0.57,
+		Anchor_Y = 0.73,
+		GrowRight = true,
+		show_on_map = {
+			[zoneIDs.WOW12_HUB] = true,
+		},
+	},
+
+	[zoneIDs.VOIDSTORM] = 		{
+		widgets = {},
+		Anchor_X = 0.55,
+		Anchor_Y = 0.368,
+		GrowRight = true,
+		show_on_map = {
+			[zoneIDs.WOW12_HUB] = true,
+		},
+	},
+
+	[zoneIDs.HARANDAR] = 		{
+		widgets = {},
+		Anchor_X = 0.72,
+		Anchor_Y = 0.08,
+		GrowRight = false,
+		show_on_map = {
+			[zoneIDs.WOW12_HUB] = true,
+		},
+	},
+
 	--dlc 10 (tww)
 	[zoneIDs.RINGINGDEEPS] = 		{
 		widgets = {},
@@ -765,8 +829,36 @@ WorldQuestTracker.MapData.ResourceIcons = {
 
 --start of ~factions
 
+--	/run for i =2000, 3000 do local N={WorldQuestTrackerAddon.GetFactionDataByID(i)}if(N[1])then print(N[1].." "..N[14])end end
+--  /dumpt {WorldQuestTrackerAddon.GetFactionDataByID(2696)}
+
 -- texture ID of the reward when the world quest reward is a faction rep token
 WorldQuestTracker.MapData.ReputationIcons = {
+	--DLC 11 (midnight)
+	[7505699] = true, --Amani Tribe 2696
+	[7505702] = true, --The Singularity 2699 
+	[7505704] = true, --Hara'ti 2704 
+	[7505700] = true, --Silvermoon Court 2710
+
+		--Midnight 2698
+		--Witherbark Tribe 2706
+		--Vanguard of the Light 2709
+		--Magisters 2711
+		--Blood Knights 2712
+		--Farstriders 2713
+		--Shades of the Row 2714
+		--Silvermoon City 2720
+		--PLAYER, Haranir Horde 2728
+		--PLAYER, Haranir Alliance 2729
+		--Manaforge Vandals 2736
+		--Valeera Sanguinar 2744
+		--Brawl'gar Arena 2766
+		--Bizmo's Brawlpub 2767
+		--Slayer's Duellum 2770
+		--Shadowpine Tribe 2780
+		--Revantusk Tribe 2781
+
+
 	--DLC 10 (tww)
 	[5891369] = true, --Council of Dornogal
 	[5891367] = true, --The Assembly of the Deeps
@@ -812,6 +904,12 @@ WorldQuestTracker.MapData.ReputationIcons = {
 ---list of relevant factions
 ---@type table<factionid, boolean>
 WorldQuestTracker.MapData.AllFactionIds = {
+	--DLC 11 (midnight)
+	[2696] = true, --Amani Tribe
+	[2699] = true, --The Singularity
+	[2704] = true, --Hara'ti
+	[2710] = true, --Silvermoon Court
+
 	--DLC 10 (tww)
 	[2590] = true, --Council of Dornogal
 	[2594] = true, --The Assembly of the Deeps
@@ -869,6 +967,12 @@ WorldQuestTracker.MapData.AllFactionIds = {
 
 ---@type table<factionid, mapid>
 WorldQuestTracker.MapData.FactionMapId = {
+	--DLC 11 (midnight)
+	[2696] = zoneIDs.ZULAMAN, --Amani Tribe
+	[2699] = zoneIDs.VOIDSTORM, --The Singularity
+	[2704] = zoneIDs.HARANDAR, --Hara'ti
+	[2710] = zoneIDs.EVERSONG_WOODS, --Silvermoon Court
+
 	--DLC 10 (tww)
 	[2590] = zoneIDs.DORN, --Council of Dornogal
 	[2594] = zoneIDs.RINGINGDEEPS, --The Assembly of the Deeps
@@ -897,6 +1001,12 @@ WorldQuestTracker.MapData.FactionMapId = {
 
 ---@type table<factionid, string|number>
 WorldQuestTracker.MapData.FactionIcons = {
+	--DLC 11 (midnight)
+	[2696] = 7505699, --Amani Tribe
+	[2699] = 7505702, --The Singularity
+	[2704] = 7505704, --Hara'ti
+	[2710] = 7505700, --Silvermoon Court
+
 	--DLC 10 (tww)
 	[2590] = 5891369, --Council of Dornogal
 	[2594] = 5891367, --The Assembly of the Deeps
@@ -949,7 +1059,13 @@ WorldQuestTracker.MapData.FactionIcons = {
 	[1859] = "Interface\\ICONS\\INV_Legion_Faction_NightFallen", --The Nightfallen
 	[1894] = "Interface\\ICONS\\INV_Legion_Faction_Warden", --The Wardens
 	[1948] = "Interface\\ICONS\\INV_Legion_Faction_Valarjar", --Valarjar
---	/run for i =1, 3000 do local N={WorldQuestTrackerAddon.GetFactionDataByID(i)}if(N[1])then print(N[1].." "..N[14])end end
+}
+
+local WOW12Factions = { --DLC11 (midnight)
+	[2696] = true, --Amani Tribe
+	[2699] = true, --The Singularity
+	[2704] = true, --Hara'ti
+	[2710] = true, --Silvermoon Court
 }
 
 local WOW11Factions = { --DLC10 (tww)
@@ -1038,6 +1154,7 @@ WorldQuestTracker.MapData.OverrideMapId = {
 --what are the factionIds belong to the map
 WorldQuestTracker.MapData.ReputationByMap = {
 	--world maps
+		[zoneIDs.WOW12_HUB] = WOW12Factions,
 		[zoneIDs.KHAZALGAR] = WOW11Factions,
 		[zoneIDs.DRAGONISLES] = DragonflightFactions,
 		[zoneIDs.THESHADOWLANDS] = ShadowlandsFactions,

@@ -8,14 +8,14 @@ if (not WorldQuestTracker) then
 end
 
 --framework
-local DF = _G ["DetailsFramework"]
-if (not DF) then
+local detailsFramework = _G ["DetailsFramework"]
+if (not detailsFramework) then
 	print("|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r")
 	return
 end
 
 --localization
-local L = DF.Language.GetLanguageTable(addonId)
+local L = detailsFramework.Language.GetLanguageTable(addonId)
 
 local HereBeDragons = LibStub("HereBeDragons-2.0")
 
@@ -38,7 +38,6 @@ local UpdateDebug = false
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> world map widgets
 
---se a janela do world map esta em modo janela
 WorldQuestTracker.InWindowMode = not WorldMapFrame.isMaximized
 WorldQuestTracker.LastUpdate = 0
 local worldFramePOIs = WorldQuestTrackerWorldMapPOI
@@ -54,17 +53,17 @@ worldFramePOIs.mouseoverHighlight:SetVertexColor(1, .7, .2)
 worldFramePOIs.mouseoverHighlight:SetVertexColor(unpack(WorldQuestTracker.ColorPalette.orange))
 worldFramePOIs.mouseoverHighlight:SetBlendMode("ADD")
 
-worldFramePOIs.mouseoverHighlight.OnShowAnimation = DF:CreateAnimationHub(worldFramePOIs.mouseoverHighlight)
-DF:CreateAnimation(worldFramePOIs.mouseoverHighlight.OnShowAnimation, "scale", 1, 0.035, .7, .7, 1.1, 1.1)
-DF:CreateAnimation(worldFramePOIs.mouseoverHighlight.OnShowAnimation, "alpha", 1, 0.035, 0.75, .91)
-DF:CreateAnimation(worldFramePOIs.mouseoverHighlight.OnShowAnimation, "scale", 2, 0.035, 1.1, 1.1, 1, 1)
-DF:CreateAnimation(worldFramePOIs.mouseoverHighlight.OnShowAnimation, "alpha", 2, 0.035, .91, 1)
+worldFramePOIs.mouseoverHighlight.OnShowAnimation = detailsFramework:CreateAnimationHub(worldFramePOIs.mouseoverHighlight)
+detailsFramework:CreateAnimation(worldFramePOIs.mouseoverHighlight.OnShowAnimation, "scale", 1, 0.035, .7, .7, 1.1, 1.1)
+detailsFramework:CreateAnimation(worldFramePOIs.mouseoverHighlight.OnShowAnimation, "alpha", 1, 0.035, 0.75, .91)
+detailsFramework:CreateAnimation(worldFramePOIs.mouseoverHighlight.OnShowAnimation, "scale", 2, 0.035, 1.1, 1.1, 1, 1)
+detailsFramework:CreateAnimation(worldFramePOIs.mouseoverHighlight.OnShowAnimation, "alpha", 2, 0.035, .91, 1)
 
-worldFramePOIs.mouseoverHighlight.PulseAnimation = DF:CreateAnimationHub(worldFramePOIs.mouseoverHighlight)
-DF:CreateAnimation(worldFramePOIs.mouseoverHighlight.PulseAnimation, "scale", 1, 1, 1, 1, 1.6, 1.6)
-DF:CreateAnimation(worldFramePOIs.mouseoverHighlight.PulseAnimation, "alpha", 1, 1, 0.75, .91)
-DF:CreateAnimation(worldFramePOIs.mouseoverHighlight.PulseAnimation, "scale", 2, 1, 1, 1, .6, .6)
-DF:CreateAnimation(worldFramePOIs.mouseoverHighlight.PulseAnimation, "alpha", 2, 1, 1, .845)
+worldFramePOIs.mouseoverHighlight.PulseAnimation = detailsFramework:CreateAnimationHub(worldFramePOIs.mouseoverHighlight)
+detailsFramework:CreateAnimation(worldFramePOIs.mouseoverHighlight.PulseAnimation, "scale", 1, 1, 1, 1, 1.6, 1.6)
+detailsFramework:CreateAnimation(worldFramePOIs.mouseoverHighlight.PulseAnimation, "alpha", 1, 1, 0.75, .91)
+detailsFramework:CreateAnimation(worldFramePOIs.mouseoverHighlight.PulseAnimation, "scale", 2, 1, 1, 1, .6, .6)
+detailsFramework:CreateAnimation(worldFramePOIs.mouseoverHighlight.PulseAnimation, "alpha", 2, 1, 1, .845)
 worldFramePOIs.mouseoverHighlight.PulseAnimation:SetLooping("REPEAT")
 
 local do_highlight_pulse_animation = function(timerObject)
@@ -76,7 +75,7 @@ local do_highlight_on_quest = function(widget, scale, color)
 		worldFramePOIs.mouseoverHighlight.StartPulseAnimation:Cancel()
 	end
 
-	local r, g, b, a = DF:ParseColors(color or "white")
+	local r, g, b, a = detailsFramework:ParseColors(color or "white")
 	worldFramePOIs.mouseoverHighlight:SetVertexColor(r, g, b, a)
 
 	worldFramePOIs.mouseoverHighlight:Show()
@@ -89,6 +88,7 @@ local do_highlight_on_quest = function(widget, scale, color)
 	worldFramePOIs.mouseoverHighlight.StartPulseAnimation = C_Timer.NewTimer(2, do_highlight_pulse_animation)
 end
 
+--load world quests for the current continent shown
 local loadQuestData = function()
 	local worldMapID = WorldQuestTracker.GetCurrentMapAreaID()
 
@@ -259,7 +259,7 @@ end
 local questButton_OnEnter = function(self)
 	if (self.questID) then
 		WorldQuestTracker.CurrentHoverQuest = self.questID
-		if not DF.IsAddonApocalypseWow() then
+		if not detailsFramework.IsAddonApocalypseWow() then
 			self.UpdateTooltip = TaskPOI_OnEnter -- function()end
 			TaskPOI_OnEnter(self)
 		else
@@ -296,7 +296,7 @@ local questButton_OnLeave = function(self)
 		onleave_scale_animation(self)
 	end
 
-	if not DF.IsAddonApocalypseWow() then
+	if not detailsFramework.IsAddonApocalypseWow() then
 		TaskPOI_OnLeave(self)
 	else
 		WorldQuestTracker.HideQuestTooltip(self)
@@ -349,10 +349,106 @@ local worldSquareBackdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize
 
 local emptyFunction = function()end
 
+---@class wqt_worldmapsquarebutton : button
+---@field QuestType number
+---@field FactionID number
+---@field mapID number
+---@field Rarity number
+---@field Amount number
+---@field lastUpdate number
+---@field TimeLeft number
+---@field WorldQuestType number
+---@field WidgetID number
+---@field WidgetAnchorID number
+---@field numObjectives number
+---@field Order number
+---@field X number
+---@field OnEnterAnimationScaleDiff number
+---@field WidgetOrder number
+---@field Y number
+---@field lastQuestID number
+---@field questID number
+---@field IconText string
+---@field IconTexture string
+---@field IsWorldQuestButton boolean
+---@field isWorldMapWidget boolean
+---@field worldQuest boolean
+---@field IsCriteria boolean
+---@field backdropInfo table
+---@field questData table
+---@field onStartTrackAnimation animationgroup
+---@field OnShowAnimation animationgroup
+---@field amountBackground texture
+---@field commonBorder texture
+---@field questTypeBlip texture
+---@field HighlightSaturated texture
+---@field criteriaHighlight texture
+---@field overlayBorder2 texture
+---@field criteriaIndicator texture
+---@field BottomEdge texture
+---@field DefaultPin button
+---@field TopLeftCorner texture
+---@field fadeInAnimation animationgroup
+---@field LoopFlash animationgroup
+---@field timeBlipYellow texture
+---@field factionBorder texture
+---@field miscBorder texture
+---@field Center texture
+---@field BottomLeftCorner texture
+---@field trackingBorder texture
+---@field newIndicator texture
+---@field background texture
+---@field epicBorder texture
+---@field borderAnimation frame
+---@field invasionBorder texture
+---@field OnLeaveAnimation animationgroup
+---@field Anchor frame
+---@field CurrentAnchor frame
+---@field timeLeftBackground texture
+---@field OnEnterAnimation animationgroup
+---@field TopRightCorner texture
+---@field overlayBorder texture
+---@field onEndTrackAnimation animationgroup
+---@field QuickFlash animationgroup
+---@field BottomRightCorner texture
+---@field newFlash animationgroup
+---@field amountText fontstring
+---@field criteriaIndicatorGlow texture
+---@field rareBorder texture
+---@field RightEdge texture
+---@field timeBlipOrange texture
+---@field timeBlipRed texture
+---@field LeftEdge texture
+---@field TopEdge texture
+---@field texture texture
+---@field CriteriaAnimation animationgroup
+---@field FlashTexture texture
+---@field trackingGlowBorder texture
+---@field timeLeftText fontstring
+---@field timeBlipGreen texture
+---@field trackingGlowInside texture
+---@field AddedToTrackerAnimation animationgroup
+---@field ClearBackdrop fun()
+---@field OnLegendPinMouseLeave fun()
+---@field SetupPieceVisuals fun()
+---@field GetBackdropBorderColor fun()
+---@field GetBackdropColor fun()
+---@field HasBackdropInfo fun()
+---@field OnBackdropSizeChanged fun()
+---@field SetBorderBlendMode fun()
+---@field GetBackdrop fun()
+---@field GetEdgeSize fun()
+---@field ApplyBackdrop fun()
+---@field OnLegendPinMouseEnter fun()
+---@field SetupTextureCoordinates fun()
+---@field OnBackdropLoaded fun()
+
+
 --cria uma square widget no world map ~world ~createworld ~createworldwidget
 --index and name are only for the glogal name
 local create_worldmap_square = function(mapName, index, parent)
 	local button = CreateFrame("button", "WorldQuestTrackerWorldMapPOI" .. mapName .. "POI" .. index, parent or worldFramePOIs, "BackdropTemplate")
+	---@cast button wqt_worldmapsquarebutton
 	button:SetSize(WorldQuestTracker.Constants.WorldMapSquareSize, WorldQuestTracker.Constants.WorldMapSquareSize)
 	button.IsWorldQuestButton = true
 	button:SetFrameLevel(302)
@@ -458,14 +554,14 @@ local create_worldmap_square = function(mapName, index, parent)
 			speed = WQT_ANIMATION_SPEED,
 		}
 		do
-			button.OnEnterAnimation = DF:CreateAnimationHub(button, function() end, function() end)
+			button.OnEnterAnimation = detailsFramework:CreateAnimationHub(button, function() end, function() end)
 			local anim = WorldQuestTracker:CreateAnimation(button.OnEnterAnimation, "Scale", 1, animaSettings.speed, 1, 1, animaSettings.scaleMax, animaSettings.scaleMax, "center", 0, 0)
 			anim:SetEndDelay(60) --this fixes the animation going back to 1 after it finishes
 			--anim:SetSmoothing("IN_OUT")
 			anim:SetSmoothing("IN") --looks like OUT smooth has some problems in the PTR
 			button.OnEnterAnimation.ScaleAnimation = anim
 
-			button.OnLeaveAnimation = DF:CreateAnimationHub(button, function() end, function() end)
+			button.OnLeaveAnimation = detailsFramework:CreateAnimationHub(button, function() end, function() end)
 			local anim = WorldQuestTracker:CreateAnimation(button.OnLeaveAnimation, "Scale", 2, animaSettings.speed, animaSettings.scaleMax, animaSettings.scaleMax, 1, 1, "center", 0, 0)
 			--anim:SetSmoothing("IN_OUT")
 			anim:SetSmoothing("IN")
@@ -499,13 +595,13 @@ local create_worldmap_square = function(mapName, index, parent)
 	flashTexture:SetPoint("bottomright", -1, 1)
 	button.FlashTexture = flashTexture
 
-	button.QuickFlash = DF:CreateAnimationHub(flashTexture, function() flashTexture:Show() end, function() flashTexture:Hide() end)
+	button.QuickFlash = detailsFramework:CreateAnimationHub(flashTexture, function() flashTexture:Show() end, function() flashTexture:Hide() end)
 	local anim = WorldQuestTracker:CreateAnimation(button.QuickFlash, "Alpha", 1, .15, 0, 1)
 	anim:SetSmoothing("IN_OUT")
 	local anim = WorldQuestTracker:CreateAnimation(button.QuickFlash, "Alpha", 2, .15, 1, 0)
 	anim:SetSmoothing("IN_OUT")
 
-	button.LoopFlash = DF:CreateAnimationHub(flashTexture, function() flashTexture:Show() end, function() flashTexture:Hide() end)
+	button.LoopFlash = detailsFramework:CreateAnimationHub(flashTexture, function() flashTexture:Show() end, function() flashTexture:Hide() end)
 	local anim = WorldQuestTracker:CreateAnimation(button.LoopFlash, "Alpha", 1, .35, 0, .5)
 	anim:SetSmoothing("IN_OUT")
 	local anim = WorldQuestTracker:CreateAnimation(button.LoopFlash, "Alpha", 2, .35, .5, 0)
@@ -517,22 +613,22 @@ local create_worldmap_square = function(mapName, index, parent)
 	smallFlashOnTrack:SetColorTexture(1, 1, 1)
 	smallFlashOnTrack:SetAllPoints()
 
-	local onFlashTrackAnimation = DF:CreateAnimationHub(smallFlashOnTrack, nil, function(self) self:GetParent():Hide() end)
+	local onFlashTrackAnimation = detailsFramework:CreateAnimationHub(smallFlashOnTrack, nil, function(self) self:GetParent():Hide() end)
 	onFlashTrackAnimation.FlashTexture = smallFlashOnTrack
 	WorldQuestTracker:CreateAnimation(onFlashTrackAnimation, "Alpha", 1, .15, 0, 1)
 	WorldQuestTracker:CreateAnimation(onFlashTrackAnimation, "Alpha", 2, .15, 1, 0)
 
-	local onStartTrackAnimation = DF:CreateAnimationHub(trackingGlowBorder, WorldQuestTracker.OnStartClickAnimation)
+	local onStartTrackAnimation = detailsFramework:CreateAnimationHub(trackingGlowBorder, WorldQuestTracker.OnStartClickAnimation)
 	onStartTrackAnimation.OnFlashTrackAnimation = onFlashTrackAnimation
 	WorldQuestTracker:CreateAnimation(onStartTrackAnimation, "Scale", 1, .1, .9, .9, 1.1, 1.1)
 	WorldQuestTracker:CreateAnimation(onStartTrackAnimation, "Scale", 2, .1, 1.2, 1.2, 1, 1)
 
-	local onEndTrackAnimation = DF:CreateAnimationHub(trackingGlowBorder, WorldQuestTracker.OnStartClickAnimation, WorldQuestTracker.OnEndClickAnimation)
+	local onEndTrackAnimation = detailsFramework:CreateAnimationHub(trackingGlowBorder, WorldQuestTracker.OnStartClickAnimation, WorldQuestTracker.OnEndClickAnimation)
 	WorldQuestTracker:CreateAnimation(onEndTrackAnimation, "Scale", 1, .5, 1, 1, .6, .6)
 	button.onStartTrackAnimation = onStartTrackAnimation
 	button.onEndTrackAnimation = onEndTrackAnimation
 
-	local onShowAnimation = DF:CreateAnimationHub(button) --, WorldQuestTracker.OnStartClickAnimation, WorldQuestTracker.OnEndClickAnimation
+	local onShowAnimation = detailsFramework:CreateAnimationHub(button) --, WorldQuestTracker.OnStartClickAnimation, WorldQuestTracker.OnEndClickAnimation
 	WorldQuestTracker:CreateAnimation(onShowAnimation, "Scale", 1, .1, 1, 1, 1.2, 1.2)
 	WorldQuestTracker:CreateAnimation(onShowAnimation, "Scale", 2, .1, 1.1, 1.1, 1, 1)
 	WorldQuestTracker:CreateAnimation(onShowAnimation, "Alpha", 1, .1, 0, .5)
@@ -558,9 +654,9 @@ local create_worldmap_square = function(mapName, index, parent)
 	criteriaIndicatorGlow:Hide()
 	criteriaFrame.Glow = criteriaIndicatorGlow
 
-	local criteriaAnimation = DF:CreateAnimationHub(criteriaFrame)
-	DF:CreateAnimation(criteriaAnimation, "Scale", 1, .15, 1, 1, 1.1, 1.1)
-	DF:CreateAnimation(criteriaAnimation, "Scale", 2, .15, 1.2, 1.2, 1, 1)
+	local criteriaAnimation = detailsFramework:CreateAnimationHub(criteriaFrame)
+	detailsFramework:CreateAnimation(criteriaAnimation, "Scale", 1, .15, 1, 1, 1.1, 1.1)
+	detailsFramework:CreateAnimation(criteriaAnimation, "Scale", 2, .15, 1.2, 1.2, 1, 1)
 	button.CriteriaAnimation = criteriaAnimation
 
 	local criteriaHighlight = button:CreateTexture(nil, "highlight")
@@ -612,14 +708,14 @@ local create_worldmap_square = function(mapName, index, parent)
 
 	local amountText = button:CreateFontString(nil, "overlay", "GameFontNormal", 1)
 	amountText:SetPoint("bottom", button, "bottom", 1, -10)
-	DF:SetFontSize(amountText, 9)
+	detailsFramework:SetFontSize(amountText, 9)
 
 	local timeLeftText = button:CreateFontString(nil, "overlay", "GameFontNormal", 1)
 	timeLeftText:SetPoint("bottom", button, "bottom", 0, 1)
 	timeLeftText:SetJustifyH("center")
-	DF:SetFontOutline(timeLeftText, true)
-	DF:SetFontSize(timeLeftText, 9)
-	DF:SetFontColor(timeLeftText, {1, 1, 0})
+	detailsFramework:SetFontOutline(timeLeftText, true)
+	detailsFramework:SetFontSize(timeLeftText, 9)
+	detailsFramework:SetFontColor(timeLeftText, {1, 1, 0})
 	--
 	local timeLeftBackground = button:CreateTexture(nil, "background", nil, 0)
 	timeLeftBackground:SetPoint("center", timeLeftText, "center")
@@ -916,11 +1012,12 @@ function WorldQuestTracker.GetWorldWidgetForQuest(questID)
 	end
 end
 
--- ~update
+-- ~update the squares on the world map, this is called when the world map is open and when the map shows a world quest hub
 ---@param widget table
 ---@param questData wqt_questdata
 ---@param bIsUsingTracker boolean?
-function WorldQuestTracker.UpdateWorldWidget(widget, questData, bIsUsingTracker)
+---@param isZoneSummaryWidget boolean?
+function WorldQuestTracker.UpdateWorldWidget(widget, questData, bIsUsingTracker, isZoneSummaryWidget)
 	local questID = questData.questID
 	local numObjectives = questData.numObjectives
 	local mapID = questData.mapID
@@ -1024,7 +1121,7 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questData, bIsUsingTracker)
 	if (bWarband and WorldQuestTracker.db.profile.show_warband_rep_warning) then
 		if (not bWarbandRep) then
 			widget.criteriaIndicator:Show()
-			widget.criteriaIndicator:SetVertexColor(DF:ParseColors(WorldQuestTracker.db.profile.show_warband_rep_warning_color))
+			widget.criteriaIndicator:SetVertexColor(detailsFramework:ParseColors(WorldQuestTracker.db.profile.show_warband_rep_warning_color))
 			widget.criteriaIndicator:SetAlpha(WorldQuestTracker.db.profile.show_warband_rep_warning_alpha)
 			widget.texture:SetDesaturation(WorldQuestTracker.db.profile.show_warband_rep_warning_desaturation)
 			widget.criteriaIndicatorGlow:Show()
@@ -1136,7 +1233,7 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questData, bIsUsingTracker)
 		amountGold = gold
 
 		if (not widget.IsZoneSummaryQuestButton) then
-			DF.table.addunique(WorldQuestTracker.Cache_ShownQuestOnWorldMap[WQT_QUESTTYPE_GOLD], questID)
+			detailsFramework.table.addunique(WorldQuestTracker.Cache_ShownQuestOnWorldMap[WQT_QUESTTYPE_GOLD], questID)
 		end
 
 		okay = true
@@ -1163,7 +1260,7 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questData, bIsUsingTracker)
 			widget.QuestType = QUESTTYPE_RESOURCE
 
 			if (not widget.IsZoneSummaryQuestButton) then
-				DF.table.addunique(WorldQuestTracker.Cache_ShownQuestOnWorldMap[WQT_QUESTTYPE_RESOURCE], questID)
+				detailsFramework.table.addunique(WorldQuestTracker.Cache_ShownQuestOnWorldMap[WQT_QUESTTYPE_RESOURCE], questID)
 			end
 		else
 			amountResources = 0
@@ -1207,7 +1304,7 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questData, bIsUsingTracker)
 			widget.Amount = artifactPower
 
 			if (not widget.IsZoneSummaryQuestButton) then
-				DF.table.addunique(WorldQuestTracker.Cache_ShownQuestOnWorldMap [WQT_QUESTTYPE_APOWER], questID)
+				detailsFramework.table.addunique(WorldQuestTracker.Cache_ShownQuestOnWorldMap [WQT_QUESTTYPE_APOWER], questID)
 			end
 
 			amountAPower = artifactPower
@@ -1247,6 +1344,32 @@ function WorldQuestTracker.UpdateWorldWidget(widget, questData, bIsUsingTracker)
 		widget.texture:SetTexture([[Interface\Icons\INV_Misc_QuestionMark]])
 		widget.amountText:SetText("")
 		widget.IconText = ""
+	end
+
+	if detailsFramework.IsAddonApocalypseWow() then
+		--[[
+		if not isZoneSummaryWidget then
+			widget:SetScript("OnUpdate", function()
+				local defaultPin = WorldQuestTracker.DefaultWorldQuestPin[questID]
+				if defaultPin then
+					defaultPin.DefaultParent = defaultPin:GetParent()
+					widget.DefaultPin = defaultPin
+					defaultPin:SetParent(widget)
+					defaultPin:ClearAllPoints()
+					defaultPin:SetPoint("center", widget, "center", 0, 0)
+					defaultPin:SetSize(20, 20)
+					defaultPin:SetFrameLevel(1000)
+					defaultPin:SetScale(1)
+					defaultPin:SetFrameStrata(widget:GetFrameStrata())
+					defaultPin:SetAlpha(1)
+					defaultPin:SetMouseClickEnabled(false)
+				end
+			end)
+		end
+		--]]
+
+		--C_TooltipInfo.GetQuestLogItem(type, itemIndex [, questID, allowCollectionText])
+		--widget:EnableMouseMotion(false)
 	end
 
 	return okay, amountGold, amountResources, amountAPower
@@ -1879,7 +2002,7 @@ hooksecurefunc(WorldMapFrame.ScrollContainer, "ZoomIn", function()
 		rangeValues = mapRangeValues["default"]
 	end
 
-	local pinScale = DF:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
+	local pinScale = detailsFramework:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
 
 	if (WorldQuestTracker.IsWorldQuestHub(WorldMapFrame.mapID)) then
 		for _, widget in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
@@ -1896,7 +2019,7 @@ hooksecurefunc(WorldMapFrame.ScrollContainer, "ZoomOut", function()
 		rangeValues = mapRangeValues["default"]
 	end
 
-	local pinScale = DF:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
+	local pinScale = detailsFramework:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
 	if (WorldQuestTracker.IsWorldQuestHub(WorldMapFrame.mapID)) then
 		for _, widget in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
 			widget:SetScale(pinScale + WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset)
@@ -1922,7 +2045,7 @@ function WorldQuestTracker.UpdateQuestOnWorldMap(questID)
 			if (widget.questID == questID and widget:IsShown()) then
 				--quick refresh
 				if (WorldQuestTracker.CheckQuestRewardDataForWidget(widget)) then
-					WorldQuestTracker.SetupWorldQuestButton(widget, true)
+					WorldQuestTracker.SetupWorldQuestButton(widget, true, true)
 				end
 				break
 			end
@@ -1941,6 +2064,17 @@ lazyUpdate.ShownQuests = {}
 
 --list of all widgets created
 WorldQuestTracker.WorldMapSmallWidgets = {}
+
+
+function WorldQuestTracker.GetWorldMapSmallWidget(questID)
+	for i = 1, #WorldQuestTracker.WorldMapSmallWidgets do
+		local widget = WorldQuestTracker.WorldMapSmallWidgets[i]
+		if widget.questID == questID then
+			return widget
+		end
+	end
+	return nil
+end
 
 --update the zone widgets in the world map
 ---@param questData wqt_questdata
@@ -1988,7 +2122,7 @@ local scheduledIconUpdate = function(questData) --~update ~iconupate
 		rangeValues = mapRangeValues["default"]
 	end
 
-	local pinScale = DF:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
+	local pinScale = detailsFramework:MapRangeClamped(rangeValues[1], rangeValues[2], rangeValues[3], rangeValues[4], mapScale)
 
 	local finalScaleScalar = WorldQuestTracker.db.profile.world_map_hubscale[WorldMapFrame.mapID] or 1
 	pinScale = pinScale * finalScaleScalar
@@ -2008,7 +2142,7 @@ local scheduledIconUpdate = function(questData) --~update ~iconupate
 	button.questName = questName
 	button.questData = questData
 
-	WorldQuestTracker.SetupWorldQuestButton(button, questData)
+	WorldQuestTracker.SetupWorldQuestButton(button, questData, true)
 
 	local newX, newY = HereBeDragons:TranslateZoneCoordinates(x, y, mapID, WorldMapFrame.mapID, false)
 	if (mapID == 2248 and not newX) then
@@ -2151,7 +2285,7 @@ function WorldQuestTracker.LazyUpdateWorldMapSmallIcons(addToWorldMap, questsToU
 
 	wipe(lazyUpdate.WidgetsToUpdate)
 	---@type wqt_questdata[]
-	lazyUpdate.WidgetsToUpdate = DF.table.copy({}, addToWorldMap)
+	lazyUpdate.WidgetsToUpdate = detailsFramework.table.copy({}, addToWorldMap)
 
 	--which mapID quests being update belongs to
 	WorldQuestTracker.UpdatingForMap = WorldMapFrame.mapID

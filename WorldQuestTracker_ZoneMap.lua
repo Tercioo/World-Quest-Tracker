@@ -620,8 +620,11 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 
 	button.bgFlag:Hide()
 
-	button:EnableMouse(false)
-	anchorFrame:EnableMouse(false)
+	if DF.IsAddonApocalypseWow() then
+		--button:EnableMouse(false)
+		button:SetMouseMotionEnabled(false)
+		anchorFrame:EnableMouse(false)
+	end
 
 	return button
 end
@@ -1550,7 +1553,8 @@ end
 --this function does not check if the quest reward is in the client cache ~update ~setup ~button
 ---@param self table
 ---@param questData wqt_questdata
-function WorldQuestTracker.SetupWorldQuestButton(self, questData)
+---@param isWorldMap boolean
+function WorldQuestTracker.SetupWorldQuestButton(self, questData, isWorldMap)
 	--if a boolean is passed, this is a quick refresh, just load the questData cached in the button
 	if (type(questData) == "boolean") then
 		questData = self.questData
@@ -2118,7 +2122,7 @@ function WorldQuestTracker.SetupZoneSummaryButton(summaryWidget, zoneWidget)
 	widget.questData = zoneWidget.questData
 
 	--update the quest icon
-	local okay, gold, resource, apower = WorldQuestTracker.UpdateWorldWidget(widget, widget.questData, isUsingTracker)
+	local okay, gold, resource, apower = WorldQuestTracker.UpdateWorldWidget(widget, widget.questData, isUsingTracker, true)
 	widget.texture:SetTexCoord(.1, .9, .1, .9)
 	widget:SetAlpha(WorldQuestTracker.db.profile.world_summary_alpha)
 	zoneWidget.IconText = widget.IconText
@@ -2309,11 +2313,18 @@ function WorldQuestTracker.CanShowZoneSummaryFrame()
 	return canShow
 end
 
+function WorldQuestTracker.SetZoneSummaryEnterFrameVisibility(show)
+	if (WorldQuestTracker.ZoneSummaryEnterFrame) then
+		WorldQuestTracker.ZoneSummaryEnterFrame:SetShown(show)
+	end
+end
+
 function WorldQuestTracker.UpdateZoneSummaryFrame()
 	if (not WorldQuestTracker.CanShowZoneSummaryFrame()) then
 		if (WorldQuestTracker.QuestSummaryShown) then
 			WorldQuestTracker.ClearZoneSummaryButtons()
 		end
+		WorldQuestTracker.SetZoneSummaryEnterFrameVisibility(false)
 		return
 	end
 
@@ -2356,68 +2367,57 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 
 	if not WorldQuestTracker.ZoneSummaryEnterFrame then
 		WorldQuestTracker.ZoneSummaryEnterFrame = CreateFrame("Button", "WorldQuestTrackerZoneEnterFrame", ZoneSumaryFrame, "BackdropTemplate")
-		--DF:ApplyStandardBackdrop(WorldQuestTracker.ZoneSummaryEnterFrame)
 	end
 
 	if first then
 		WorldQuestTracker.ZoneSummaryEnterFrame:SetPoint("topleft", first, "topleft", 0, 4)
 		WorldQuestTracker.ZoneSummaryEnterFrame:SetPoint("bottomright", last, "bottomright", 4, -4)
 	end
-	--WorldQuestTracker.ZoneSummaryEnterFrame:SetScript("OnEnter", function(self)
-	--end)
 
 	WorldQuestTracker.ZoneSummaryEnterFrame:SetScript("OnUpdate", function(self)
 		if self:IsMouseOver() then
-			if not self.IsOver then
-				self.IsOver = false
-				for i = 1, #shown do
-					local widget = shown[i]
-					local questID = widget._Twin.questID
-					local defaultPin = WorldQuestTracker.DefaultWorldQuestPin[questID]
-					if defaultPin then
-						defaultPin:ClearAllPoints()
-						defaultPin:SetAllPoints(widget)
-						defaultPin:SetFrameLevel(1000)
-						defaultPin:SetFrameStrata("DIALOG")
-						defaultPin:SetAlpha(0)
-						defaultPin.DefaultParent = defaultPin:GetParent()
-						defaultPin:SetParent(widget)
+			for i = 1, #shown do
+				local widget = shown[i]
+				local questID = widget._Twin.questID
+				local defaultPin = WorldQuestTracker.DefaultWorldQuestPin[questID]
+				if defaultPin then
+					defaultPin.DefaultParent = defaultPin:GetParent()
+					defaultPin:SetParent(widget)
+					defaultPin:ClearAllPoints()
+					defaultPin:SetAllPoints()
+					defaultPin:SetFrameLevel(1000)
+					defaultPin:SetFrameStrata("DIALOG")
+					defaultPin:SetAlpha(0)
+					defaultPin:SetScale(1)
+					defaultPin:SetMouseClickEnabled(false)
 
-						local frameLevel = defaultPin:GetFrameLevel() --default pin frame level
-						local zoneSummaryEnterLevel = WorldQuestTracker.ZoneSummaryEnterFrame:GetFrameLevel() --summary on enter frame level
+					local frameLevel = defaultPin:GetFrameLevel() --default pin frame level
+					local zoneSummaryEnterLevel = WorldQuestTracker.ZoneSummaryEnterFrame:GetFrameLevel() --summary on enter frame level
 
-						if zoneSummaryEnterLevel >= frameLevel then
-							WorldQuestTracker.ZoneSummaryEnterFrame:SetFrameLevel(frameLevel - 1)
-						end
-
-						widget.DefaultPin = defaultPin
-						widget:EnableMouse(false)
-
-						if not defaultPin.Hooked_ then
-							defaultPin.Hooked_ = true
-							--defaultPin:HookScript("OnEnter", function(self)
-							--	print("enter default pin", questID)
-							--end)
-							--defaultPin:HookScript("OnLeave", function(self)
-							--	print("left default pin")
-							--end)
-						end
+					if zoneSummaryEnterLevel >= frameLevel then
+						WorldQuestTracker.ZoneSummaryEnterFrame:SetFrameLevel(frameLevel - 1)
 					end
+
+					widget.DefaultPin = defaultPin
+					widget:EnableMouse(true)
+					widget:SetMouseMotionEnabled(false)
 				end
 			end
 		else
-			if self.IsOver then
-				self.IsOver = false
-				for i = 1, #shown do
-					local widget = shown[i]
-					if widget.DefaultPin then
-						widget.DefaultPin:ClearAllPoints()
-						widget.DefaultPin:SetPoint("center", widget._Twin, "center")
-						widget.DefaultPin:SetParent(widget.DefaultPin.DefaultParent)
-						widget.DefaultPin = nil
-						widget.DefaultPin:SetAlpha(1)
-						widget:EnableMouse(true)
-					end
+			for i = 1, #shown do
+				local widget = shown[i]
+				local defaultPin = widget.DefaultPin
+				if defaultPin and widget._Twin then
+					defaultPin:ClearAllPoints()
+					defaultPin:SetPoint("center", widget._Twin, "center", 0, 0)
+					defaultPin:SetParent(widget._Twin)
+					widget.DefaultPin = nil
+					widget._Twin.DefaultPin = defaultPin
+					defaultPin:SetAlpha(1)
+					defaultPin:SetScale(1)
+					defaultPin:SetMouseClickEnabled(false)
+					widget:EnableMouse(true)
+					widget:SetMouseMotionEnabled(false)
 				end
 			end
 		end
@@ -2431,6 +2431,8 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 
 	WorldQuestTracker.QuestSummaryShown = true
 	WorldQuestTracker.RefreshZoneSummaryAlpha()
+
+	WorldQuestTracker.SetZoneSummaryEnterFrameVisibility(true)
 end
 
 
@@ -2654,6 +2656,84 @@ end
 local questTracker_EnumerationXOffset = 1
 local zoneMap_EnumerationXOffset = 1
 
+function WorldQuestTracker.CreateTextAndIconForQuest(pin, offsetX, offsetY)
+	pin.Display.WQTText = pin.Display:CreateFontString(nil, "overlay", "GameFontNormal")
+	DetailsFramework:SetFontOutline(pin.Display.WQTText, "OUTLINE")
+	pin.Display.WQTText:ClearAllPoints()
+	pin.Display.WQTText:SetPoint("center", pin.Display, "center", offsetX or 0, offsetY or 0)
+	pin.Display.WQTText:Hide()
+
+	pin.Display.WQTIcon = pin.Display:CreateTexture(nil, "overlay")
+	pin.Display.WQTIcon:SetPoint("center", pin.Display, "center", 0, 0)
+	pin.Display.WQTIcon:SetSize(pin.Display:GetSize())
+	pin.Display.WQTIcon:Hide()
+
+	pin.Display.WQTGlow = pin.Display:CreateTexture(nil, "background")
+	pin.Display.WQTGlow:SetPoint("center", pin, "center", 0, 0)
+	pin.Display.WQTGlow:SetTexture([[Interface\GLUES\Models\UI_mechagnome\Glow128]])
+	pin.Display.WQTGlow:SetBlendMode("ADD")
+	pin.Display.WQTGlow:SetVertexColor(1, 1, 1, 0.8)
+	pin.Display.WQTGlow:Hide()
+end
+
+local customQuestIcons = {
+	prey = {
+		atlas = "threatindicator-hot", --or "poi-prey"
+		texture = nil,
+		coords = nil,
+		size = nil,
+		vertexcolor = nil,
+		glow = {1, 0.4, 0, 0.7},
+	},
+}
+
+local setIconForQuest = function(pin, customIcon)
+	local textureObject = pin.Display.WQTIcon
+
+	if customIcon.atlas then
+		textureObject:SetAtlas(customIcon.atlas)
+	end
+	if customIcon.texture then
+		textureObject:SetTexture(customIcon.texture)
+	end
+	if customIcon.coords then
+		textureObject:SetTexCoord(unpack(customIcon.coords))
+	end
+	if customIcon.size then
+		textureObject:SetSize(unpack(customIcon.size))
+	end
+	if customIcon.vertexcolor then
+		textureObject:SetVertexColor(unpack(customIcon.vertexcolor))
+	end
+
+	if customIcon.glow then
+		local glow = pin.Display.WQTGlow
+		glow:SetVertexColor(unpack(customIcon.glow))
+		local pinWidth, pinHeight = pin:GetSize()
+		glow:SetSize(pinWidth*3, pinHeight*3)
+		glow:Show()
+		glow:SetParent(pin)
+	end
+end
+
+local hideWQTTextAndIcon = function(pin)
+	pin.Display.WQTGlow:Hide()
+	pin.Display.WQTIcon:Hide()
+	pin.Display.WQTText:Hide()
+end
+
+--returns true if an icon is found for the quest
+function WorldQuestTracker.SetIconForQuest(pin)
+	--is prey quest?
+	local preyQuestID = C_QuestLog.GetActivePreyQuest()
+	if pin.questID == preyQuestID then
+		setIconForQuest(pin, customQuestIcons.prey)
+		pin.Display.WQTIcon:Show()
+		return true
+	end
+	return false
+end
+
 function WorldQuestTracker.UpdateQuestIdentification(self, event)
 	if (not WorldQuestTracker.db.profile.numerate_quests) then
 		return
@@ -2754,19 +2834,23 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 						poiButton.Display.Icon:Show()
 
 						if (not poiButton.Display.WQTText) then
-							poiButton.Display.WQTText = poiButton.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
-							DetailsFramework:SetFontOutline(poiButton.Display.WQTText, "OUTLINE")
-							poiButton.Display.WQTText:ClearAllPoints()
-							poiButton.Display.WQTText:SetPoint("center", poiButton.Display, "center", 1, 0) --creating on quest tracker at the right side of the screen
-							poiButton.Display.WQTText:Hide()
+							WorldQuestTracker.CreateTextAndIconForQuest(poiButton, 1, 0)
 						else
 							poiButton.Display.WQTText:Hide()
+							poiButton.Display.WQTIcon:Hide()
 						end
 
+						hideWQTTextAndIcon(poiButton)
+
 						if (not bFoundQuestsOnMap and not child.poiIsComplete) then
-							poiButton.Display.Icon:Hide()
-							poiButton.Display.WQTText:Show()
-							poiButton.Display.WQTText:SetText(questIndex)
+							local iconFound = WorldQuestTracker.SetIconForQuest(poiButton)
+
+							if not iconFound then
+								poiButton.Display.Icon:Hide()
+								poiButton.Display.WQTText:Show()
+								poiButton.Display.WQTText:SetText(questIndex)
+							end
+
 							questIndex = questIndex + 1
 						end
 					end
@@ -2781,15 +2865,18 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 
 		--world map
 		if (not pin.Display.WQTText) then
-			pin.Display.WQTText = pin.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
-			DetailsFramework:SetFontOutline(pin.Display.WQTText, "OUTLINE")
-			pin.Display.WQTText:ClearAllPoints()
-			pin.Display.WQTText:SetPoint("center", pin.Display, "center", zoneMap_EnumerationXOffset, 0)
+			WorldQuestTracker.CreateTextAndIconForQuest(pin, zoneMap_EnumerationXOffset)
 		end
 
-		pin.Display.Icon:Hide()
-		pin.Display.WQTText:SetText(i)
-		pin.Display.WQTText:Show()
+		hideWQTTextAndIcon(pin)
+
+		local iconFound = WorldQuestTracker.SetIconForQuest(pin)
+		if not iconFound then
+			pin.Display.Icon:Hide()
+			pin.Display.WQTText:SetText(i)
+			pin.Display.WQTText:Show()
+			pin.Display.WQTIcon:Hide()
+		end
 
 		local trackerFrame = questsOnTrackerQuestId_to_Info[questId]
 		if (trackerFrame) then
@@ -2797,14 +2884,18 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 			if (poiButton) then
 				--quest tracker
 				if (not poiButton.Display.WQTText) then
-					poiButton.Display.WQTText = poiButton.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
-					DetailsFramework:SetFontOutline(poiButton.Display.WQTText, "OUTLINE")
-					poiButton.Display.WQTText:ClearAllPoints()
-					poiButton.Display.WQTText:SetPoint("center", poiButton.Display, "center", questTracker_EnumerationXOffset, 0)
+					WorldQuestTracker.CreateTextAndIconForQuest(poiButton, questTracker_EnumerationXOffset)
 				end
-				poiButton.Display.Icon:Hide()
-				poiButton.Display.WQTText:SetText(i)
-				poiButton.Display.WQTText:Show()
+
+				if not iconFound then
+					iconFound = WorldQuestTracker.SetIconForQuest(poiButton)
+					if not iconFound then
+						poiButton.Display.Icon:Hide()
+						poiButton.Display.WQTText:SetText(i)
+						poiButton.Display.WQTText:Show()
+						poiButton.Display.WQTIcon:Hide()
+					end
+				end
 			end
 		end
 
@@ -2814,15 +2905,18 @@ function WorldQuestTracker.UpdateQuestIdentification(self, event)
 
 		if (button) then
 			if (not button.Display.WQTText) then
-				button.Display.WQTText = button.Display:CreateFontString("$parentQuestIndex", "overlay", "GameFontNormal")
-				DetailsFramework:SetFontOutline(button.Display.WQTText, "OUTLINE")
-				button.Display.WQTText:ClearAllPoints()
-				button.Display.WQTText:SetPoint("center", button.Display, "center", 1, 0)
+				WorldQuestTracker.CreateTextAndIconForQuest(button, 1, 0)
 			end
 
-			button.Display.Icon:Hide()
-			button.Display.WQTText:SetText(i)
-			button.Display.WQTText:Show()
+			if not iconFound then
+				iconFound = WorldQuestTracker.SetIconForQuest(button)
+				if not iconFound then
+					button.Display.Icon:Hide()
+					button.Display.WQTText:SetText(i)
+					button.Display.WQTText:Show()
+					button.Display.WQTIcon:Hide()
+				end
+			end
 		end
 
 		questIndex = questIndex + 1
@@ -2929,6 +3023,42 @@ GossipFrame:HookScript("OnShow", function()
 		if (bAutoComplete) then
 			if (findSkipConversationOption(children)) then
 				return
+			end
+		end
+
+		--scan skips
+		if bAutoAccept or true then
+			local hasCampaignQuest = false
+			for i = 1, #children do
+				local child = children[i]
+				if (child.IsObjectType and child:IsObjectType("Button") and child:IsShown() and child:IsEnabled()) then
+					if (child.GetData) then
+						local data = child:GetData()
+						if (data and type(data) == "table" and data.info and data.info.questID) then
+							if (child.Icon:GetTexture() == 3595324) then
+								hasCampaignQuest = true
+							end
+						end
+					end
+					--hasCampaignQuest
+
+					local regions = {child:GetRegions()}
+					for j = 1, #regions do
+						local thisRegion = regions[j]
+						if (thisRegion:GetObjectType() == "FontString") then
+							if thisRegion:GetText():find("<") and thisRegion:GetText():find(">") then
+								if thisRegion:GetText():find("|cFFFF") then
+									if (child.GetData) then
+										local data = child:GetData()
+										if hasCampaignQuest then
+											child:Click()
+										end
+									end
+								end
+							end
+						end
+					end
+				end
 			end
 		end
 

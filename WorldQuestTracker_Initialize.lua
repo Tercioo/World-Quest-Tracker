@@ -198,7 +198,7 @@ do
 			show_filter_button = true, --a
 			show_sort_button = false, --a
 			show_timeleft_button = true, --a
-			numerate_quests = true, --a
+			numerate_quests = true, --a enumerate
 			show_warband_rep_warning = true, --a
 			show_warband_rep_warning_color = "yellow",
 			show_warband_rep_warning_alpha = 0.834,

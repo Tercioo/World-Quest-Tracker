@@ -186,13 +186,14 @@ end
 -- default world quest pins from the map
 hooksecurefunc(WorldMap_WorldQuestPinMixin, "RefreshVisuals", function(self)
 	if (self.questID) then
-		WorldQuestTracker.DefaultWorldQuestPin [self.questID] = self
+		WorldQuestTracker.DefaultWorldQuestPin[self.questID] = self
+		self:SetMouseClickEnabled(false)
 
 		if (not WorldQuestTracker.ShowDefaultWorldQuestPin [self.questID]) then
 			if (WorldQuestTracker.db.profile.zone_map_config.show_widgets) then
 				self.IsZoneQuestButton = true
 				if not self.clickHooked then
-					self:HookScript("OnClick", hoookClick)
+					self:SetScript("OnClick", hoookClick)
 					self.clickHooked = true
 				end
 			else
@@ -201,6 +202,52 @@ hooksecurefunc(WorldMap_WorldQuestPinMixin, "RefreshVisuals", function(self)
 		end
 	end
 end)
+
+--[[prey
+
+/dump C_QuestLog.GetActivePreyQuest() --return questID
+C_UIWidgetManager.GetPreyHuntProgressWidgetVisualizationInfo --return "widgetInfo", Type = "PreyHuntProgressWidgetVisualizationInfo"
+
+{
+	Name = "PreyHuntProgressState",
+	Type = "Enumeration",
+	NumValues = 4,
+	MinValue = 0,
+	MaxValue = 3,
+	Fields =
+	{
+		{ Name = "Cold", Type = "PreyHuntProgressState", EnumValue = 0 },
+		{ Name = "Warm", Type = "PreyHuntProgressState", EnumValue = 1 },
+		{ Name = "Hot", Type = "PreyHuntProgressState", EnumValue = 2 },
+		{ Name = "Final", Type = "PreyHuntProgressState", EnumValue = 3 },
+	},
+},
+
+{
+	Name = "PreyHuntProgressWidgetVisualizationInfo",
+	Type = "Structure",
+	Fields =
+	{
+		{ Name = "shownState", Type = "WidgetShownState", Nilable = false },
+		{ Name = "progressState", Type = "PreyHuntProgressState", Nilable = false },
+		{ Name = "tooltip", Type = "string", Nilable = false },
+		{ Name = "tooltipLoc", Type = "UIWidgetTooltipLocation", Nilable = false },
+		{ Name = "widgetSizeSetting", Type = "number", Nilable = false },
+		{ Name = "textureKit", Type = "textureKit", Nilable = false },
+		{ Name = "frameTextureKit", Type = "textureKit", Nilable = false },
+		{ Name = "hasTimer", Type = "bool", Nilable = false },
+		{ Name = "orderIndex", Type = "number", Nilable = false },
+		{ Name = "widgetTag", Type = "string", Nilable = false },
+		{ Name = "inAnimType", Type = "WidgetAnimationType", Nilable = false },
+		{ Name = "outAnimType", Type = "WidgetAnimationType", Nilable = false },
+		{ Name = "widgetScale", Type = "UIWidgetScale", Nilable = false },
+		{ Name = "layoutDirection", Type = "UIWidgetLayoutDirection", Nilable = false },
+		{ Name = "modelSceneLayer", Type = "UIWidgetModelSceneLayer", Nilable = false },
+		{ Name = "scriptedAnimationEffectID", Type = "number", Nilable = false },
+	},
+},
+
+--]]
 
 --OnTick
 local OnUpdateDelay = .5
@@ -362,6 +409,62 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			WorldMapFrame.hadItsFirstRunAlready = true
 
 			wqtInternal.CreateSummary()
+
+			local worldMapQuestProvider
+			hooksecurefunc(WorldQuestDataProviderMixin, "RefreshAllData", function(self, fromOnShow)
+				if not worldMapQuestProvider then
+					worldMapQuestProvider = self
+				end
+			end)
+
+			EventRegistry:RegisterCallback("MapCanvas.MapSet", function(mapID)
+				if (WorldQuestTracker.GetCurrentZoneType() == "world") then
+					WorldQuestTracker.SetZoneSummaryEnterFrameVisibility(false)
+
+					if worldMapQuestProvider then
+						local mapCanvas = worldMapQuestProvider:GetMap()
+						for i = 1, #worldMapQuestProvider.activePins do
+							local pin = worldMapQuestProvider.activePins[i]
+							if pin and pin.questID then
+								mapCanvas:RemovePin(pin)
+							end
+						end
+
+						local EVERSONG_WOODS = 2395
+						local ZULAMAN = 2437
+						local VOIDSTORM = 2405
+						local HARANDAR = 2413
+
+						local mapIds = {
+							EVERSONG_WOODS,
+							ZULAMAN,
+							VOIDSTORM,
+							HARANDAR,
+						}
+
+						for index, mapID in ipairs(mapIds) do
+							local taskInfo = GetQuestsForPlayerByMapID(mapID, mapID)
+							if (taskInfo and #taskInfo > 0) then
+								for i, info  in ipairs(taskInfo) do
+									if info.questID then
+										if QuestUtils_IsQuestWorldQuest(info.questID) or info.isMapIndicatorQuest then
+											local thisPin = worldMapQuestProvider:AddWorldQuest(info)
+											WorldQuestTracker.DefaultWorldQuestPin[info.questID] = thisPin
+											thisPin:SetAlpha(0)
+											thisPin:SetPosition(1, 1)
+										end
+									end
+								end
+							end
+						end
+
+					end
+
+				elseif (WorldQuestTracker.GetCurrentZoneType() == "zone") then
+
+				end
+			end)
+
 
 			--> some addon is adding these words on the global namespace.
 			--> I trully believe that it's not intended at all, so let's just clear.
