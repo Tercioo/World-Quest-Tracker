@@ -1,5 +1,5 @@
 
-local VERSION = 551
+local VERSION = 552
 
 do
 	WQT_VERSION = 414
