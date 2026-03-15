@@ -417,7 +417,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				end
 			end)
 
-			EventRegistry:RegisterCallback("MapCanvas.MapSet", function(mapID)
+			EventRegistry:RegisterCallback("MapCanvas.MapSet", function(mapID) do return end
 				if (WorldQuestTracker.GetCurrentZoneType() == "world") then
 					WorldQuestTracker.SetZoneSummaryEnterFrameVisibility(false)
 
@@ -426,7 +426,9 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 						for i = 1, #worldMapQuestProvider.activePins do
 							local pin = worldMapQuestProvider.activePins[i]
 							if pin and pin.questID then
-								mapCanvas:RemovePin(pin)
+								if not InCombatLockdown() then
+									mapCanvas:RemovePin(pin) --cause propagation
+								end
 							end
 						end
 
@@ -447,11 +449,13 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 							if (taskInfo and #taskInfo > 0) then
 								for i, info  in ipairs(taskInfo) do
 									if info.questID then
-										if QuestUtils_IsQuestWorldQuest(info.questID) or info.isMapIndicatorQuest then
-											local thisPin = worldMapQuestProvider:AddWorldQuest(info)
-											WorldQuestTracker.DefaultWorldQuestPin[info.questID] = thisPin
-											thisPin:SetAlpha(0)
-											thisPin:SetPosition(1, 1)
+										if not InCombatLockdown() then
+											if QuestUtils_IsQuestWorldQuest(info.questID) or info.isMapIndicatorQuest then
+												local thisPin = worldMapQuestProvider:AddWorldQuest(info) --cause propagation
+												WorldQuestTracker.DefaultWorldQuestPin[info.questID] = thisPin
+												thisPin:SetAlpha(0)
+												thisPin:SetPosition(1, 1)
+											end
 										end
 									end
 								end

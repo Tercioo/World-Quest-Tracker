@@ -2409,11 +2409,11 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 				local defaultPin = widget.DefaultPin
 				if defaultPin and widget._Twin then
 					defaultPin:ClearAllPoints()
-					defaultPin:SetPoint("center", widget._Twin, "center", 0, 0)
 					defaultPin:SetParent(widget._Twin)
+					defaultPin:SetAllPoints()
 					widget.DefaultPin = nil
 					widget._Twin.DefaultPin = defaultPin
-					defaultPin:SetAlpha(1)
+					defaultPin:SetAlpha(0)
 					defaultPin:SetScale(1)
 					defaultPin:SetMouseClickEnabled(false)
 					widget:EnableMouse(true)
