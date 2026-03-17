@@ -558,9 +558,7 @@ end
 
 
 local buildTooltip = function(self)
-	GameTooltip:ClearAllPoints()
-	GameTooltip:SetPoint("TOPRIGHT", self, "TOPLEFT", -20, 0)
-	GameTooltip:SetOwner (self, "ANCHOR_PRESERVE")
+	GameTooltip:SetOwner(self, "ANCHOR_LEFT", -20, 0)
 	local questID = self.questID
 
 	if ( not HaveQuestData (questID) ) then
