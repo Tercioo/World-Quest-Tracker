@@ -2,7 +2,7 @@ local addonId = ...
 local languageTable = DetailsFramework.Language.RegisterLanguage(addonId, "frFR")
 local L = languageTable
 
-L["S_OPTTIONS_WORLDMAP_HUB_ENABLE"] = "Quelles cartes du monde affichent les quêtes"
+L["S_OPTTIONS_WORLDMAP_HUB_ENABLE"] = "Afficher les quêtes sur :"
 L["S_OPTIONS_SHOW_WARBAND_REP_WARNING"] = "Afficher l'avertissement de réputation du Bataillon [!]"
 
 
@@ -204,12 +204,12 @@ L["S_TUTORIAL_WORLDBUTTONS"] = [=[liquez ici pour passer d'un type de résumé �
 - |cFFFFAA11Aucun|r
 
 Cliquez sur |cFFFFAA11afficher / masquer les quêtes|r pour masquer les emplacements des quêtes.]=]
-L["S_TUTORIAL_WORLDMAPBUTTON"] = "Ce bouton vous amène à la carte des îles Brisées."
+L["S_TUTORIAL_WORLDMAPBUTTON"] = "Ce bouton vous amène à la carte des Îles Brisées."
 L["S_UNKNOWNQUEST"] = "Quête inconnue"
-L["S_WHATSNEW"] = "Les nouveautés"
+L["S_WHATSNEW"] = "Quoi de neuf ?"
 L["S_WORLDBUTTONS_SHOW_TYPE"] = "Trier par type"
 L["S_WORLDBUTTONS_SHOW_ZONE"] = "Trier par zone"
-L["S_WORLDBUTTONS_TOGGLE_QUESTS"] = "Afficher / mqasquer les quêtes"
+L["S_WORLDBUTTONS_TOGGLE_QUESTS"] = "Afficher / masquer les quêtes"
 L["S_WORLDMAP_QUESTLOCATIONS"] = "Afficher les emplacements des quêtes"
 L["S_WORLDMAP_QUESTSUMMARY"] = "Afficher le résumé des quêtes"
 L["S_WORLDMAP_TOOLTIP_TRqACKALL"] = "suivre toutes les quêtes de cette liste"
