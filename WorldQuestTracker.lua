@@ -135,18 +135,6 @@ function WorldQuestTracker.UpdateExtraMapTextures()
 			textureInfo.Pin:Hide()
 		end
 	end
-
-	--alternative way to deal with it:
-	--[=[
-	local map = WorldQuestTrackerDataProvider:GetMap()
-	for pin in map:EnumeratePinsByTemplate("WorldQuestTrackerWorldMapPinTemplate") do
-		if (pin.MapTextureInfo.MapID ~= WorldMapFrame.mapID) then
-			pin.Texture:Hide()
-		else
-			pin.Texture:Show()
-		end
-	end
-	--]=]
 end
 
 ---@param mapID number the mapID to show the texture, if the map does not match, the texture won't be shown
@@ -869,6 +857,8 @@ end
 local worldFramePOIs = CreateFrame ("frame", "WorldQuestTrackerWorldMapPOI", WorldMapFrame.ScrollContainer, "BackdropTemplate")
 worldFramePOIs:SetAllPoints()
 worldFramePOIs:SetFrameLevel(6701)
+
+--[=[
 local fadeInAnimation = worldFramePOIs:CreateAnimationGroup()
 local step1 = fadeInAnimation:CreateAnimation ("Alpha")
 step1:SetOrder (1)
@@ -879,6 +869,7 @@ worldFramePOIs.fadeInAnimation = fadeInAnimation
 fadeInAnimation:SetScript("OnFinished", function()
 	worldFramePOIs:SetAlpha(1)
 end)
+--]=]
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> tutorials
@@ -1176,7 +1167,7 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 			local map = WorldQuestTrackerDataProvider:GetMap()
 
 			local dataProviderPinInUse = false
-			for pin in map:EnumeratePinsByTemplate ("WorldQuestTrackerWorldMapPinTemplate") do
+			for pin in map:EnumeratePinsByTemplate (WORLDQUESTTRACKER_PINNAME) do
 				if (pin.Child == widget) then
 					dataProviderPinInUse = true
 				end

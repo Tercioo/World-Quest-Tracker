@@ -34,6 +34,8 @@ local childResizerOptionBySide = {
 ---@field rightResizer framecontainerresizer
 ---@field cornerResizers framecontainerresizer[]
 ---@field sideResizers framecontainerresizer[]
+---@field LeftResizeGrip df_resizergrip
+---@field RightResizeGrip df_resizergrip
 ---@field components table<frame, boolean>
 ---@field moverFrame frame
 ---@field movableChildren table<frame, boolean>
@@ -46,6 +48,8 @@ local childResizerOptionBySide = {
 ---@field OnResizerMouseUp fun(resizerButton: button, mouseButton: string)
 ---@field HideResizer fun(frameContainer: df_framecontainer)
 ---@field ShowResizer fun(frameContainer: df_framecontainer)
+---@field HideResizeGrips fun(frameContainer: df_framecontainer)
+---@field ShowResizeGrips fun(frameContainer: df_framecontainer)
 ---@field OnInitialize fun(frameContainer: df_framecontainer)
 ---@field SetResizeLocked fun(frameContainer: df_framecontainer, isLocked: boolean)
 ---@field SetMovableLocked fun(frameContainer: df_framecontainer, isLocked: boolean)
@@ -54,7 +58,8 @@ local childResizerOptionBySide = {
 ---@field CreateMover fun(frameContainer: df_framecontainer)
 ---@field CreateResizers fun(frameContainer: df_framecontainer)
 ---@field RegisterChildForDrag fun(frameContainer: df_framecontainer, child: frame)
----@field UnregisterChildForDrag fun(frameContainer: df_framecontainer, child: frame)
+---@field RegisterChild fun(frameContainer: df_framecontainer, child: frame)
+---@field UnregisterChild fun(frameContainer: df_framecontainer, child: frame)
 ---@field RefreshChildrenState fun(frameContainer: df_framecontainer)
 ---@field GetChildRelativeRect fun(frameContainer: df_framecontainer, child: frame): table|nil
 ---@field SetChildRelativeRect fun(frameContainer: df_framecontainer, child: frame, left: number, top: number, width: number, height: number)
@@ -164,9 +169,28 @@ detailsFramework.FrameContainerMixin = {
             frameContainer:HideResizer()
             frameContainer:SetResizable(false)
         else
-            frameContainer:ShowResizer()
             frameContainer:SetResizable(true)
         end
+
+        if frameContainer.options.show_resize_grips then
+            frameContainer:SetResizable(true)
+            frameContainer:ShowResizeGrips()
+        else
+            frameContainer:HideResizeGrips()
+            if frameContainer.options.is_locked then
+                frameContainer:ShowResizer()
+                frameContainer:SetResizable(false)
+            end
+        end
+    end,
+
+    ShowResizeGrips = function(frameContainer) --internal
+        frameContainer.LeftResizeGrip:Show()
+        frameContainer.RightResizeGrip:Show()
+    end,
+    HideResizeGrips = function(frameContainer) --internal
+        frameContainer.LeftResizeGrip:Hide()
+        frameContainer.RightResizeGrip:Hide()
     end,
 
     ---check if the framecontainer can be moved and show or hide the mover
@@ -343,9 +367,7 @@ detailsFramework.FrameContainerMixin = {
         frameContainer:CheckResizeLockedState()
         frameContainer:CheckMovableLockedState()
 
-
-        frameContainer:SetResizeBounds(50, 50, 1000, 1000) --new versions has this method
-
+        frameContainer:SetResizeBounds(50, 50, 1920, 1440) --new versions has this method
     end,
 
     ---run when the container has its size changed
@@ -649,33 +671,29 @@ detailsFramework.FrameContainerMixin = {
     ---@param child frame
     ---@param sideSettings table|nil
     SetChildResizerSides = function(frameContainer, child, sideSettings)
-        if (not child or not frameContainer.movableChildren[child]) then
-            return
+        assert(type(child) == "table" and child.GetObjectType, "SetChildResizerSides expects a frame as the child parameter.")
+        assert(frameContainer.movableChildren[child], "SetChildResizerSides expects a registered child frame. Register with 'RegisterChild' before setting child resizer sides.")
+        assert(type(sideSettings) == "table", "SetChildResizerSides expects the sideSettings parameter to be a table.")
+
+        local childSideOverrides = {}
+        local hasOverride = false
+
+        for resizeSide, sideOptionName in pairs(childResizerOptionBySide) do
+            local sideEnabled = sideSettings[resizeSide]
+            if (sideEnabled == nil) then
+                sideEnabled = sideSettings[sideOptionName]
+            end
+
+            if (type(sideEnabled) == "boolean") then
+                childSideOverrides[resizeSide] = sideEnabled
+                hasOverride = true
+            end
         end
 
-        if (type(sideSettings) ~= "table") then
-            frameContainer.childResizerSideOverrides[child] = nil
+        if (hasOverride) then
+            frameContainer.childResizerSideOverrides[child] = childSideOverrides
         else
-            local childSideOverrides = {}
-            local hasOverride = false
-
-            for resizeSide, sideOptionName in pairs(childResizerOptionBySide) do
-                local sideEnabled = sideSettings[resizeSide]
-                if (sideEnabled == nil) then
-                    sideEnabled = sideSettings[sideOptionName]
-                end
-
-                if (type(sideEnabled) == "boolean") then
-                    childSideOverrides[resizeSide] = sideEnabled
-                    hasOverride = true
-                end
-            end
-
-            if (hasOverride) then
-                frameContainer.childResizerSideOverrides[child] = childSideOverrides
-            else
-                frameContainer.childResizerSideOverrides[child] = nil
-            end
+            frameContainer.childResizerSideOverrides[child] = nil
         end
 
         local canShowResizers = frameContainer.options.can_resize_children and not frameContainer.options.can_move_children
@@ -717,17 +735,10 @@ detailsFramework.FrameContainerMixin = {
         end
 
         local neighborChildren = frameContainer:GetChildrenForResize(child, resizeSide)
-        local effectiveScale = frameContainer:GetEffectiveScale()
-        if (not effectiveScale or effectiveScale <= 0) then
-            effectiveScale = 1
-        end
+        local mouseX, mouseY = DF:GetCursorPosition()
 
-        local cursorX, cursorY = GetCursorPosition()
-        cursorX = cursorX / effectiveScale
-        cursorY = cursorY / effectiveScale
-
-        local startCursorRelativeX = cursorX - containerLeft
-        local startCursorRelativeY = containerTop - cursorY
+        local startCursorRelativeX = mouseX - containerLeft
+        local startCursorRelativeY = containerTop - mouseY
 
         frameContainer.activeChildResizeState = {
             resizer = resizerButton,
@@ -742,6 +753,7 @@ detailsFramework.FrameContainerMixin = {
 
         resizerButton:SetScript("OnUpdate", function(thisResizer)
             local resizeState = frameContainer.activeChildResizeState
+
             if (not resizeState or resizeState.resizer ~= thisResizer) then
                 thisResizer:SetScript("OnUpdate", nil)
                 return
@@ -765,22 +777,16 @@ detailsFramework.FrameContainerMixin = {
                 return
             end
 
-            local currentScale = frameContainer:GetEffectiveScale()
-            if (not currentScale or currentScale <= 0) then
-                currentScale = 1
-            end
-
             local currentContainerLeft = frameContainer:GetLeft()
             local currentContainerTop = frameContainer:GetTop()
             local containerWidth = frameContainer:GetWidth() or 0
             local containerHeight = frameContainer:GetHeight() or 0
+
             if (not currentContainerLeft or not currentContainerTop) then
                 return
             end
 
-            local currentCursorX, currentCursorY = GetCursorPosition()
-            currentCursorX = currentCursorX / currentScale
-            currentCursorY = currentCursorY / currentScale
+            local currentCursorX, currentCursorY = DF:GetCursorPosition()
             local currentCursorRelativeX = currentCursorX - currentContainerLeft
             local currentCursorRelativeY = currentContainerTop - currentCursorY
 
@@ -823,6 +829,7 @@ detailsFramework.FrameContainerMixin = {
                     local newNeighborWidth = neighborRect.right - newNeighborLeft
                     frameContainer:SetChildRelativeRect(neighborData.child, newNeighborLeft, neighborRect.top, newNeighborWidth, neighborRect.height)
                 end
+
             elseif (side == "left") then
                 local targetLeft = startRect.left + deltaX
                 local minLeft = 0
@@ -849,6 +856,7 @@ detailsFramework.FrameContainerMixin = {
                     local newNeighborWidth = newLeft - neighborRect.left
                     frameContainer:SetChildRelativeRect(neighborData.child, neighborRect.left, neighborRect.top, newNeighborWidth, neighborRect.height)
                 end
+
             elseif (side == "bottom") then
                 local targetBottom = startRect.bottom + deltaY
                 local minBottom = startRect.top + minSize
@@ -875,6 +883,7 @@ detailsFramework.FrameContainerMixin = {
                     local newNeighborHeight = neighborRect.bottom - newNeighborTop
                     frameContainer:SetChildRelativeRect(neighborData.child, neighborRect.left, newNeighborTop, neighborRect.width, newNeighborHeight)
                 end
+
             elseif (side == "top") then
                 local targetTop = startRect.top + deltaY
                 local minTop = 0
@@ -958,17 +967,10 @@ detailsFramework.FrameContainerMixin = {
         child:ClearAllPoints()
         child:SetPoint("topleft", frameContainer, "topleft", initialX, -initialY)
 
-        local effectiveScale = frameContainer:GetEffectiveScale()
-        if (not effectiveScale or effectiveScale <= 0) then
-            effectiveScale = 1
-        end
-
         local snappedChildLeft = containerLeft + initialX
         local snappedChildTop = containerTop - initialY
 
-        local cursorX, cursorY = GetCursorPosition()
-        cursorX = cursorX / effectiveScale
-        cursorY = cursorY / effectiveScale
+        local cursorX, cursorY = DF:GetCursorPosition()
 
         local grabOffsetX = cursorX - snappedChildLeft
         local grabOffsetY = snappedChildTop - cursorY
@@ -1145,7 +1147,7 @@ detailsFramework.FrameContainerMixin = {
 
     ---@param frameContainer df_framecontainer
     ---@param child frame
-    RegisterChildForDrag = function(frameContainer, child)
+    RegisterChild = function(frameContainer, child)
         frameContainer.movableChildren[child] = true
         child:SetFrameStrata(frameContainer:GetFrameStrata())
         child:SetFrameLevel(frameContainer:GetFrameLevel() + 10)
@@ -1155,7 +1157,7 @@ detailsFramework.FrameContainerMixin = {
 
     ---@param frameContainer df_framecontainer
     ---@param child frame
-    UnregisterChildForDrag = function(frameContainer, child)
+    UnregisterChild = function(frameContainer, child)
         frameContainer:SetChildResizersShown(child, false)
         frameContainer.childResizers[child] = nil
         frameContainer.childResizerSideOverrides[child] = nil
@@ -1202,6 +1204,7 @@ local frameContainerOptions = {
     use_bottom_resizer = false,
     use_left_resizer = false,
     use_right_resizer = false,
+    show_resize_grips = false,
 }
 
 ---create a frame container, which is a frame that envelops another frame, and can be moved, resized, etc.
@@ -1222,9 +1225,34 @@ function DF:CreateFrameContainer(parent, options, frameName)
     detailsFramework:Mixin(frameContainer, detailsFramework.FrameContainerMixin)
     detailsFramework:Mixin(frameContainer, detailsFramework.OptionsFunctions)
 
+    frameContainer.RegisterChildForDrag = detailsFramework.FrameContainerMixin.RegisterChild
+
     frameContainer:CreateResizers()
     frameContainer:CreateMover()
     frameContainer:BuildOptionsTable(frameContainerOptions, options)
+
+    local resizeGripOptions = {
+        width = 32,
+        height = 32,
+        use_default_scripts = true,
+        should_mirror_left_texture = true,
+        normal_texture = [[Interface\CHATFRAME\UI-ChatIM-SizeGrabber-Up]],
+        highlight_texture = [[Interface\CHATFRAME\UI-ChatIM-SizeGrabber-Highlight]],
+        pushed_texture = [[Interface\CHATFRAME\UI-ChatIM-SizeGrabber-Down]],
+    }
+
+    local leftResizer, rightResizer = detailsFramework:CreateResizeGrips(frameContainer, resizeGripOptions)
+    if options.show_resize_grips then
+        leftResizer:Show()
+        rightResizer:Show()
+        frameContainer:SetResizable(true)
+    else
+        leftResizer:Hide()
+        rightResizer:Hide()
+    end
+
+    frameContainer.LeftResizeGrip = leftResizer
+    frameContainer.RightResizeGrip = rightResizer
 
     frameContainer:OnInitialize()
 
@@ -1249,7 +1277,7 @@ function DF:CreateFrameContainerTest(parent, options, frameName)
         local lastBox = nil
         for o = 1, 2 do
             local frame = CreateFrame("frame", "$parentFrame" .. i .. o, container, "BackdropTemplate")
-            container:RegisterChildForDrag(frame)
+            container:RegisterChild(frame)
 
             frame:EnableMouse(true)
 
@@ -1280,17 +1308,3 @@ function DF:CreateFrameContainerTest(parent, options, frameName)
 
     return container
 end
-
---C_Timer.After(2, function()
---    DetailsFramework:CreateFrameContainerTest(UIParent)
---end)
-
---[=[
-    /run DetailsFramework:CreateFrameContainerTest(UIParent)
-
-    C_Timer.After(2, function()
-        DetailsFramework:CreateFrameContainerTest(UIParent)
-    end)   
-   
-   
---]=]

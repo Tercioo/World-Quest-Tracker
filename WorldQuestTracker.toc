@@ -61,6 +61,11 @@ WorldQuestTracker_RareFinder.lua
 WorldQuestTracker_ZoneMap.lua
 WorldQuestTracker_WorldMap.lua
 WorldQuestTracker_Taxi.lua
+WorldQuestTracker_Enumerator.lua
+WorldQuestTracker_CreateWidgets.lua
+WorldQuestTracker_RefreshWidgets.lua
+WorldQuestTracker_Factions.lua
+WorldQuestTracker_MissionFrame.lua
 
 WorldQuestTracker_OptionsPanel.lua
 

@@ -29,3 +29,4 @@ media/options_visibility_context.afphoto~lock~
 luac.out
 *.afphoto~lock~
 annotations.txt
+*.bak

@@ -37,8 +37,12 @@ end
 WorldQuestTracker.OnMapHasChanged = function(self)
 	WorldQuestTracker.AdjustThatThingInTheBottomLeftCorner()
 
-	WorldQuestTrackerDataProvider:GetMap():RemoveAllPinsByTemplate("WorldQuestTrackerPOIPinTemplate")
+	WorldQuestTrackerDataProvider:GetMap():RemoveAllPinsByTemplate(WORLDQUESTTRACKER_PINNAME)
 	WorldQuestTracker.HideAllPOIPins()
+
+	for _, widget in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
+		widget:Hide()
+	end
 
 	local mapID = WorldMapFrame.mapID
 	WorldQuestTracker.InitializeWorldWidgets()
@@ -76,7 +80,7 @@ WorldQuestTracker.OnMapHasChanged = function(self)
 		map:RemovePin(pin)
 	end
 
-	for pin in map:EnumeratePinsByTemplate("WorldQuestTrackerWorldMapPinTemplate") do
+	for pin in map:EnumeratePinsByTemplate(WORLDQUESTTRACKER_PINNAME) do
 		map:RemovePin(pin)
 		if (pin.Child) then
 			pin.Child:Hide()

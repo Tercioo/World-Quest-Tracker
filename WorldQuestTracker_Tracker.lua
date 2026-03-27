@@ -558,6 +558,8 @@ end
 
 
 local buildTooltip = function(self)
+	do return end
+
 	GameTooltip:ClearAllPoints()
 	GameTooltip:SetPoint("TOPRIGHT", self, "TOPLEFT", -20, 0)
 	GameTooltip:SetOwner (self, "ANCHOR_PRESERVE")
@@ -704,9 +706,11 @@ local TrackerFrameOnEnter = function(self)
 
 	self.RightBackground:SetAlpha(TRACKER_BACKGROUND_ALPHA_MAX)
 	self.Arrow:SetAlpha(TRACKER_ARROW_ALPHA_MAX)
-	buildTooltip (self)
 
 	self.HasOverHover = true
+
+	do return end
+	buildTooltip (self)
 end
 
 local TrackerFrameOnLeave = function(self)
@@ -718,10 +722,12 @@ local TrackerFrameOnLeave = function(self)
 
 	self.RightBackground:SetAlpha(TRACKER_BACKGROUND_ALPHA_MIN)
 	self.Arrow:SetAlpha(TRACKER_ARROW_ALPHA_MIN)
-	GameTooltip:Hide()
 
 	self.HasOverHover = nil
 	self.QuestInfomation.text = ""
+
+	do return end
+	GameTooltip:Hide()
 end
 
 local TrackerIconButtonOnEnter = function(self)

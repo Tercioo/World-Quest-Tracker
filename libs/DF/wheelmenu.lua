@@ -4,6 +4,52 @@ if (not detailsFramework or not DetailsFrameworkCanLoad) then
 	return
 end
 
+---@class wheelmenuframe : frame
+---@field options wheelmenuoption[]
+---@field outerRadius number
+---@field innerRadius number
+---@field optionRadius number
+---@field optionButtonWidth number
+---@field optionButtonHeight number
+---@field firstOptionAngle number
+---@field hoveredIndex number?
+---@field InnerDisc frame
+---@field CenterText fontstring
+---@field optionButtons wheeloptionbutton[]
+---@field UpdateButtons fun(self: wheelmenuframe) called when method Refresh is called, responsible for positioning buttons based on the amount of options
+---@field SetHoveredButtonIndex fun(self: wheelmenuframe, index: number?) sets the index of the hovered button, nil to set no hovered button
+---@field OnUpdate fun(self: wheelmenuframe) part of the OnUpdate, get the mouse position, get the nearest button and set the button index as the hovered index
+---@field GetOptionIndexUnderCursor fun(self: wheelmenuframe, cursorX: number, cursorY: number): number?
+---@field ConfirmHoveredOption fun(self: wheelmenuframe)
+---@field SetOptions fun(self: wheelmenuframe, options: wheelmenuoption[])
+---@field GetOptions fun(self: wheelmenuframe): wheelmenuoption[]
+---@field GetOption fun(self: wheelmenuframe, index: number): wheelmenuoption
+---@field GetNumOptions fun(self: wheelmenuframe): number
+---@field GetOptionButton fun(self: wheelmenuframe, index: number, dontCreate: boolean?): wheeloptionbutton
+---@field GetAllOptionsButtons fun(self: wheelmenuframe): wheeloptionbutton[]
+---@field CreateOptionButton fun(self: wheelmenuframe, parent: frame, width: number, height: number): wheeloptionbutton
+---@field GetNumOptionButtonsCreated fun(self: wheelmenuframe): number return the amount of button created to show options
+---@field HideUnusedButtons fun(self: wheelmenuframe)
+---@field ResetAppearance fun(self: wheelmenuframe)
+---@field ApplyHoveredAppearance fun(self: wheelmenuframe, button: wheeloptionbutton)
+---@field Refresh fun(self: wheelmenuframe)
+---@field OpenAtCursor fun(self: wheelmenuframe)
+---@field CloseMenu fun(self: wheelmenuframe)
+local WheelMenuMixin = {}
+    
+---@class wheelmenuoption
+---@field text string?
+---@field icon string|number?
+---@field onClick fun(option: wheelmenuoption, menu: wheelmenuframe)?
+---@field value any
+
+---@class wheeloptionbutton : button
+---@field Option wheelmenuoption?
+---@field Icon texture?
+---@field Text fontstring?
+---@field SectorStartAngle number?
+---@field SectorEndAngle number?
+
 local threeSixty = math.pi * 2
 
 local normalizeAngle = function(angle)
@@ -14,178 +60,207 @@ local normalizeAngle = function(angle)
     return angle
 end
 
-local GetCursorPositionOnUI = function()
-    local x, y = GetCursorPosition()
-    local scale = UIParent:GetScale()
-    return x / scale, y / scale
+function WheelMenuMixin:ResetAppearance()
+    --reset appearance of all buttons, including hovered one
+    for index, button in ipairs(self:GetAllOptionsButtons()) do
+        --do appearance changes
+    end
 end
 
----@class wheelmenuoption
----@field text string?
----@field icon string|number?
----@field onClick fun(option: wheelmenuoption, menu: wheelmenuframe)?
----@field value any
+function WheelMenuMixin:ApplyHoveredAppearance(button)
+    --do appearance changes
+end
 
----@class wheelmenuframe : frame
----@field Options wheelmenuoption[]
----@field OptionButtons button[]
----@field OuterRadius number
----@field InnerRadius number
----@field OptionRadius number
----@field OptionButtonWidth number
----@field OptionButtonHeight number
----@field FirstOptionAngle number
----@field HoveredIndex number?
-local WheelMenuMixin = {}
-
-function WheelMenuMixin:LayoutOptions()
-    local optionCount = #self.Options
-    if optionCount == 0 then
+function WheelMenuMixin:SetHoveredButtonIndex(index)
+    if self.hoveredIndex == index then
         return
     end
 
-    local sliceAngle = threeSixty / optionCount
-    local firstOptionAngle = self.FirstOptionAngle or (math.pi * 0.5)
-    for index = 1, optionCount do
-        local button = self.OptionButtons[index]
-        if button then
-            local angle = normalizeAngle(firstOptionAngle + (index - 1) * sliceAngle)
-            local x = math.cos(angle) * self.OptionRadius
-            local y = math.sin(angle) * self.OptionRadius
-            button:ClearAllPoints()
-            button:SetPoint("CENTER", self, "CENTER", x, y)
-            button.SectorStartAngle = normalizeAngle(angle - sliceAngle * 0.5)
-            button.SectorEndAngle = normalizeAngle(angle + sliceAngle * 0.5)
-            button:Show()
-        end
-    end
+    --reset the appearance of all buttons
+    self:ResetAppearance()
 
-    for index = optionCount + 1, #self.OptionButtons do
-        local button = self.OptionButtons[index]
-        if button then
-            button.Option = nil
-            button:Hide()
+    --set the new hovered button, if index is nil, no button is hovered
+    self.hoveredIndex = index
+
+    --apply hovered appearance to the new hovered button
+    if index then
+        local dontCreate = true
+        local hoveredButton = self:GetOptionButton(index, dontCreate)
+        if hoveredButton then
+            self:ApplyHoveredAppearance(hoveredButton)
         end
     end
 end
 
-function WheelMenuMixin:SetHoveredIndex(index)
-    if self.HoveredIndex == index then
-        return
-    end
-
-    if self.HoveredIndex and self.OptionButtons[self.HoveredIndex] then
-        local oldButton = self.OptionButtons[self.HoveredIndex]
-        oldButton:SetBackdropColor(0, 0, 0, 0.7)
-        oldButton:SetBackdropBorderColor(0, 0, 0, 0.35)
-    end
-
-    self.HoveredIndex = index
-
-    if index and self.OptionButtons[index] then
-        local newButton = self.OptionButtons[index]
-        newButton:SetBackdropColor(0.15, 0.45, 0.9, 0.9)
-        newButton:SetBackdropBorderColor(0.5, 0.8, 1, 0.9)
-    end
-end
-
-function WheelMenuMixin:GetOptionIndexFromCursor(cursorX, cursorY)
-    local optionCount = #self.Options
+function WheelMenuMixin:GetOptionIndexUnderCursor(cursorX, cursorY)
+    --get number of slices to decide if selection is possible
+    local optionCount = #self.options
     if optionCount < 1 then
         return
     end
 
+    --get wheel center on screen and cursor offset from center
     local centerX, centerY = self:GetCenter()
     local deltaX = cursorX - centerX
     local deltaY = cursorY - centerY
+    --get the distance
     local distanceSquared = deltaX * deltaX + deltaY * deltaY
 
-    if distanceSquared < (self.InnerRadius * self.InnerRadius) then
+    --ignore if the cursor is inside the small center circle
+    if distanceSquared < (self.innerRadius * self.innerRadius) then
         return
     end
-    if distanceSquared > (self.OuterRadius * self.OuterRadius) then
+    --ignore if the cursor is outside the wheel ring
+    if distanceSquared > (self.outerRadius * self.outerRadius) then
         return
     end
 
+    --convert cursor direction to normalized angle around the wheel
+    ---@diagnostic disable-next-line: deprecated
     local angle = normalizeAngle(math.atan2(deltaY, deltaX))
+    --each option owns one equal angular slice
     local sliceAngle = threeSixty / optionCount
-    local firstOptionAngle = self.FirstOptionAngle or (math.pi * 0.5)
+    --rotate the angle so option one is centered at the firstOptionAngle
+    local firstOptionAngle = self.firstOptionAngle or (math.pi * 0.5)
     local adjustedAngle = normalizeAngle(angle - firstOptionAngle + sliceAngle * 0.5)
+    --map adjusted angle to index in range 1 to .optionCount
     local index = math.floor(adjustedAngle / sliceAngle) + 1
+    --clamp edge cases from floating point precision
     if index < 1 then
         index = 1
     elseif index > optionCount then
         index = optionCount
     end
 
+    --return selected option index for current cursor position
     return index
 end
 
-function WheelMenuMixin:GetNearestButtonFromCursor(cursorX, cursorY)
-    local index = self:GetOptionIndexFromCursor(cursorX, cursorY)
-    if not index then
-        return
-    end
-    return self.OptionButtons[index], index
-end
-
-function WheelMenuMixin:RefreshHoverFromCursor()
+function WheelMenuMixin:OnUpdate() --called from OnUpdate
     local mouseX, mouseY = detailsFramework:GetCursorPosition()
-    local _, hoveredIndex = self:GetNearestButtonFromCursor(mouseX, mouseY)
-    self:SetHoveredIndex(hoveredIndex)
+    local hoveredIndex = self:GetOptionIndexUnderCursor(mouseX, mouseY) --can be nil
+    self:SetHoveredButtonIndex(hoveredIndex)
 end
 
 function WheelMenuMixin:ConfirmHoveredOption()
-    local index = self.HoveredIndex
+    local index = self.hoveredIndex
     if not index then
         return
     end
 
-    local option = self.Options[index]
+    local option = self:GetOption(index)
     if option and option.onClick then
-        option.onClick(option, self)
+        xpcall(option.onClick, geterrorhandler(), self, option)
     end
 end
 
 ---@param options wheelmenuoption[]
 function WheelMenuMixin:SetOptions(options)
-    self.Options = options or {}
+    self.options = options
+end
 
-    for index = 1, #self.Options do
-        local option = self.Options[index]
-        local button = self.OptionButtons[index]
-        if not button then
-            button = CreateFrame("button", nil, self, "BackdropTemplate")
-            button:SetSize(self.OptionButtonWidth, self.OptionButtonHeight)
-            button:SetBackdrop({
-                bgFile = "Interface\\Buttons\\WHITE8X8",
-                edgeFile = "Interface\\Buttons\\WHITE8X8",
-                edgeSize = 1,
-            })
-            button:SetBackdropColor(0, 0, 0, 0.7)
-            button:SetBackdropBorderColor(0, 0, 0, 0.35)
+function WheelMenuMixin:GetOption(index)
+    return self.options[index]
+end
 
-            button.Icon = button:CreateTexture(nil, "ARTWORK")
-            button.Icon:SetSize(16, 16)
-            button.Icon:SetPoint("LEFT", button, "LEFT", 4, 0)
+function WheelMenuMixin:GetOptions()
+    return self.options
+end
 
-            button.Text = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            button.Text:SetPoint("LEFT", button.Icon, "RIGHT", 4, 0)
-            button.Text:SetPoint("RIGHT", button, "RIGHT", -4, 0)
-            button.Text:SetJustifyH("LEFT")
+function WheelMenuMixin:GetNumOptions()
+    return #self.options
+end
 
-            button:SetScript("OnClick", function(clickedButton)
-                local clickedOption = clickedButton.Option
-                if clickedOption and clickedOption.onClick then
-                    clickedOption.onClick(clickedOption, self)
-                end
-            end)
+function WheelMenuMixin:GetNumOptionButtonsCreated()
+    return #self.optionButtons
+end
 
-            self.OptionButtons[index] = button
-        end
+function WheelMenuMixin:GetAllOptionsButtons()
+    return self.optionButtons
+end
+
+---@param parent frame
+---@param width number
+---@param height number
+---@return wheeloptionbutton
+function WheelMenuMixin:CreateOptionButton(parent, width, height)
+    local button = CreateFrame("button", nil, parent)
+    ---@cast button wheeloptionbutton
+    button:SetSize(width, height)
+
+    button.Icon = button:CreateTexture(nil, "ARTWORK")
+    button.Icon:SetSize(16, 16)
+    button.Icon:SetPoint("left", button, "left", 4, 0)
+
+    button.Text = button:CreateFontString(nil, "overlay", "GameFontNormal")
+    button.Text:SetPoint("left", button.Icon, "right", 4, 0)
+    button.Text:SetPoint("right", button, "right", -4, 0)
+    button.Text:SetJustifyH("left")
+
+    button:SetScript("OnClick", function(clickedButton)
+        local clickedOption = clickedButton.Option
+        --need to have a payload
+        xpcall(clickedOption.onClick, geterrorhandler(), clickedButton, clickedOption)
+    end)
+
+    self.optionButtons[#self.optionButtons+1] = button
+
+    return button
+end
+
+function WheelMenuMixin:GetOptionButton(index, dontCreate)
+    local button = self.optionButtons[index]
+    if not button and not dontCreate then
+        button = self:CreateOptionButton(self, self.optionButtonWidth, self.optionButtonHeight)
+    end
+    return button
+end
+
+--hide buttons that wasn't used in the UpdateButtons
+function WheelMenuMixin:HideUnusedButtons()
+    for index = self:GetNumOptions() + 1, self:GetNumOptionButtonsCreated() do
+        local dontCreate = true
+        local button = self:GetOptionButton(index, dontCreate)
+        button.Option = nil
+        button:Hide()
+    end
+end
+
+function WheelMenuMixin:UpdateButtons()
+    local optionCount = self:GetNumOptions()
+    if optionCount == 0 then
+        return
+    end
+
+    local sliceAngle = threeSixty / optionCount
+    local firstOptionAngle = self.firstOptionAngle or (math.pi * 0.5)
+
+    for index = 1, optionCount do
+        ---@type wheeloptionbutton
+        local button = self:GetOptionButton(index)
+        local angle = normalizeAngle(firstOptionAngle + (index - 1) * sliceAngle)
+        local x = math.cos(angle) * self.optionRadius
+        local y = math.sin(angle) * self.optionRadius
+        button:ClearAllPoints()
+        button:SetPoint("center", self, "center", x, y)
+        button.SectorStartAngle = normalizeAngle(angle - sliceAngle * 0.5)
+        button.SectorEndAngle = normalizeAngle(angle + sliceAngle * 0.5)
+        button:Show()
+    end
+
+    self:HideUnusedButtons()
+end
+
+---@param self wheelmenuframe
+function WheelMenuMixin:Refresh()
+    for index = 1, self:GetNumOptions() do
+        local option = self:GetOption(index)
+        ---@type wheeloptionbutton
+        local button = self:GetOptionButton(index)
 
         button.Option = option
-        button.Text:SetText(option.text or ("Option " .. index))
+        button.Text:SetText(option.text or "")
+
         if option.icon then
             button.Icon:SetTexture(option.icon)
             button.Icon:Show()
@@ -193,92 +268,86 @@ function WheelMenuMixin:SetOptions(options)
             button.Icon:SetTexture(nil)
             button.Icon:Hide()
         end
-        button:Show()
     end
 
-    self:SetHoveredIndex(nil)
-    self:LayoutOptions()
+    self:SetHoveredButtonIndex(nil)
+    self:UpdateButtons()
 end
 
 function WheelMenuMixin:OpenAtCursor()
     local mouseX, mouseY = detailsFramework:GetCursorPosition()
     self:ClearAllPoints()
-    self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", mouseX, mouseY)
-    self:SetHoveredIndex(nil)
+    self:SetPoint("center", UIParent, "bottomleft", mouseX, mouseY)
+    self:SetHoveredButtonIndex(nil)
     self:Show()
     self:SetScript("OnUpdate", function(menu)
-        menu:RefreshHoverFromCursor()
+        menu:OnUpdate()
     end)
 end
 
 function WheelMenuMixin:CloseMenu()
     self:SetScript("OnUpdate", nil)
-    self:SetHoveredIndex(nil)
+    self:SetHoveredButtonIndex(nil)
     self:Hide()
 end
+
+---@class wheelconfig : table
+---@field inner_radius number?
+---@field outer_radius number?
+---@field option_radius number?
+---@field option_button_width number?
+---@field option_button_height number?
+---@field first_option_angle number?
+---@field frame_strata string?
+---@field frame_level number?
+---@field center_text string?
 
 ---@param name string?
 ---@param parent frame?
 ---@param wheelOptions wheelmenuoption[]?
----@param config table?
+---@param config wheelconfig?
 ---@return wheelmenuframe
 function detailsFramework:CreateWheelMenu(parent, name, wheelOptions, config)
     parent = parent or UIParent
     config = config or {}
     wheelOptions = wheelOptions or {}
-
-    local innerRadius = config.innerRadius or 42
-    local outerRadius = config.outerRadius or 170
-    local optionRadius = config.optionRadius or math.floor((outerRadius + innerRadius) * 0.5)
-    local optionButtonWidth = config.optionButtonWidth or 122
-    local optionButtonHeight = config.optionButtonHeight or 24
+    local innerRadius = config.inner_radius or 42
+    local outerRadius = config.outer_radius or 170
+    local optionRadius = config.option_radius or math.floor((outerRadius + innerRadius) * 0.5)
+    local optionButtonWidth = config.option_button_width or 122
+    local optionButtonHeight = config.option_button_height or 24
 
     ---@type wheelmenuframe
     ---@diagnostic disable-next-line: assign-type-mismatch
-    local menu = CreateFrame("Frame", name, parent, "BackdropTemplate")
-    menu:SetFrameStrata(config.frameStrata or "FULLSCREEN")
-    menu:SetFrameLevel(config.frameLevel or 120)
-    menu:SetSize(outerRadius * 2, outerRadius * 2)
-    menu:SetClampedToScreen(true)
-    menu:EnableMouse(true)
-    menu:Hide()
+    local menuFrame = CreateFrame("frame", name, parent)
+    menuFrame:SetFrameStrata(config.frame_strata or "FULLSCREEN")
+    menuFrame:SetFrameLevel(config.frame_level or 120)
+    menuFrame:SetSize(outerRadius * 2, outerRadius * 2)
+    menuFrame:SetClampedToScreen(true)
+    menuFrame:EnableMouse(true)
+    menuFrame:Hide()
 
-    menu.OuterRadius = outerRadius
-    menu.InnerRadius = innerRadius
-    menu.OptionRadius = optionRadius
-    menu.OptionButtonWidth = optionButtonWidth
-    menu.OptionButtonHeight = optionButtonHeight
-    menu.FirstOptionAngle = config.firstOptionAngle or (math.pi * 0.5)
-    menu.Options = {}
-    menu.OptionButtons = {}
-    menu.HoveredIndex = nil
+    menuFrame.outerRadius = outerRadius
+    menuFrame.innerRadius = innerRadius
+    menuFrame.optionRadius = optionRadius
+    menuFrame.optionButtonWidth = optionButtonWidth
+    menuFrame.optionButtonHeight = optionButtonHeight
+    menuFrame.firstOptionAngle = config.first_option_angle or (math.pi * 0.5)
+    menuFrame.options = {}
+    menuFrame.optionButtons = {}
+    menuFrame.hoveredIndex = nil
 
-    menu:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    menu:SetBackdropColor(0, 0, 0, 0.5)
-    menu:SetBackdropBorderColor(0, 0, 0, 0.65)
+    menuFrame.InnerDisc = CreateFrame("frame", nil, menuFrame)
+    menuFrame.InnerDisc:SetPoint("center", menuFrame, "center", 0, 0)
+    menuFrame.InnerDisc:SetSize(innerRadius * 2, innerRadius * 2)
 
-    menu.InnerDisc = CreateFrame("Frame", nil, menu, "BackdropTemplate")
-    menu.InnerDisc:SetPoint("CENTER", menu, "CENTER", 0, 0)
-    menu.InnerDisc:SetSize(innerRadius * 2, innerRadius * 2)
-    menu.InnerDisc:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    menu.InnerDisc:SetBackdropColor(0.08, 0.08, 0.08, 0.9)
-    menu.InnerDisc:SetBackdropBorderColor(0, 0, 0, 0.8)
+    menuFrame.CenterText = menuFrame.InnerDisc:CreateFontString(nil, "overlay", "GameFontHighlight")
+    menuFrame.CenterText:SetPoint("center")
+    menuFrame.CenterText:SetText(config.center_text or "")
 
-    menu.CenterText = menu.InnerDisc:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    menu.CenterText:SetPoint("CENTER")
-    menu.CenterText:SetText(config.centerText or "Menu")
+    Mixin(menuFrame, WheelMenuMixin)
 
-    Mixin(menu, WheelMenuMixin)
-
-    menu:SetScript("OnMouseUp", function(self, mouseButton)
+    menuFrame:SetScript("OnMouseUp", function(self, mouseButton)
         if mouseButton == "LeftButton" then
             self:ConfirmHoveredOption()
             self:CloseMenu()
@@ -287,9 +356,12 @@ function detailsFramework:CreateWheelMenu(parent, name, wheelOptions, config)
         end
     end)
 
-    menu:SetScript("OnHide", function(self)
+    menuFrame:SetScript("OnHide", function(self)
         self:SetScript("OnUpdate", nil)
     end)
 
-    return menu
+    --set options to select
+    menuFrame:SetOptions(wheelOptions)
+
+    return menuFrame
 end

@@ -53,7 +53,7 @@ local triggerScheduledWidgetUpdate = function(timerObject)
 
 		--is a square button in the world map
 		elseif (widget.IsWorldQuestButton) then
-			WorldQuestTracker.UpdateWorldWidget(widget, widget.questData)
+			WorldQuestTracker.UpdateSquareWidget(widget, widget.questData)
 
 		--is a zone widget placed in the zone
 		elseif (widget.IsZoneQuestButton) then
@@ -231,7 +231,7 @@ end
 
 --return which are the current bounty quest id selected
 function WorldQuestTracker.GetCurrentBountyQuest()
-	return WorldQuestTracker.DataProvider.bountyQuestID or 0
+	return WorldQuestTracker.GetBlizzardProvider().bountyQuestID or 0
 end
 
 --return a map table with quest ids as key and true as value
@@ -357,7 +357,6 @@ end
 
 --return the current map the map is showing
 function WorldQuestTracker.GetCurrentMapAreaID()
-	--local mapID = WorldQuestTracker.DataProvider:GetMap():GetMapID()
 	local mapID = WorldMapFrame.mapID
 
 	if (mapID) then
@@ -411,12 +410,6 @@ function WorldQuestTracker.PreloadWorldQuestsForMap(mapID)
 			end
 		end
 	end
-end
-
---not in use
-function WorldQuestTracker.CanShowQuest(info)
-	local canShowQuest = WorldQuestTracker.DataProvider:ShouldShowQuest(info)
-	return canShowQuest
 end
 
 -- ~filter

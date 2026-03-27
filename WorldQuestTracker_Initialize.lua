@@ -347,29 +347,126 @@ do
 	CreateFrame("frame", "WorldQuestTrackerFinderFrame", UIParent, "BackdropTemplate")
 	CreateFrame("frame", "WorldQuestTrackerRareFrame", UIParent, "BackdropTemplate")
 
+	WORLDQUESTTRACKER_PINNAME = "WorldQuestTrackerPOIPinTemplate" --[[global]]
+
 	--create world quest tracker pin
-	WorldQuestTrackerPinMixin = CreateFromMixins(MapCanvasPinMixin)
+	WorldQuestTrackerPinMixin = CreateFromMixins(WorldMap_WorldQuestPinMixin) --was in xml duplicated
+	WorldQuestTrackerPinMixin.HelloWorld = true
+	WorldQuestTrackerPinMixin.CheckMouseButtonPassthrough = function()end
+	WorldQuestTrackerPinMixin.SetPassThroughButtons = function()end
+	WorldQuestTrackerPinMixin.SetPropagateMouseClicks = function()end
+	WorldQuestTrackerPinMixin.IsSuppressed = function () return true end
+	WorldQuestTrackerPinMixin.OnMouseEnter = function(self)
+		if (self.questID and WorldQuestTracker.ShowQuestTooltip) then
+			WorldQuestTracker.ShowQuestTooltip(self)
+		end
+		if (POIButtonMixin and POIButtonMixin.OnEnter) then
+			POIButtonMixin.OnEnter(self) --still using blizzard tooltip, but safer
+		end
+		if (self.OnLegendPinMouseEnter) then
+			--self:OnLegendPinMouseEnter()
+		end
+	end
+	WorldQuestTrackerPinMixin.OnMouseLeave = function(self)
+		if (WorldQuestTracker.HideQuestTooltip) then
+			WorldQuestTracker.HideQuestTooltip(self)
+		end
+		if (POIButtonMixin and POIButtonMixin.OnLeave) then
+			POIButtonMixin.OnLeave(self)
+		end
+		if (self.OnLegendPinMouseLeave) then
+			--self:OnLegendPinMouseLeave()
+		end
+	end
+	function WorldQuestTrackerPinMixin:GetQuestClassification()
+		local questID = self:GetQuestID();
+		if questID then
+			return  C_QuestInfoSystem.GetQuestClassification(questID);
+		end
+
+		return nil;
+	end
+
+	WorldQuestTrackerWQProvider = CreateFromMixins(WorldMap_WorldQuestDataProviderMixin)
+	WorldQuestTrackerWQProvider.activePins = {} --create on OnAdded (to map)
+	WorldQuestTrackerWQProvider.GetPinTemplate = function()
+		return WORLDQUESTTRACKER_PINNAME
+	end
+
+	--todo: check for WorldQuestTracker.DataProvider and cleanup the code to retrieve from only one provider
 
 	--data providers are stored inside .dataProviders folder
 	--catch the blizzard quest provider
-	function WorldQuestTrackerAddon.CatchMapProvider (fromMapOpened)
-		if (not WorldQuestTrackerAddon.DataProvider) then
+	--March 2026: need cleanup, there is another provider in world map quests
+	function WorldQuestTracker.CatchMapProvider (fromMapOpened)
+		if (not WorldQuestTracker.DataProvider) then
 			if (WorldMapFrame and WorldMapFrame.dataProviders) then
 				for dataProvider, state in pairs (WorldMapFrame.dataProviders) do
-					if (dataProvider.IsQuestSuppressed) then
-						WorldQuestTrackerAddon.DataProvider = dataProvider
+					if (dataProvider.IsQuestSuppressed) then --only WorldQuestDataProviderMixin has this function
+						WorldQuestTracker.DataProvider = dataProvider
+						--AddDataProvider
+						--WorldQuestTrackerWQProvider:SetOwningMap(WorldQuestTracker.DataProvider:GetMap())
+						WorldQuestTrackerWQProvider.owningMap = WorldQuestTracker.DataProvider:GetMap()
 						break
 					end
 				end
 			end
 
-			if (not WorldQuestTrackerAddon.DataProvider and fromMapOpened) then
+			if (not WorldQuestTracker.DataProvider and fromMapOpened) then
 				WorldQuestTracker:Msg ("Failed to initialize or get Data Provider.")
 			end
 		end
 	end
 
-	WorldQuestTrackerAddon.CatchMapProvider()
+	local setPosition = function(pin, x, y)
+		if not x or not y then
+			return
+		end
+
+		pin:ClearAllPoints()
+		local canvas = WorldQuestTracker.GetWQTProvider():GetMap():GetCanvas()
+		local scale = pin:GetScale()
+		pin:SetParent(canvas)
+
+		if pin.ApplyFrameLevel then
+			pin:ApplyFrameLevel()
+		else
+			pin:SetFrameLevel(1000)
+		end
+
+		pin:SetPoint("CENTER", canvas, "TOPLEFT", (canvas:GetWidth() * x) / scale, -(canvas:GetHeight() * y) / scale)
+	end
+
+	WorldQuestTracker.SetPinPosition = setPosition
+
+	--return a pin from the WQT provider
+	function WorldQuestTracker.GetPin()
+		local pin = WorldQuestTrackerWQProvider:GetMap():AcquirePin(WORLDQUESTTRACKER_PINNAME)
+		pin.IgnoresNudging = function() return true end
+		pin.SetPosition = setPosition
+		return pin
+	end
+
+	function WorldQuestTracker.RemoveAllPins()
+		local map = WorldQuestTrackerWQProvider:GetMap()
+		for pin in map:EnumeratePinsByTemplate(WORLDQUESTTRACKER_PINNAME) do
+			if (pin.Child) then
+				pin.Child:Hide()
+			end
+			pin.IsInUse = nil
+			map:RemovePin(pin)
+		end
+	end
+
+	WorldQuestTracker.CatchMapProvider()
+
+	function WorldQuestTracker.GetWQTProvider()
+		return WorldQuestTrackerWQProvider
+	end
+
+	function WorldQuestTracker.GetBlizzardProvider()
+		return WorldQuestTracker.DataProvider
+	end
 
 	--store zone widgets
 	WorldQuestTracker.ZoneWidgetPool = {}

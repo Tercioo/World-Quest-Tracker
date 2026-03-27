@@ -410,27 +410,16 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 			wqtInternal.CreateSummary()
 
-			local worldMapQuestProvider
-			hooksecurefunc(WorldQuestDataProviderMixin, "RefreshAllData", function(self, fromOnShow)
-				if not worldMapQuestProvider then
-					worldMapQuestProvider = self
-				end
-			end)
-
 			EventRegistry:RegisterCallback("MapCanvas.MapSet", function(mapID) do return end
+				--runs on world map
 				if (WorldQuestTracker.GetCurrentZoneType() == "world") then
+					--hide the zone summary frame
 					WorldQuestTracker.SetZoneSummaryEnterFrameVisibility(false)
 
-					if worldMapQuestProvider then
-						local mapCanvas = worldMapQuestProvider:GetMap()
-						for i = 1, #worldMapQuestProvider.activePins do
-							local pin = worldMapQuestProvider.activePins[i]
-							if pin and pin.questID then
-								if not InCombatLockdown() then
-									mapCanvas:RemovePin(pin) --cause propagation
-								end
-							end
-						end
+					local questProvider = WorldQuestTracker.GetWQTProvider()
+
+					if questProvider then
+						WorldQuestTracker.RemoveAllPins()
 
 						local EVERSONG_WOODS = 2395
 						local ZULAMAN = 2437
@@ -450,11 +439,13 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 								for i, info  in ipairs(taskInfo) do
 									if info.questID then
 										if not InCombatLockdown() then
-											if QuestUtils_IsQuestWorldQuest(info.questID) or info.isMapIndicatorQuest then
-												local thisPin = worldMapQuestProvider:AddWorldQuest(info) --cause propagation
-												WorldQuestTracker.DefaultWorldQuestPin[info.questID] = thisPin
-												thisPin:SetAlpha(0)
-												thisPin:SetPosition(1, 1)
+											if false then
+												if QuestUtils_IsQuestWorldQuest(info.questID) or info.isMapIndicatorQuest then
+													local thisPin = questProvider:AddWorldQuest(info) --cause propagation
+													WorldQuestTracker.DefaultWorldQuestPin[info.questID] = thisPin
+													thisPin:SetAlpha(0)
+													thisPin:SetPosition(1, 1)
+												end
 											end
 										end
 									end
@@ -1908,9 +1899,6 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			local line_onenter = function(self)
 				if (self.questID) then
 					self.numObjectives = 10
-					if not DF.IsAddonApocalypseWow() then
-						self.UpdateTooltip = TaskPOI_OnEnter
-					end
 					WorldQuestTracker.ShowQuestTooltip(self)
 					--TaskPOI_OnEnter(self)
 
@@ -3430,7 +3418,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 			--anima��o
 			worldFramePOIs:SetScript("OnShow", function()
-				worldFramePOIs.fadeInAnimation:Play()
+				--worldFramePOIs.fadeInAnimation:Play()
 			end)
 		end
 

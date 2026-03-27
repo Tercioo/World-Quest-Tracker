@@ -16,8 +16,10 @@
 			</OnLoad>
 		</Scripts>
 	</Frame>
+	<!-- duplicated from Lua or virtual=true was forgotten
 	<Frame name="WorldQuestTrackerPinMixin" inherits="WorldQuestTrackerPinProviderTemplate">
     </Frame>
+	-->
 	<Frame name="MicroButtonAlertTemplate_BFA" inherits="GlowBoxTemplate" parent="UIParent" enableMouse="true" hidden="true" frameStrata="DIALOG" frameLevel="2" toplevel="true" virtual="true">
 		<Size x="220" y="100"/>
 		<Layers>

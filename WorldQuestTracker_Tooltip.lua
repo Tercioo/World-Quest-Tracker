@@ -885,40 +885,28 @@ end
 
 local isWorldMapHooked = false
 local showTooltip = function(self, questInfo, style, xOffset, yOffset)
---   if true then
---      TaskPOI_OnEnter(self)
---      return
---   end
-
-    if not detailsFramework.IsAddonApocalypseWow() then
-        TaskPOI_OnEnter(self)
-        return
-    end
-
 	if not isWorldMapHooked then
 		WorldMapFrame:HookScript("OnHide", function() thisTooltip:Hide() end)
 		isWorldMapHooked = true
 	end
 
-
-	local defaultPin = WorldQuestTracker.DefaultWorldQuestPin[self.questID]
-	if (defaultPin) then
-		--defaultPin:GetScript("OnEnter")(defaultPin)
-		--GameTooltip:ClearAllPoints()
-		--GameTooltip:SetPoint("topright", self, "topleft", 0, 0)
+	---@cast self wqt_zonewidget
+	local questID = self.questID
+	if (not questID) then
 		return
 	end
+	local worldQuestType = self.worldQuestType
 
-    ---@cast self wqt_zonewidget
-    local questID = self.questID
-    local worldQuestType = self.worldQuestType
+	--local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, bCanCache)
 
-    --local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, itemQuantity, itemQuality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, bCanCache)
-
-    local gameTooltip = thisTooltip
+	local gameTooltip = thisTooltip
 	gameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+	gameTooltip:ClearLines()
+	if (gameTooltip.ItemTooltip) then
+		gameTooltip.ItemTooltip:Hide()
+	end
 
-    --blizzard
+	--blizzard
 	if (not HaveQuestData(questID)) then
 		GameTooltip_SetTitle(gameTooltip, RETRIEVING_DATA, RED_FONT_COLOR);
 		GameTooltip_SetTooltipWaitingForData(gameTooltip, true);
@@ -965,24 +953,35 @@ local showTooltip = function(self, questInfo, style, xOffset, yOffset)
 
     GameTooltip_AddQuestTimeToTooltip(gameTooltip, questID);
 
-    --quest progress
-    local numObjectives = self.numObjectives or C_QuestLog.GetNumQuestObjectives(questID);
-    for objectiveIndex = 1, numObjectives do
-        local objectiveText, objectiveType, finished, numFulfilled, numRequired = GetQuestObjectiveInfo(questID, objectiveIndex, false);
-        local showObjective = not (finished and isThreat);
-        --if showObjective then
-            --if self.shouldShowObjectivesAsStatusBar then
-            if objectiveType == "progressbar" then
-                local percent = math.floor((numFulfilled/numRequired) * 100);
-                GameTooltip_ShowProgressBar(gameTooltip, 0, numRequired, numFulfilled, PERCENTAGE_STRING:format(percent));
-            end
+	--quest progress
+	local numObjectives = self.numObjectives or C_QuestLog.GetNumQuestObjectives(questID);
+	for objectiveIndex = 1, numObjectives do
+		local objectiveText, objectiveType, finished, numFulfilled, numRequired = GetQuestObjectiveInfo(questID, objectiveIndex, false);
+		local showObjective = not (finished and isThreat);
+		--if showObjective then
+			--if self.shouldShowObjectivesAsStatusBar then
+			if objectiveType == "progressbar" and showObjective then
+				local percentText = nil
+				if (type(numRequired) == "number" and numRequired > 0 and type(numFulfilled) == "number") then
+					local percent = math.floor((numFulfilled / numRequired) * 100)
+					percentText = PERCENTAGE_STRING:format(percent)
+				end
 
-            if objectiveText and (#objectiveText > 0) then
-                local color = finished and GRAY_FONT_COLOR or HIGHLIGHT_FONT_COLOR;
-                gameTooltip:AddLine(QUEST_DASH .. objectiveText, color.r, color.g, color.b, true);
-            end
-        --end
-    end
+				if (objectiveText and #objectiveText > 0 and percentText) then
+					gameTooltip:AddLine(QUEST_DASH .. objectiveText .. " (" .. percentText .. ")", HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b, true)
+				elseif (objectiveText and #objectiveText > 0) then
+					gameTooltip:AddLine(QUEST_DASH .. objectiveText, HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b, true)
+				elseif (percentText) then
+					gameTooltip:AddLine(QUEST_DASH .. percentText, HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b, true)
+				end
+			end
+
+			if objectiveText and (#objectiveText > 0) and objectiveType ~= "progressbar" then
+				local color = finished and GRAY_FONT_COLOR or HIGHLIGHT_FONT_COLOR;
+				gameTooltip:AddLine(QUEST_DASH .. objectiveText, color.r, color.g, color.b, true);
+			end
+		--end
+	end
 
 	--GameTooltip:Show();
 	--do return end
@@ -1094,14 +1093,8 @@ end
 WorldQuestTracker.ShowQuestTooltip = showTooltip
 
 WorldQuestTracker.HideQuestTooltip = function(button)
-	if not detailsFramework.IsAddonApocalypseWow() then
-		TaskPOI_OnLeave(button)
-        return
-   end
-
 	WQT_ShoppingTooltip1:Hide()
 	WQT_ShoppingTooltip2:Hide()
-	GameTooltip:Hide()
 	thisTooltip:Hide()
 
 	GameCooltip:Hide()

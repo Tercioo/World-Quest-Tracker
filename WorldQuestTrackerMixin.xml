@@ -9,10 +9,10 @@
 			</Layer>
 		</Layers>
 	</Frame>
-	<Frame name="WorldQuestTrackerTaxiPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
-	<Frame name="WorldQuestTrackerPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
-	<Frame name="WorldQuestTrackerRarePinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
-	<Frame name="WorldQuestTrackerWorldMapPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
-	<Frame name="WorldQuestTrackerPOIPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
-	<Frame name="WorldQuestTrackerExtraMapTextureTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true"/>
+	<Button name="WorldQuestTrackerTaxiPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true" inherits="WorldMap_WorldQuestPinTemplate"/>
+	<Button name="WorldQuestTrackerPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true" inherits="WorldMap_WorldQuestPinTemplate"/>
+	<Button name="WorldQuestTrackerRarePinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true" inherits="WorldMap_WorldQuestPinTemplate"/>
+	<Button name="WorldQuestTrackerWorldMapPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true" inherits="WorldMap_WorldQuestPinTemplate"/>
+	<Button name="WorldQuestTrackerPOIPinTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true" inherits="WorldMap_WorldQuestPinTemplate"/>
+	<Button name="WorldQuestTrackerExtraMapTextureTemplate" mixin="WorldQuestTrackerPinMixin" virtual="true" inherits="WorldMap_WorldQuestPinTemplate"/>
 </Ui>
