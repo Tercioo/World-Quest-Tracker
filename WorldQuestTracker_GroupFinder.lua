@@ -1,6 +1,8 @@
 -- ~disabled
 local addonId, wqtInternal = ...
 
+
+
 --world quest tracker object
 local WorldQuestTracker = WorldQuestTrackerAddon
 if (not WorldQuestTracker) then
@@ -57,6 +59,7 @@ local isWorldQuest = QuestUtils_IsQuestWorldQuest
 
 	ff.lastToggleRequest = 0
 
+	--[[
 	hooksecurefunc("PVEFrame_ToggleFrame", function()
 		if (ff.lastToggleRequest == time()) then
 			--the call came from world quest tracker it self
@@ -85,6 +88,7 @@ local isWorldQuest = QuestUtils_IsQuestWorldQuest
 			return
 		end
 	end)
+	--]]
 
 	--right click to close label
 		ff.RightClickClose = DF:CreateLabel (ff, "right click to close this window")
@@ -429,8 +433,8 @@ local isWorldQuest = QuestUtils_IsQuestWorldQuest
 			--]=]
 		end
 
-		supportCaptchaFrame:RegisterEvent("LFG_LIST_SEARCH_RESULT_UPDATED")
-		supportCaptchaFrame:RegisterEvent("LFG_LIST_SEARCH_RESULTS_RECEIVED")
+		--supportCaptchaFrame:RegisterEvent("LFG_LIST_SEARCH_RESULT_UPDATED")
+		--supportCaptchaFrame:RegisterEvent("LFG_LIST_SEARCH_RESULTS_RECEIVED")
 
 		--search for a group in group finder button, create with bliz api
 		local acceptButton = CreateFrame("button", "$parentAcceptButton", ff, "BackdropTemplate")
@@ -754,15 +758,15 @@ function WorldQuestTracker.RegisterGroupFinderFrameOnLibWindow()
 end
 
 --events
-	ff:RegisterEvent ("QUEST_TURNED_IN")
-	ff:RegisterEvent ("QUEST_ACCEPTED")
-	ff:RegisterEvent ("QUEST_REMOVED")
-	ff:RegisterEvent ("GROUP_ROSTER_UPDATE")
-	ff:RegisterEvent ("GROUP_INVITE_CONFIRMATION")
-	ff:RegisterEvent ("LFG_LIST_APPLICANT_LIST_UPDATED")
-	ff:RegisterEvent ("ZONE_CHANGED_NEW_AREA")
-	ff:RegisterEvent ("PLAYER_ENTERING_WORLD")
-	ff:RegisterEvent ("PLAYER_LOGIN")
+	--ff:RegisterEvent ("QUEST_TURNED_IN")
+	--ff:RegisterEvent ("QUEST_ACCEPTED")
+	--ff:RegisterEvent ("QUEST_REMOVED")
+	--ff:RegisterEvent ("GROUP_ROSTER_UPDATE")
+	--ff:RegisterEvent ("GROUP_INVITE_CONFIRMATION")
+	--ff:RegisterEvent ("LFG_LIST_APPLICANT_LIST_UPDATED")
+	--ff:RegisterEvent ("ZONE_CHANGED_NEW_AREA")
+	--ff:RegisterEvent ("PLAYER_ENTERING_WORLD")
+	--ff:RegisterEvent ("PLAYER_LOGIN")
 
 	--[=[
 	ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", function (_, _, msg)
@@ -938,7 +942,7 @@ local playerEnteredWorldQuestZone = function(questID, npcID, npcName)
 		wipe(ff.PlayersInvited)
 
 		if not DF.IsAddonApocalypseWow() then
-			ff:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+			--ff:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 		end
 
 		--> check for active timers and disable them
@@ -1390,7 +1394,7 @@ ff:SetScript("OnEvent", function (self, event, questID, arg2, arg3)
 							local eventFrame = CreateFrame("frame")
 								LFGListFrame.ApplicationViewer.ScrollBox:HookScript("OnShow", function()
 
-								eventFrame:RegisterEvent("LFG_LIST_APPLICANT_LIST_UPDATED")
+								--eventFrame:RegisterEvent("LFG_LIST_APPLICANT_LIST_UPDATED")
 								eventFrame:SetScript("OnEvent", function()
 									local scrollTartet = LFGListFrame.ApplicationViewer.ScrollBox.ScrollTarget
 									local playerApplications = C_LFGList.GetApplicants()
@@ -1884,7 +1888,7 @@ kspam:SetScript("OnUpdate", function()
 		local selectedCategory = LFGListFrame.SearchPanel.categoryID
 		if (selectedCategory == 2 or selectedCategory == 3) then --dungeon | raid
 			if (WorldQuestTracker.db.profile.groupfinder.kfilter.show_button) then
-				configButton:Show()
+				--configButton:Show()
 			else
 				configButton:Hide()
 			end
@@ -1995,7 +1999,7 @@ function kspam.FilterSortedResult(results)
 	end
 end
 
-hooksecurefunc("LFGListUtil_SortSearchResults", kspam.OnSortResults)
+--hooksecurefunc("LFGListUtil_SortSearchResults", kspam.OnSortResults)
 
 local onClickBanButton = function(banButton)
 	local buttonObject =  banButton.MyObject
