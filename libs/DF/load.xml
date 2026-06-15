@@ -4,6 +4,7 @@
 	<Script file="fw.lua"/>
 	<Script file="mixins.lua"/>
 	<Script file="util.lua"/>
+	<Script file="frame_helpers.lua"/>
 	<Script file="header.lua"/>
 	<Script file="containers.lua"/>
 	<Script file="iteminfo.lua"/>
@@ -51,6 +52,7 @@
 	<Script file="auras.lua"/>
 	<Script file="tabcontainer.lua"/>
 	<Script file="editor.lua"/>
+	<Script file="anchorsystem.lua"/>
 	<Script file="keybind.lua"/>
 	<Script file="packtable.lua"/>
 </Ui>

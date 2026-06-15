@@ -15,6 +15,7 @@ local GetTime = GetTime
 ---@field dframework boolean
 ---@field statusBar df_timebar_statusbar
 ---@field widget statusbar
+---@field GetUIObject fun(self:df_timebar):statusbar returns the UIObject (the underlying StatusBar) that is behind the wrapper table
 ---@field direction string
 ---@field HookList table
 ---@field tooltip string
@@ -35,6 +36,7 @@ local GetTime = GetTime
 ---@field SetThrottle fun(self:df_timebar, seconds:number)
 ---@field SetDirection fun(self:df_timebar, direction:string)
 ---@field SetBackgroundColor fun(self:df_timebar, color:any, green:number|nil, blue:number|nil, alpha:number|nil)
+---@field SetIconPosition fun(self:df_timebar, iconPosition:string?) DF_TIMEBAR_ICON_POSITIONS_OUTSIDE or DF_TIMEBAR_ICON_POSITIONS_INSIDE
 
 ---@class df_timebar_statusbar : statusbar
 ---@field MyObject df_timebar
@@ -169,6 +171,11 @@ local OnMouseUpFunc = function(statusBar, mouseButton)
     end
 end
 
+---return the UIObject (the underlying StatusBar frame) that is behind the wrapper table.
+function TimeBarMetaFunctions:GetUIObject()
+    return self.widget
+end
+
 --timer functions
 function TimeBarMetaFunctions:SetIconSize(width, height)
     if (width and not height) then
@@ -185,12 +192,8 @@ end
 function TimeBarMetaFunctions:SetIcon(texture, L, R, T, B)
     if (texture) then
         self.statusBar.icon:Show()
-        self.statusBar.icon:ClearAllPoints()
-        self.statusBar.icon:SetPoint("left", self.statusBar, "left", 2, 0)
-        self.statusBar.icon:SetSize(self.statusBar:GetHeight()-2, self.statusBar:GetHeight()-2)
-        self.statusBar.leftText:ClearAllPoints()
-        self.statusBar.leftText:SetPoint("left", self.statusBar.icon, "right", 2, 0)
         self.statusBar.icon:SetTexture(texture)
+        self:SetIconPosition()
 
         if (L) then
             self.statusBar.icon:SetTexCoord(L, R, T, B)
@@ -220,6 +223,30 @@ function TimeBarMetaFunctions:SetLeftText(text)
 end
 function TimeBarMetaFunctions:SetRightText(text)
     self.statusBar.rightText:SetText(text)
+end
+
+DF_TIMEBAR_ICON_POSITIONS_OUTSIDE = "outside"
+DF_TIMEBAR_ICON_POSITIONS_INSIDE = "inside"
+
+function TimeBarMetaFunctions:SetIconPosition(iconPosition)
+    if not iconPosition then
+        iconPosition = self.iconPosition
+    end
+
+    self.statusBar.icon:ClearAllPoints()
+
+    if iconPosition == DF_TIMEBAR_ICON_POSITIONS_INSIDE then
+        self.statusBar.icon:SetPoint("left", self.statusBar, "left", 2, 0)
+        self.statusBar.leftText:ClearAllPoints()
+        self.statusBar.leftText:SetPoint("left", self.statusBar.icon, "right", 2, 0)
+
+    elseif iconPosition == DF_TIMEBAR_ICON_POSITIONS_OUTSIDE then
+        self.statusBar.icon:SetPoint("topright", self.statusBar, "topleft", 0, 0)
+        self.statusBar.icon:SetPoint("bottomright", self.statusBar, "bottomleft", 0, 0)
+        self.statusBar.icon:SetSize(self.statusBar:GetHeight()-2, self.statusBar:GetHeight()-2)
+        self.statusBar.leftText:ClearAllPoints()
+        self.statusBar.leftText:SetPoint("left", self.statusBar, "left", 2, 0)
+    end
 end
 
 function TimeBarMetaFunctions:SetFont(font, size, color, outline, shadowColor, shadowX, shadowY)
@@ -461,6 +488,14 @@ end
 
 ---create a time bar widget, a timebar is a statubar that can have a timer and a spark
 ---@param parent frame the parent frame
+---create a time bar (a StatusBar with built-in timer animation, icon, two text labels, and spark).
+---This function returns a wrapper Lua table (df_timebar), NOT a Blizzard frame. The underlying
+---UIObject (the Blizzard StatusBar frame) is at `wrapper.widget` (or equivalently
+---`wrapper.statusBar`) and via `wrapper:GetUIObject()`. Method calls on the wrapper itself are fine
+---(the metatable forwards them), but when the wrapper is passed AS AN ARGUMENT to a Blizzard API
+---that expects a frame — SetPoint relative anchor, CreateFrame parent, GameTooltip:SetOwner,
+---secure-template ref, etc. — it MUST be unwrapped via `wrapper:GetUIObject()` first, otherwise
+---the C side will error or misbehave because the wrapper has no frame userdata.
 ---@param texture texturepath|textureid the texture of the bar
 ---@param width number? the width of the bar, default is 150
 ---@param height number? the height of the bar, default is 20
@@ -507,6 +542,7 @@ function detailsFramework:CreateTimeBar(parent, texture, width, height, value, m
     detailsFramework:Mixin(timeBar.statusBar, detailsFramework.WidgetFunctions)
     timeBar.statusBar.MyObject = timeBar
     timeBar.direction = "right"
+    timeBar.iconPosition = DF_TIMEBAR_ICON_POSITIONS_INSIDE
 
     if (not APITimeBarFunctions) then
         APITimeBarFunctions = true
@@ -547,6 +583,7 @@ function detailsFramework:CreateTimeBar(parent, texture, width, height, value, m
 
         timeBar.statusBar.icon = timeBar.statusBar:CreateTexture(nil, "overlay", nil, 5)
         timeBar.statusBar.icon:SetPoint("left", timeBar.statusBar, "left", 2, 0)
+        timeBar.statusBar.icon:SetSize(height - 2, height - 2)
 
         timeBar.statusBar.leftText = timeBar.statusBar:CreateFontString("$parentLeftText", "overlay", "GameFontNormal", 4)
         timeBar.statusBar.leftText:SetPoint("left", timeBar.statusBar.icon, "right", 2, 0)

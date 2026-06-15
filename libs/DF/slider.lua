@@ -233,6 +233,11 @@ DF:Mixin(DFSliderMetaFunctions, DF.ScriptHookMixin)
 
 ------------------------------------------------------------------------------------------------------------
 --methods
+	---return the UIObject (the underlying Blizzard slider frame) that is behind the wrapper table.
+	function DFSliderMetaFunctions:GetUIObject()
+		return self.widget
+	end
+
 	--fixed value
 	function DFSliderMetaFunctions:SetFixedParameter(value)
 		rawset(self, "FixedValue", value)
@@ -1028,7 +1033,16 @@ end
 ---@field CreateExtraSpaceToClick fun(self:df_button, label:df_label, widgetWidth:number?, highlight:any?):button
 
 
+---create a switch / checkbox object.
+---This function returns a wrapper Lua table (df_checkbox, built on top of df_button via NewButton),
+---NOT a Blizzard frame. The underlying UIObject (the Blizzard button frame) is at `wrapper.widget`
+---and via `wrapper:GetUIObject()` (inherited from df_button). Method calls on the wrapper itself
+---are fine (the metatable forwards them), but when the wrapper is passed AS AN ARGUMENT to a
+---Blizzard API that expects a frame — SetPoint relative anchor, CreateFrame parent, etc. — it MUST
+---be unwrapped via `wrapper:GetUIObject()` first, otherwise the C side will error or misbehave.
+---The optional second return value (df_label) is the label widget; it is also a wrapper (see label.lua).
 function DF:CreateSwitch(parent, onSwitch, defaultValue, width, height, leftText, rightText, member, name, colorInverted, switchFunc, returnFunc, withLabel, switch_template, label_template)
+	--returns a wrapper table (not a frame); unwrap via wrapper:GetUIObject() / wrapper.widget when handing to Blizzard APIs
 	local switch, label = DF:NewSwitch(parent, parent, name, member, width or 60, height or 20, leftText, rightText, defaultValue, colorInverted, switchFunc, returnFunc, withLabel, switch_template, label_template)
 	if (onSwitch) then
 		switch.OnSwitch = onSwitch
@@ -1127,6 +1141,10 @@ function DF:NewSwitch(parent, container, name, member, width, height, leftText, 
 			label:SetTemplate(label_template)
 		end
 	end
+
+	--the legacy switch visual (thumb + ON/OFF text) is no longer used; every switch is rendered as a checkbox
+	slider:SetAsCheckBox()
+	slider:SetTemplate("OPTIONS_CHECKBOX_TEMPLATE")
 
 	return slider, with_label
 end
@@ -1250,6 +1268,7 @@ end
 ---@field slider slider
 ---@field type string
 ---@field dframework boolean
+---@field GetUIObject fun(self:df_slider):slider returns the UIObject that is behind the wrapper table
 ---@field SetTemplate fun(self:df_slider, template: table|string)
 ---@field SetFixedParameter fun(value: any)
 ---@field GetFixedParameter fun()
@@ -1258,6 +1277,15 @@ end
 ---@field ClearFocus fun()
 ---@field SetValueChangedFunction fun(self:df_slider, func: function)
 
+---create a slider object.
+---This function returns a wrapper Lua table (df_slider), NOT a Blizzard frame. The underlying
+---UIObject (the Blizzard slider frame) is at `wrapper.widget` (or equivalently `wrapper.slider`)
+---and via `wrapper:GetUIObject()`. Method calls on the wrapper itself are fine (the metatable
+---forwards them), but when the wrapper is passed AS AN ARGUMENT to a Blizzard API that expects a
+---frame — SetPoint relative anchor, CreateFrame parent, GameTooltip:SetOwner, secure-template ref,
+---etc. — it MUST be unwrapped via `wrapper:GetUIObject()` first, otherwise the C side will error
+---or misbehave because the wrapper has no frame userdata.
+---The optional second return value (df_label) is the label widget; it is also a wrapper (see label.lua).
 ---@param parent frame
 ---@param width number? default 150
 ---@param height number? default 20
@@ -1273,6 +1301,7 @@ end
 ---@param labelTemplate string|table|nil
 ---@return df_slider, df_label?
 function DF:CreateSlider (parent, width, height, minValue, maxValue, step, defaultv, isDecemal, member, name, label, sliderTemplate, labelTemplate)
+	--returns a wrapper table (not a frame); unwrap via wrapper:GetUIObject() / wrapper.widget when handing to Blizzard APIs
 	local slider, labelText = DF:NewSlider(parent, parent, name, member, width, height, minValue, maxValue, step, defaultv, isDecemal, false, label, sliderTemplate, labelTemplate)
 	return slider, labelText
 end

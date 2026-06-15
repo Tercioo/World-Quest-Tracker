@@ -39,6 +39,11 @@ detailsFramework.ScrollBoxFunctions = {
 		if (self.IsFauxScroll) then
 			self:UpdateFaux(#self.data, self.LineAmount, self.LineHeight)
 			offset = self:GetOffsetFaux()
+		else
+			--callers driving the scroll externally (e.g. a CreateScrollBar2 widget that bypasses
+			--FauxScrollFrame entirely) write self.offset directly; honor it instead of leaving
+			--the local at 0, which would freeze the refresh on the first page.
+			offset = self.offset or 0
 		end
 
 		--before starting the refresh, check if there's a pre refresh function and call it
@@ -70,17 +75,39 @@ detailsFramework.ScrollBoxFunctions = {
 					scrollBar:Hide()
 				end
 			else
-				--[=[ --maybe in the future I visit this again
+				--proportional thumb sizing: scale the thumb height to the ratio of visible
+				--lines vs total data, matching the standard OS/browser scrollbar convention
+				--(small thumb = lots to scroll, tall thumb = little). In the no-scroll case,
+				--explicitly hide the thumb — UpdateFaux's else branch hides the parent
+				--ScrollFrame but Refresh re-shows it, so the thumb would otherwise linger
+				--at whatever height a previous larger dataset gave it.
 				local scrollBar = _G[frameName .. "ScrollBar"]
-				local height = self:GetHeight()
-				local totalLinesRequired = #self.data
-				local linesShown = self._LinesInUse
-
-				local percent = linesShown / totalLinesRequired
-				local thumbHeight = height * percent
-				scrollBar.ThumbTexture:SetSize(12, thumbHeight)
-				print("thumbHeight:", thumbHeight)
-				--]=]
+				if (scrollBar and scrollBar.ThumbTexture) then
+					local numItems = #self.data
+					local numToDisplay = self.LineAmount
+					if (numItems > numToDisplay and numItems > 0) then
+						local trackHeight = scrollBar:GetHeight()
+						local visibleRatio = numToDisplay / numItems
+						--12px floor keeps the thumb grabbable even with huge data sets.
+						local thumbHeight = math.max(12, math.floor(trackHeight * visibleRatio))
+						--gate on actual change so the resize doesn't fire on every Refresh.
+						--during a drag, OnVerticalScroll triggers Refresh on every cursor frame
+						--and re-binding the thumb texture mid-drag resets the slider's drag
+						--state, which makes the thumb appear to race ahead of the cursor.
+						if (scrollBar._lastThumbHeight ~= thumbHeight) then
+							scrollBar._lastThumbHeight = thumbHeight
+							scrollBar.ThumbTexture:SetHeight(thumbHeight)
+							--re-bind the thumb texture so the slider widget picks up the new dimensions
+							--for its internal hit-test region. SetHeight alone resizes the visual texture
+							--but leaves the clickable hitbox at whatever size it was when SetThumbTexture
+							--was last called, so clicks on the resized extensions miss and page-jump.
+							scrollBar:SetThumbTexture(scrollBar.ThumbTexture)
+						end
+						scrollBar.ThumbTexture:Show()
+					else
+						scrollBar.ThumbTexture:Hide()
+					end
+				end
 			end
 		end
 		return self.Frames
@@ -136,7 +163,7 @@ detailsFramework.ScrollBoxFunctions = {
 			line._InUse = true
 		end
 
-		self._LinesInUse = self._LinesInUse + 1
+		self._LinesInUse = (self._LinesInUse or 0) + 1
 		return line
 	end,
 
@@ -155,6 +182,189 @@ detailsFramework.ScrollBoxFunctions = {
 	---@return table The data associated with the scrollbox.
 	GetData = function(self)
 		return self.data
+	end,
+
+	---Marks a data entry as the currently selected one.
+	---Accepts either a number (index into self.data) or a table (a sub-table reference to find within self.data, by reference equality).
+	---Pass nil to clear the selection.
+	---The selection state is purely informational on the base scrollbox; the user's refresh function is responsible for visually highlighting the selected line (compare line data against :GetDataSelected()).
+	---@param self df_scrollbox
+	---@param dataOrIndex table|number|nil
+	---@return table? selectedData the resolved data sub-table, or nil if not found / cleared
+	SetDataSelected = function(self, dataOrIndex)
+		if (dataOrIndex == nil) then
+			self.dataSelected = nil
+			self.dataSelectedIndex = nil
+			return nil
+		end
+
+		local data = self.data
+		if (not data) then
+			self.dataSelected = nil
+			self.dataSelectedIndex = nil
+			return nil
+		end
+
+		if (type(dataOrIndex) == "number") then
+			local thisData = data[dataOrIndex]
+			if (thisData) then
+				self.dataSelected = thisData
+				self.dataSelectedIndex = dataOrIndex
+				return thisData
+			end
+		elseif (type(dataOrIndex) == "table") then
+			for index = 1, #data do
+				if (data[index] == dataOrIndex) then
+					self.dataSelected = dataOrIndex
+					self.dataSelectedIndex = index
+					return dataOrIndex
+				end
+			end
+		end
+
+		return nil
+	end,
+
+	---Retrieves the selected data sub-table previously set via :SetDataSelected().
+	---@param self df_scrollbox
+	---@return table?
+	GetDataSelected = function(self)
+		return self.dataSelected
+	end,
+
+	---Retrieves the index (within self.data) of the selected data.
+	---@param self df_scrollbox
+	---@return number?
+	GetDataSelectedIndex = function(self)
+		return self.dataSelectedIndex
+	end,
+
+	---Selects the data immediately after the currently selected one.
+	---If nothing is selected, selects the first entry. Clamps at the last entry. Auto-scrolls to keep the selection visible and refreshes.
+	---@param self df_scrollbox
+	SelectNext = function(self)
+		local data = self.data
+		if (not data or #data == 0) then
+			return
+		end
+
+		local currentIndex = self.dataSelectedIndex
+		local newIndex
+		if (not currentIndex) then
+			newIndex = 1
+		else
+			newIndex = currentIndex + 1
+			if (newIndex > #data) then
+				newIndex = #data
+			end
+		end
+
+		if (newIndex == currentIndex) then
+			return
+		end
+
+		self:SetDataSelected(newIndex)
+		self:ScrollToSelectedData()
+		self:Refresh()
+	end,
+
+	---Selects the data immediately before the currently selected one.
+	---If nothing is selected, selects the first entry. Clamps at the first entry. Auto-scrolls to keep the selection visible and refreshes.
+	---@param self df_scrollbox
+	SelectPrevious = function(self)
+		local data = self.data
+		if (not data or #data == 0) then
+			return
+		end
+
+		local currentIndex = self.dataSelectedIndex
+		local newIndex
+		if (not currentIndex) then
+			newIndex = 1
+		else
+			newIndex = currentIndex - 1
+			if (newIndex < 1) then
+				newIndex = 1
+			end
+		end
+
+		if (newIndex == currentIndex) then
+			return
+		end
+
+		self:SetDataSelected(newIndex)
+		self:ScrollToSelectedData()
+		self:Refresh()
+	end,
+
+	---Scrolls the view (if needed) so the currently selected data is visible.
+	---@param self df_scrollbox
+	ScrollToSelectedData = function(self)
+		local index = self.dataSelectedIndex
+		if (not index) then
+			return
+		end
+
+		local offset = self:GetOffsetFaux() or 0
+		local lineAmount = self.LineAmount
+		local lineHeight = self.LineHeight
+		local scrollBar = self:GetChildFramesFaux()
+		if (not scrollBar) then
+			return
+		end
+
+		if (index <= offset) then
+			scrollBar:SetValue((index - 1) * lineHeight)
+		elseif (index > offset + lineAmount) then
+			scrollBar:SetValue((index - lineAmount) * lineHeight)
+		end
+	end,
+
+	---Enables (or disables) arrow key navigation. While enabled, pressing the up/down arrow keys with the mouse hovering over the scrollbox selects the data above/below the current selection.
+	---Keyboard input is gated by mouse hover so arrow keys are not consumed globally.
+	---Other keys propagate normally.
+	---@param self df_scrollbox
+	---@param enabled boolean
+	EnableArrowKeySelection = function(self, enabled)
+		self.bArrowKeySelection = enabled and true or false
+
+		if (enabled) then
+			self:EnableMouse(true)
+			self:SetScript("OnKeyDown", detailsFramework.ScrollBoxFunctions.OnArrowKeyDown)
+			if (not self._arrowKeyHooked) then
+				self:HookScript("OnEnter", detailsFramework.ScrollBoxFunctions.OnArrowKeyEnter)
+				self:HookScript("OnLeave", detailsFramework.ScrollBoxFunctions.OnArrowKeyLeave)
+				self._arrowKeyHooked = true
+			end
+		else
+			self:EnableKeyboard(false)
+			self:SetScript("OnKeyDown", nil)
+		end
+	end,
+
+	OnArrowKeyEnter = function(self)
+		if (self.bArrowKeySelection) then
+			self:EnableKeyboard(true)
+			self:SetPropagateKeyboardInput(true)
+		end
+	end,
+
+	OnArrowKeyLeave = function(self)
+		if (self.bArrowKeySelection) then
+			self:EnableKeyboard(false)
+		end
+	end,
+
+	OnArrowKeyDown = function(self, key)
+		if (key == "UP") then
+			self:SetPropagateKeyboardInput(false)
+			self:SelectPrevious()
+		elseif (key == "DOWN") then
+			self:SetPropagateKeyboardInput(false)
+			self:SelectNext()
+		else
+			self:SetPropagateKeyboardInput(true)
+		end
 	end,
 
 	---Retrieves the frames contained within the scrollbox.
@@ -278,6 +488,12 @@ detailsFramework.ScrollBoxFunctions = {
 		else
 			scrollBar:SetValue(0);
 			frame:Hide();
+			--the arrow button enable/disable block below only runs while frame:IsShown(), so its
+			--state can persist as "enabled" from a prior refresh. Refresh re-shows the parent
+			--scrollframe to keep the line frames visible, which would otherwise leave the arrows
+			--clickable with nothing to scroll. Force them disabled here so the no-scroll case is correct.
+			scrollUpButton:Disable();
+			scrollDownButton:Disable();
 		end
 		if ( frame:IsShown() ) then
 			local scrollFrameHeight = 0;
@@ -301,6 +517,18 @@ detailsFramework.ScrollBoxFunctions = {
 			scrollBar:SetValueStep(buttonHeight);
 			scrollBar:SetStepsPerPage(numToDisplay-1);
 			scrollChildFrame:SetHeight(scrollChildHeight);
+
+			--kick the slider widget so the thumb texture renders. After SetMinMaxValues the
+			--thumb stays invisible until SetValue is called next (normally on user scroll).
+			--re-applying the current value materializes the thumb without changing position.
+			--gated on a max-range change so the kick fires on initial display and on data resize
+			--(when the slider truly needs re-rendering) but is skipped during refreshes triggered
+			--mid-drag by OnVerticalScroll, where firing SetValue can interfere with the slider's
+			--internal drag tracking and amplify perceived scroll speed.
+			if (frame._lastKickedMaxRange ~= maxRange) then
+				frame._lastKickedMaxRange = maxRange
+				scrollBar:SetValue(scrollBar:GetValue());
+			end
 
 			-- Arrow button handling
 			if ( scrollBar:GetValue() == 0 ) then
@@ -336,6 +564,91 @@ detailsFramework.ScrollBoxFunctions = {
 		end
 
 		return showScrollBar;
+	end,
+
+	---creates a df_scrollbar2 widget bound to this scrollbox and handles all the wiring:
+	---disables the legacy FauxScrollFrame slider, sets up the OnScrollChange callback so
+	---the scrollbox's offset stays in sync, anchors the new scrollbar in the right gutter,
+	---enables mouse-wheel input, and intercepts Refresh so the scrollbar's range and visible
+	---ratio auto-sync after every refresh. callers can pass df_scrollbar2_options to customize
+	---(wheel_step defaults to 1 for line-based scrolling). idempotent: returns the existing
+	---scrollbar if one is already bound.
+	---@param self df_scrollbox
+	---@param options df_scrollbar2_options?
+	---@return df_scrollbar2
+	CreateScrollBar2 = function(self, options)
+		if (self.CustomScrollBar) then
+			return self.CustomScrollBar
+		end
+
+		--bypass FauxScrollFrame entirely: the new scrollbar drives self.offset via its callback.
+		self.HideScrollBar = true
+		self.IsFauxScroll = false
+		self.offset = 0
+
+		--default wheel_step = 1 (one line per wheel tick); caller options override.
+		local mergedOptions = {wheel_step = 1}
+		if (options) then
+			for key, value in pairs(options) do
+				mergedOptions[key] = value
+			end
+		end
+
+		local scrollBox = self
+		local scrollBar = detailsFramework:CreateScrollBar2(self, 100, function(_, value)
+			scrollBox.offset = math.floor(value + 0.5)
+			scrollBox:Refresh()
+		end, mergedOptions)
+
+		--anchor to the right gutter, filling the full scrollbox vertical range. -2 horizontal
+		--inset matches the standard scrollbox right margin. no vertical inset: CreateScrollBar2's
+		--step buttons live INSIDE the scrollbar's bounds (at its top and bottom corners), so they
+		--already sit at the scrollbox corners without an outer gap. an older draft used (-16, +16)
+		--insets — a holdover from the FauxScrollFrame slider whose up/down arrows were external
+		--siblings needing 16px slots above/below the track; the new scrollbar doesn't need that.
+		scrollBar:ClearAllPoints()
+		scrollBar:SetPoint("topright", self, "topright", -2, 0)
+		scrollBar:SetPoint("bottomright", self, "bottomright", -2, 0)
+		scrollBar:SetFrameLevel(self:GetFrameLevel() + 5)
+		scrollBar:EnableMouseWheelOn(self)
+
+		self.CustomScrollBar = scrollBar
+
+		--intercept Refresh on this instance so the scrollbar's range/ratio stay current.
+		--mixin functions are copied onto each instance via detailsFramework:Mixin, so this
+		--override only affects this scrollbox; other scrollboxes keep the original Refresh.
+		local originalRefresh = self.Refresh
+		self.Refresh = function(refreshSelf)
+			local frames = originalRefresh(refreshSelf)
+			refreshSelf:SyncCustomScrollBar()
+			return frames
+		end
+
+		return scrollBar
+	end,
+
+	---syncs the bound CustomScrollBar's range and visible-ratio from the current data and
+	---visible-line count, and toggles its visibility. called automatically after Refresh
+	---once CreateScrollBar2 has been called on this scrollbox; no-op if no scrollbar is bound.
+	---@param self df_scrollbox
+	SyncCustomScrollBar = function(self)
+		local scrollBar = self.CustomScrollBar
+		if (not scrollBar) then
+			return
+		end
+
+		local numItems = #self.data
+		local numToDisplay = self.LineAmount
+
+		if (numItems > numToDisplay and numItems > 0) then
+			scrollBar:SetRange(numItems - numToDisplay)
+			scrollBar:SetVisibleRatio(numToDisplay / numItems)
+			scrollBar:Show()
+		else
+			scrollBar:SetRange(0)
+			scrollBar:SetVisibleRatio(1)
+			scrollBar:Hide()
+		end
 	end,
 }
 
@@ -592,7 +905,7 @@ function detailsFramework:CreateMenuWithGridScrollBox(parent, name, refreshMeFun
 		for _, data in ipairs(gridScrollBox.data_original) do
 			originalData = data
 
-			if (type(value) == string) then
+			if (type(value) == "string") then
 				value = value:lower()
 				local dataValue = data[key]:lower()
 				if (dataValue == value) then
@@ -912,7 +1225,7 @@ function detailsFramework:CreateAuraScrollBox(parent, name, data, onAuraRemoveCa
 
 	auraScrollBox.Refresh = function()
 		auraScrollBox:TransformAuraData()
-		auraScrollBox:refresh_original()
+		return auraScrollBox:refresh_original()
 	end
 
     auraScrollBox:SetData(data)
@@ -920,6 +1233,184 @@ function detailsFramework:CreateAuraScrollBox(parent, name, data, onAuraRemoveCa
     return auraScrollBox
 end
 
+
+---@class df_canvasscrollboxmixin
+---@field scrollStep number
+---@field minValue number
+---@field smoothScrolling boolean
+---@field smoothScrollSpeed number
+---@field smoothScrollingAcceleration boolean
+---@field smoothScrollingAccelerationFactor number
+---@field useMomentum boolean
+---@field momentumFriction number
+---@field useDragScroll boolean
+---@field isDragging boolean?
+---@field dragLastY number?
+---@field dragSamples table?
+---@field scrollVelocity number?
+---@field targetScroll number?
+---@field lastWheelTime number?
+---@field SetScrollSpeed fun(self:df_canvasscrollbox, speed:number)
+---@field GetScrollSpeed fun(self:df_canvasscrollbox): number
+---@field SetSmoothScrolling fun(self:df_canvasscrollbox, enabled:boolean)
+---@field GetSmoothScrolling fun(self:df_canvasscrollbox): boolean
+---@field SetSmoothScrollSpeed fun(self:df_canvasscrollbox, speed:number)
+---@field SetSmoothScrollingAcceleration fun(self:df_canvasscrollbox, enabled:boolean)
+---@field GetSmoothScrollingAcceleration fun(self:df_canvasscrollbox): boolean
+---@field SetSmoothScrollingAccelerationFactor fun(self:df_canvasscrollbox, factor:number)
+---@field SetUseMomentum fun(self:df_canvasscrollbox, enabled:boolean)
+---@field GetUseMomentum fun(self:df_canvasscrollbox): boolean
+---@field SetMomentumFriction fun(self:df_canvasscrollbox, friction:number)
+---@field SetUseDragScroll fun(self:df_canvasscrollbox, enabled:boolean)
+---@field GetUseDragScroll fun(self:df_canvasscrollbox): boolean
+---@field OnVerticalScroll fun(self:df_canvasscrollbox, delta:number)
+
+--seconds between wheel ticks at or above which the boost factor is 1 (no acceleration)
+local WHEEL_ACCEL_THRESHOLD = 0.15
+--velocity below this magnitude (px/sec) is considered stopped
+local MOMENTUM_STOP_THRESHOLD = 1
+--how far back to look (seconds) when computing release velocity from drag samples
+local DRAG_VELOCITY_WINDOW = 0.1
+
+local endDrag = function(self)
+	self.isDragging = false
+
+	--seed momentum from the last DRAG_VELOCITY_WINDOW of cursor samples so released drags glide
+	if (self.useMomentum and self.dragSamples and #self.dragSamples >= 2) then
+		local samples = self.dragSamples
+		local first = samples[1]
+		local last = samples[#samples]
+		local dt = last[1] - first[1]
+		if (dt > 0) then
+			--drag formula is scrollDelta = cursorDeltaY (WoW Y-up), so v_scroll == v_cursor
+			self.scrollVelocity = (last[2] - first[2]) / dt
+		end
+	end
+
+	self.dragSamples = nil
+	self.dragLastY = nil
+end
+
+local canvasScrollOnUpdate = function(self, elapsed)
+	if (self.isDragging) then
+		--catch a release that happened off-frame (OnMouseUp won't fire if cursor left the frame)
+		if (not IsMouseButtonDown("LeftButton")) then
+			endDrag(self)
+			--fall through into momentum below if endDrag seeded a velocity
+			if (not self.scrollVelocity or self.scrollVelocity == 0) then
+				self:SetScript("OnUpdate", nil)
+				return
+			end
+		else
+			local _, cursorY = GetCursorPosition()
+			cursorY = cursorY / self:GetEffectiveScale()
+
+			local lastY = self.dragLastY or cursorY
+			local newScroll = self:GetVerticalScroll() + (cursorY - lastY)
+			local maxScroll = self:GetVerticalScrollRange()
+			if (newScroll < 0) then
+				newScroll = 0
+			elseif (newScroll > maxScroll) then
+				newScroll = maxScroll
+			end
+			self:SetVerticalScroll(newScroll)
+
+			local now = GetTime()
+			local samples = self.dragSamples
+			samples[#samples+1] = {now, cursorY}
+			--drop samples older than the velocity window so release velocity reflects the recent flick
+			while (samples[1] and (now - samples[1][1]) > DRAG_VELOCITY_WINDOW) do
+				table.remove(samples, 1)
+			end
+
+			self.dragLastY = cursorY
+			return
+		end
+	end
+
+	if (self.useMomentum) then
+		local velocity = self.scrollVelocity or 0
+		if (velocity == 0) then
+			self:SetScript("OnUpdate", nil)
+			return
+		end
+
+		local current = self:GetVerticalScroll()
+		local newPos = current + velocity * elapsed
+		local maxPos = self:GetVerticalScrollRange()
+
+		--exponential decay: v(t) = v0 * e^(-friction * t)
+		velocity = velocity * math.exp(-self.momentumFriction * elapsed)
+
+		--clamp position; kill velocity at boundaries
+		if (newPos <= 0) then
+			newPos = 0
+			velocity = 0
+		elseif (newPos >= maxPos) then
+			newPos = maxPos
+			velocity = 0
+		end
+
+		self:SetVerticalScroll(newPos)
+
+		if (math.abs(velocity) < MOMENTUM_STOP_THRESHOLD) then
+			self.scrollVelocity = 0
+			self:SetScript("OnUpdate", nil)
+		else
+			self.scrollVelocity = velocity
+		end
+		return
+	end
+
+	local target = self.targetScroll
+	if (not target) then
+		self:SetScript("OnUpdate", nil)
+		return
+	end
+
+	local current = self:GetVerticalScroll()
+	local diff = target - current
+
+	if (math.abs(diff) < 0.5) then
+		self:SetVerticalScroll(target)
+		self.targetScroll = nil
+		self:SetScript("OnUpdate", nil)
+		return
+	end
+
+	local step = math.min(elapsed * self.smoothScrollSpeed, 1)
+	self:SetVerticalScroll(current + diff * step)
+end
+
+local canvasScrollOnMouseDown = function(self, button)
+	if (button ~= "LeftButton") then return end
+	if (not self.useDragScroll) then return end
+
+	local _, cursorY = GetCursorPosition()
+	cursorY = cursorY / self:GetEffectiveScale()
+
+	self.isDragging = true
+	self.dragLastY = cursorY
+	self.dragSamples = {{GetTime(), cursorY}}
+
+	--cancel any in-flight motion so the drag starts from a stationary state
+	self.scrollVelocity = nil
+	self.targetScroll = nil
+
+	self:SetScript("OnUpdate", canvasScrollOnUpdate)
+end
+
+local canvasScrollOnMouseUp = function(self, button)
+	if (button ~= "LeftButton") then return end
+	if (not self.isDragging) then return end
+
+	endDrag(self)
+
+	--if no momentum was seeded, unhook OnUpdate; otherwise let the momentum branch run
+	if (not self.scrollVelocity or self.scrollVelocity == 0) then
+		self:SetScript("OnUpdate", nil)
+	end
+end
 
 detailsFramework.CanvasScrollBoxMixin = {
 	SetScrollSpeed = function(self, speed)
@@ -931,12 +1422,135 @@ detailsFramework.CanvasScrollBoxMixin = {
 		return self.scrollStep
 	end,
 
+	SetSmoothScrolling = function(self, enabled)
+		assert(type(enabled) == "boolean", "CanvasScrollBox:SetSmoothScrolling(enabled): enabled must be a boolean.")
+		self.smoothScrolling = enabled
+		if (not enabled) then
+			self.targetScroll = nil
+			self.lastWheelTime = nil
+			self:SetScript("OnUpdate", nil)
+		end
+	end,
+
+	GetSmoothScrolling = function(self)
+		return self.smoothScrolling
+	end,
+
+	SetSmoothScrollSpeed = function(self, speed)
+		assert(type(speed) == "number", "CanvasScrollBox:SetSmoothScrollSpeed(speed): speed must be a number.")
+		self.smoothScrollSpeed = speed
+	end,
+
+	SetSmoothScrollingAcceleration = function(self, enabled)
+		assert(type(enabled) == "boolean", "CanvasScrollBox:SetSmoothScrollingAcceleration(enabled): enabled must be a boolean.")
+		self.smoothScrollingAcceleration = enabled
+		if (not enabled) then
+			self.lastWheelTime = nil
+		end
+	end,
+
+	GetSmoothScrollingAcceleration = function(self)
+		return self.smoothScrollingAcceleration
+	end,
+
+	SetSmoothScrollingAccelerationFactor = function(self, factor)
+		assert(type(factor) == "number", "CanvasScrollBox:SetSmoothScrollingAccelerationFactor(factor): factor must be a number.")
+		self.smoothScrollingAccelerationFactor = factor
+	end,
+
+	SetUseMomentum = function(self, enabled)
+		assert(type(enabled) == "boolean", "CanvasScrollBox:SetUseMomentum(enabled): enabled must be a boolean.")
+		self.useMomentum = enabled
+		--clear in-flight motion from either algorithm so the toggle lands cleanly
+		self.scrollVelocity = nil
+		self.targetScroll = nil
+		self.lastWheelTime = nil
+		self:SetScript("OnUpdate", nil)
+	end,
+
+	GetUseMomentum = function(self)
+		return self.useMomentum
+	end,
+
+	SetMomentumFriction = function(self, friction)
+		assert(type(friction) == "number", "CanvasScrollBox:SetMomentumFriction(friction): friction must be a number.")
+		self.momentumFriction = friction
+	end,
+
+	SetUseDragScroll = function(self, enabled)
+		assert(type(enabled) == "boolean", "CanvasScrollBox:SetUseDragScroll(enabled): enabled must be a boolean.")
+		self.useDragScroll = enabled
+		--EnableMouse is required for OnMouseDown/OnMouseUp to fire on the scrollframe
+		self:EnableMouse(enabled)
+		if (not enabled and self.isDragging) then
+			self.isDragging = false
+			self.dragSamples = nil
+			self.dragLastY = nil
+			self:SetScript("OnUpdate", nil)
+		end
+	end,
+
+	GetUseDragScroll = function(self)
+		return self.useDragScroll
+	end,
+
 	OnVerticalScroll = function(self, delta)
 		local scrollStep = self:GetScrollSpeed()
-		if (delta > 0) then
-			self:SetVerticalScroll(math.max(self:GetVerticalScroll() - scrollStep, 0))
+
+		if (self.useMomentum or self.smoothScrolling) then
+			--rapid wheel ticks: scale the step up toward smoothScrollingAccelerationFactor
+			if (self.smoothScrollingAcceleration) then
+				local now = GetTime()
+				local lastTime = self.lastWheelTime
+				if (lastTime) then
+					local deltaTime = now - lastTime
+					if (deltaTime > 0) then
+						local boost = math.min(WHEEL_ACCEL_THRESHOLD / deltaTime, self.smoothScrollingAccelerationFactor)
+						if (boost > 1) then
+							scrollStep = scrollStep * boost
+						end
+					end
+				end
+				self.lastWheelTime = now
+			end
+
+			if (self.useMomentum) then
+				--integral of v0 * e^(-friction * t) dt from 0..inf is v0 / friction.
+				--so v0 = scrollStep * friction makes one tick travel ~scrollStep total px under no further input.
+				local kick = scrollStep * self.momentumFriction
+				local currentVelocity = self.scrollVelocity or 0
+
+				--reversing direction mid-glide: drop the existing velocity instead of fighting it
+				if (delta > 0) then
+					if (currentVelocity > 0) then
+						currentVelocity = 0
+					end
+					self.scrollVelocity = currentVelocity - kick
+				else
+					if (currentVelocity < 0) then
+						currentVelocity = 0
+					end
+					self.scrollVelocity = currentVelocity + kick
+				end
+
+				self:SetScript("OnUpdate", canvasScrollOnUpdate)
+			else
+				local origin = self.targetScroll or self:GetVerticalScroll()
+				local target
+				if (delta > 0) then
+					target = math.max(origin - scrollStep, 0)
+				else
+					target = math.min(origin + scrollStep, self:GetVerticalScrollRange())
+				end
+				self.targetScroll = target
+				self:SetScript("OnUpdate", canvasScrollOnUpdate)
+			end
 		else
-			self:SetVerticalScroll(math.min(self:GetVerticalScroll() + scrollStep, self:GetVerticalScrollRange()))
+			if (delta > 0) then
+				self:SetVerticalScroll(math.max(self:GetVerticalScroll() - scrollStep, 0))
+			else
+				self:SetVerticalScroll(math.min(self:GetVerticalScroll() + scrollStep, self:GetVerticalScrollRange()))
+			end
 		end
 	end,
 }
@@ -945,9 +1559,16 @@ local canvasScrollBoxDefaultOptions = {
 	width = 600,
 	height = 400,
 	reskin_slider = true,
+	smooth_scrolling = false,
+	smooth_scrolling_speed = 12,
+	smooth_scrolling_acceleration = false,
+	smooth_scrolling_acceleration_factor = 4,
+	use_momentum = false,
+	momentum_friction = 4,
+	use_drag_scroll = false,
 }
 
----@class df_canvasscrollbox : scrollframe, df_optionsmixin
+---@class df_canvasscrollbox : scrollframe, df_optionsmixin, df_canvasscrollboxmixin
 ---@field child frame
 
 ---@param parent frame
@@ -958,16 +1579,26 @@ local canvasScrollBoxDefaultOptions = {
 function detailsFramework:CreateCanvasScrollBox(parent, child, name, options)
 	---@type df_canvasscrollbox
 	local canvasScrollBox = CreateFrame("scrollframe", name or ("DetailsFrameworkCanvasScroll" .. math.random(50000, 10000000)), parent, "BackdropTemplate, UIPanelScrollFrameTemplate")
-	canvasScrollBox.scrollStep = 20
 	canvasScrollBox.minValue = 0
-
-	canvasScrollBox:SetScript("OnMouseWheel", detailsFramework.CanvasScrollBoxMixin.OnVerticalScroll)
 
 	detailsFramework:Mixin(canvasScrollBox, detailsFramework.CanvasScrollBoxMixin)
 	detailsFramework:Mixin(canvasScrollBox, detailsFramework.OptionsFunctions)
 
+	canvasScrollBox:SetScrollSpeed(20)
+	canvasScrollBox:SetScript("OnMouseWheel", detailsFramework.CanvasScrollBoxMixin.OnVerticalScroll)
+	canvasScrollBox:SetScript("OnMouseDown", canvasScrollOnMouseDown)
+	canvasScrollBox:SetScript("OnMouseUp", canvasScrollOnMouseUp)
+
     options = options or {}
     canvasScrollBox:BuildOptionsTable(canvasScrollBoxDefaultOptions, options)
+
+	canvasScrollBox:SetSmoothScrollSpeed(canvasScrollBox.options.smooth_scrolling_speed)
+	canvasScrollBox:SetSmoothScrollingAccelerationFactor(canvasScrollBox.options.smooth_scrolling_acceleration_factor)
+	canvasScrollBox:SetSmoothScrollingAcceleration(canvasScrollBox.options.smooth_scrolling_acceleration)
+	canvasScrollBox:SetMomentumFriction(canvasScrollBox.options.momentum_friction)
+	canvasScrollBox:SetUseMomentum(canvasScrollBox.options.use_momentum)
+	canvasScrollBox:SetSmoothScrolling(canvasScrollBox.options.smooth_scrolling)
+	canvasScrollBox:SetUseDragScroll(canvasScrollBox.options.use_drag_scroll)
 
 	canvasScrollBox:SetSize(canvasScrollBox.options.width, canvasScrollBox.options.height)
 
@@ -985,4 +1616,642 @@ function detailsFramework:CreateCanvasScrollBox(parent, child, name, options)
 	end
 
 	return canvasScrollBox
+end
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ~scrollbox
+
+---@class df_scrollbox : scrollframe, df_sortmixin, df_scrollboxmixin
+---@field data table
+---@field Header df_headerframe?
+---@field LineAmount number
+---@field LineHeight number
+---@field IsFauxScroll boolean?
+---@field HideScrollBar boolean?
+---@field Frames frame[]
+---@field ReajustNumFrames boolean?
+---@field DontHideChildrenOnPreRefresh boolean
+---@field offset number?
+---@field CustomScrollBar df_scrollbar2?
+---@field refresh_func fun(self:df_scrollbox, data:table, offset:number, numlines:number)
+---@field Refresh fun(self:df_scrollbox):frame[]
+---@field CreateScrollBar2 fun(self:df_scrollbox, options:df_scrollbar2_options?):df_scrollbar2
+---@field SyncCustomScrollBar fun(self:df_scrollbox)
+---@field CreateLineFunc fun(self:df_scrollbox, index:number)?
+---@field CreateLine fun(self:df_scrollbox, func:function)
+---@field SetData fun(self:df_scrollbox, data:table)
+---@field GetData fun(self:df_scrollbox): table
+---@field SetDataSelected fun(self:df_scrollbox, dataOrIndex:table|number|nil): table?
+---@field GetDataSelected fun(self:df_scrollbox): table?
+---@field GetDataSelectedIndex fun(self:df_scrollbox): number?
+---@field SelectNext fun(self:df_scrollbox)
+---@field SelectPrevious fun(self:df_scrollbox)
+---@field ScrollToSelectedData fun(self:df_scrollbox)
+---@field EnableArrowKeySelection fun(self:df_scrollbox, enabled:boolean)
+---@field dataSelected table?
+---@field dataSelectedIndex number?
+---@field bArrowKeySelection boolean?
+---@field _arrowKeyHooked boolean?
+---@field OnSetData fun(self:df_scrollbox, data:table)? if exists, this function is called after the SetData with the same parameters
+---@field ScrollBar statusbar
+---@field RefreshMe fun(...:any) virtual, implement if the data need to be manipulated, must call :SetData() and :Refresh()
+
+---create a scrollbox with the methods :Refresh() :SetData() :CreateLine()
+---@param parent table
+---@param name string
+---@param refreshFunc function
+---@param data table
+---@param width number
+---@param height number
+---@param lineAmount number
+---@param lineHeight number
+---@param createLineFunc function?
+---@param autoAmount boolean?
+---@param noScroll boolean?
+---@param noBackdrop boolean?
+---@return df_scrollbox
+function detailsFramework:CreateScrollBox(parent, name, refreshFunc, data, width, height, lineAmount, lineHeight, createLineFunc, autoAmount, noScroll, noBackdrop)
+	--create the scrollframe, it is the base of the scrollbox
+	---@type df_scrollbox
+	local scroll = CreateFrame("scrollframe", name, parent, "FauxScrollFrameTemplate, BackdropTemplate")
+
+	--apply the standard background color
+	if (not noBackdrop) then
+		detailsFramework:ApplyStandardBackdrop(scroll)
+	end
+
+	scroll:SetSize(width, height)
+	scroll.LineAmount = lineAmount
+	scroll.LineHeight = lineHeight
+	scroll.IsFauxScroll = true
+	scroll.HideScrollBar = noScroll
+	scroll.Frames = {}
+	scroll.ReajustNumFrames = autoAmount
+	scroll.CreateLineFunc = createLineFunc
+	scroll.DontHideChildrenOnPreRefresh = false
+
+	detailsFramework:Mixin(scroll, detailsFramework.SortFunctions)
+	detailsFramework:Mixin(scroll, detailsFramework.ScrollBoxFunctions)
+
+	scroll.refresh_func = refreshFunc
+	scroll.data = data
+
+	scroll:SetScript("OnVerticalScroll", scroll.OnVerticalScroll)
+	scroll:SetScript("OnSizeChanged", detailsFramework.ScrollBoxFunctions.OnSizeChanged)
+
+	return scroll
+end
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ~listbox
+
+local simple_list_box_ResetWidgets = function(self)
+	for _, widget in ipairs(self.widgets) do
+		widget:Hide()
+	end
+	self.nextWidget = 1
+end
+
+local simple_list_box_onenter = function(self, capsule)
+	self:GetParent().options.onenter (self, capsule, capsule.value)
+end
+
+local simple_list_box_onleave = function(self, capsule)
+	self:GetParent().options.onleave (self, capsule, capsule.value)
+	GameTooltip:Hide()
+end
+
+local simple_list_box_GetOrCreateWidget = function(self)
+	local index = self.nextWidget
+	local widget = self.widgets [index]
+	if (not widget) then
+		widget = detailsFramework:CreateButton(self, function()end, self.options.width, self.options.row_height, "", nil, nil, nil, nil, nil, nil, detailsFramework:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"))
+		widget:SetHook("OnEnter", simple_list_box_onenter)
+		widget:SetHook("OnLeave", simple_list_box_onleave)
+		widget.textcolor = self.options.textcolor
+		widget.textsize = self.options.text_size
+		widget.onleave_backdrop = self.options.backdrop_color
+
+		widget.XButton = detailsFramework:CreateButton(widget, function()end, 16, 16)
+		widget.XButton:SetPoint("topright", widget.widget, "topright")
+		widget.XButton:SetIcon ([[Interface\BUTTONS\UI-Panel-MinimizeButton-Up]], 16, 16, "overlay", nil, nil, 0, -4, 0, false)
+		widget.XButton.icon:SetDesaturated(true)
+
+		if (not self.options.show_x_button) then
+			widget.XButton:Hide()
+		end
+
+		table.insert(self.widgets, widget)
+	end
+	self.nextWidget = self.nextWidget + 1
+	return widget
+end
+
+local simple_list_box_RefreshWidgets = function(self)
+	self:ResetWidgets()
+	local amt = 0
+	for value, _ in pairs(self.list_table) do
+		local widget = self:GetOrCreateWidget()
+		widget:SetPoint("topleft", self, "topleft", 1, -self.options.row_height * (self.nextWidget-2) - 4)
+		widget:SetPoint("topright", self, "topright", -1, -self.options.row_height * (self.nextWidget-2) - 4)
+
+		widget:SetClickFunction(self.func, value)
+
+		if (self.options.show_x_button) then
+			widget.XButton:SetClickFunction(self.options.x_button_func, value)
+			widget.XButton.value = value
+			widget.XButton:Show()
+		else
+			widget.XButton:Hide()
+		end
+
+		widget.value = value
+
+		if (self.options.icon) then
+			if (type(self.options.icon) == "string" or type(self.options.icon) == "number") then
+				local coords = type(self.options.iconcoords) == "table" and self.options.iconcoords or {0, 1, 0, 1}
+				widget:SetIcon (self.options.icon, self.options.row_height - 2, self.options.row_height - 2, "overlay", coords)
+
+			elseif (type(self.options.icon) == "function") then
+				local icon = self.options.icon (value)
+				if (icon) then
+					local coords = type(self.options.iconcoords) == "table" and self.options.iconcoords or {0, 1, 0, 1}
+					widget:SetIcon (icon, self.options.row_height - 2, self.options.row_height - 2, "overlay", coords)
+				end
+			end
+		else
+			widget:SetIcon ("", self.options.row_height, self.options.row_height)
+		end
+
+		if (self.options.text) then
+			if (type(self.options.text) == "function") then
+				local text = self.options.text (value)
+				if (text) then
+					widget:SetText(text)
+				else
+					widget:SetText("")
+				end
+			else
+				widget:SetText(self.options.text or "")
+			end
+		else
+			widget:SetText("")
+		end
+
+		widget.value = value
+
+		local r, g, b, a = detailsFramework:ParseColors(self.options.backdrop_color)
+		widget:SetBackdropColor(r, g, b, a)
+
+		widget:Show()
+		amt = amt + 1
+	end
+	if (amt == 0) then
+		self.EmptyLabel:Show()
+	else
+		self.EmptyLabel:Hide()
+	end
+end
+
+local simplelistbox_default_options = {
+	height = 400,
+	row_height = 16,
+	width = 230,
+	icon = false,
+	text = "",
+	text_size = 10,
+	textcolor = "wheat",
+
+	backdrop_color = {1, 1, 1, .5},
+	panel_border_color = {0, 0, 0, 0.5},
+
+	onenter = function(self, capsule)
+		if (capsule) then
+			capsule.textcolor = "white"
+		end
+	end,
+	onleave = function(self, capsule)
+		if (capsule) then
+			capsule.textcolor = self:GetParent().options.textcolor
+		end
+		GameTooltip:Hide()
+	end,
+}
+
+local simple_list_box_SetData = function(self, t)
+	self.list_table = t
+end
+
+function detailsFramework:CreateSimpleListBox(parent, name, title, emptyText, listTable, onClick, options)
+	local scroll = CreateFrame("frame", name, parent, "BackdropTemplate")
+
+	scroll.ResetWidgets = simple_list_box_ResetWidgets
+	scroll.GetOrCreateWidget = simple_list_box_GetOrCreateWidget
+	scroll.Refresh = simple_list_box_RefreshWidgets
+	scroll.SetData = simple_list_box_SetData
+	scroll.nextWidget = 1
+	scroll.list_table = listTable
+
+	scroll.func = function(self, button, value)
+		detailsFramework:QuickDispatch(onClick, value)
+		scroll:Refresh()
+	end
+	scroll.widgets = {}
+
+	detailsFramework:ApplyStandardBackdrop(scroll)
+
+	scroll.options = options or {}
+	self.table.deploy(scroll.options, simplelistbox_default_options)
+
+	if (scroll.options.x_button_func) then
+		local original_X_function = scroll.options.x_button_func
+		scroll.options.x_button_func = function(self, button, value)
+			detailsFramework:QuickDispatch(original_X_function, value)
+			scroll:Refresh()
+		end
+	end
+
+	scroll:SetBackdropBorderColor(unpack(scroll.options.panel_border_color))
+
+	scroll:SetSize(scroll.options.width + 2, scroll.options.height)
+
+	local name = detailsFramework:CreateLabel(scroll, title, 12, "silver")
+	name:SetTemplate(detailsFramework:GetTemplate("font", "OPTIONS_FONT_TEMPLATE"))
+	name:SetPoint("bottomleft", scroll, "topleft", 0, 2)
+	scroll.Title = name
+
+	local emptyLabel = detailsFramework:CreateLabel(scroll, emptyText, 12, "gray")
+	emptyLabel:SetAlpha(.6)
+	emptyLabel:SetSize(scroll.options.width-10, scroll.options.height)
+	emptyLabel:SetPoint("center", 0, 0)
+	emptyLabel:Hide()
+	emptyLabel.align = "center"
+	scroll.EmptyLabel = emptyLabel
+
+	return scroll
+end
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--simple data scroll
+
+detailsFramework.DataScrollFunctions = {
+	RefreshScroll = function(self, data, offset, totalLines)
+		local filter = self.Filter
+		local currentData = {}
+		if (type(filter) == "string" and filter ~= "") then
+			for i = 1, #data do
+				for o = 1, #data[i] do
+					if (data[i][o]:find(filter)) then
+						table.insert(currentData, data[i])
+						break
+					end
+				end
+			end
+		else
+			currentData = data
+		end
+
+		if (self.SortAlphabetical) then
+			table.sort (currentData, function(t1, t2) return t1[1] < t2[1] end)
+		end
+
+		--update the scroll
+		for i = 1, totalLines do
+			local index = i + offset
+			local thisData = currentData [index]
+			if (thisData) then
+				local line = self:GetLine (i)
+				line:Update (index, thisData)
+			end
+		end
+	end,
+
+	CreateLine = function(self, index)
+		--create a new line
+		local line = CreateFrame("button", "$parentLine" .. index, self, "BackdropTemplate")
+		line.Update = self.options.update_line_func
+
+		--set its parameters
+		line:SetPoint("topleft", self, "topleft", 1, -((index-1) * (self.options.line_height+1)) - 1)
+		line:SetSize(self.options.width - 2, self.options.line_height)
+		line:RegisterForClicks ("LeftButtonDown", "RightButtonDown")
+
+		line:SetScript("OnEnter",	self.options.on_enter)
+		line:SetScript("OnLeave",	self.options.on_leave)
+		line:SetScript("OnClick",	self.options.on_click)
+
+		line:SetBackdrop(self.options.backdrop)
+		line:SetBackdropColor(unpack(self.options.backdrop_color))
+		line:SetBackdropBorderColor(unpack(self.options.backdrop_border_color))
+
+		local title = detailsFramework:CreateLabel(line, "", detailsFramework:GetTemplate("font", self.options.title_template))
+		local date = detailsFramework:CreateLabel(line, "", detailsFramework:GetTemplate("font", self.options.title_template))
+		local text = detailsFramework:CreateLabel(line, "", detailsFramework:GetTemplate("font", self.options.text_tempate))
+
+		title.textsize = 14
+		date.textsize = 14
+		text:SetSize(self.options.width - 20, self.options.line_height)
+		text:SetJustifyV ("top")
+
+		--setup anchors
+		if (self.options.show_title) then
+			title:SetPoint("topleft", line, "topleft", 2, 0)
+			date:SetPoint("topright", line, "topright", -2, 0)
+			text:SetPoint("topleft", title, "bottomleft", 0, -4)
+		else
+			text:SetPoint("topleft", line, "topleft", 2, 0)
+		end
+
+		line.Title = title
+		line.Date = date
+		line.Text = text
+
+		line.backdrop_color = self.options.backdrop_color or {.1, .1, .1, .3}
+		line.backdrop_color_highlight = self.options.backdrop_color_highlight or {.3, .3, .3, .5}
+
+		return line
+	end,
+
+	LineOnEnter = function(self)
+		self:SetBackdropColor(unpack(self.backdrop_color_highlight))
+	end,
+	LineOnLeave = function(self)
+		self:SetBackdropColor(unpack(self.backdrop_color))
+	end,
+
+	OnClick = function(self)
+
+	end,
+
+	UpdateLine = function(line, lineIndex, data)
+		local parent = line:GetParent()
+
+		if (parent.options.show_title) then
+			line.Title.text = data [2] or ""
+			line.Date.text = data [3] or ""
+			line.Text.text = data [4] or ""
+		else
+			line.Text.text = data [2] or ""
+		end
+
+		if (line:GetParent().OnUpdateLineHook) then
+			detailsFramework:CoreDispatch((line:GetName() or "ScrollBoxDataScrollUpdateLineHook") .. ":UpdateLineHook()", line:GetParent().OnUpdateLineHook, line, lineIndex, data)
+		end
+	end,
+}
+
+local default_datascroll_options = {
+	width = 400,
+	height = 700,
+	line_amount = 10,
+	line_height = 20,
+
+	show_title = true,
+
+	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
+	backdrop_color = {0, 0, 0, 0.2},
+	backdrop_color_highlight = {.2, .2, .2, 0.4},
+	backdrop_border_color = {0.1, 0.1, 0.1, .2},
+
+	title_template = "ORANGE_FONT_TEMPLATE",
+	text_tempate = "OPTIONS_FONT_TEMPLATE",
+
+	create_line_func = detailsFramework.DataScrollFunctions.CreateLine,
+	update_line_func = detailsFramework.DataScrollFunctions.UpdateLine,
+	refresh_func = detailsFramework.DataScrollFunctions.RefreshScroll,
+	on_enter = detailsFramework.DataScrollFunctions.LineOnEnter,
+	on_leave = detailsFramework.DataScrollFunctions.LineOnLeave,
+	on_click =  detailsFramework.DataScrollFunctions.OnClick,
+
+	data = {},
+}
+
+--[=[
+	Create a scroll frame to show text in an organized way
+	Functions in the options table can be overritten to customize the layout
+	@parent = the parent of the frame
+	@name = the frame name to use in the CreateFrame call
+	@options = options table to override default values from the table above
+--]=]
+function detailsFramework:CreateDataScrollFrame (parent, name, options)
+	--call the mixin with a dummy table to built the default options before the frame creation
+	--this is done because CreateScrollBox needs parameters at creation time
+	local optionsTable = {}
+	detailsFramework.OptionsFunctions.BuildOptionsTable (optionsTable, default_datascroll_options, options)
+	optionsTable = optionsTable.options
+
+	--scroll frame
+	local newScroll = detailsFramework:CreateScrollBox (parent, name, optionsTable.refresh_func, optionsTable.data, optionsTable.width, optionsTable.height, optionsTable.line_amount, optionsTable.line_height)
+	detailsFramework:ReskinSlider(newScroll)
+
+	detailsFramework:Mixin(newScroll, detailsFramework.OptionsFunctions)
+	detailsFramework:Mixin(newScroll, detailsFramework.LayoutFrame)
+
+	newScroll:BuildOptionsTable (default_datascroll_options, options)
+
+	--create the scrollbox lines
+	for i = 1, newScroll.options.line_amount do
+		newScroll:CreateLine (newScroll.options.create_line_func)
+	end
+
+	newScroll:Refresh()
+
+	return newScroll
+end
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+---boss selector
+
+---@class df_bossscrollselector : df_scrollbox
+---@field options df_bossscrollselector_options
+---@field callback function
+---@field callback_args any[]
+---@field SetCallback fun(self:df_bossscrollselector, callback:function, ...)
+
+---@class df_bossscrollselector_options : table
+---@field width number
+---@field height number
+---@field line_height number
+---@field line_amount number
+---@field show_icon boolean
+---@field show_name boolean
+---@field name_size number
+---@field name_color any
+---@field icon_coords table
+---@field icon_size table
+
+---@class df_bossscrollselector_line : button
+---@field index number
+---@field bossId number
+---@field bossIcon texture
+---@field bossName fontstring
+---@field bossRaidName fontstring
+---@field selectedInidicator texture
+
+---@type df_bossscrollselector_options
+local bossSelectorDefaultOptions = {
+	width = 200,
+	height = 400,
+	line_height = 40,
+	line_amount = 10,
+	show_icon = true,
+	icon_coords = {0, 1, 0, 1},
+	icon_size = {70, 36},
+	show_name = false,
+	name_size = 10,
+	name_color = "wheat",
+}
+
+detailsFramework.BossScrollSelectorMixin = {
+	---@param self df_bossscrollselector
+	---@param index number
+	---@return frame
+	CreateLine = function(self, index)
+		---@type df_bossscrollselector_line
+		local line = CreateFrame("button", "$parentLine" .. index, self, "BackdropTemplate")
+
+		line:SetPoint("topleft", self, "topleft", 1, -((index-1) * (self.options.line_height+1)) - 1)
+		line:SetSize(self.options.width - 2, self.options.line_height)
+		line:RegisterForClicks("LeftButtonDown", "RightButtonDown")
+		detailsFramework:ApplyStandardBackdrop(line)
+
+		--line:SetScript("OnEnter", onEnterBossLine)
+		--line:SetScript("OnLeave", onLeaveBossLine)
+
+		line.index = index
+
+		local selectedInidicator = line:CreateTexture(nil, "border")
+		selectedInidicator:SetPoint("topleft", line, "topleft", 1, -1)
+		selectedInidicator:SetPoint("bottomright", line, "bottomright", -1, 1)
+		selectedInidicator:SetColorTexture(1, 1, 1, 0.4)
+		selectedInidicator:Hide()
+		line.selectedInidicator = selectedInidicator
+
+		--boss icon
+		local bossIcon = line:CreateTexture("$parentIcon", "overlay")
+		bossIcon:SetSize(self.options.line_height + 30, self.options.line_height-4)
+		bossIcon:SetPoint("left", line, "left", 2, 0)
+		line.bossIcon = bossIcon
+
+		local bossName = line:CreateFontString(nil, "overlay", "GameFontNormal")
+		local bossRaid = line:CreateFontString(nil, "overlay", "GameFontNormal")
+		bossName:SetPoint("left", bossIcon, "right", -8, 6)
+		bossRaid:SetPoint("topleft", bossName, "bottomleft", 0, -2)
+		detailsFramework:SetFontSize(bossName, 10)
+		detailsFramework:SetFontSize(bossRaid, 9)
+		detailsFramework:SetFontColor(bossRaid, "silver")
+
+		detailsFramework:CreateHighlightTexture(line)
+
+		line.bossName = bossName
+		line.bossRaidName = bossRaid
+
+		return line
+	end,
+
+	---@param self df_bossscrollselector
+	---@param data df_encounterinfo[]
+	---@param offset number
+	---@param totalLines number
+	Refresh = function(self, data, offset, totalLines)
+		--update boss scroll
+		for i = 1, totalLines do
+			local index = i + offset
+			local thisData = data[index]
+			if (thisData) then
+				---@type df_bossscrollselector_line
+				---@diagnostic disable-next-line: assign-type-mismatch
+				local line = self:GetLine(i)
+
+				local instanceId = thisData.instanceId
+				---@type df_instanceinfo
+				local instanceData = detailsFramework.Ejc.GetInstanceInfo(instanceId)
+
+				local bossName = thisData.name
+				local bossRaidName = instanceData.name
+				local bossIcon = thisData.creatureIcon
+				local bossIconCoords = thisData.creatureIconCoords
+				local bossId = thisData.journalEncounterId
+
+				--update the line
+				line.bossName:SetText(bossName)
+				line.bossName:SetPoint("left", line.bossIcon, "right", -8, 6)
+				detailsFramework:TruncateText(line.bossName, 130)
+				line.bossRaidName:SetText(bossRaidName)
+				detailsFramework:TruncateText(line.bossRaidName, 130)
+
+				line.bossIcon:SetTexture(bossIcon)
+				line.bossIcon:SetSize(unpack(self.options.icon_size))
+				line.bossIcon:SetTexCoord(unpack(bossIconCoords))
+
+				line.bossIcon:SetPoint("left", line, "left", 2, 0)
+				line.bossName:Show()
+				line.bossRaidName:Show()
+
+				line.bossId = bossId
+				line.index = index
+				line:Show()
+			end
+		end
+	end,
+
+	SetCallback = function(self, callback, ...)
+		self.callback_args = {...}
+		self.callback = callback
+
+		local function onClick(line)
+			callback(line.index, unpack(self.callback_args))
+		end
+
+		local allLines = self:GetLines()
+		for index, line in ipairs(allLines) do
+			line:SetScript("OnClick", onClick)
+		end
+	end
+}
+
+---create a scrollbox with a list of bosses from an instance
+---@param instanceId any accept instanceId, ejInstanceId or instanceName
+---@param parent uiobject
+---@param name string|nil
+---@param options df_bossscrollselector_options?
+---@param callback function? the function to call when a boss is clicked
+---@param ... any additional arguments to pass to the callback
+---@return df_bossscrollselector
+function detailsFramework:CreateBossScrollSelectorForInstance(instanceId, parent, name, options, callback, ...)
+	local refreshFunc = detailsFramework.BossScrollSelectorMixin.Refresh
+	local createLineFunc = detailsFramework.BossScrollSelectorMixin.CreateLine
+
+	---@type df_encounterinfo[]
+	local arrayOfBosses = detailsFramework.Ejc.GetAllEncountersFromInstance(instanceId)
+
+	options = options or {}
+	---@cast options df_bossscrollselector_options
+	detailsFramework.table.deploy(options, bossSelectorDefaultOptions)
+
+	---@type df_bossscrollselector
+	---@diagnostic disable-next-line: assign-type-mismatch
+	local bossScrollFrame = detailsFramework:CreateScrollBox(parent, name, refreshFunc, arrayOfBosses, options.width, options.height, options.line_amount, options.line_height)
+	bossScrollFrame.options = options
+	bossScrollFrame.SetCallback = detailsFramework.BossScrollSelectorMixin.SetCallback
+
+	--create the scrollbox lines
+	for i = 1, options.line_amount do
+		bossScrollFrame:CreateLine(createLineFunc)
+	end
+
+	if (callback) then
+		bossScrollFrame:SetCallback(callback, ...)
+	end
+
+	detailsFramework:ReskinSlider(bossScrollFrame)
+	detailsFramework:ApplyStandardBackdrop(bossScrollFrame)
+
+	bossScrollFrame:Refresh()
+	return bossScrollFrame
 end

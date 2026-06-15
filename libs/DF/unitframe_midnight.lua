@@ -5,7 +5,7 @@ if (not detailsFramework or not DetailsFrameworkCanLoad) then
 	return
 end
 
-if not detailsFramework.IsMidnightWow() then return end
+if not detailsFramework.IsMidnightWowAPI() then return end
 
 local _
 --lua locals
@@ -725,6 +725,7 @@ detailsFramework.PowerFrameFunctions = {
 		if (not issecretvalue(self.currentPowerMax) and self.currentPowerMax == 0 and self.Settings.HideIfNoPower) then
 			self:Hide()
 		else
+			self:Show()
 			self:SetAlpha(self.currentPowerMax)
 		end
 	end,

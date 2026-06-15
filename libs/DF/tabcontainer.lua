@@ -104,7 +104,7 @@ detailsFramework.TabContainerMixin = {
                 tabFrame:SetBackdropColor(r, g, b, a)
             end
             if (backdropBorderColorTable) then
-                local r, g, b, a = detailsFramework:ParseColors(backdropColorTable)
+                local r, g, b, a = detailsFramework:ParseColors(backdropBorderColorTable)
                 tabFrame:SetBackdropBorderColor(r, g, b, a)
             end
         end
@@ -310,6 +310,7 @@ function detailsFramework:CreateTabContainer(parent, title, frameName, tabList, 
     ---@type fontstring
 	local mainTitle = detailsFramework:CreateLabel(tabContainer, title, 24, "white")
 	mainTitle:SetPoint("topleft", tabContainer, "topleft", 10, -30 + yOffset)
+    tabContainer.MainTitle = mainTitle
 
 	tabContainer.AllFrames = {}
 	tabContainer.AllButtons = {}

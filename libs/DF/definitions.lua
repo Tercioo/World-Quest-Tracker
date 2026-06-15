@@ -233,6 +233,8 @@ GameCooltipFrame2 = {}
 ---@field CreateStatusbarTextureListGenerator fun(self:table, callback:function) : function return a function which when called returns a table filled with all statusbar textures available and ready to be used on dropdowns
 ---@field CreateFrameStrataDropDown fun(self:table, parent:frame, callback:function, default:any, width:number?, height:number?, member:string?, name:string?, template:table?) : df_dropdown
 ---@field CreateFrameStrataListGenerator fun(self:table, callback:function) : function return a function which when called returns a table filled with all frame strata levels available and ready to be used on dropdowns
+---@field CreateBackgroundDropDown fun(self:table, parent:frame, callback:function, default:any, width:number?, height:number?, member:string?, name:string?, template:table?, bIncludeDefault:boolean?) : df_dropdown
+---@field CreateBackgroundListGenerator fun(self:table, callback:function, bIncludeDefault:boolean?) : function return a function which when called returns a table filled with all background textures available and ready to be used on dropdowns
 ---@field CreateFontDropDown fun(self:table, parent:frame, func:function, default:any, width:number?, height:number?, member:string?, name:string?, template:table?, bIncludeDefault:boolean?) : df_dropdown
 ---@field CreateColorDropDown fun(self:table, parent:frame, func:function, default:any, width:number?, height:number?, member:string?, name:string?, template:table?) : df_dropdown
 ---@field CreateOutlineDropDown fun(self:table, parent:frame, func:function, default:any, width:number?, height:number?, member:string?, name:string?, template:table?) : df_dropdown
@@ -277,6 +279,7 @@ GameCooltipFrame2 = {}
 ---@field CreateSimpleFrame fun(self:table, parent:frame, width:number?, height:number?, title:string?, frameName:string?, panelOptions:table?, savedVariableTable:table?) : simplepanel
 ---@field CreateAnts fun(self:table, parent:frame, antTable:df_anttable, leftOffset:number?, rightOffset:number?, topOffset:number?, bottomOffset:number?) : frame
 ---@field CreateBorder fun(self:table, parent:frame, alpha1:number?, alpha2:number?, alpha3:number?) : frame
+---@field CreateProfilePanel fun(self:table, addonObject:table, frameName:string, parentFrame:frame, options:table?) : df_profilepanel
 ---@field CreateMenuWithGridScrollBox fun(self:table, parent:frame, name:string?, refreshMeFunc:function, refreshButtonFunc:function, clickFunc:function, onCreateButton:function, gridScrollBoxOptions:df_gridscrollbox_options) : df_gridscrollbox create a scrollbox with a grid layout to be used as a menu
 ---@field CreateSearchBox fun(self:table, parent:frame, callback:function) : df_searchbox
 ---@field CreateHeader fun(self:table, parent:frame, headerTable:df_headercolumndata[], options:table?, frameName:string?) : df_headerframe
@@ -328,6 +331,7 @@ GameCooltipFrame2 = {}
 ---@field Mixin fun(self:table, target:table, ...) : table
 ---@field MixinX fun(self:table, target:table, ...)
 ---@field SetButtonTexture fun(self:table, button:button|df_button, texture:atlasname|texturepath|textureid)
+---@field SetFont fun(self:table, fontstring:fontstring, font:string, size:number?, flags:string?) set font attributes is passed
 ---@field SetFontSize fun(self:table, fontstring:fontstring, size:number)
 ---@field GetFontSize fun(self:table, fontstring:fontstring) : number return the font size of the fontstring
 ---@field SetFontColor fun(self:table, fontstring:fontstring, red:any, green:number?, blue:number?, alpha:number?)
@@ -409,6 +413,8 @@ GameCooltipFrame2 = {}
 ---@field GetRoleIconAndCoords fun(self:table, role:string) : string, number, number, number, number return the texture path and texcoords for a role
 ---@field AddRoleIconToText fun(self:table, text:string, role:string, size:number?) : string add a role icon to a text using escape codes
 ---@field GetRoleTCoordsAndTexture fun(self:table, roleID:number) : number, number, number, number, string
+---@field RemoveColorCodes fun(self:table, text:string) : string remove color codes from a text string
+---@field RemoveTextureCodes fun(self:table, text:string) : string remove texture codes from a text string
 ---@field AddColorToText fun(self:table, text:string, color:any) : string wrap text with a color
 ---@field AddClassColorToText fun(self:table, text:string, className:class|number) : string wrap text with a class color
 ---@field MakeDraggable fun(self:table, frame:frame, profileTable:table?) profile table is a table to save the position
@@ -418,7 +424,7 @@ GameCooltipFrame2 = {}
 ---@field AddClassIconToText fun(self:table, text:string, playerName:string, englishClassName:string, useSpec:boolean?, iconSize:number?) : string wrap 'text' with the class icon of 'playerName' using |T|t scape codes
 ---@field RemoveRealNameFromName fun(self:table, name:string) : string remove the realm name from a name string
 ---@field GetSpecInfoFromSpecId fun(self:table, specId:number) : specinfo
----@field GetSpecInfoFromSpecIcon fun(self:table, specIcon:string) : specinfo
+---@field GetSpecInfoFromSpecIcon fun(self:table, specIcon:number) : specinfo
 ---@field GetSpecIdFromSpecIcon fun(self:table, specIcon:number) : number?
 
 
