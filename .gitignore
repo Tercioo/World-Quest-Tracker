@@ -30,3 +30,4 @@ luac.out
 *.afphoto~lock~
 annotations.txt
 *.bak
+*.md
