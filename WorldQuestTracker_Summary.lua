@@ -220,61 +220,11 @@ function wqtInternal.CreateSummary()
             if InCombatLockdown() then
                 return
             end
-            if self:IsMouseOver() then
-                --print(GetTime())
-                for j = 1, #anchor.Widgets do
-                    local widget = anchor.Widgets[j]
-                    local questID = widget.questID
-                    local defaultPin = WorldQuestTracker.DefaultWorldQuestPin[questID]
-                    if defaultPin then
-                        defaultPin:ClearAllPoints()
-                        defaultPin:SetAllPoints(widget)
-                        defaultPin:SetFrameLevel(1000)
-                        defaultPin:SetFrameStrata("DIALOG")
-                        defaultPin:SetAlpha(0)
-                        defaultPin.DefaultParent = defaultPin:GetParent()
-                        defaultPin:SetParent(widget)
-                        defaultPin:SetMouseClickEnabled(false)
-
-                        local frameLevel = anchor.ContentsBorder:GetFrameLevel()
-                        if (frameLevel < widget:GetFrameLevel()) then
-                            frameLevel = anchor.ContentsBorder:GetFrameLevel() - 1
-                        end
-
-                        widget.DefaultPin = defaultPin
-                        widget:SetMouseMotionEnabled(false)
-                    end
-                end
-            else
-                for j = 1, #anchor.Widgets do
-                    local widget = anchor.Widgets[j]
-                    local defaultPin = widget.DefaultPin
-                    if not defaultPin then
-                        local questID = widget.questID
-                        defaultPin = WorldQuestTracker.DefaultWorldQuestPin[questID]
-                    end
-                    if defaultPin then
-                        defaultPin:ClearAllPoints()
-                        local smallWidget = WorldQuestTracker.GetWorldMapSmallWidget(widget.questID)
-                        if smallWidget then
-                            --print(smallWidget, j)
-                            defaultPin:SetParent(smallWidget)
-                            --defaultPin:SetAllPoints()
-                            defaultPin:SetPoint("topleft", smallWidget, "topleft", -2, 2)
-                            defaultPin:SetPoint("bottomright", smallWidget, "bottomright", 2, -2)
-
-                            --smallWidget:SetAlpha(0.3)
-
-                            defaultPin:SetScale(1)
-                            defaultPin:SetMouseClickEnabled(false)
-                        end
-
-                        defaultPin:SetAlpha(0)
-                        defaultPin:SetScale(1)
-                        widget.DefaultPin = nil
-                        --widget:SetMouseMotionEnabled(true)
-                    end
-                end
+            for j = 1, #anchor.Widgets do
+                local widget = anchor.Widgets[j]
+                widget.DefaultPin = nil
+                widget:EnableMouse(true)
+                widget:SetMouseMotionEnabled(true)
             end
         end)
 
@@ -359,12 +309,7 @@ function wqtInternal.CreateSummary()
         anchorButton.Anchor = anchor
 
         --anchor pin - hack to set the anchor location in the map based in a x y coordinate
-        local pinAnchor = CreateFrame("button", nil, worldFramePOIs, WorldQuestTracker.GetBlizzardProvider():GetPinTemplate())
-        pinAnchor.dataProvider = WorldQuestTracker.GetBlizzardProvider()
-        pinAnchor.worldQuest = true
-        pinAnchor.owningMap = WorldQuestTracker.GetBlizzardProvider():GetMap()
-        pinAnchor.questID = 1
-        pinAnchor.numObjectives = 1
+        local pinAnchor = WorldQuestTracker.CreateOwnedPinAnchor(nil, worldFramePOIs)
         anchor.PinAnchor = pinAnchor
 
         anchorButton:SetHook("OnEnter", function()

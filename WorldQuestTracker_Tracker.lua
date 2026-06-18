@@ -40,7 +40,7 @@ local GetDistance_Point = DF.GetDistance_Point
 local LibWindow = LibStub ("LibWindow-1.1")
 
 -- Helper to safely check if a value is greater than 0 (guards against secret values in 12.0+)
-local function safeGT0(value)
+local safeGT0 = function(value)
 	if issecretvalue and issecretvalue(value) then return false end
 	return value and value > 0
 end

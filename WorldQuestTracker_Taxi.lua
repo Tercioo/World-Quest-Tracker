@@ -37,6 +37,8 @@ function WorldQuestTracker.TaxyFrameHasZoom()
 end
 
 local TaxyPOIIndex, TaxyPOIContainer = 1, {}
+local TaxyNativePinTwins = setmetatable({}, {__mode = "k"})
+
 function WorldQuestTracker:GetOrCreateTaxyPOI(parent)
 	local button = WorldQuestTracker.CreateZoneWidget(TaxyPOIIndex, "WorldQuestTrackerTaxyPOI", parent)
 	button.IsTaxiQuestButton = true
@@ -249,49 +251,42 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				C_TaskQuest.RequestPreloadRewardData(pin.questID)
 			end
 
-			if (not pin._WQT_Twin) then
-				pin._WQT_Twin = WorldQuestTracker:GetOrCreateTaxyPOI(pin:GetParent())
-				pin._WQT_Twin:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-				pin._WQT_Twin:SetFrameStrata (pin:GetFrameStrata())
-				pin._WQT_Twin:SetFrameLevel(pin:GetFrameLevel()+100)
-				pin._WQT_Twin:SetScale (1.3)
-				pin._WQT_Twin:SetScript("OnClick", onTaxyWidgetClick)
-				pin._WQT_Twin.AnchorFrame:SetPoint("center", pin, "center")
-				pin._WQT_Twin.pin = pin
+			local taxyTwin = TaxyNativePinTwins[pin]
+			if (not taxyTwin) then
+				taxyTwin = WorldQuestTracker:GetOrCreateTaxyPOI(pin:GetParent())
+				TaxyNativePinTwins[pin] = taxyTwin
 
-				--mixin
-				for member, func in pairs(pin) do
-					if (type (func) == "function") then
-						pin._WQT_Twin.AnchorFrame[member] = func
-					end
-				end
+				taxyTwin:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+				taxyTwin:SetFrameStrata(pin:GetFrameStrata())
+				taxyTwin:SetFrameLevel(pin:GetFrameLevel()+100)
+				taxyTwin:SetScale(1.3)
+				taxyTwin:SetScript("OnClick", onTaxyWidgetClick)
+				taxyTwin.AnchorFrame:SetPoint("center", pin, "center")
 
-				pin._WQT_Twin:SetScript("OnEnter", function(self)
-					if (pin._WQT_Twin.questID) then
-						--TaskPOI_OnEnter(pin._WQT_Twin)
-						--WorldQuestTracker.ShowQuestTooltip(pin._WQT_Twin)
-						pin._WQT_Twin.Texture:SetBlendMode("ADD")
+				taxyTwin:SetScript("OnEnter", function(self)
+					if (self.questID) then
+						WorldQuestTracker.ShowWorldQuestTooltip(self)
+						self.Texture:SetBlendMode("ADD")
 					end
 				end)
 
-				pin._WQT_Twin:SetScript("OnLeave", function()
-					--TaskPOI_OnLeave(pin._WQT_Twin)
-					--WorldQuestTracker.HideQuestTooltip(pin._WQT_Twin)
-					pin._WQT_Twin.Texture:SetBlendMode("BLEND")
+				taxyTwin:SetScript("OnLeave", function(self)
+					WorldQuestTracker.HideWorldQuestTooltip(self)
+					self.Texture:SetBlendMode("BLEND")
 				end)
 
-				table.insert(WorldQuestTracker.TaxyZoneWidgets, pin._WQT_Twin)
+				table.insert(WorldQuestTracker.TaxyZoneWidgets, taxyTwin)
 			end
 
 			local questID = pin.questID
 			local mapId, zoneID = C_TaskQuest.GetQuestZoneID(questID)
 
-			pin._WQT_Twin.questID = questID
-			pin._WQT_Twin.numObjectives = pin.numObjectives or 1
-			pin._WQT_Twin.mapID = mapId
-			pin._WQT_Twin.AnchorFrame.mapID = mapId
-			pin._WQT_Twin.AnchorFrame.questID = questID
-			pin._WQT_Twin.AnchorFrame.numObjectives = pin.numObjectives or 1
+			taxyTwin.questID = questID
+			taxyTwin.numObjectives = pin.numObjectives or 1
+			taxyTwin.mapID = mapId
+			taxyTwin.AnchorFrame.mapID = mapId
+			taxyTwin.AnchorFrame.questID = questID
+			taxyTwin.AnchorFrame.numObjectives = pin.numObjectives or 1
 
 			local isShowingQuests = WorldQuestTracker.db.profile.taxy_showquests
 			local isShowingOnlyTracked = WorldQuestTracker.db.profile.taxy_trackedonly
@@ -299,37 +294,38 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 
 			--n�o esta mostrando as quests e o mapa n�o tem zoom
 			if (not isShowingQuests) then -- and not hasZoom
-				pin._WQT_Twin:Hide()
-				WorldQuestTracker.Taxy_CurrentShownBlips[pin._WQT_Twin] = nil
-				pin._WQT_Twin.questID = nil
-				pin._WQT_Twin.LastUpdate = nil
+				taxyTwin:Hide()
+				WorldQuestTracker.Taxy_CurrentShownBlips[taxyTwin] = nil
+				taxyTwin.questID = nil
+				taxyTwin.LastUpdate = nil
 				return
 			end
 
 			--esta mostrando apenas quests que est�o sendo trackeadas
 			if (isShowingOnlyTracked) then
 				if ((not WorldQuestTracker.IsQuestBeingTracked(questID) and not WorldQuestTracker.IsQuestOnObjectiveTracker(questID))) then -- and not hasZoom
-					pin._WQT_Twin:Hide()
-					WorldQuestTracker.Taxy_CurrentShownBlips[pin._WQT_Twin] = nil
-					pin._WQT_Twin.questID = nil
-					pin._WQT_Twin.LastUpdate = nil
+					taxyTwin:Hide()
+					WorldQuestTracker.Taxy_CurrentShownBlips[taxyTwin] = nil
+					taxyTwin.questID = nil
+					taxyTwin.LastUpdate = nil
 					return
 				end
 			end
 
-			pin._WQT_Twin:Show()
+			taxyTwin:Show()
+			pin:Hide()
 
-			WorldQuestTracker.Taxy_CurrentShownBlips[pin._WQT_Twin] = true
+			WorldQuestTracker.Taxy_CurrentShownBlips[taxyTwin] = true
 
 			local bCanCache = false
 			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, allowDisplayPastCritical, gold, goldFormated, rewardName, rewardTexture, numRewardItems, itemName, itemTexture, itemLevel, quantity, quality, isUsable, itemID, isArtifact, artifactPower, isStackable, stackAmount = WorldQuestTracker.GetOrLoadQuestData(questID, bCanCache)
 			local filter = WorldQuestTracker.GetQuestFilterTypeAndOrder(worldQuestType, gold, rewardName, itemName, isArtifact, quantity, numRewardItems, rewardTexture)
 
 			if (not filters[filter] and rarity ~= LE_WORLD_QUEST_QUALITY_EPIC) then
-				pin._WQT_Twin:Hide()
-				WorldQuestTracker.Taxy_CurrentShownBlips[pin._WQT_Twin] = nil
-				pin._WQT_Twin.questID = nil
-				pin._WQT_Twin.LastUpdate = nil
+				taxyTwin:Hide()
+				WorldQuestTracker.Taxy_CurrentShownBlips[taxyTwin] = nil
+				taxyTwin.questID = nil
+				taxyTwin.LastUpdate = nil
 				return
 			end
 
@@ -380,11 +376,11 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				isSpellTarget = false,
 			}
 
-			pin._WQT_Twin.questData = newQuestData
+			taxyTwin.questData = newQuestData
 
 			local inProgress, questIDChanged
 
-			if (pin._WQT_Twin.questID ~= questID) then
+			if (taxyTwin.questID ~= questID) then
 				questIDChanged = true
 			end
 
@@ -405,36 +401,30 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 			if (scale < 0.3) then
 				--n�o tem zoom
 				if (isShowingOnlyTracked) then
-					if (questIDChanged or pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
-						WorldQuestTracker.SetupWorldQuestButton(pin._WQT_Twin, newQuestData)
-						format_for_taxy_nozoom_tracked(pin._WQT_Twin, true)
-						pin._WQT_Twin.LastUpdate = GetTime()
-						pin._WQT_Twin.zoomState = nil
+					if (questIDChanged or taxyTwin.zoomState or not taxyTwin.LastUpdate or taxyTwin.LastUpdate+20 < GetTime()) then
+						WorldQuestTracker.SetupWorldQuestButton(taxyTwin, newQuestData)
+						format_for_taxy_nozoom_tracked(taxyTwin, true)
+						taxyTwin.LastUpdate = GetTime()
+						taxyTwin.zoomState = nil
 						--print ("UPDATED")
 					end
 				else
-					if (questIDChanged or pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
-						WorldQuestTracker.SetupWorldQuestButton(pin._WQT_Twin, newQuestData)
-						format_for_taxy_nozoom_all(pin._WQT_Twin)
-						pin._WQT_Twin.LastUpdate = GetTime()
-						pin._WQT_Twin.zoomState = nil
+					if (questIDChanged or taxyTwin.zoomState or not taxyTwin.LastUpdate or taxyTwin.LastUpdate+20 < GetTime()) then
+						WorldQuestTracker.SetupWorldQuestButton(taxyTwin, newQuestData)
+						format_for_taxy_nozoom_all(taxyTwin)
+						taxyTwin.LastUpdate = GetTime()
+						taxyTwin.zoomState = nil
 						--print ("atualizando", GetTime())
 					end
 				end
 			else
 				--tem zoom
-				if (questIDChanged or not pin._WQT_Twin.zoomState or not pin._WQT_Twin.LastUpdate or pin._WQT_Twin.LastUpdate+20 < GetTime()) then
-					WorldQuestTracker.SetupWorldQuestButton(pin._WQT_Twin, newQuestData)
-					format_for_taxy_zoom_allquests(pin._WQT_Twin)
-					pin._WQT_Twin.LastUpdate = GetTime()
-					pin._WQT_Twin.zoomState = true
-					--pin._WQT_Twin:SetScale (2.2)
-					pin._WQT_Twin:SetScale(pinScale) -- print ("using scale", pinScale)
-					pin:SetAlpha(0)
-					--pin.TimeLowFrame:SetAlpha(0)
-					if (pin.Underlay) then
-						pin.Underlay:SetAlpha(0)
-					end
+				if (questIDChanged or not taxyTwin.zoomState or not taxyTwin.LastUpdate or taxyTwin.LastUpdate+20 < GetTime()) then
+					WorldQuestTracker.SetupWorldQuestButton(taxyTwin, newQuestData)
+					format_for_taxy_zoom_allquests(taxyTwin)
+					taxyTwin.LastUpdate = GetTime()
+					taxyTwin.zoomState = true
+					taxyTwin:SetScale(pinScale) -- print ("using scale", pinScale)
 					--print ("UPDATED")
 				end
 			end
@@ -444,7 +434,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				wipe(WorldQuestTracker.QueuedPinsToRefresh)
 			end
 
-			table.insert(WorldQuestTracker.QueuedPinsToRefresh, {questID, pin._WQT_Twin, newQuestData})
+			table.insert(WorldQuestTracker.QueuedPinsToRefresh, {questID, taxyTwin, newQuestData})
 		end)
 
 		WorldQuestTracker.FlyMapHook = true

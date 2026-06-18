@@ -259,7 +259,7 @@ end
 local questButton_OnEnter = function(self)
 	if (self.questID) then
 		WorldQuestTracker.CurrentHoverQuest = self.questID
-		WorldQuestTracker.ShowQuestTooltip(self)
+		WorldQuestTracker.ShowWorldQuestTooltip(self)
 
 		WorldQuestTracker.HighlightOnWorldMap(self.questID, 1.3, "orange")
 
@@ -291,7 +291,7 @@ local questButton_OnLeave = function(self)
 		onleave_scale_animation(self)
 	end
 
-	WorldQuestTracker.HideQuestTooltip(self)
+	WorldQuestTracker.HideWorldQuestTooltip(self)
 
 	WorldQuestTracker.CurrentHoverQuest = nil
 	WorldQuestTracker.HideMapQuestHighlight()
@@ -369,7 +369,7 @@ function WorldQuestTracker.UpdateAllWorldMapAnchors(worldMapID)
 end
 
 function WorldQuestTracker.UpdateWorldMapAnchors(x, y, frame)
-	WorldQuestTracker.GetBlizzardProvider():GetMap():SetPinPosition(frame.AnchorFrame or frame, x, y)
+	WorldQuestTracker.SetPinPosition(frame.AnchorFrame or frame, x, y)
 end
 
 local re_InitializeWorldWidgets = function()
@@ -407,12 +407,7 @@ function WorldQuestTracker.InitializeWorldWidgets()
 		local anchor = CreateFrame("button", nil, worldFramePOIs, "BackdropTemplate")
 		anchor:SetSize(1, 1)
 
-		local anchorFrame = CreateFrame("button", nil, worldFramePOIs, WorldQuestTracker.GetBlizzardProvider():GetPinTemplate())
-		anchorFrame.dataProvider = WorldQuestTracker.GetBlizzardProvider()
-		anchorFrame.worldQuest = true
-		anchorFrame.owningMap = WorldQuestTracker.GetBlizzardProvider():GetMap()
-		anchorFrame.questID = 1
-		anchorFrame.numObjectives = 1
+		local anchorFrame = WorldQuestTracker.CreateOwnedPinAnchor(nil, worldFramePOIs)
 
 		anchor:SetPoint("center", anchorFrame, "center", 0, 0)
 		anchor.AnchorFrame = anchorFrame

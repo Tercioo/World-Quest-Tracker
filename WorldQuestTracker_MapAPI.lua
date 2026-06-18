@@ -28,6 +28,35 @@ local GetQuestLogRewardCurrencyInfo = WorldQuestTrackerAddon.GetQuestLogRewardCu
 local GetQuestLogRewardMoney = GetQuestLogRewardMoney
 local GetNumQuestLogRewards = GetNumQuestLogRewards
 
+local isSecretValue = function(value)
+	if not issecretvalue then
+		return false
+	end
+
+	local okay, isSecret = pcall(issecretvalue, value)
+	return okay and isSecret
+end
+
+local safeNumber = function(value, fallback)
+	if isSecretValue(value) then
+		return fallback
+	end
+	return type(value) == "number" and value or fallback
+end
+
+local safeTooltipText = function(fontString)
+	if (not fontString) then
+		return nil
+	end
+
+	local okay, text = pcall(fontString.GetText, fontString)
+	if (not okay or isSecretValue(text)) then
+		return nil
+	end
+
+	return text
+end
+
 ---return a boolean representing if the quest is a racing world quest
 ---@param tagID number
 ---@return boolean
@@ -519,7 +548,7 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 
 	--gold amount
 	function WorldQuestTracker.GetQuestReward_Gold (questID)
-		local gold = GetQuestLogRewardMoney  (questID) or 0
+		local gold = safeNumber(GetQuestLogRewardMoney(questID), 0)
 		local formated
 		if (gold > 10000000) then
 			formated = gold / 10000 --remove os zeros
@@ -554,12 +583,16 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 		--print(numQuestCurrencies, C_QuestLog.GetTitleForQuestID(questID))
 
 		---@type number
-		local numQuestCurrencies = GetNumQuestLogRewardCurrencies(questID)
+		local numQuestCurrencies = safeNumber(GetNumQuestLogRewardCurrencies(questID), 0)
 
 		if (numQuestCurrencies == 2) then
 			for currencyIndex = 1, numQuestCurrencies do
 				--name, texture, baseRewardAmount, currencyID, bonusRewardAmount
 				local name, texture, numItems, currencyId, bonusAmount = WorldQuestTracker.GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
+				if (isSecretValue(texture)) then
+					texture = nil
+				end
+
 				--legion invasion quest
 				if (texture and
 						(
@@ -569,7 +602,7 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 					) then -- [[Interface\Icons\inv_datacrystal01]]
 
 					--BFA invasion quest (this check will force it to get the second reward
-				elseif (not WorldQuestTracker.MapData.IgnoredRewardTexures[texture]) then
+				elseif (texture and not WorldQuestTracker.MapData.IgnoredRewardTexures[texture]) then
 					return name, texture, numItems, currencyId, bonusAmount
 				end
 			end
@@ -589,7 +622,7 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 
 			for i = 1, 4 do
 				local textString = _G ["WQTItemTooltipScanTooltipTextLeft" .. i]
-				local text = textString and textString:GetText()
+				local text = safeTooltipText(textString)
 				if (text and text ~= "") then
 
 					--shadowlands
@@ -654,47 +687,64 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 			return
 		end
 
-		local numQuestCurrencies = GetNumQuestLogRewardCurrencies(questID)
+		local numQuestCurrencies = safeNumber(GetNumQuestLogRewardCurrencies(questID), 0)
 
 		if (numQuestCurrencies == 1) then
 			--is artifact power? bfa
 			do
 				local name, texture, numItems, currencyId, quality = GetQuestLogRewardCurrencyInfo(1, questID)
-				if (texture == 1830317 or texture == 2065624) then --azerite textures
+				if (not isSecretValue(texture) and (texture == 1830317 or texture == 2065624)) then --azerite textures
 					--numItems are now given the amount of azerite (BFA 17-09-2018), no more tooltip scan required
-					return name, texture, 0, 1, 1, false, 0, 8, numItems or 0, false, 1
+					return name, texture, 0, 1, 1, false, 0, 8, safeNumber(numItems, 0), false, 1
 				end
 			end
 
 			--is artifact power wow11
 			do
 				local name, texture, baseRewardAmount, currencyId, bonusRewardAmount = GetQuestLogRewardCurrencyInfo(1, questID)
-				if (texture == 2967113) then --resonance crystals
-					return name, texture, 0, 1, 1, false, 0, 8, baseRewardAmount or 0, false, 1
+				if (not isSecretValue(texture) and texture == 2967113) then --resonance crystals
+					return name, texture, 0, 1, 1, false, 0, 8, safeNumber(baseRewardAmount, 0), false, 1
 				end
 			end
 		end
 
-		local numQuestRewards = GetNumQuestLogRewards(questID)
+		local numQuestRewards = safeNumber(GetNumQuestLogRewards(questID), 0)
 
 		if (numQuestRewards > 0) then
 			local itemName, itemTexture, quantity, itemQuality, isUsable, itemID, itemLevel = GetQuestLogRewardInfo(1, questID)
-			itemLevel = itemLevel or 0
+			quantity = safeNumber(quantity, 1)
+			itemQuality = safeNumber(itemQuality, 0)
+			itemLevel = safeNumber(itemLevel, 0)
+
+			if (isSecretValue(itemID)) then
+				return
+			end
 
 			if (itemID) then
 				local itemName, itemLink, itemRarity, nopItemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, itemSellPrice, itemClassID, itemSubClassID = GetItemInfo(itemID)
+				itemClassID = safeNumber(itemClassID, -1)
+				itemSubClassID = safeNumber(itemSubClassID, -1)
+				if (isSecretValue(itemEquipLoc)) then
+					itemEquipLoc = nil
+				end
+
 				local borderTexture
 				local borderColor
 
 				if (itemName) then
-					EmbeddedItemTooltip_SetItemByQuestReward(ItemTooltipScan, 1, questID) --GetQuestRewardConduit depends on this
+					local scanOkay = pcall(EmbeddedItemTooltip_SetItemByQuestReward, ItemTooltipScan, 1, questID) --GetQuestRewardConduit depends on this
 
-					borderTexture = ItemTooltipScan.IconOverlay:IsShown() and ItemTooltipScan.IconOverlay:GetTexture() == 3735314 and 3735314
-					if (borderTexture) then
-						borderColor = {ItemTooltipScan.IconOverlay:GetVertexColor()}
+					if (scanOkay) then
+						borderTexture = ItemTooltipScan.IconOverlay:IsShown() and ItemTooltipScan.IconOverlay:GetTexture() == 3735314 and 3735314
+						if (borderTexture) then
+							borderColor = {ItemTooltipScan.IconOverlay:GetVertexColor()}
+						end
 					end
 
-					local conduitType, conduitBorderColor = WorldQuestTracker.GetQuestRewardConduit(questID, itemID)
+					local conduitType, conduitBorderColor
+					if (scanOkay) then
+						conduitType, conduitBorderColor = WorldQuestTracker.GetQuestRewardConduit(questID, itemID)
+					end
 					if (conduitType) then
 						borderColor = conduitBorderColor
 					end
@@ -720,7 +770,7 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 							--scan for anima (shadowlands)
 							for i = 1, 4 do
 								local textString = _G ["WQTItemTooltipScanTooltipTextLeft" .. i]
-								local text = textString and textString:GetText()
+								local text = safeTooltipText(textString)
 								if (text and text ~= "") then
 									text = text:gsub("(|c).*(|r)", "")
 									if ((WORLD_QUEST_REWARD_FILTERS_ANIMA and text:find(_G.WORLD_QUEST_REWARD_FILTERS_ANIMA)) or (WORLD_QUEST_REWARD_FILTERS_ANIMA and text:find(_G.WORLD_QUEST_REWARD_FILTERS_ANIMA:lower()) or text:find("анимы"))) then
@@ -736,6 +786,7 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 						end
 					end
 
+					itemStackCount = safeNumber(itemStackCount, 1)
 					if (isArtifact) then
 						return itemName, itemTexture, itemLevel, quantity, itemQuality, isUsable, itemID, 9, artifactPower, itemStackCount > 1, itemStackCount, conduitType or false, borderTexture or "", borderColor or {1, 1, 1, 1}, itemLink
 					else

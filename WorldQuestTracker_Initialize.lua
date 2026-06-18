@@ -357,22 +357,16 @@ do
 	WorldQuestTrackerPinMixin.SetPropagateMouseClicks = function()end
 	WorldQuestTrackerPinMixin.IsSuppressed = function () return true end
 	WorldQuestTrackerPinMixin.OnMouseEnter = function(self)
-		if (self.questID and WorldQuestTracker.ShowQuestTooltip) then
-			WorldQuestTracker.ShowQuestTooltip(self)
-		end
-		if (POIButtonMixin and POIButtonMixin.OnEnter) then
-			POIButtonMixin.OnEnter(self) --still using blizzard tooltip, but safer
+		if (self.questID and WorldQuestTracker.ShowWorldQuestTooltip) then
+			WorldQuestTracker.ShowWorldQuestTooltip(self)
 		end
 		if (self.OnLegendPinMouseEnter) then
 			--self:OnLegendPinMouseEnter()
 		end
 	end
 	WorldQuestTrackerPinMixin.OnMouseLeave = function(self)
-		if (WorldQuestTracker.HideQuestTooltip) then
-			WorldQuestTracker.HideQuestTooltip(self)
-		end
-		if (POIButtonMixin and POIButtonMixin.OnLeave) then
-			POIButtonMixin.OnLeave(self)
+		if (WorldQuestTracker.HideWorldQuestTooltip) then
+			WorldQuestTracker.HideWorldQuestTooltip(self)
 		end
 		if (self.OnLegendPinMouseLeave) then
 			--self:OnLegendPinMouseLeave()
@@ -418,21 +412,42 @@ do
 		end
 	end
 
-	local setPosition = function(pin, x, y)
-		if not x or not y then
-			return
-		end
-
-		pin:ClearAllPoints()
-		local canvas = WorldQuestTracker.GetWQTProvider():GetMap():GetCanvas()
-		local scale = pin:GetScale()
-		pin:SetParent(canvas)
-
+	local applyPinFrameLevel = function(pin)
 		if pin.ApplyFrameLevel then
 			pin:ApplyFrameLevel()
 		else
 			pin:SetFrameLevel(1000)
 		end
+	end
+
+	local setPosition = function(pin, x, y)
+		if not x or not y then
+			return
+		end
+
+		local provider = WorldQuestTracker.GetWQTProvider()
+		local map = provider and provider:GetMap()
+		if not map then
+			return
+		end
+
+		local canvas = map:GetCanvas()
+		if not canvas then
+			return
+		end
+		pin:SetParent(canvas)
+
+		if map.SetPinPosition and pin.SetPosition ~= setPosition then
+			local success = pcall(map.SetPinPosition, map, pin, x, y)
+			if success then
+				applyPinFrameLevel(pin)
+				return
+			end
+		end
+
+		pin:ClearAllPoints()
+		local scale = pin:GetScale()
+		applyPinFrameLevel(pin)
 
 		pin:SetPoint("CENTER", canvas, "TOPLEFT", (canvas:GetWidth() * x) / scale, -(canvas:GetHeight() * y) / scale)
 	end

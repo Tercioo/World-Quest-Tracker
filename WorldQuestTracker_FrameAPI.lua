@@ -47,13 +47,35 @@ function WorldQuestTracker.CanLinkToChat (object, button)
 	end
 end
 
+function WorldQuestTracker.PrepareOwnedPinAnchor(anchorFrame)
+	if (not anchorFrame) then
+		return
+	end
+
+	anchorFrame:EnableMouse(false)
+	if (anchorFrame.SetMouseMotionEnabled) then
+		anchorFrame:SetMouseMotionEnabled(false)
+	end
+	if (anchorFrame.SetMouseClickEnabled) then
+		anchorFrame:SetMouseClickEnabled(false)
+	end
+end
+
+function WorldQuestTracker.CreateOwnedPinAnchor(name, parent)
+	local anchorFrame = CreateFrame("frame", name, parent, "BackdropTemplate")
+	anchorFrame:SetSize(1, 1)
+	WorldQuestTracker.PrepareOwnedPinAnchor(anchorFrame)
+	return anchorFrame
+end
+
 --> force to show a blizzard pin in the zone map
 function WorldQuestTracker.ShowDefaultPinForQuest (questID)
+	WorldQuestTracker.ShowDefaultWorldQuestPin [questID] = true
+
 	local defaultPin = WorldQuestTracker.GetDefaultPinForQuest (questID)
 	if (defaultPin) then
 		defaultPin:Show()
 	end
-	WorldQuestTracker.ShowDefaultWorldQuestPin [questID] = true
 end
 
 --return the red and green color for the given percent, zero = green, one = red
@@ -82,7 +104,7 @@ function WorldQuestTracker.UpdateArrowFrequence()
 end
 
 --http://richard.warburton.it
-local function comma_value (n)
+local comma_value = function(n)
 	if (not n) then return "0" end
 	n = floor (n)
 	if (n == 0) then
