@@ -396,7 +396,7 @@ do
 		if (not WorldQuestTracker.DataProvider) then
 			if (WorldMapFrame and WorldMapFrame.dataProviders) then
 				for dataProvider, state in pairs (WorldMapFrame.dataProviders) do
-					if (dataProvider.IsQuestSuppressed) then --only WorldQuestDataProviderMixin has this function
+					if (dataProvider.IsQuestSuppressed) then --only WorldMap_WorldQuestDataProviderMixin has this function
 						WorldQuestTracker.DataProvider = dataProvider
 						--AddDataProvider
 						--WorldQuestTrackerWQProvider:SetOwningMap(WorldQuestTracker.DataProvider:GetMap())
