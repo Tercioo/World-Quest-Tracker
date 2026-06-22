@@ -22,7 +22,7 @@ local L = DF.Language.GetLanguageTable(addonId)
 local ff = WorldQuestTrackerFinderFrame
 local rf = WorldQuestTrackerRareFrame
 
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsOnMap
 
 ff.cannot_group_quest = {}
 
