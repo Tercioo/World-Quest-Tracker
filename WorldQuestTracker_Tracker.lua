@@ -595,7 +595,7 @@ local buildTooltip = function(self)
 	end
 
 	--time left
-	local timeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes (questID)
+	local timeLeftMinutes = (C_TaskQuest.GetQuestTimeLeftMinutes or function(qid) local s = C_TaskQuest.GetQuestTimeLeftSeconds and C_TaskQuest.GetQuestTimeLeftSeconds(qid); return s and (s/60) end)(questID)
 	if (timeLeftMinutes) then
 		local color = NORMAL_FONT_COLOR
 		local timeString
@@ -1723,8 +1723,3 @@ end)
 function WorldQuestTracker:FullTrackerUpdate()
 	On_ObjectiveTracker_Update()
 end
-
-
-
-
-
