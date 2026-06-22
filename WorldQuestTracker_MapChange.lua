@@ -8,7 +8,7 @@ if (not WorldQuestTracker) then
 	return
 end
 
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsOnMap
 
 --framework
 ---@type detailsframework
