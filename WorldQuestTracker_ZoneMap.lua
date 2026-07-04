@@ -18,7 +18,7 @@ end
 local L = DF.Language.GetLanguageTable(addonId)
 
 local _
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+local GetQuestsOnMap = C_TaskQuest.GetQuestsOnMap
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
 local GetNumQuestLogRewardCurrencies = WorldQuestTrackerAddon.GetNumQuestLogRewardCurrencies
 local GetQuestLogRewardInfo = GetQuestLogRewardInfo
@@ -529,9 +529,9 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 
 	local taskInfo
 	if (mapId == WorldQuestTracker.MapData.ZoneIDs.DALARAN) then
-		taskInfo = GetQuestsForPlayerByMapID(mapId) --fix from @legowxelab2z8 from curse
+		taskInfo = GetQuestsOnMap(mapId) --fix from @legowxelab2z8 from curse
 	else
-		taskInfo = GetQuestsForPlayerByMapID(mapId, mapId)
+		taskInfo = GetQuestsOnMap(mapId)
 	end
 
 	local index = 1
@@ -904,26 +904,29 @@ function WorldQuestTracker.UpdateZoneWidgets(forceUpdate)
 			WorldQuestTracker.WorldMap_APowerIndicator.text = total_APower
 		end
 
-		--adjust the artifact power icon for each region
-		local mapTable = WorldQuestTracker.mapTables[mapId]
-		if (mapTable) then
-			local mainHub = mapTable.show_on_map
-			if (mainHub) then
-				local texture
-				if (mainHub[WorldQuestTracker.MapData.ZoneIDs.THESHADOWLANDS]) then
-					texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.SHADOWLANDS_ARTIFACT
+		--Update the primary/secondary currency display for the map's expansion.
+		local currencyProfile = WorldQuestTracker.RefreshExpansionCurrencyInfo(mapId)
+		if (not currencyProfile) then
+			local mapTable = WorldQuestTracker.mapTables[mapId]
+			if (mapTable) then
+				local mainHub = mapTable.show_on_map
+				if (mainHub) then
+					local texture
+					if (mainHub[WorldQuestTracker.MapData.ZoneIDs.THESHADOWLANDS]) then
+						texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.SHADOWLANDS_ARTIFACT
 
-				elseif (mainHub[WorldQuestTracker.MapData.ZoneIDs.KULTIRAS] or mainHub[WorldQuestTracker.MapData.ZoneIDs.ZANDALAR]) then --bfa
-					texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.BFA_ARTIFACT
+					elseif (mainHub[WorldQuestTracker.MapData.ZoneIDs.KULTIRAS] or mainHub[WorldQuestTracker.MapData.ZoneIDs.ZANDALAR]) then --bfa
+						texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.BFA_ARTIFACT
 
-				elseif (mainHub[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] or mainHub[WorldQuestTracker.MapData.ZoneIDs.ARGUS]) then --legion
-					texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.LEGION_ARTIFACT
-				end
+					elseif (mainHub[WorldQuestTracker.MapData.ZoneIDs.BROKENISLES] or mainHub[WorldQuestTracker.MapData.ZoneIDs.ARGUS]) then --legion
+						texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.LEGION_ARTIFACT
+					end
 
-				if (texture) then
-					WorldQuestTracker.WorldMap_APowerIndicatorTexture:SetTexture(texture)
-					WorldQuestTracker.WorldMap_APowerIndicatorTexture:SetSize(16, 16)
-					WorldQuestTracker.WorldMap_APowerIndicatorTexture:SetTexCoord(0, 1, 0, 1)
+					if (texture) then
+						WorldQuestTracker.WorldMap_APowerIndicatorTexture:SetTexture(texture)
+						WorldQuestTracker.WorldMap_APowerIndicatorTexture:SetSize(16, 16)
+						WorldQuestTracker.WorldMap_APowerIndicatorTexture:SetTexCoord(0, 1, 0, 1)
+					end
 				end
 			end
 		end
@@ -1049,7 +1052,10 @@ end
 ---@param self table
 ---@param questData wqt_questdata
 ---@param isWorldMap boolean
+local ZONE_MAP_REWARD_TEXTURE_SIZE = WorldQuestTracker.Constants.ZoneMapRewardTextureSize or 20
+
 function WorldQuestTracker.SetupWorldQuestButton(self, questData, isWorldMap)
+	local rewardTextureSize = (isWorldMap and self.RewardTextureSize) or ZONE_MAP_REWARD_TEXTURE_SIZE
 	--if a boolean is passed, this is a quick refresh, just load the questData cached in the button
 	if (type(questData) == "boolean") then
 		questData = self.questData
@@ -1198,7 +1204,7 @@ function WorldQuestTracker.SetupWorldQuestButton(self, questData, isWorldMap)
 				end
 				WorldQuestTracker.SetIconTexture(self.Texture, texture, false, false)
 
-				self.Texture:SetSize(16, 16)
+				self.Texture:SetSize(rewardTextureSize, rewardTextureSize)
 				self.IconTexture = texture
 				self.IconText = goldFormated
 				self.flagText:SetText(goldFormated)
@@ -1226,7 +1232,7 @@ function WorldQuestTracker.SetupWorldQuestButton(self, questData, isWorldMap)
 					self.Texture:SetTexture(WorldQuestTracker.MapData.ReplaceIcon [rewardTexture] or rewardTexture)
 
 					self.circleBorder:Show()
-					self.Texture:SetSize(16, 16)
+					self.Texture:SetSize(rewardTextureSize, rewardTextureSize)
 					self.IconTexture = rewardTexture
 					self.IconText = numRewardItems
 
@@ -1272,7 +1278,7 @@ function WorldQuestTracker.SetupWorldQuestButton(self, questData, isWorldMap)
 				if (isArtifact) then
 					local texture = WorldQuestTracker.GetArtifactPowerIcon(isArtifact, true, questID)
 					self.Texture:SetTexture(texture)
-					self.Texture:SetSize(16, 16)
+					self.Texture:SetSize(rewardTextureSize, rewardTextureSize)
 
 					if (artifactPower >= 1000) then
 						if (artifactPower > 999999999) then -- 1B
@@ -1302,7 +1308,7 @@ function WorldQuestTracker.SetupWorldQuestButton(self, questData, isWorldMap)
 					self.QuestType = QUESTTYPE_ARTIFACTPOWER
 					self.Amount = artifactPower
 				else
-					self.Texture:SetSize(16, 16)
+					self.Texture:SetSize(rewardTextureSize, rewardTextureSize)
 
 					if (WorldQuestTracker.IsRacingQuest(tagID)) then
 						--self.Texture:SetAtlas("worldquest-icon-race")
@@ -1348,7 +1354,7 @@ function WorldQuestTracker.SetupWorldQuestButton(self, questData, isWorldMap)
 				self.Texture:SetTexture([[Interface\Icons\INV_Misc_QuestionMark]])
 				self.circleBorder:Show()
 				self.circleBorder:SetTexture("Interface\\AddOns\\WorldQuestTracker\\media\\border_zone_whiteT")
-				self.Texture:SetSize(16, 16)
+				self.Texture:SetSize(rewardTextureSize, rewardTextureSize)
 
 				if (UpdateDebug) then print("NeedUpdate 4") end
 				WorldQuestTracker.ScheduleZoneMapUpdate()
@@ -1405,13 +1411,13 @@ local ZoneSumaryFrame = CreateFrame("frame", "WorldQuestTrackerZoneSummaryFrame"
 ZoneSumaryFrame:SetPoint("topleft", worldFramePOIs, "topleft", 2, -380)
 ZoneSumaryFrame:SetSize(200, 400)
 
-ZoneSumaryFrame.WidgetHeight = 20
-ZoneSumaryFrame.WidgetWidth = 140
+ZoneSumaryFrame.WidgetHeight = 24
+ZoneSumaryFrame.WidgetWidth = 160
 ZoneSumaryFrame.WidgetBackdrop = {bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16}
 ZoneSumaryFrame.WidgetBackdropColor = {0, 0, 0, 0}
-ZoneSumaryFrame.IconSize = 20
-ZoneSumaryFrame.IconTextureSize = 16
-ZoneSumaryFrame.IconTimeSize = 20
+ZoneSumaryFrame.IconSize = WorldQuestTracker.Constants.QuestIconSize or 24
+ZoneSumaryFrame.IconTextureSize = WorldQuestTracker.Constants.QuestRewardTextureSize or 17
+ZoneSumaryFrame.IconTimeSize = 24
 
 WorldQuestTracker.ZoneSumaryWidgets = {}
 
@@ -1460,14 +1466,19 @@ function WorldQuestTracker.GetOrCreateZoneSummaryWidget(index, parent, pool)
 
 	parent = parent or ZoneSumaryFrame
 
+	--The row anchor remains at scale 1.0.  The visible row is scaled inside
+	--it, preventing the zone-summary position from moving with the scale slider.
+	local rowAnchor = CreateFrame("frame", nil, parent)
+	rowAnchor:SetSize(parent.WidgetWidth, parent.WidgetHeight)
+
 	---@type wqt_zonesummarywidget
-	local button = CreateFrame("button", "WorldQuestTrackerZoneSummaryFrame_Widget" .. index, parent, "BackdropTemplate")
+	local button = CreateFrame("button", "WorldQuestTrackerZoneSummaryFrame_Widget" .. index, rowAnchor, "BackdropTemplate")
 	button:SetAlpha(WorldQuestTracker.db.profile.world_summary_alpha)
+	button:SetPoint("topleft", rowAnchor, "topleft", 0, 0)
+	button.LayoutAnchor = rowAnchor
 
 	pool[index] = button
 
-	--button:SetPoint("bottomleft", ZoneSumaryFrame, "bottomleft", 0,((index-1)*(ZoneSumaryFrame.WidgetHeight + 1)) -2) --grow bottom to top
-	button:SetPoint("topleft", parent, "topleft", 0,(((index-1) *(parent.WidgetHeight + 1)) -2) * -1) --grow top to bottom
 	button:SetSize(parent.WidgetWidth, parent.WidgetHeight)
 	button:SetFrameLevel(WorldQuestTracker.DefaultFrameLevel + 1)
 
@@ -1505,6 +1516,7 @@ function WorldQuestTracker.GetOrCreateZoneSummaryWidget(index, parent, pool)
 
 	--resource amount text
 	button.Text = DF:CreateLabel(button)
+	WorldQuestTracker.ApplyGameFont(button.Text)
 	button.Text:SetPoint("left", buttonIcon, "right", 3, 0)
 	DF:SetFontSize(button.Text, 10)
 	DF:SetFontColor(button.Text, "orange")
@@ -1597,6 +1609,9 @@ end
 function WorldQuestTracker.ClearZoneSummaryButtons()
 	for _, button in ipairs(WorldQuestTracker.ZoneSumaryWidgets) do
 		button:Hide()
+		if (button.LayoutAnchor) then
+			button.LayoutAnchor:Hide()
+		end
 	end
 	WorldQuestTracker.QuestSummaryShown = true
 	ZoneSumaryFrame.Header:Hide()
@@ -1738,7 +1753,38 @@ function WorldQuestTracker.UpdateZoneSummaryToggleButton(canShow)
 		button.TextBackground:SetPoint("topleft", button, "topleft", -2, 2)
 		button.TextBackground:SetPoint("bottomright", button.Text, "bottomright", 2, -2)
 
+		button:RegisterForDrag("LeftButton")
+
+		button:SetScript("OnDragStart", function(self)
+			local _, cursorY = GetCursorPosition()
+			self.DragStartCursorY = cursorY / UIParent:GetEffectiveScale()
+			self.DragStartYOffset = WorldQuestTracker.db.profile.zone_map_config.quest_summary_y_offset or 0
+			self.DidVerticalDrag = false
+
+			self:SetScript("OnUpdate", function(dragButton)
+				local _, currentCursorY = GetCursorPosition()
+				currentCursorY = currentCursorY / UIParent:GetEffectiveScale()
+				local deltaY = currentCursorY - dragButton.DragStartCursorY
+				if (math.abs(deltaY) >= 2) then
+					dragButton.DidVerticalDrag = true
+				end
+
+				WorldQuestTracker.db.profile.zone_map_config.quest_summary_y_offset = math.max(-500, math.min(500, dragButton.DragStartYOffset + deltaY))
+				WorldQuestTracker.RefreshZoneSummaryPosition()
+			end)
+		end)
+
+		button:SetScript("OnDragStop", function(self)
+			self:SetScript("OnUpdate", nil)
+			self.SuppressNextClick = self.DidVerticalDrag
+		end)
+
 		button:SetScript("OnClick", function(self)
+			if (self.SuppressNextClick) then
+				self.SuppressNextClick = nil
+				return
+			end
+
 			WorldQuestTracker.db.profile.quest_summary_minimized = not WorldQuestTracker.db.profile.quest_summary_minimized
 			if (not WorldQuestTracker.db.profile.quest_summary_minimized) then
 				button.Text:Hide()
@@ -1797,15 +1843,21 @@ function WorldQuestTracker.UpdateZoneSummaryToggleButton(canShow)
 	end
 end
 
+function WorldQuestTracker.RefreshZoneSummaryPosition()
+	local yOffset = WorldQuestTracker.db.profile.zone_map_config.quest_summary_y_offset or 0
+	local baseY = WorldMapFrame.isMaximized and -380 or -105
+
+	ZoneSumaryFrame:ClearAllPoints()
+	ZoneSumaryFrame:SetPoint("topleft", worldFramePOIs, "topleft", 2, baseY + yOffset)
+	ZoneSumaryFrame:SetScale(1)
+end
+
 function WorldQuestTracker.CanShowZoneSummaryFrame()
 	local canShow = WorldQuestTracker.db.profile.use_quest_summary and WorldQuestTracker.ZoneHaveWorldQuest() and(WorldMapFrame.isMaximized or true)
 	if (canShow) then
-		if (WorldMapFrame.isMaximized) then
-			ZoneSumaryFrame:SetPoint("topleft", worldFramePOIs, "topleft", 2, -380) --380
-		else
-			ZoneSumaryFrame:SetPoint("topleft", worldFramePOIs, "topleft", 2, -105) --380
-		end
-		ZoneSumaryFrame:SetScale(WorldQuestTracker.db.profile.zone_map_config.quest_summary_scale)
+		--Keep the frame unscaled and apply only the saved vertical offset.
+		--Each visible row scales independently in UpdateZoneSummaryFrame().
+		WorldQuestTracker.RefreshZoneSummaryPosition()
 	end
 
 	WorldQuestTracker.UpdateZoneSummaryToggleButton(canShow)
@@ -1851,17 +1903,37 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 
 	local first, last
 	local shown = {}
+	local summaryScale = WorldQuestTracker.db.profile.zone_map_config.quest_summary_scale
+	local visibleRow = 0
+
 	for i = 1, #WorldQuestTracker.ZoneSumaryWidgets do
 		local summaryWidget = WorldQuestTracker.ZoneSumaryWidgets[i]
+		local rowAnchor = summaryWidget.LayoutAnchor
+
 		if (summaryWidget:IsShown()) then
+			visibleRow = visibleRow + 1
+
+			--Position the unscaled row anchor using the row's displayed height,
+			--then scale only the visible row contents from its top-left point.
+			rowAnchor:ClearAllPoints()
+			rowAnchor:SetPoint("topleft", ZoneSumaryFrame, "topleft", 0, -2 - ((visibleRow - 1) * (ZoneSumaryFrame.WidgetHeight + 1) * summaryScale))
+			rowAnchor:SetSize(ZoneSumaryFrame.WidgetWidth * summaryScale, ZoneSumaryFrame.WidgetHeight * summaryScale)
+			rowAnchor:Show()
+
+			summaryWidget:ClearAllPoints()
+			summaryWidget:SetPoint("topleft", rowAnchor, "topleft", 0, 0)
+			summaryWidget:SetScale(summaryScale)
+
 			if (not first) then
-				first = summaryWidget
+				first = rowAnchor
 			end
-			last = summaryWidget
+			last = rowAnchor
 			shown[#shown + 1] = summaryWidget
 
 			summaryWidget:EnableMouse(true)
 			summaryWidget:SetMouseMotionEnabled(true)
+		elseif (rowAnchor) then
+			rowAnchor:Hide()
 		end
 	end
 
@@ -1870,6 +1942,7 @@ function WorldQuestTracker.UpdateZoneSummaryFrame()
 		WorldQuestTracker.ZoneSummaryEnterFrame:EnableMouse(false)
 	end
 
+	WorldQuestTracker.ZoneSummaryEnterFrame:ClearAllPoints()
 	if first then
 		WorldQuestTracker.ZoneSummaryEnterFrame:SetPoint("topleft", first, "topleft", 0, 4)
 		WorldQuestTracker.ZoneSummaryEnterFrame:SetPoint("bottomright", last, "bottomright", 4, -4)

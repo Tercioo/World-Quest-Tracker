@@ -23,6 +23,89 @@ function WorldQuestTracker.InitializeFactions()
 
     local worldSummary = WorldQuestTracker.WorldSummary
 
+    --Faction selectors operate on the reputation actually awarded by the quest.
+    --The quest's primary FactionID alone is not sufficient for quests that award
+    --multiple reputations or whose cached faction field is temporarily missing.
+    function worldSummary.DoesWidgetAwardFactionReputation(widget, factionID)
+        if (not widget or not widget.questID or not factionID) then
+            return false
+        end
+
+        local awardsReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(widget.questID, factionID)
+        if (awardsReputation ~= nil) then
+            return awardsReputation
+        end
+
+        return widget.FactionID == factionID
+    end
+
+    function worldSummary.GetFactionQuestWidgets(factionID)
+        local widgets = {}
+        local addedQuestIDs = {}
+
+        local function addWidget(widget, requireShown)
+            if (not widget or not widget.questID or addedQuestIDs[widget.questID]) then
+                return
+            end
+            if (requireShown and not widget:IsShown()) then
+                return
+            end
+            if (worldSummary.DoesWidgetAwardFactionReputation(widget, factionID)) then
+                addedQuestIDs[widget.questID] = true
+                table.insert(widgets, widget)
+            end
+        end
+
+        if (WorldQuestTracker.GetCurrentZoneType() == "zone") then
+            for _, widget in ipairs(WorldQuestTracker.Cache_ShownWidgetsOnZoneMap or {}) do
+                addWidget(widget, true)
+            end
+        else
+            --Summary widgets cover every quest in the current world/continent hub,
+            --including quests whose location pin is temporarily unavailable.
+            for _, widget in pairs(worldSummary.ShownQuests or {}) do
+                addWidget(widget, false)
+            end
+            for _, widget in pairs(WorldQuestTracker.WorldMapSmallWidgets or {}) do
+                addWidget(widget, true)
+            end
+        end
+
+        return widgets
+    end
+
+    function worldSummary.TrackAllFactionQuests(factionID)
+        local questsToTrack = worldSummary.GetFactionQuestWidgets(factionID)
+        if (#questsToTrack == 0) then
+            return
+        end
+
+        C_Timer.NewTicker(.04, function(tickerObject)
+            local widget = table.remove(questsToTrack)
+            if (not widget) then
+                tickerObject:Cancel()
+                return
+            end
+
+            WorldQuestTracker.CheckAddToTracker(widget, widget, true)
+            local questID = widget.questID
+
+            for _, mapWidget in pairs(WorldQuestTracker.WorldMapSmallWidgets or {}) do
+                if (mapWidget.questID == questID and mapWidget:IsShown()) then
+                    if (mapWidget.onEndTrackAnimation and mapWidget.onEndTrackAnimation:IsPlaying()) then
+                        mapWidget.onEndTrackAnimation:Stop()
+                    end
+                    if (mapWidget.onStartTrackAnimation) then
+                        mapWidget.onStartTrackAnimation:Play()
+                    end
+                    if (mapWidget.AddedToTrackerAnimation and not mapWidget.AddedToTrackerAnimation:IsPlaying()) then
+                        mapWidget.AddedToTrackerAnimation:Play()
+                    end
+                end
+            end
+        end)
+    end
+
     function worldSummary.UpdateFactionRenown()
         for factionId, factionButton in pairs(worldSummary.FactionAnchor.WidgetsByFactionID) do
             factionButton.AmountQuests = 0
@@ -171,6 +254,7 @@ function WorldQuestTracker.InitializeFactions()
         --anchor frame
         local factionAnchor = CreateFrame("frame", nil, worldSummary, "BackdropTemplate")
         factionAnchor:SetSize(1, 1)
+        factionAnchor:SetFrameLevel(math.max(worldSummary:GetFrameLevel() + 80, 400))
         factionAnchor.Widgets = {}
         factionAnchor.WidgetsByFactionID = {}
         worldSummary.FactionAnchor = factionAnchor
@@ -233,8 +317,7 @@ function WorldQuestTracker.InitializeFactions()
                 GameCooltip:AddStatusBar(barValue / barMax * 100, 1, 0, 0.65, 0, 0.7, nil, {value = 100, color = {.21, .21, .21, 0.8}, texture = [[Interface\Tooltips\UI-Tooltip-Background]]}, [[Interface\Tooltips\UI-Tooltip-Background]])
             end
 
-            GameCooltip:AddLine(L["S_FACTION_TOOLTIP_SELECT"], "", 1, "orange", "orange", 9)
-            GameCooltip:AddLine(L["S_FACTION_TOOLTIP_TRACK"], "", 1, "orange", "orange", 9)
+            GameCooltip:AddLine("Click: track all quests awarding this faction reputation", "", 1, "orange", "orange", 9)
             GameCooltip:AddIcon([[Interface\AddOns\WorldQuestTracker\media\ArrowFrozen]], 1, 1, 12, 12, 0.1171, 0.6796, 0.1171, 0.7343)
 
             GameCooltip:Show()
@@ -246,21 +329,15 @@ function WorldQuestTracker.InitializeFactions()
 
             --play quick flash on squares showing quests of this faction
             for _, summarySquare in ipairs(WorldQuestTracker.WorldSummaryQuestsSquares) do
-                if (summarySquare.FactionID == self.MyObject.FactionID) then
-                    local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(summarySquare.questID or 0, factionID or 0)
-                    if (bAwardReputation) then
-                        summarySquare.LoopFlash:Play()
-                    end
+                if (summarySquare:IsShown() and worldSummary.DoesWidgetAwardFactionReputation(summarySquare, factionID)) then
+                    summarySquare.LoopFlash:Play()
                 end
             end
 
             --play quick flash on widgets shown in the world map(quest locations)
             for questCounter, button in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
-                if (button.FactionID == self.MyObject.FactionID) then
-                    local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(button.questID or 0, factionID or 0)
-                    if (bAwardReputation) then
-                        button.FactionPulseAnimation:Play()
-                    end
+                if (button:IsShown() and worldSummary.DoesWidgetAwardFactionReputation(button, factionID)) then
+                    button.FactionPulseAnimation:Play()
                 end
             end
 
@@ -278,14 +355,14 @@ function WorldQuestTracker.InitializeFactions()
 
             --stop quick flash on squares showing quests of this faction
             for _, summarySquare in ipairs(WorldQuestTracker.WorldSummaryQuestsSquares) do
-                if (summarySquare.FactionID == self.MyObject.FactionID) then
+                if (worldSummary.DoesWidgetAwardFactionReputation(summarySquare, self.MyObject.FactionID)) then
                     summarySquare.LoopFlash:Stop()
                 end
             end
 
             --stop quick flash on widgets shown in the world map(quest locations)
             for questCounter, button in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
-                if (button.FactionID == self.MyObject.FactionID) then
+                if (worldSummary.DoesWidgetAwardFactionReputation(button, self.MyObject.FactionID)) then
                     button.FactionPulseAnimation:Stop()
                 end
             end
@@ -297,6 +374,15 @@ function WorldQuestTracker.InitializeFactions()
                 local factionName = WorldQuestTracker.GetFactionDataByID(factionID)
                 if (factionName) then
                     local factionButton = detailsFramework:CreateButton(factionAnchor, worldSummary.OnSelectFaction, 24, 25, "", factionButtonIndex)
+                    factionButton.widget:EnableMouse(true)
+                    if (factionButton.widget.SetMouseClickEnabled) then
+                        factionButton.widget:SetMouseClickEnabled(true)
+                    end
+                    if (factionButton.widget.SetMouseMotionEnabled) then
+                        factionButton.widget:SetMouseMotionEnabled(true)
+                    end
+                    factionButton.widget:RegisterForClicks("LeftButtonUp")
+                    factionButton.widget:SetFrameLevel(factionAnchor:GetFrameLevel() + 1)
 
                     local progressStatusBar = CreateFrame("statusbar", nil, factionButton.widget)
                     progressStatusBar:SetPoint("topleft", factionButton.widget, "topright", 1, 1)
@@ -334,6 +420,7 @@ function WorldQuestTracker.InitializeFactions()
                     factionButton.OverlayFrame = CreateFrame("frame", nil, factionButton.widget, "BackdropTemplate")
                     factionButton.OverlayFrame:SetFrameLevel(factionButton:GetFrameLevel()+1)
                     factionButton.OverlayFrame:SetAllPoints()
+                    factionButton.OverlayFrame:EnableMouse(false)
                     detailsFramework:CreateBorder(factionButton.OverlayFrame, 1, 0, 0)
                     factionButton.OverlayFrame:SetBorderColor(1, .85, 0)
                     factionButton.OverlayFrame:SetBorderAlpha(.843, .1, .05)
@@ -433,61 +520,20 @@ function WorldQuestTracker.InitializeFactions()
     end
 
     function worldSummary.OnSelectFaction(self, _, buttonIndex)
+        local factionID = worldSummary.FactionIDs[buttonIndex]
+        if (not factionID) then
+            return
+        end
+
         PlaySoundFile("Interface\\AddOns\\WorldQuestTracker\\media\\faction_on_click.ogg")
 
-        if (IsShiftKeyDown()) then
-            local questsToTrack = {}
-            local factionID = worldSummary.FactionIDs[buttonIndex]
-
-            --get all anchors, check if quests on this anchor are from the faction and track them
-            for index, anchor in pairs(worldSummary.Anchors) do
-                for i = 1, #anchor.Widgets do
-                    local widget = anchor.Widgets[i]
-                    if (widget:IsShown() and widget.questID and widget.FactionID == factionID) then
-                        table.insert(questsToTrack, widget)
-                    end
-                end
-            end
-
-            --lazy add to tracker
-            C_Timer.NewTicker(.04, function(tickerObject)
-                local widget = table.remove(questsToTrack)
-                if (widget) then
-                    WorldQuestTracker.CheckAddToTracker(widget, widget, true)
-                    local questID = widget.questID
-
-                    for _, widget in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
-                        if (widget.questID == questID and widget:IsShown()) then
-                            --animations
-                            if (widget.onEndTrackAnimation:IsPlaying()) then
-                                widget.onEndTrackAnimation:Stop()
-                            end
-                            widget.onStartTrackAnimation:Play()
-                            if (not widget.AddedToTrackerAnimation:IsPlaying()) then
-                                widget.AddedToTrackerAnimation:Play()
-                            end
-                        end
-                    end
-                else
-                    tickerObject:Cancel()
-                end
-            end)
-        else
-            worldSummary.FactionSelected = worldSummary.FactionIDs[buttonIndex]
-            worldSummary.RefreshFactionButtons()
-            worldSummary.UpdateFaction()
-
-            --check if is showing a zone map
-            if (WorldQuestTracker.GetCurrentZoneType() == "zone") then
-                local mapId = WorldQuestTracker.MapData.FactionMapId[worldSummary.FactionSelected]
-                --print("faction ID:", worldSummary.FactionSelected)
-                if (mapId) then
-                    --change the map to faction map
-                    WorldMapFrame:SetMapID(mapId)
-                    WorldQuestTracker.UpdateZoneWidgets(true)
-                end
-            end
-        end
+        --Keep the visual faction selection, then add every quest on the current
+        --map that actually awards reputation with that faction. Existing tracked
+        --quests remain tracked because CheckAddToTracker is called in onlyTrack mode.
+        worldSummary.FactionSelected = factionID
+        worldSummary.RefreshFactionButtons()
+        worldSummary.UpdateFaction()
+        worldSummary.TrackAllFactionQuests(factionID)
     end
 
     --called when pressing a button to select another faction or when the lazy update is finished
@@ -497,7 +543,7 @@ function WorldQuestTracker.InitializeFactions()
                 local conduitType, borderTexture, borderColor, itemLink = WorldQuestTracker.GetConduitQuestData(summarySquare.questID)
                 WorldQuestTracker.UpdateBorder(summarySquare)
 
-                if (summarySquare.FactionID == worldSummary.FactionSelected) then
+                if (worldSummary.DoesWidgetAwardFactionReputation(summarySquare, worldSummary.FactionSelected)) then
                     --widget.factionBorder:Show()
                 else
                     summarySquare.factionBorder:Hide()

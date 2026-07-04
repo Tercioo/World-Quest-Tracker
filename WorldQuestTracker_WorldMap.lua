@@ -22,7 +22,7 @@ local HereBeDragons = LibStub("HereBeDragons-2.0")
 local CONST_QUEST_LOADINGTIME = 1.333
 local _
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+local GetQuestsOnMap = C_TaskQuest.GetQuestsOnMap
 local IsQuestCriteriaForBounty = C_QuestLog.IsQuestCriteriaForBounty
 
 local faction_frames = {}
@@ -94,7 +94,7 @@ local preLoadQuestData = function()
 
 	for mapId, configTable in pairs(WorldQuestTracker.mapTables) do
 		if (configTable.show_on_map[worldMapID]) then
-			local taskInfo = GetQuestsForPlayerByMapID(mapId, mapId)
+			local taskInfo = GetQuestsOnMap(mapId)
 
 			if (taskInfo and #taskInfo > 0) then
 				for i, info in ipairs(taskInfo) do
@@ -338,9 +338,30 @@ WorldQuestTracker.QUEST_POI_FRAME_WIDTH = 1
 WorldQuestTracker.QUEST_POI_FRAME_HEIGHT = 1
 
 --> anchor for world quests hub, this is only shown on world maps
+--The yellow names attached to the per-zone map anchors are part of the
+--"order by zone" presentation. They are separate from the summary anchor
+--titles, so changing only WorldSummary title visibility leaves these labels
+--behind when switching to type ordering.
+function WorldQuestTracker.RefreshWorldMapZoneTitleVisibility()
+	local worldMapConfig = WorldQuestTracker.db and WorldQuestTracker.db.profile and WorldQuestTracker.db.profile.world_map_config
+	local showZoneTitles = worldMapConfig and worldMapConfig.summary_showby == "byzone"
+
+	for _, configTable in pairs(WorldQuestTracker.mapTables) do
+		local mapAnchor = configTable.MapAnchor
+		local title = mapAnchor and mapAnchor.Title
+		if (title) then
+			title:SetShown(showZoneTitles and mapAnchor:IsShown())
+		end
+	end
+end
+
 function WorldQuestTracker.UpdateAllWorldMapAnchors(worldMapID)
+	local worldMapConfig = WorldQuestTracker.db and WorldQuestTracker.db.profile and WorldQuestTracker.db.profile.world_map_config
+	local showZoneTitles = worldMapConfig and worldMapConfig.summary_showby == "byzone"
+
 	for mapId, configTable in pairs(WorldQuestTracker.mapTables) do
-		if (configTable.show_on_map == worldMapID) then
+		local showOnMap = configTable.show_on_map
+		if (showOnMap == worldMapID or (type(showOnMap) == "table" and showOnMap[worldMapID])) then
 			local x, y = configTable.Anchor_X, configTable.Anchor_Y
 			WorldQuestTracker.UpdateWorldMapAnchors(x, y, configTable.MapAnchor)
 
@@ -350,7 +371,6 @@ function WorldQuestTracker.UpdateAllWorldMapAnchors(worldMapID)
 			configTable.MapAnchor.Title:SetText(mapName)
 
 			configTable.MapAnchor.Title:ClearAllPoints()
-			configTable.MapAnchor.Title:Show()
 			if (configTable.GrowRight) then
 				configTable.MapAnchor.Title:SetPoint("bottomleft", configTable.MapAnchor, "topleft", 0, 0)
 				configTable.MapAnchor.Title:SetJustifyH("left")
@@ -360,6 +380,7 @@ function WorldQuestTracker.UpdateAllWorldMapAnchors(worldMapID)
 			end
 
 			configTable.MapAnchor:Show()
+			configTable.MapAnchor.Title:SetShown(showZoneTitles)
 			configTable.factionFrame:Show()
 		else
 			configTable.MapAnchor:Hide()
@@ -369,7 +390,9 @@ function WorldQuestTracker.UpdateAllWorldMapAnchors(worldMapID)
 end
 
 function WorldQuestTracker.UpdateWorldMapAnchors(x, y, frame)
-	WorldQuestTracker.SetPinPosition(frame.AnchorFrame or frame, x, y)
+	local positionAnchor = frame.AnchorFrame or frame
+	WorldQuestTracker.PrepareOwnedPinAnchor(positionAnchor)
+	WorldQuestTracker.SetPinPosition(positionAnchor, x, y)
 end
 
 local re_InitializeWorldWidgets = function()
@@ -383,7 +406,7 @@ local lazyCreateWorldWidget = function(tickerObject)
 	summarySquare:Hide()
 	table.insert(WorldQuestTracker.WorldSummaryQuestsSquares, summarySquare)
 
-	if (i == 120) then
+	if (i == 300) then
 		tickerObject:Cancel()
 		WorldQuestTracker.WorldWidgetsCreationTask = nil
 	end
@@ -419,6 +442,7 @@ function WorldQuestTracker.InitializeWorldWidgets()
 
 		local anchorText = anchor:CreateFontString(nil, "artwork", "GameFontNormal")
 		anchorText:SetPoint("bottomleft", anchor, "topleft", 0, 0)
+		detailsFramework:SetFontSize(anchorText, 9)
 		anchor.Title = anchorText
 
 		local factionFrame = CreateFrame("button", "WorldQuestTrackerFactionFrame" .. mapId, worldFramePOIs, "BackdropTemplate")
@@ -580,7 +604,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 					local pin = WorldQuestTracker.GetPin() --does not sound good
 
 					if (not pin.widget) then
-						local button = WorldQuestTracker.CreateZoneWidget(worldQuestLockedIndex, "WorldQuestTrackerLockedQuestButton", worldFramePOIs)
+						local button = WorldQuestTracker.CreateZoneWidget(worldQuestLockedIndex, "WorldQuestTrackerLockedQuestButton", worldFramePOIs, nil, WorldQuestTracker.Constants.WorldMapPinSize or 19.2)
 						button.IsWorldZoneQuestButton = true
 						button:SetPoint("center", pin, "center", 0, 0)
 						worldQuestLockedIndex = worldQuestLockedIndex + 1
@@ -661,7 +685,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 
 		if (configTable.show_on_map[worldMapID]) then
 			questsAvailable[mapId] = {}
-			local taskInfo = GetQuestsForPlayerByMapID(mapId, mapId)
+			local taskInfo = GetQuestsOnMap(mapId)
 			local shownQuests = 0
 
 			if (taskInfo and #taskInfo > 0) then
@@ -780,7 +804,7 @@ function WorldQuestTracker.UpdateWorldQuestsOnWorldMap(noCache, showFade, isQues
 
 	for mapId, configTable in pairs(WorldQuestTracker.mapTables) do
 		if (configTable.show_on_map[worldMapID]) then
-			local taskInfo = GetQuestsForPlayerByMapID(mapId, mapId)
+			local taskInfo = GetQuestsOnMap(mapId)
 			local taskIconIndex = 1
 
 			if (taskInfo and #taskInfo > 0) then
@@ -1047,7 +1071,7 @@ function WorldQuestTracker.GetQuestDataFromCache(questID, bCreateQuestData)
 		local haveQuestData = HaveQuestData(questID)
 		if (haveQuestData) then
 			for mapId, configTable in pairs(WorldQuestTracker.mapTables) do
-				local taskInfo = GetQuestsForPlayerByMapID(mapId, mapId)
+				local taskInfo = GetQuestsOnMap(mapId)
 				if (taskInfo and #taskInfo > 0) then
 					for i, info in ipairs(taskInfo) do
 						local thisTaskQuestId = info.questID
@@ -1109,6 +1133,12 @@ function WorldQuestTracker.GetQuestDataFromCache(questID, bCreateQuestData)
 	end
 end
 
+local function applyCurrentWorldMapVisuals(widget)
+	local visuals = WorldQuestTracker.GetWorldMapVisualSettings(WorldMapFrame and WorldMapFrame.mapID)
+	WorldQuestTracker.ApplyZoneWidgetBaseSize(widget, visuals.locationIconSize, visuals.rewardTextureSize, visuals.fontSize)
+	return visuals
+end
+
 local mapRangeValues = {
 	[WorldQuestTracker.MapData.ZoneIDs.AZEROTH] = {0.18, .38, 5.2, 3.3},
 	[WorldQuestTracker.MapData.ZoneIDs.ZANDALAR] = {0.18, .38, 5.2, 3.3},
@@ -1123,9 +1153,19 @@ local updateWorldMapWidgetsScaleAndPosition = function(pinScale)
 	pinScale = pinScale * finalScaleScalar
 
 	for _, widget in pairs(WorldQuestTracker.WorldMapSmallWidgets) do
-		widget:SetScale(pinScale + WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset)
+		applyCurrentWorldMapVisuals(widget)
+		--The owned anchor remains at scale 1 and stays on the map coordinate.
+		--Only the visible quest button changes size.
+		local positionAnchor = widget.AnchorFrame or widget
+		if (widget.AnchorFrame) then
+			WorldQuestTracker.PrepareOwnedPinAnchor(positionAnchor)
+			widget:SetParent(positionAnchor)
+			widget:ClearAllPoints()
+			widget:SetPoint("center", positionAnchor, "center", 0, 0)
+		end
+		widget:SetScale(pinScale * (tonumber(WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset) or 1))
 		if (widget.WorldMapX and widget.WorldMapY) then
-			WorldQuestTracker.SetPinPosition(widget, widget.WorldMapX, widget.WorldMapY)
+			WorldQuestTracker.SetPinPosition(positionAnchor, widget.WorldMapX, widget.WorldMapY)
 		end
 	end
 end
@@ -1257,7 +1297,7 @@ local scheduledIconUpdate = function(questData) --~update ~iconupate
 	--get a widget button for this quest
 	local button = WorldQuestTracker.WorldMapSmallWidgets[questCounter]
 	if (not button) then
-		button = WorldQuestTracker.CreateZoneWidget(questCounter, "WorldQuestTrackerWorldMapSmallWidget", worldFramePOIs)
+		button = WorldQuestTracker.CreateZoneWidget(questCounter, "WorldQuestTrackerWorldMapSmallWidget", worldFramePOIs, nil, WorldQuestTracker.Constants.WorldMapPinSize or 19.2)
 		button.IsWorldZoneQuestButton = true
 		WorldQuestTracker.WorldMapSmallWidgets[questCounter] = button
 	end
@@ -1276,9 +1316,13 @@ local scheduledIconUpdate = function(questData) --~update ~iconupate
 	--pin.questID = questID
 	--pin:EnableMouse(false)
 
+	--Keep the map coordinate on the unscaled owned anchor. Scaling the button
+	--must not change the quest's map position.
+	WorldQuestTracker.PrepareOwnedPinAnchor(button.AnchorFrame)
+	button:SetParent(button.AnchorFrame)
 	button:ClearAllPoints()
-	--button:SetParent(pin)
-	button:SetPoint("center")
+	button:SetPoint("center", button.AnchorFrame, "center", 0, 0)
+	button.AnchorFrame:Show()
 	button:Show()
 
 	local mapScale = WorldMapFrame.ScrollContainer:GetCanvasScale()
@@ -1301,7 +1345,8 @@ local scheduledIconUpdate = function(questData) --~update ~iconupate
 		end
 	end
 
-	button:SetScale(pinScale + WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset)
+	applyCurrentWorldMapVisuals(button)
+	button:SetScale(pinScale * (tonumber(WorldQuestTracker.db.profile.world_map_config.onmap_scale_offset) or 1))
 	button.questID = questID
 	button.mapID = mapID
 	button.numObjectives = numObjectives
@@ -1344,7 +1389,7 @@ local scheduledIconUpdate = function(questData) --~update ~iconupate
 
 	button.WorldMapX = newX
 	button.WorldMapY = newY
-	WorldQuestTracker.SetPinPosition(button, newX, newY)
+	WorldQuestTracker.SetPinPosition(button.AnchorFrame or button, newX, newY)
 
 	--pin:SetPosition(newX, newY)
 	--pin:SetSize(22, 22)
@@ -1352,7 +1397,8 @@ local scheduledIconUpdate = function(questData) --~update ~iconupate
 
 	button:SetAlpha(WorldQuestTracker.db.profile.worldmap_widget_alpha)
 
-	button.highlight:SetSize(30, 30)
+	local worldMapPinSize = WorldQuestTracker.Constants.WorldMapPinSize or 19.2
+	button.highlight:SetSize(worldMapPinSize * 1.5, worldMapPinSize * 1.5)
 	button.highlight:SetParent(button)
 	button.highlight:ClearAllPoints()
 	button.highlight:SetPoint("center", button, "center")

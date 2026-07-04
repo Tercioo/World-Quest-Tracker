@@ -380,6 +380,14 @@ function WorldQuestTracker.CreateWorldMapSquareButton(mapName, index, parent)
 	button.questTypeBlip:SetSize(12, 12)
 	button.questTypeBlip:SetDrawLayer("overlay", 7)
 
+	--green check / red x shown when the quest's item reward has (or hasn't) had its transmog appearance collected
+	local transmogIndicator = button:CreateTexture(nil, "OVERLAY")
+	transmogIndicator:SetPoint("topleft", button, "topleft", -4, 4)
+	transmogIndicator:SetSize(11, 11)
+	transmogIndicator:SetDrawLayer("overlay", 7)
+	transmogIndicator:Hide()
+	button.transmogIndicator = transmogIndicator
+
 	local amountText = button:CreateFontString(nil, "overlay", "GameFontNormal", 1)
 	amountText:SetPoint("bottom", button, "bottom", 1, -10)
 	detailsFramework:SetFontSize(amountText, 9)
@@ -611,7 +619,91 @@ local on_show_alpha_animation = function(self)
 	self:GetParent():Show()
 end
 
-function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --~zone --~zoneicon ~create
+function WorldQuestTracker.ApplyZoneWidgetBaseSize(button, baseSize, rewardTextureSize, fontSize)
+	if (not button or not baseSize) then
+		return
+	end
+
+	button.BasePinSize = baseSize
+	button.RewardTextureSize = rewardTextureSize or math.max(12, math.floor(baseSize * 0.70 + 0.5))
+	button.WorldMapFontSize = fontSize or 9
+
+	button:SetSize(baseSize, baseSize)
+	if (button.SupportFrame) then
+		button.SupportFrame:SetSize(baseSize, baseSize)
+	end
+	if (button.highlight) then
+		button.highlight:SetSize(baseSize * 0.8, baseSize * 0.8)
+	end
+	if (button.IsTrackingGlow) then
+		button.IsTrackingGlow:SetSize(baseSize * 1.55, baseSize * 1.55)
+	end
+	if (button.IsTrackingRareGlow) then
+		button.IsTrackingRareGlow:SetSize(baseSize * 1.54, baseSize * 1.54)
+	end
+	if (button.Shadow) then
+		button.Shadow:SetSize(baseSize * 1.2, baseSize * 1.2)
+	end
+	if (button.flagText) then
+		detailsFramework:SetFontSize(button.flagText, button.WorldMapFontSize)
+	end
+	if (button.flagTextShadow) then
+		detailsFramework:SetFontSize(button.flagTextShadow, button.WorldMapFontSize)
+	end
+end
+
+function WorldQuestTracker.ApplyWorldSummaryWidgetSize(button, baseSize, fontSize)
+	if (not button or not baseSize) then
+		return
+	end
+
+	button:SetSize(baseSize, baseSize)
+	if (button.commonBorder) then
+		button.commonBorder:SetSize(baseSize, baseSize)
+	end
+	if (button.miscBorder) then
+		button.miscBorder:SetSize(baseSize, baseSize)
+	end
+	if (button.rareBorder) then
+		button.rareBorder:SetSize(baseSize + 2, baseSize + 2)
+	end
+	if (button.epicBorder) then
+		button.epicBorder:SetSize(baseSize + 2, baseSize + 2)
+	end
+	if (button.invasionBorder) then
+		button.invasionBorder:SetSize(baseSize + 2, baseSize + 2)
+	end
+	if (button.trackingBorder) then
+		button.trackingBorder:SetSize(baseSize + 10, baseSize + 10)
+	end
+	if (button.factionBorder) then
+		button.factionBorder:SetSize(baseSize + 2, baseSize + 2)
+	end
+	if (button.trackingGlowInside) then
+		button.trackingGlowInside:SetSize(baseSize * 0.8, baseSize * 0.8)
+	end
+	if (button.amountText) then
+		detailsFramework:SetFontSize(button.amountText, fontSize or 9)
+	end
+	if (button.timeLeftText) then
+		detailsFramework:SetFontSize(button.timeLeftText, fontSize or 10)
+	end
+
+	--World/continent summary sub-icons: transmog status and PvP/type marker.
+	--Keep them proportional to the summary square while avoiding tiny markers.
+	local subIconSize = math.max(14, math.min(16, math.floor((baseSize * 0.52) + 0.5)))
+	if (button.questTypeBlip) then
+		button.questTypeBlip:SetSize(subIconSize, subIconSize)
+	end
+	if (button.transmogIndicator) then
+		button.transmogIndicator:SetSize(subIconSize, subIconSize)
+		button.transmogIndicator:ClearAllPoints()
+		button.transmogIndicator:SetPoint("topleft", button, "topleft", -4, 4)
+	end
+end
+
+function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate, basePinSize) --~zone --~zoneicon ~create
+	local zonePinSize = basePinSize or WorldQuestTracker.Constants.ZoneMapPinSize or 24
 	local anchorFrame = WorldQuestTracker.CreateOwnedPinAnchor(name .. index .. "Anchor", parent)
 
 	if (anchorFrame.Glow) then
@@ -625,7 +717,7 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 
 	button:SetPoint("center", anchorFrame, "center", 0, 0)
 	button.AnchorFrame = anchorFrame
-	button:SetSize(20, 20)
+	button:SetSize(zonePinSize, zonePinSize)
 	button:EnableMouse(true)
 	button:SetMouseMotionEnabled(true)
 	button:SetScript("OnEnter", function()
@@ -644,7 +736,7 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 
 	local supportFrame = CreateFrame("frame", nil, button, "BackdropTemplate")
 	supportFrame:SetPoint("center")
-	supportFrame:SetSize(20, 20)
+	supportFrame:SetSize(zonePinSize, zonePinSize)
 	button.SupportFrame = supportFrame
 
 	--> looks like something is triggering the tooltip to update on tick
@@ -673,7 +765,7 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button.highlight = supportFrame:CreateTexture(nil, "highlight")
 	button.highlight:SetTexture([[Interface\AddOns\WorldQuestTracker\media\highlight_circleT]])
 	button.highlight:SetPoint("center")
-	button.highlight:SetSize(16, 16)
+	button.highlight:SetSize(zonePinSize * 0.8, zonePinSize * 0.8)
 	button.highlight:SetAlpha(0.35)
 	button.highlight:Hide()
 
@@ -682,18 +774,18 @@ function WorldQuestTracker.CreateZoneWidget(index, name, parent, pinTemplate) --
 	button.IsTrackingGlow:SetTexture([[Interface\Calendar\EventNotificationGlow]])
 	button.IsTrackingGlow:SetBlendMode("ADD")
 	button.IsTrackingGlow:SetVertexColor(unpack(WorldQuestTracker.ColorPalette.orange))
-	button.IsTrackingGlow:SetSize(31, 31)
+	button.IsTrackingGlow:SetSize(zonePinSize * 1.55, zonePinSize * 1.55)
 	button.IsTrackingGlow:Hide()
 
 	button.IsTrackingRareGlow = supportFrame:CreateTexture(button:GetName() .. "IsTrackingRareGlow", "BACKGROUND", nil, -6)
-	button.IsTrackingRareGlow:SetSize(44*0.7, 44*0.7)
+	button.IsTrackingRareGlow:SetSize(zonePinSize * 1.54, zonePinSize * 1.54)
 	button.IsTrackingRareGlow:SetPoint("center", button, "center")
 	button.IsTrackingRareGlow:SetTexture([[Interface\AddOns\WorldQuestTracker\media\rare_dragon_TrackingT]])
 	--button.IsTrackingRareGlow:SetBlendMode("ADD")
 	button.IsTrackingRareGlow:Hide()
 
 	button.Shadow = supportFrame:CreateTexture(button:GetName() .. "Shadow", "BACKGROUND", nil, -8)
-	button.Shadow:SetSize(24, 24)
+	button.Shadow:SetSize(zonePinSize * 1.2, zonePinSize * 1.2)
 	button.Shadow:SetPoint("center", button, "center")
 	button.Shadow:SetTexture([[Interface\AddOns\WorldQuestTracker\media\glow_yellow_roundT]])
 	button.Shadow:SetTexture([[Interface\PETBATTLES\BattleBar-AbilityBadge-Neutral]])

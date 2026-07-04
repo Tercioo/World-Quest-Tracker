@@ -177,8 +177,16 @@ function detailsFramework:CreateAddOn(name, global_saved, global_table, options_
 			local broker_click_function = broker.OnClick
 			if (not broker_click_function and options_table) then
 				broker_click_function = function()
-					InterfaceOptionsFrame_OpenToCategory (name)
-					InterfaceOptionsFrame_OpenToCategory (name)
+					if (Settings and type(Settings.OpenToCategory) == "function") then
+						local opened = pcall(Settings.OpenToCategory, name)
+						if (opened) then
+							return
+						end
+					end
+
+					if (type(InterfaceOptionsFrame_OpenToCategory) == "function") then
+						InterfaceOptionsFrame_OpenToCategory(name)
+					end
 				end
 			end
 

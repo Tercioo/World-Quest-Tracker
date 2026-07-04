@@ -3676,61 +3676,17 @@ end
 -----------------------------
 
 function DF:OpenInterfaceProfile()
-	-- OptionsFrame1/2 should be registered if created with DF:CreateAddOn, so open to them directly
-	if self.OptionsFrame1 then
-		if SettingsPanel then
-			--SettingsPanel:OpenToCategory(self.OptionsFrame1.name)
-			local category = SettingsPanel:GetCategoryList():GetCategory(self.OptionsFrame1.name)
-			if category then
-				SettingsPanel:Open()
-				SettingsPanel:SelectCategory(category)
-				if self.OptionsFrame2 and category:HasSubcategories() then
-					for _, subcategory in pairs(category:GetSubcategories()) do
-						if subcategory:GetName() == self.OptionsFrame2.name then
-							SettingsPanel:SelectCategory(subcategory)
-							break
-						end
-					end
-				end
-			end
-			return
-		elseif InterfaceOptionsFrame_OpenToCategory then
-			InterfaceOptionsFrame_OpenToCategory (self.OptionsFrame1)
-			if self.OptionsFrame2 then
-				InterfaceOptionsFrame_OpenToCategory (self.OptionsFrame2)
-			end
+	local primaryCategory = self.OptionsFrame1 and (self.OptionsFrame1.name or self.OptionsFrame1) or self.__name
+
+	if (Settings and type(Settings.OpenToCategory) == "function") then
+		local opened = pcall(Settings.OpenToCategory, primaryCategory)
+		if (opened) then
 			return
 		end
 	end
 
-	-- fallback (broken as of ElvUI Skins in version 12.18+... maybe fix/change will come)
-	InterfaceOptionsFrame_OpenToCategory (self.__name)
-	InterfaceOptionsFrame_OpenToCategory (self.__name)
-	for i = 1, 100 do
-		local button = _G ["InterfaceOptionsFrameAddOnsButton" .. i]
-		if (button) then
-			local text = _G ["InterfaceOptionsFrameAddOnsButton" .. i .. "Text"]
-			if (text) then
-				text = text:GetText()
-				if (text == self.__name) then
-					local toggle = _G ["InterfaceOptionsFrameAddOnsButton" .. i .. "Toggle"]
-					if (toggle) then
-						if (toggle:GetNormalTexture():GetTexture():find("PlusButton")) then
-							--is minimized, need expand
-							toggle:Click()
-							_G ["InterfaceOptionsFrameAddOnsButton" .. i+1]:Click()
-						elseif (toggle:GetNormalTexture():GetTexture():find("MinusButton")) then
-							--isn't minimized
-							_G ["InterfaceOptionsFrameAddOnsButton" .. i+1]:Click()
-						end
-					end
-					break
-				end
-			end
-		else
-			self:Msg("Couldn't not find the profile panel.")
-			break
-		end
+	if (type(InterfaceOptionsFrame_OpenToCategory) == "function") then
+		InterfaceOptionsFrame_OpenToCategory(primaryCategory)
 	end
 end
 

@@ -52,6 +52,8 @@ function WorldQuestTracker.PrepareOwnedPinAnchor(anchorFrame)
 		return
 	end
 
+	anchorFrame:SetScale(1)
+	anchorFrame:SetSize(1, 1)
 	anchorFrame:EnableMouse(false)
 	if (anchorFrame.SetMouseMotionEnabled) then
 		anchorFrame:SetMouseMotionEnabled(false)
@@ -189,6 +191,23 @@ end
 --return the artifact icon
 function WorldQuestTracker.GetArtifactPowerIcon (artifactPower, rounded, questID)
 
+	if (artifactPower == WorldQuestTracker.PRIMARY_CURRENCY_REWARD_TYPE) then
+		local mapID = WorldQuestTracker.UpdatingForMap or WorldQuestTracker.GetCurrentMapAreaID()
+		local currencyProfile = WorldQuestTracker.GetExpansionCurrencyProfile(mapID)
+		local currencyData = currencyProfile and currencyProfile.primary
+		if (currencyData) then
+			currencyData.name, currencyData.icon = WorldQuestTracker.GetCurrencyDisplayInfo(
+				currencyData.currencyID,
+				currencyData.name,
+				currencyData.icon
+			)
+
+			if (currencyData.icon) then
+				return currencyData.icon
+			end
+		end
+	end
+
 	if (questID) then
 		if (artifactPower <= 7) then
 			return WorldQuestTracker.MapData.ItemIcons ["LEGION_ARTIFACT"]
@@ -309,7 +328,8 @@ function WorldQuestTracker.UpdateStatusBarAnchors()
 		if (WorldQuestTracker.db.profile.show_world_shortcuts) then
 			WorldQuestTracker.IndicatorsAnchor:SetPoint("bottomright", WorldQuestTrackerGoToShadowlandsButton, "bottomright", -25, indicatorsAnchorY)
 		else
-			WorldQuestTracker.IndicatorsAnchor:SetPoint("bottomright", WorldMapFrame.SidePanelToggle, "bottomleft", -10, indicatorsAnchorY)
+			local sidePanelAnchor = WorldMapFrame and WorldMapFrame.SidePanelToggle or statusBar
+			WorldQuestTracker.IndicatorsAnchor:SetPoint("bottomright", sidePanelAnchor, "bottomleft", -10, indicatorsAnchorY)
 		end
 
 	elseif (anchor == "top") then
@@ -331,6 +351,10 @@ function WorldQuestTracker.UpdateStatusBarAnchors()
 			WorldQuestTrackerOptionsButton:SetPoint("bottomleft", statusBar, "bottomleft", 0, 2)
 			WorldQuestTracker.IndicatorsAnchor:SetPoint("topright", statusBar, "topright", -110, -3)
 		end
+	end
+
+	if (WorldQuestTracker.RefreshWorldQuestTypeSelectorInteraction) then
+		WorldQuestTracker.RefreshWorldQuestTypeSelectorInteraction()
 	end
 end
 

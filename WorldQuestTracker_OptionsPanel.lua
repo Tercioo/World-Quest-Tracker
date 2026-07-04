@@ -7,6 +7,11 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 
     if (WorldQuestTrackerOptionsPanel) then
         WorldQuestTrackerOptionsPanel:Show()
+        C_Timer.After(0, function()
+            if (wqt.RefreshGameFonts) then
+                wqt.RefreshGameFonts()
+            end
+        end)
         return
     end
 
@@ -308,7 +313,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 
             ---------------------------------------------------------
 			-- ~filter
-			local filterButton = CreateFrame("button", "WorldQuestTrackerFilterButton", generalSettingsFrame, "BackdropTemplate")
+			local filterButton = CreateFrame("button", "WorldQuestTrackerOptionsFilterButton", generalSettingsFrame, "BackdropTemplate")
 			filterButton:SetPoint("left", sortButton, "right", 5, 0)
 			WorldQuestTracker.SetupStatusbarButton(filterButton, L["S_MAPBAR_FILTER"])
             DF:ApplyStandardBackdrop(filterButton)
@@ -1009,8 +1014,6 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 desc = "S_TRACKEROPTIONS_BACKGROUNDALPHA",
             },
 
-            {type = "blank"},
-
             {
                 type = "toggle",
                 get = function()
@@ -1021,6 +1024,17 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 end,
                 name = "S_OPTIONS_TRACKER_ATTACH_TO_QUESTLOG",
                 desc = "S_OPTIONS_TRACKER_ATTACH_TO_QUESTLOG",
+            },
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.tracker_attach_to_kaliel
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("tracker_attach_to_kaliel", value)
+                end,
+                name = "S_OPTIONS_TRACKER_ATTACH_TO_KALIEL",
+                desc = "S_OPTIONS_TRACKER_ATTACH_TO_KALIEL",
             },
             {
                 type = "toggle",
@@ -1161,12 +1175,22 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 type = "range",
                 get = function() return WorldQuestTracker.db.profile.world_map_config.summary_scale end,
                 set = function(self, fixedparam, value)
+                    value = tonumber(value) or 1
                     WorldQuestTracker.db.profile.world_map_config.summary_scale = value
-                    WorldQuestTracker.UpdateWorldQuestsOnWorldMap()
+
+                    local worldSummary = WorldQuestTracker.WorldSummary
+                    if (worldSummary and worldSummary.RefreshSummaryScale) then
+                        worldSummary.RefreshSummaryScale()
+                    else
+                        if (worldSummary and worldSummary.InvalidateLayout) then
+                            worldSummary.InvalidateLayout()
+                        end
+                        WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
+                    end
                 end,
                 min = 0.6,
                 max = 1.5,
-                step = 1,
+                step = 0.05,
                 thumbscale = 1.8,
                 usedecimals = true,
                 name = "S_SCALE",
@@ -1195,11 +1219,26 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 end,
                 min = 0.6,
                 max = 1.5,
-                step = 1,
+                step = 0.05,
                 thumbscale = 1.8,
                 usedecimals = true,
                 name = "S_SCALE",
                 desc = "S_SCALE",
+            },
+
+            {type = "blank"},
+
+            {
+                type = "toggle",
+                get = function()
+                    return WorldQuestTracker.db.profile.world_map_config.summary_show_transmog_status
+                end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.SetSetting("world_map_config", "summary_show_transmog_status", value)
+                    WorldQuestTracker.UpdateWorldQuestsOnWorldMap(true)
+                end,
+                name = "S_OPTIONS_WORLDMAP_SHOW_TRANSMOG_STATUS",
+                desc = "S_OPTIONS_WORLDMAP_SHOW_TRANSMOG_STATUS_DESC",
             },
         }
 
@@ -1321,6 +1360,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                     WorldQuestTracker.db.profile.zone_map_config.quest_summary_scale = value
                     if (WorldQuestTrackerAddon.GetCurrentZoneType() == "zone") then
                         WorldQuestTracker.UpdateZoneWidgets(true)
+                        WorldQuestTracker.UpdateZoneSummaryFrame()
                     end
                 end,
                 min = 0.6,
@@ -1615,6 +1655,12 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
         DF:BuildMenu(raresSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
         --]=]
     end
+
+    C_Timer.After(0, function()
+        if (wqt.RefreshGameFonts) then
+            wqt.RefreshGameFonts()
+        end
+    end)
 end
 
 

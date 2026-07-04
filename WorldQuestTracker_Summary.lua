@@ -38,6 +38,8 @@ function wqtInternal.CreateSummary()
     -- world map summary ~summary ~worldsummary
     local worldSummary = WorldQuestTracker.WorldSummary
     worldSummary:SetWidth(100)
+    --Keep the interactive summary above the map pin layer (world quest pins use 302).
+    worldSummary:SetFrameLevel(math.max(worldSummary:GetFrameLevel(), 320))
     worldSummary:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
     worldSummary:SetBackdropColor(0, 0, 0, 0)
     worldSummary:SetBackdropBorderColor(0, 0, 0, 0)
@@ -134,6 +136,8 @@ function wqtInternal.CreateSummary()
         end
 
         worldSummary.UpdateFactionAnchor()
+        worldSummary.RefreshAnchorTitleVisibility()
+        worldSummary.ApplyHierarchyToggleState()
     end
 
     worldSummary.HideAnimation = detailsFramework:CreateAnimationHub(worldSummary, function()end, function() worldSummary:Hide() end)
@@ -145,11 +149,205 @@ function wqtInternal.CreateSummary()
         end
 
         worldSummary:Show()
+        C_Timer.After(0, worldSummary.ApplyHierarchyToggleState)
+    end
+
+    --The zone/type toggle can keep the same quest IDs while requiring every
+    --summary square to move to a different anchor. Mark the layout dirty so
+    --StartLazyUpdate does a full rebuild instead of treating it as no change.
+    function worldSummary.InvalidateLayout()
+        worldSummary.ForceLayoutRebuild = true
+    end
+
+    --DetailsFramework labels wrap a FontString. Use the FontString directly here:
+    --the zone headings are unnamed labels, and wrapper Show/Hide calls are not
+    --reliable for unnamed regions. This also prevents stale by-zone headings from
+    --remaining on the map after switching back to by-type ordering.
+    local function setAnchorTitleVisibility(anchor, shouldShow)
+        local titleWidget = anchor.Title and (anchor.Title.widget or anchor.Title.label)
+        local titleText = shouldShow and (anchor.AnchorTitle or "") or ""
+
+        if (anchor.Title and anchor.Title.SetText) then
+            anchor.Title:SetText(titleText)
+        end
+        if (titleWidget) then
+            titleWidget:SetText(titleText)
+            titleWidget:SetAlpha(shouldShow and 1 or 0)
+            titleWidget:SetShown(shouldShow)
+        end
+
+        if (anchor.ConfigFrame) then
+            anchor.ConfigFrame:SetShown(shouldShow)
+        end
+    end
+
+    function worldSummary.RefreshAnchorTitleVisibility()
+        local showZoneTitles = WorldQuestTracker.db.profile.world_map_config.summary_showby == "byzone"
+
+        for _, anchor in pairs(worldSummary.Anchors) do
+            local shouldShow = showZoneTitles and anchor.InUse and anchor.mapID and anchor.AnchorTitle and anchor.AnchorTitle ~= ""
+            setAnchorTitleVisibility(anchor, not not shouldShow)
+        end
     end
 
     function worldSummary.HideSummary()
+        if (worldSummary.HierarchyToggleButton) then
+            worldSummary.HierarchyToggleButton:Hide()
+        end
         worldSummary:Hide()
         --worldSummary.HideAnimation:Play()
+    end
+
+    local function getHierarchyYOffsetKey(hierarchy)
+        if (hierarchy == "continent") then
+            return "summary_y_offset_continent"
+        end
+        return "summary_y_offset_world"
+    end
+
+    function worldSummary.GetHierarchyYOffset(hierarchy)
+        hierarchy = hierarchy or WorldQuestTracker.GetMapHierarchyLevel(WorldMapFrame and WorldMapFrame.mapID)
+        local config = WorldQuestTracker.db.profile.world_map_config
+        return config[getHierarchyYOffsetKey(hierarchy)] or 0
+    end
+
+    function worldSummary.SetHierarchyYOffset(hierarchy, value)
+        hierarchy = hierarchy or WorldQuestTracker.GetMapHierarchyLevel(WorldMapFrame and WorldMapFrame.mapID)
+        local config = WorldQuestTracker.db.profile.world_map_config
+        config[getHierarchyYOffsetKey(hierarchy)] = math.max(-500, math.min(500, value or 0))
+        worldSummary.ReAnchor()
+        worldSummary.ApplyHierarchyToggleState()
+    end
+
+    local function getFirstHierarchySummaryWidget()
+        local firstAnchor
+        for _, anchor in ipairs(worldSummary.Anchors) do
+            if (anchor.InUse and anchor.Widgets and anchor.Widgets[1]) then
+                if (not firstAnchor or (anchor.AnchorOrder or 999) < (firstAnchor.AnchorOrder or 999)) then
+                    firstAnchor = anchor
+                end
+            end
+        end
+
+        return firstAnchor and firstAnchor.Widgets and firstAnchor.Widgets[1]
+    end
+
+    local function createHierarchySummaryToggle()
+        if (worldSummary.HierarchyToggleButton) then
+            return worldSummary.HierarchyToggleButton
+        end
+
+        local button = CreateFrame("button", "WorldQuestTrackerHierarchySummaryToggle", worldSummary, "BackdropTemplate")
+        button:SetSize(16, 16)
+        button:SetFrameLevel(worldSummary:GetFrameLevel() + 100)
+        button:EnableMouse(true)
+        button:RegisterForClicks("LeftButtonUp")
+
+        button.Icon = button:CreateTexture(nil, "overlay")
+        button.Icon:SetAllPoints()
+        button.Icon:SetTexCoord(.25, .75, .28, .75)
+
+        button:RegisterForDrag("LeftButton")
+
+        button:SetScript("OnDragStart", function(self)
+            local hierarchy = WorldQuestTracker.GetMapHierarchyLevel(WorldMapFrame and WorldMapFrame.mapID)
+            if (hierarchy ~= "world" and hierarchy ~= "continent") then
+                return
+            end
+
+            local _, cursorY = GetCursorPosition()
+            self.DragHierarchy = hierarchy
+            self.DragStartCursorY = cursorY / UIParent:GetEffectiveScale()
+            self.DragStartYOffset = worldSummary.GetHierarchyYOffset(hierarchy)
+            self.DidVerticalDrag = false
+
+            self:SetScript("OnUpdate", function(dragButton)
+                local _, currentCursorY = GetCursorPosition()
+                currentCursorY = currentCursorY / UIParent:GetEffectiveScale()
+                local deltaY = currentCursorY - dragButton.DragStartCursorY
+                if (math.abs(deltaY) >= 2) then
+                    dragButton.DidVerticalDrag = true
+                end
+                worldSummary.SetHierarchyYOffset(dragButton.DragHierarchy, dragButton.DragStartYOffset + deltaY)
+            end)
+        end)
+
+        button:SetScript("OnDragStop", function(self)
+            self:SetScript("OnUpdate", nil)
+            self.SuppressNextClick = self.DidVerticalDrag
+            self.DragHierarchy = nil
+        end)
+
+        button:SetScript("OnClick", function(self)
+            if (self.SuppressNextClick) then
+                self.SuppressNextClick = nil
+                return
+            end
+
+            local config = WorldQuestTracker.db.profile.world_map_config
+            config.summary_minimized = not config.summary_minimized
+            worldSummary.ApplyHierarchyToggleState()
+        end)
+
+        worldSummary.HierarchyToggleButton = button
+        return button
+    end
+
+    function worldSummary.ApplyHierarchyToggleState()
+        local button = createHierarchySummaryToggle()
+        local hierarchy = WorldQuestTracker.GetMapHierarchyLevel(WorldMapFrame and WorldMapFrame.mapID)
+        local config = WorldQuestTracker.db.profile.world_map_config
+        local canShow = worldSummary:IsShown()
+            and config.summary_show
+            and config.summary_showby == "bytype"
+            and WorldQuestTracker.db.profile.show_summary_minimize_button
+            and (hierarchy == "world" or hierarchy == "continent")
+
+        if (not canShow) then
+            button:Hide()
+            return
+        end
+
+        local anchorSide = worldSummary.GetAnchorSide(true)
+        local firstWidget = getFirstHierarchySummaryWidget()
+        button:ClearAllPoints()
+
+        if (firstWidget) then
+            if (anchorSide == "right") then
+                button:SetPoint("left", firstWidget, "right", -4, 0)
+            else
+                button:SetPoint("right", firstWidget, "left", 4, 0)
+            end
+        elseif (anchorSide == "right") then
+            button:SetPoint("topright", worldSummary, "topright", -2, -38)
+        else
+            button:SetPoint("topleft", worldSummary, "topleft", 2, -38)
+        end
+
+        local minimized = config.summary_minimized == true
+        if (anchorSide == "right") then
+            button.Icon:SetTexture(minimized and [[Interface\BUTTONS\UI-SpellbookIcon-PrevPage-Up]] or [[Interface\BUTTONS\UI-SpellbookIcon-NextPage-Up]])
+        else
+            button.Icon:SetTexture(minimized and [[Interface\BUTTONS\UI-SpellbookIcon-NextPage-Up]] or [[Interface\BUTTONS\UI-SpellbookIcon-PrevPage-Up]])
+        end
+
+        for _, anchor in ipairs(worldSummary.Anchors) do
+            if (minimized) then
+                anchor:Hide()
+            elseif (anchor.InUse) then
+                anchor:Show()
+            end
+        end
+
+        if (worldSummary.FactionAnchor) then
+            if (minimized) then
+                worldSummary.FactionAnchor:Hide()
+            else
+                worldSummary.UpdateFactionAnchor()
+            end
+        end
+
+        button:Show()
     end
 
     -- �nchorbutton ~anchorbutton
@@ -214,8 +412,10 @@ function wqtInternal.CreateSummary()
     for i = 1, worldSummary.AnchorAmount do
         local anchor = CreateFrame("frame", nil, worldSummary, "BackdropTemplate")
         anchor:SetSize(1, 1)
+        anchor:SetFrameLevel(worldSummary:GetFrameLevel() + 1)
 
         anchor.ContentsBorder = CreateFrame("frame", nil, anchor)
+        anchor.ContentsBorder:EnableMouse(false)
         anchor.ContentsBorder:SetScript("OnUpdate", function(self)
             if InCombatLockdown() then
                 return
@@ -233,14 +433,16 @@ function wqtInternal.CreateSummary()
         anchor:SetBackdropBorderColor(0, 0, 0, 0)
 
         anchor.Title = detailsFramework:CreateLabel(anchor)
+        anchor.Title.widget:SetFontObject(GameFontNormal)
         anchor.Title.textcolor = {1, .8, .2, .854}
-        anchor.Title.textsize = 11
+        anchor.Title.textsize = 10
 
         anchor.WidgetsAmount = 0
         anchor.Widgets = {}
 
         --config on hover over
             anchor.ConfigFrame = CreateFrame("frame", nil, anchor, "BackdropTemplate")
+            anchor.ConfigFrame:SetFrameLevel(anchor:GetFrameLevel() + 30)
             anchor.ConfigFrame:SetSize(40, 12)
             anchor.ConfigFrame:SetPoint("bottomleft", anchor.Title.widget, "bottomleft")
             anchor.ConfigFrame:SetPoint("bottomright", anchor.Title.widget, "bottomright")
@@ -291,7 +493,7 @@ function wqtInternal.CreateSummary()
                     GameCooltip:SetOption("RelativeAnchor", "top")
                     GameCooltip:SetOption("WidthAnchorMod", 0)
                     GameCooltip:SetOption("HeightAnchorMod", 0)
-                    GameCooltip:SetOption("TextSize", 10)
+                    GameCooltip:SetOption("TextSize", 12)
                     GameCooltip:SetOption("FixedWidth", 180)
                     GameCooltip:SetOption("IconBlendMode", "ADD")
                 end
@@ -301,10 +503,10 @@ function wqtInternal.CreateSummary()
 
         --button to track all quests in the anchor
         local anchorButton = detailsFramework:CreateButton(anchor, on_click_anchor_button, 20, 20, "", anchorID)
-        anchorButton:SetFrameLevel(anchor:GetFrameLevel()-1)
+        anchorButton:SetFrameLevel(anchor:GetFrameLevel() + 25)
         anchorButton.Texture = anchorButton:CreateTexture(nil, "overlay")
         anchorButton.Texture:SetTexture([[Interface\MINIMAP\SuperTrackerArrow]])
-        anchorButton.Texture:SetAlpha(.5)
+        anchorButton.Texture:SetAlpha(.9)
         anchor.Button = anchorButton
         anchorButton.Anchor = anchor
 
@@ -343,13 +545,32 @@ function wqtInternal.CreateSummary()
         return anchor1.AnchorOrder < anchor2.AnchorOrder
     end
 
+    local function getSummaryVisualSettings()
+        return WorldQuestTracker.GetWorldMapVisualSettings(WorldMapFrame and WorldMapFrame.mapID)
+    end
+
+    --World and continent summaries scale each icon directly. The reward amount
+    --text is anchored 10 UI units below the icon and its background extends
+    --slightly farther. Include that footprint in the row step so the next row
+    --clears both the icon and its label at every scale.
+    local SUMMARY_LABEL_FOOTPRINT = 11
+    local SUMMARY_ROW_GAP = 1
+
+    local function getRenderedSummaryRowStep(summaryVisuals, summaryScale)
+        local iconSize = (summaryVisuals and summaryVisuals.summaryIconSize) or 25
+        local scale = summaryScale or 1
+        return ((iconSize + SUMMARY_LABEL_FOOTPRINT) * scale) + SUMMARY_ROW_GAP
+    end
+
     function worldSummary.ReAnchor()
         if (WorldQuestTracker.db.profile.world_map_config.summary_showby == "byzone") then
-            for index, anchor in pairs(worldSummary.Anchors) do
-                local mapID = anchor.mapID
-                local mapTable = WorldQuestTracker.mapTables[mapID]
+            for _, anchor in pairs(worldSummary.Anchors) do
+                setAnchorTitleVisibility(anchor, false)
 
-                if (mapTable) then
+                local mapID = anchor.mapID
+                local mapTable = mapID and WorldQuestTracker.mapTables[mapID]
+
+                if (anchor.InUse and mapTable) then
                     local config = WorldQuestTracker.db.profile.anchor_options[mapID]
                     if (not config) then
                         config = {Enabled = true, YOffset = 0, Alpha = 1, TextColor = {1, .8, .2, .854}, ScaleOffset = 0}
@@ -357,67 +578,58 @@ function wqtInternal.CreateSummary()
                     end
 
                     local x, y = mapTable.Anchor_X, mapTable.Anchor_Y
-
-                    --update config
-                        y = y + config.YOffset
-                        --not using the scale since there's the scale options already, text color why?, alpha the default is okay
-                        --anchor:SetScale(1 + config.ScaleOffset)
-                        --anchor.Title.textcolor = config.TextColor
-                        --anchor:SetAlpha(config.Alpha)
+                    y = y + config.YOffset
 
                     WorldQuestTracker.UpdateWorldMapAnchors(x, y, anchor.PinAnchor)
                     anchor:ClearAllPoints()
                     anchor:SetPoint("center", anchor.PinAnchor, "center", 0, 0)
-                    anchor.Title:SetText(anchor.AnchorTitle)
+                    setAnchorTitleVisibility(anchor, true)
                 end
             end
 
         elseif (WorldQuestTracker.db.profile.world_map_config.summary_showby == "bytype") then
-            local Y = -24
+            local hierarchy = WorldQuestTracker.GetMapHierarchyLevel(WorldMapFrame and WorldMapFrame.mapID)
+            local Y = -24 + worldSummary.GetHierarchyYOffset(hierarchy)
 
-            --reorder the widgets of this anchor by the order set under the UpdateOrder function
             table.sort(worldSummary.Anchors, anchorReorderFunc)
 
             local previousAnchor
-            --get which point in the world map the anchor is located, can the 'left' or 'right'
             local anchorSide = worldSummary.GetAnchorSide(true)
             local summaryScale = WorldQuestTracker.db.profile.world_map_config.summary_scale
-            local padding = -40
+            local summaryVisuals = getSummaryVisualSettings()
+            local renderedRowStep = getRenderedSummaryRowStep(summaryVisuals, summaryScale)
 
-            for index, anchor in pairs(worldSummary.Anchors) do
+            for _, anchor in ipairs(worldSummary.Anchors) do
                 anchor:ClearAllPoints()
                 anchor.mapID = nil
+                setAnchorTitleVisibility(anchor, false)
 
-                if (anchorSide == "left") then
+                --Only visible categories participate in the stack. Empty
+                --categories previously consumed a full row each, creating the
+                --large gaps visible between continent-summary groups.
+                if (anchor.InUse and anchor.WidgetsAmount > 0) then
                     if (previousAnchor) then
-                        local spacePadding = padding
-                        local addSecondLine = previousAnchor.WidgetsAmount > worldSummary.MaxWidgetsPerRow and -40 or 0
-                        anchor:SetPoint("topleft", previousAnchor, "bottomleft", 0, (spacePadding + addSecondLine) * summaryScale)
-                    else
+                        local previousRows = math.max(1, math.ceil(previousAnchor.WidgetsAmount / worldSummary.MaxWidgetsPerRow))
+                        local verticalOffset = -(previousRows * renderedRowStep)
+
+                        if (anchorSide == "left") then
+                            anchor:SetPoint("topleft", previousAnchor, "topleft", 0, verticalOffset)
+                        else
+                            anchor:SetPoint("topright", previousAnchor, "topright", 0, verticalOffset)
+                        end
+                    elseif (anchorSide == "left") then
                         anchor:SetPoint("topleft", worldSummary, "topleft", 2, Y)
-                    end
-                else
-                    if (previousAnchor) then
-                        local addSecondLine = previousAnchor.WidgetsAmount > worldSummary.MaxWidgetsPerRow and -40 or 0
-                        anchor:SetPoint("topright", previousAnchor, "bottomright", 0, (padding + addSecondLine) * summaryScale)
                     else
                         anchor:SetPoint("topright", worldSummary, "topright", -4, Y)
                     end
-                end
 
-                --anchor.Title:SetText(anchor.AnchorTitle)
-                --not showing the anchor name when ordering by the quest type
-                if (index == 1) then
-                    --anchor.Title:SetText("All Quests")
-                    --anchor.mapID = WorldMapFrame.mapID
-                    anchor.Title:SetText("")
-                else
-                    anchor.Title:SetText("")
+                    previousAnchor = anchor
                 end
-
-                previousAnchor = anchor
             end
         end
+
+        worldSummary.RefreshAnchorTitleVisibility()
+        worldSummary.ApplyHierarchyToggleState()
     end
 
     --giving a type of a quest, this function returns the anchor where that quest should be attached to
@@ -430,7 +642,7 @@ function wqtInternal.CreateSummary()
             --if not showing by the zone, get the anchor based on the type of the quest
             if (filterType == "artifact_power") then
                 anchor = worldSummary.AnchorsByQuestType[worldSummary.QuestTypesByIndex[worldSummary.QuestTypes.ANCHORTYPE_ARTIFACTPOWER]]
-                anchorTitle = "Artifact Power"
+                anchorTitle = WorldQuestTracker.MapData.QuestTypeIcons[WQT_QUESTTYPE_APOWER].name
 
             elseif (filterType == "reputation_token") then
                 anchor = worldSummary.AnchorsByQuestType[worldSummary.QuestTypesByIndex[worldSummary.QuestTypes.ANCHORTYPE_REPUTATION]]
@@ -439,7 +651,7 @@ function wqtInternal.CreateSummary()
 
             elseif (filterType == "garrison_resource") then
                 anchor = worldSummary.AnchorsByQuestType[worldSummary.QuestTypesByIndex[worldSummary.QuestTypes.ANCHORTYPE_RESOURCES]]
-                anchorTitle = "Resources"
+                anchorTitle = WorldQuestTracker.MapData.QuestTypeIcons[WQT_QUESTTYPE_RESOURCE].name
 
             elseif (filterType == "equipment") then
                 anchor = worldSummary.AnchorsByQuestType[worldSummary.QuestTypesByIndex[worldSummary.QuestTypes.ANCHORTYPE_EQUIPMENT]]
@@ -530,7 +742,7 @@ function wqtInternal.CreateSummary()
                     local orderPoints = widget.questID + abs(widget.TimeLeft - 1440) * 10
 
                     --move quests for the selected fation to show first
-                    if (widget.FactionID == worldSummary.FactionSelected) then
+                    if (worldSummary.DoesWidgetAwardFactionReputation and worldSummary.DoesWidgetAwardFactionReputation(widget, worldSummary.FactionSelected)) then
                         orderPoints = orderPoints + 200000
                     end
 
@@ -591,67 +803,99 @@ function wqtInternal.CreateSummary()
             anchor.Title:SetPoint("bottomright", anchor, "topright", 2, 0)
         end
 
-        local X, Y = 1, -1
-        --by default make the anchor be the latest widget in the anchor
-        --if the anchor has a breakline, make the anchor be the last widget in the first row
-        local trackAllButtonAnchor = anchor.Widgets[#anchor.Widgets]
+        local summaryScale = WorldQuestTracker.db.profile.world_map_config.summary_scale
+        local summaryVisuals = getSummaryVisualSettings()
+        local summaryIconSize = summaryVisuals.summaryIconSize
+        local summaryFontSize = summaryVisuals.fontSize
+        local summaryColumnStep = summaryVisuals.summaryColumnStep or 25
+        local summaryRowStep = getRenderedSummaryRowStep(summaryVisuals, summaryScale)
 
+        local X, Y = 1, -1
+        local trackAllButtonAnchor = anchor.Widgets[#anchor.Widgets]
         local nextBreakLine = worldSummary.MaxWidgetsPerRow
 
         local firstWidget = anchor.Widgets[1]
         local hasBreakLine = #anchor.Widgets > nextBreakLine
         local lastWidget = anchor.Widgets[nextBreakLine] or anchor.Widgets[#anchor.Widgets]
 
-        if firstWidget then
+        anchor.ContentsBorder:ClearAllPoints()
+        if (firstWidget) then
             anchor.ContentsBorder:SetPoint("topleft", firstWidget, "topleft", -2, 2)
-            anchor.ContentsBorder:SetPoint("bottomright", lastWidget, "bottomright", 2, hasBreakLine and -40 or -2)
+            anchor.ContentsBorder:SetPoint("bottomright", lastWidget, "bottomright", 2, hasBreakLine and -summaryRowStep or -2)
         end
 
-        --reorder the squares by settings its point
+        --Use WQT's upstream layout: icons are children of the category anchor,
+        --their slots remain fixed, and only the icon frame receives the scale.
         for i = 1, #anchor.Widgets do
             local widget = anchor.Widgets[i]
+            widget:SetParent(anchor)
+            WorldQuestTracker.ApplyWorldSummaryWidgetSize(widget, summaryIconSize, summaryFontSize)
+            widget:SetScale(summaryScale)
             widget:ClearAllPoints()
-                widget.WidgetAnchorID = i
+            widget.WidgetAnchorID = i
 
             if (growDirection == "right") then
                 widget:SetPoint("topleft", anchor, "topleft", X, Y)
-                X = X + 25
+                X = X + summaryColumnStep
                 if (i == nextBreakLine) then
                     trackAllButtonAnchor = widget
-                    Y = Y - 40
+                    Y = Y - summaryRowStep
                     X = 1
                     nextBreakLine = nextBreakLine + worldSummary.MaxWidgetsPerRow
                 end
-
-            elseif (growDirection == "left") then
+            else
                 widget:SetPoint("topright", anchor, "topright", X, Y)
-                X = X - 25
+                X = X - summaryColumnStep
                 if (i == nextBreakLine) then
                     trackAllButtonAnchor = widget
-                    Y = Y - 40
+                    Y = Y - summaryRowStep
                     X = 1
                     nextBreakLine = nextBreakLine + worldSummary.MaxWidgetsPerRow
                 end
             end
         end
 
-        --set the point of the track all quests
+        anchor.Button.widget:SetParent(anchor)
+        anchor.Button:SetScale(1)
         anchor.Button:ClearAllPoints()
         anchor.Button.Texture:ClearAllPoints()
 
-        if (growDirection == "right") then
-            anchor.Button:SetPoint("left", trackAllButtonAnchor, "right", 1, 0)
-            anchor.Button.Texture:SetRotation(math.pi * 2 * .75)
-            anchor.Button.Texture:SetPoint("left", anchor.Button.widget, "left", -16, 0)
-
-        elseif (growDirection == "left") then
-            anchor.Button:SetPoint("right", trackAllButtonAnchor, "left", -1, 0)
-            anchor.Button.Texture:SetRotation(math.pi / 2)
-            anchor.Button.Texture:SetPoint("right", anchor.Button.widget, "right", 16, 0)
-
+        if (trackAllButtonAnchor) then
+            if (growDirection == "right") then
+                anchor.Button:SetPoint("left", trackAllButtonAnchor, "right", 1, 0)
+                anchor.Button.Texture:SetRotation(math.pi * 2 * .75)
+                anchor.Button.Texture:SetPoint("left", anchor.Button.widget, "left", -16, 0)
+            else
+                anchor.Button:SetPoint("right", trackAllButtonAnchor, "left", -1, 0)
+                anchor.Button.Texture:SetRotation(math.pi / 2)
+                anchor.Button.Texture:SetPoint("right", anchor.Button.widget, "right", 16, 0)
+            end
+            anchor.Button:Show()
+        else
+            anchor.Button:Hide()
         end
 
-        anchor.Button:Show()
+        if (anchor.SummaryRows) then
+            for _, rowAnchor in ipairs(anchor.SummaryRows) do
+                rowAnchor:Hide()
+            end
+        end
+
+        worldSummary.ApplyHierarchyToggleState()
+    end
+
+    --Apply the summary scale using the upstream direct-anchor layout. Reorder
+    --each active category so the row offsets are recalculated with the rendered
+    --icon and label height; no row containers or reparenting are introduced.
+    function worldSummary.RefreshSummaryScale()
+        for _, anchor in ipairs(worldSummary.Anchors) do
+            if (anchor.InUse and anchor.Widgets and #anchor.Widgets > 0) then
+                worldSummary.ReorderAnchorWidgets(anchor)
+            end
+        end
+
+        worldSummary.ReAnchor()
+        worldSummary.ApplyHierarchyToggleState()
     end
 
     --hide all anchors, widgets and refresh the order of the anchors
@@ -673,7 +917,16 @@ function wqtInternal.CreateSummary()
             anchor:Hide()
             anchor.InUse = false
             anchor.WidgetsAmount = 0
+            anchor.mapID = nil
+            anchor.AnchorTitle = nil
+            setAnchorTitleVisibility(anchor, false)
             wipe(anchor.Widgets)
+
+            if (anchor.SummaryRows) then
+                for _, rowAnchor in ipairs(anchor.SummaryRows) do
+                    rowAnchor:Hide()
+                end
+            end
         end
 
         for _, summarySquare in ipairs(WorldQuestTracker.WorldSummaryQuestsSquares) do
@@ -728,12 +981,13 @@ function wqtInternal.CreateSummary()
         --get the widget and setup it
         local summarySquare = WorldQuestTracker.WorldSummaryQuestsSquares[worldSummary.WidgetIndex]
         worldSummary.WidgetIndex = worldSummary.WidgetIndex + 1
-        table.insert(anchor.Widgets, summarySquare)
 
         if (not summarySquare) then
             WorldQuestTracker:Msg("exception: AddQuest() while cache still loading, close and reopen the map.")
             return
         end
+
+        table.insert(anchor.Widgets, summarySquare)
 
         summarySquare.questData = questData
         summarySquare.lastUpdate = time()
@@ -741,6 +995,20 @@ function wqtInternal.CreateSummary()
         summarySquare.questID = questID
         summarySquare.CurrentAnchor = anchor
 
+        local summaryVisuals = getSummaryVisualSettings()
+        summarySquare:SetParent(anchor)
+        summarySquare.DefaultPin = nil
+        summarySquare:EnableMouse(true)
+        if (summarySquare.SetMouseClickEnabled) then
+            summarySquare:SetMouseClickEnabled(true)
+        end
+        if (summarySquare.SetMouseMotionEnabled) then
+            summarySquare:SetMouseMotionEnabled(true)
+        end
+        summarySquare:RegisterForClicks("LeftButtonDown", "MiddleButtonDown", "RightButtonDown")
+        summarySquare:SetFrameLevel(anchor:GetFrameLevel() + 10)
+        anchor.Button:SetFrameLevel(anchor:GetFrameLevel() + 25)
+        WorldQuestTracker.ApplyWorldSummaryWidgetSize(summarySquare, summaryVisuals.summaryIconSize, summaryVisuals.fontSize)
         summarySquare:SetScale(WorldQuestTracker.db.profile.world_map_config.summary_scale)
         summarySquare:Show()
         summarySquare.Anchor = anchor
@@ -757,11 +1025,9 @@ function wqtInternal.CreateSummary()
             summarySquare.factionBorder:Hide()
         end
 
-        if not detailsFramework.IsAddonApocalypseWow() then
-            local factionButton = worldSummary.FactionAnchor.WidgetsByFactionID[summarySquare.FactionID]
-            if (factionButton) then
-                local bAwardReputation = C_QuestLog.DoesQuestAwardReputationWithFaction(questID or 0, summarySquare.FactionID or 0)
-                if (bAwardReputation) then
+        if not detailsFramework.IsAddonApocalypseWow() and worldSummary.DoesWidgetAwardFactionReputation then
+            for factionID, factionButton in pairs(worldSummary.FactionAnchor.WidgetsByFactionID) do
+                if (worldSummary.DoesWidgetAwardFactionReputation(summarySquare, factionID)) then
                     factionButton.AmountQuests = factionButton.AmountQuests + 1
                     factionButton.Text:SetText(factionButton.AmountQuests)
                 end
@@ -789,7 +1055,7 @@ function wqtInternal.CreateSummary()
                 end
 
                 --update the amount of artifact power
-                if (worldSummary.TotalResources > 999) then
+                if (worldSummary.TotalAPower > 999) then
                     WorldQuestTracker.WorldMap_APowerIndicator.text = WorldQuestTracker.ToK(worldSummary.TotalAPower)
                 else
                     WorldQuestTracker.WorldMap_APowerIndicator.text = floor(worldSummary.TotalAPower)
@@ -835,7 +1101,9 @@ function wqtInternal.CreateSummary()
             end
         end
 
-        if (anchor.WidgetsAmount == worldSummary.MaxWidgetsPerRow + 1) then
+        --Every time a new row begins, refresh the category stack so all
+        --following anchors move by exactly one scaled row height.
+        if (anchor.WidgetsAmount > 1 and ((anchor.WidgetsAmount - 1) % worldSummary.MaxWidgetsPerRow == 0)) then
             worldSummary.ReAnchor()
         end
 
@@ -918,7 +1186,12 @@ function wqtInternal.CreateSummary()
             return
         end
 
-        local bNeedToUpdate = false
+        local currentShowBy = WorldQuestTracker.db.profile.world_map_config.summary_showby
+        local forceLayoutRebuild = worldSummary.ForceLayoutRebuild or worldSummary.LastSummaryShowBy ~= currentShowBy
+        worldSummary.ForceLayoutRebuild = nil
+        worldSummary.LastSummaryShowBy = currentShowBy
+
+        local bNeedToUpdate = forceLayoutRebuild and true or false
 
         local numQuestsShown = 0
         for questID in pairs(worldSummary.ShownQuests) do
@@ -952,6 +1225,7 @@ function wqtInternal.CreateSummary()
                 questSummary:Show()
             end
 
+            worldSummary.ApplyHierarchyToggleState()
             return
         end
 
@@ -959,8 +1233,9 @@ function wqtInternal.CreateSummary()
         worldSummary.ShowSummary()
         worldSummary.RefreshSummaryAnchor()
 
-        --clear all if this is a full update
-        if (not questsToUpdate) then
+        --A zone/type layout change must be a full rebuild even when this update
+        --was originally requested as a partial quest refresh.
+        if (forceLayoutRebuild or not questsToUpdate) then
             worldSummary.ClearSummary()
         end
 
@@ -970,15 +1245,18 @@ function wqtInternal.CreateSummary()
 
         worldSummary:SetScript("OnUpdate", worldSummary.LazyUpdate)
 
-        --adjust the artifact power icon for each region
-        local questHubByExp = WorldQuestTracker.MapData.ExpMaps[WorldMapFrame.mapID]
-        local texture
-        if (questHubByExp == 9) then --shadowlands
-            texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.SHADOWLANDS_ARTIFACT
-        elseif (questHubByExp == 8) then --bfa
-            texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.BFA_ARTIFACT
-        elseif (questHubByExp == 7) then --legion
-            texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.LEGION_ARTIFACT
+        --Update the primary/secondary currency display for the map's expansion.
+        local currencyProfile, questHubByExp = WorldQuestTracker.RefreshExpansionCurrencyInfo(WorldMapFrame.mapID)
+        local texture = currencyProfile and currencyProfile.primary.icon
+
+        if (not texture) then
+            if (questHubByExp == 9) then --shadowlands
+                texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.SHADOWLANDS_ARTIFACT
+            elseif (questHubByExp == 8) then --bfa
+                texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.BFA_ARTIFACT
+            elseif (questHubByExp == 7) then --legion
+                texture = WorldQuestTracker.MapData.ArtifactPowerSummaryIcons.LEGION_ARTIFACT
+            end
         end
 
         if (texture) then

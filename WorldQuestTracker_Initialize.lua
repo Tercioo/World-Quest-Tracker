@@ -183,6 +183,10 @@ do
 				summary_showby = "bytype", --"bytype" or "byzone"
 				summary_anchor = "left",
 				summary_widgets_per_row = 8,
+				summary_show_transmog_status = true,
+				summary_minimized = false,
+				summary_y_offset_world = 0,
+				summary_y_offset_continent = 0,
 			},
 
 			world_map_hubscale = {},
@@ -252,6 +256,7 @@ do
 			sound_enabled = true,--a
 			use_tracker = true,
 			tracker_attach_to_questlog = true,
+			tracker_attach_to_kaliel = false,
 			tracker_is_locked = false,
 			tracker_only_currentmap = false,
 			tracker_scale = 1,
@@ -286,6 +291,7 @@ do
 			zone_map_config = {
 				summary_show = true,
 				quest_summary_scale = 1.2,
+				quest_summary_y_offset = 0,
 				show_widgets = true,
 				scale = 1,
 			},
@@ -343,6 +349,94 @@ do
 	WorldQuestTracker.MapChangedTime = time()-1
 	WorldQuestTracker.Version = VERSION
 
+	--Use Blizzard's GameFontNormal as the source for every WQT font. Size-specific
+	--font objects are cached so callers can keep their existing text sizes without
+	--falling back to a LibSharedMedia font name or a hard-coded font path.
+	local gameFontObjectCache = {}
+
+	function WorldQuestTracker.GetGameFontObject(size, flags)
+		local gameFontFile, gameFontSize, gameFontFlags = GameFontNormal:GetFont()
+		if (not gameFontFile) then
+			return GameFontNormal
+		end
+
+		size = tonumber(size) or tonumber(gameFontSize) or 12
+		flags = flags or gameFontFlags or ""
+
+		local cacheKey = tostring(size) .. "|" .. tostring(flags)
+		local fontObject = gameFontObjectCache[cacheKey]
+		if (not fontObject) then
+			local objectName = "WorldQuestTrackerGameFont_" .. cacheKey:gsub("[^%w]", "_")
+			fontObject = _G[objectName] or CreateFont(objectName)
+			fontObject:CopyFontObject(GameFontNormal)
+			fontObject:SetFont(gameFontFile, size, flags)
+			gameFontObjectCache[cacheKey] = fontObject
+		end
+
+		return fontObject
+	end
+
+	function WorldQuestTracker.ApplyGameFont(fontOwner, forcedSize)
+		local fontString = fontOwner and (fontOwner.widget or fontOwner)
+		if (not fontString or type(fontString.SetFontObject) ~= "function") then
+			return fontOwner
+		end
+
+		local _, currentSize, currentFlags = fontString:GetFont()
+		local r, g, b, a = fontString:GetTextColor()
+		local shadowR, shadowG, shadowB, shadowA = fontString:GetShadowColor()
+		local shadowX, shadowY = fontString:GetShadowOffset()
+
+		fontString:SetFontObject(WorldQuestTracker.GetGameFontObject(forcedSize or currentSize, currentFlags))
+		if (r) then
+			fontString:SetTextColor(r, g, b, a)
+		end
+		if (shadowR) then
+			fontString:SetShadowColor(shadowR, shadowG, shadowB, shadowA)
+		end
+		if (shadowX and shadowY) then
+			fontString:SetShadowOffset(shadowX, shadowY)
+		end
+
+		return fontOwner
+	end
+
+	local function applyGameFontToFrameTree(frame, visited)
+		if (not frame or visited[frame]) then
+			return
+		end
+		visited[frame] = true
+
+		if (type(frame.GetRegions) == "function") then
+			for i = 1, select("#", frame:GetRegions()) do
+				local region = select(i, frame:GetRegions())
+				if (region and type(region.GetObjectType) == "function" and region:GetObjectType() == "FontString") then
+					WorldQuestTracker.ApplyGameFont(region)
+				end
+			end
+		end
+
+		if (type(frame.GetChildren) == "function") then
+			for i = 1, select("#", frame:GetChildren()) do
+				applyGameFontToFrameTree(select(i, frame:GetChildren()), visited)
+			end
+		end
+	end
+
+	function WorldQuestTracker.RefreshGameFonts()
+		local visited = {}
+		for globalName, object in pairs(_G) do
+			if (type(globalName) == "string" and globalName:match("^WorldQuestTracker") and object and type(object.GetObjectType) == "function") then
+				local objectType = object:GetObjectType()
+				if (objectType == "FontString") then
+					WorldQuestTracker.ApplyGameFont(object)
+				elseif (type(object.GetRegions) == "function") then
+					applyGameFontToFrameTree(object, visited)
+				end
+			end
+		end
+	end
+
 	--create the group finder and rare finder frames
 	CreateFrame("frame", "WorldQuestTrackerFinderFrame", UIParent, "BackdropTemplate")
 	CreateFrame("frame", "WorldQuestTrackerRareFrame", UIParent, "BackdropTemplate")
@@ -396,7 +490,7 @@ do
 		if (not WorldQuestTracker.DataProvider) then
 			if (WorldMapFrame and WorldMapFrame.dataProviders) then
 				for dataProvider, state in pairs (WorldMapFrame.dataProviders) do
-					if (dataProvider.IsQuestSuppressed) then --only WorldQuestDataProviderMixin has this function
+					if (dataProvider.IsQuestSuppressed) then --only WorldMap_WorldQuestDataProviderMixin has this function
 						WorldQuestTracker.DataProvider = dataProvider
 						--AddDataProvider
 						--WorldQuestTrackerWQProvider:SetOwningMap(WorldQuestTracker.DataProvider:GetMap())
@@ -527,12 +621,12 @@ do
 	DF:NewColor ("WQT_ORANGE_RESOURCES_AVAILABLE", 1, .7, .2, .85)
 	DF:NewColor ("WQT_ORANGE_YELLOW_RARE_TITTLE", 1, 0.677059, 0.05, 1)
 
-	DF:InstallTemplate ("font", "WQT_SUMMARY_TITLE", {color = "orange", size = 12, font = "Friz Quadrata TT"})
-	DF:InstallTemplate ("font", "WQT_RESOURCES_AVAILABLE", {color = {1, .7, .2, .85}, size = 10, font = "Friz Quadrata TT"})
-	DF:InstallTemplate ("font", "WQT_GROUPFINDER_BIG", {color = {1, .7, .2, .85}, size = 11, font = "Friz Quadrata TT"})
-	DF:InstallTemplate ("font", "WQT_GROUPFINDER_SMALL", {color = {1, .9, .1, .85}, size = 10, font = "Friz Quadrata TT"})
-	DF:InstallTemplate ("font", "WQT_GROUPFINDER_TRANSPARENT", {color = {1, 1, 1, .2}, size = 10, font = "Friz Quadrata TT"})
-	DF:InstallTemplate ("font", "WQT_TOGGLEQUEST_TEXT", {color = {0.811, 0.626, .109}, size = 10, font = "Friz Quadrata TT"})
+	DF:InstallTemplate ("font", "WQT_SUMMARY_TITLE", {color = "orange", size = 12})
+	DF:InstallTemplate ("font", "WQT_RESOURCES_AVAILABLE", {color = {1, .7, .2, .85}, size = 12})
+	DF:InstallTemplate ("font", "WQT_GROUPFINDER_BIG", {color = {1, .7, .2, .85}, size = 11})
+	DF:InstallTemplate ("font", "WQT_GROUPFINDER_SMALL", {color = {1, .9, .1, .85}, size = 10})
+	DF:InstallTemplate ("font", "WQT_GROUPFINDER_TRANSPARENT", {color = {1, 1, 1, .2}, size = 10})
+	DF:InstallTemplate ("font", "WQT_TOGGLEQUEST_TEXT", {color = {0.811, 0.626, .109}, size = 12})
 
 	DF:InstallTemplate ("button", "WQT_GROUPFINDER_BUTTON", {
 		backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
@@ -558,7 +652,15 @@ do
 	--settings
 	--WorldQuestTracker.Constants.
 	WorldQuestTrackerAddon.Constants = {
+		--Every world-quest icon uses the same 24px neutral base. A scale slider
+		--set to 1.0 therefore produces the same icon footprint on continent maps,
+		--zone maps, the world summary, and the zone summary.
+		QuestIconSize = 24,
+		QuestRewardTextureSize = 17,
 		WorldMapSquareSize = 24,
+		ZoneMapPinSize = 24,
+		WorldMapPinSize = 24,
+		ZoneMapRewardTextureSize = 17,
 		TimeBlipSize = 14,
 	}
 

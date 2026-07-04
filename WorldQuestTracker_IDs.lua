@@ -151,6 +151,12 @@ WorldQuestTracker.DotLineScale = {
 }
 
 WorldQuestTracker.MapData.ZoneToHub = {
+	[zoneIDs.QUELDANAS] = zoneIDs.WOW12_HUB,
+	[zoneIDs.EVERSONG_WOODS] = zoneIDs.WOW12_HUB,
+	[zoneIDs.ZULAMAN] = zoneIDs.WOW12_HUB,
+	[zoneIDs.VOIDSTORM] = zoneIDs.WOW12_HUB,
+	[zoneIDs.HARANDAR] = zoneIDs.WOW12_HUB,
+
 	[zoneIDs.DORN] = zoneIDs.KHAZALGAR,
 	[zoneIDs.HALLOWFALL] = zoneIDs.KHAZALGAR,
 	[zoneIDs.RINGINGDEEPS] = zoneIDs.KHAZALGAR,
@@ -812,6 +818,186 @@ WorldQuestTracker.MapData.ItemIcons = {
 	["SHADOWLANDS_ARTIFACT"] = [[Interface\AddOns\WorldQuestTracker\media\icon_mana]],
 }
 
+--The two right-most map indicators are expansion-aware.
+--The legacy artifact-power bucket is used for the expansion's primary currency,
+--while the resource bucket is used for its secondary open-world currency.
+local defaultPrimaryIcon = [[Interface\AddOns\WorldQuestTracker\media\icon_artifactpower_redT]]
+local defaultSecondaryIcon = [[Interface\AddOns\WorldQuestTracker\media\resource_iconT]]
+
+WorldQuestTracker.MapData.ExpansionCurrencies = {
+	[12] = { --Midnight
+		primary = {
+			currencyID = 3316, --Voidlight Marl
+			name = "Voidlight Marl",
+			icon = defaultPrimaryIcon,
+		},
+		secondary = {
+			currencyID = 3310, --Coffer Key Shards
+			name = "Coffer Key Shards",
+			icon = defaultSecondaryIcon,
+		},
+	},
+	[11] = { --The War Within
+		primary = {
+			currencyID = 2815, --Resonance Crystals
+			name = "Resonance Crystals",
+			icon = 2967113,
+		},
+		secondary = {
+			currencyID = 3310, --Coffer Key Shards
+			name = "Coffer Key Shards",
+			icon = defaultSecondaryIcon,
+		},
+	},
+}
+
+--Compatibility aliases. These are updated whenever the displayed map changes.
+WorldQuestTracker.MapData.PrimaryExpansionCurrency = WorldQuestTracker.MapData.ExpansionCurrencies[12].primary
+WorldQuestTracker.MapData.SecondaryExpansionCurrency = WorldQuestTracker.MapData.ExpansionCurrencies[12].secondary
+
+--A distinct reward type keeps current expansion currency rewards separate from
+--legacy Legion, BFA, and Shadowlands artifact-power reward types.
+WorldQuestTracker.PRIMARY_CURRENCY_REWARD_TYPE = 100
+
+function WorldQuestTracker.GetCurrencyDisplayInfo(currencyID, fallbackName, fallbackTexture)
+	local name = fallbackName
+	local texture = fallbackTexture
+	local currencyAPI = C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo
+
+	if (type(currencyAPI) == "function" and type(currencyID) == "number") then
+		local okay, info = pcall(currencyAPI, currencyID)
+		if (okay and type(info) == "table") then
+			if (type(info.name) == "string" and info.name ~= "") then
+				name = info.name
+			end
+
+			if ((type(info.iconFileID) == "number" and info.iconFileID > 0) or type(info.iconFileID) == "string") then
+				texture = info.iconFileID
+			end
+		end
+	end
+
+	return name, texture
+end
+
+local function resolveCurrencyInfo(currencyData)
+	if (not currencyData) then
+		return
+	end
+
+	currencyData.name, currencyData.icon = WorldQuestTracker.GetCurrencyDisplayInfo(
+		currencyData.currencyID,
+		currencyData.name,
+		currencyData.icon
+	)
+
+	return currencyData
+end
+
+function WorldQuestTracker.GetExpansionForMap(mapID)
+	mapID = mapID or (WorldMapFrame and WorldMapFrame.mapID)
+	if (not mapID) then
+		return 12
+	end
+
+	local expansionID = WorldQuestTracker.MapData.ExpMaps[mapID]
+	if (expansionID) then
+		return expansionID
+	end
+
+	local hubMapID = WorldQuestTracker.MapData.ZoneToHub[mapID]
+	if (hubMapID) then
+		return WorldQuestTracker.MapData.ExpMaps[hubMapID]
+	end
+
+	local mapTable = WorldQuestTracker.mapTables and WorldQuestTracker.mapTables[mapID]
+	if (mapTable and mapTable.show_on_map) then
+		for possibleHubID in pairs(mapTable.show_on_map) do
+			expansionID = WorldQuestTracker.MapData.ExpMaps[possibleHubID]
+			if (expansionID) then
+				return expansionID
+			end
+		end
+	end
+end
+
+function WorldQuestTracker.GetExpansionCurrencyProfile(mapID)
+	local expansionID = WorldQuestTracker.GetExpansionForMap(mapID)
+	return WorldQuestTracker.MapData.ExpansionCurrencies[expansionID], expansionID
+end
+
+local function setIndicatorTexture(indicatorTexture, texture)
+	if (indicatorTexture and texture and type(indicatorTexture.SetTexture) == "function") then
+		indicatorTexture:SetTexture(texture)
+		indicatorTexture:SetTexCoord(0, 1, 0, 1)
+	end
+end
+
+function WorldQuestTracker.RefreshExpansionCurrencyInfo(mapID)
+	local currencyProfile, expansionID = WorldQuestTracker.GetExpansionCurrencyProfile(mapID)
+	local questTypeIcons = WorldQuestTracker.MapData.QuestTypeIcons
+
+	if (not currencyProfile) then
+		WorldQuestTracker.MapData.ActiveExpansionCurrencies = nil
+		if (questTypeIcons and questTypeIcons[WQT_QUESTTYPE_RESOURCE]) then
+			questTypeIcons[WQT_QUESTTYPE_RESOURCE].name = L["S_QUESTTYPE_RESOURCE"]
+			questTypeIcons[WQT_QUESTTYPE_RESOURCE].icon = defaultSecondaryIcon
+		end
+		setIndicatorTexture(WorldQuestTracker.WorldMap_ResourceIndicatorTexture, defaultSecondaryIcon)
+		return nil, expansionID
+	end
+
+	local primaryCurrency = resolveCurrencyInfo(currencyProfile.primary)
+	local secondaryCurrency = resolveCurrencyInfo(currencyProfile.secondary)
+
+	WorldQuestTracker.MapData.ActiveExpansionCurrencies = currencyProfile
+	WorldQuestTracker.MapData.PrimaryExpansionCurrency = primaryCurrency
+	WorldQuestTracker.MapData.SecondaryExpansionCurrency = secondaryCurrency
+
+	if (questTypeIcons) then
+		if (questTypeIcons[WQT_QUESTTYPE_APOWER]) then
+			questTypeIcons[WQT_QUESTTYPE_APOWER].name = primaryCurrency.name
+			questTypeIcons[WQT_QUESTTYPE_APOWER].icon = primaryCurrency.icon
+		end
+		if (questTypeIcons[WQT_QUESTTYPE_RESOURCE]) then
+			questTypeIcons[WQT_QUESTTYPE_RESOURCE].name = secondaryCurrency.name
+			questTypeIcons[WQT_QUESTTYPE_RESOURCE].icon = secondaryCurrency.icon
+		end
+	end
+
+	--Reward widgets still use the historical texture lookup to identify resources.
+	--Register the live currency icon so Coffer Key Shards enter that bucket.
+	if (WorldQuestTracker.MapData.ResourceIcons and secondaryCurrency.icon) then
+		WorldQuestTracker.MapData.ResourceIcons[secondaryCurrency.icon] = true
+	end
+
+	setIndicatorTexture(WorldQuestTracker.WorldMap_APowerIndicatorTexture, primaryCurrency.icon)
+	setIndicatorTexture(WorldQuestTracker.WorldMap_ResourceIndicatorTexture, secondaryCurrency.icon)
+
+	return currencyProfile, expansionID
+end
+
+function WorldQuestTracker.RefreshPrimaryExpansionCurrencyInfo(mapID)
+	local currencyProfile = WorldQuestTracker.RefreshExpansionCurrencyInfo(mapID)
+	return currencyProfile and currencyProfile.primary
+end
+
+function WorldQuestTracker.IsPrimaryExpansionCurrency(currencyID, mapID)
+	if (not currencyID) then
+		return false
+	end
+	local currencyProfile = WorldQuestTracker.GetExpansionCurrencyProfile(mapID)
+	return currencyProfile and currencyID == currencyProfile.primary.currencyID or false
+end
+
+function WorldQuestTracker.IsSecondaryExpansionCurrency(currencyID, mapID)
+	if (not currencyID) then
+		return false
+	end
+	local currencyProfile = WorldQuestTracker.GetExpansionCurrencyProfile(mapID)
+	return currencyProfile and currencyID == currencyProfile.secondary.currencyID or false
+end
+
 WorldQuestTracker.MapData.ArtifactPowerSummaryIcons = {
 	["DRAGONFLIGHT_ARTIFACT"] = "",
 	["LEGION_ARTIFACT"] = [[Interface\AddOns\WorldQuestTracker\media\icon_artifact_power_legion]],
@@ -1066,6 +1252,7 @@ local WOW12Factions = { --DLC11 (midnight)
 	[2699] = true, --The Singularity
 	[2704] = true, --Hara'ti
 	[2710] = true, --Silvermoon Court
+	[2770] = true, --Slayer's Duellum
 }
 
 local WOW11Factions = { --DLC10 (tww)
@@ -1078,6 +1265,9 @@ local WOW11Factions = { --DLC10 (tww)
 }
 
 WorldQuestTracker.MapData.FactionHasWarbandReputation = {}
+for factionId in pairs (WOW12Factions) do
+	WorldQuestTracker.MapData.FactionHasWarbandReputation[factionId] = true
+end
 for factionId in pairs (WOW11Factions) do
 	WorldQuestTracker.MapData.FactionHasWarbandReputation[factionId] = true
 end
@@ -1247,10 +1437,10 @@ WorldQuestTracker.MapData.KareshDividingQuests = {
 }
 
 WorldQuestTracker.MapData.QuestTypeIcons = {
-	--[WQT_QUESTTYPE_APOWER] = {name = L["S_QUESTTYPE_ARTIFACTPOWER"], icon = [[Interface\AddOns\WorldQuestTracker\media\icon_artifactpower_red_roundT]], coords = {0, 1, 0, 1}},
-	[WQT_QUESTTYPE_APOWER] = {name = L["S_QUESTTYPE_ARTIFACTPOWER"], icon = 2967113, coords = {0, 1, 0, 1}},
+	--The legacy AP bucket is now the current expansion's primary currency bucket.
+	[WQT_QUESTTYPE_APOWER] = {name = WorldQuestTracker.MapData.PrimaryExpansionCurrency.name, icon = WorldQuestTracker.MapData.PrimaryExpansionCurrency.icon, coords = {0, 1, 0, 1}},
 	[WQT_QUESTTYPE_GOLD] = {name = L["S_QUESTTYPE_GOLD"], icon = [[Interface\GossipFrame\auctioneerGossipIcon]], coords = {0, 1, 0, 1}},
-	[WQT_QUESTTYPE_RESOURCE] = {name = L["S_QUESTTYPE_RESOURCE"], icon = [[Interface\AddOns\WorldQuestTracker\media\resource_iconT]], coords = {0, 1, 0, 1}},
+	[WQT_QUESTTYPE_RESOURCE] = {name = WorldQuestTracker.MapData.SecondaryExpansionCurrency.name, icon = WorldQuestTracker.MapData.SecondaryExpansionCurrency.icon, coords = {0, 1, 0, 1}},
 	[WQT_QUESTTYPE_EQUIPMENT] = {name = L["S_QUESTTYPE_EQUIPMENT"], icon = [[Interface\PaperDollInfoFrame\UI-EquipmentManager-Toggle]], coords = {0, 1, 0, 1}},
 	[WQT_QUESTTYPE_DUNGEON] = {name = L["S_QUESTTYPE_DUNGEON"], icon = [[Interface\TARGETINGFRAME\Nameplates]], coords = {41/256, 0/256, 29/128, 63/128}},
 	[WQT_QUESTTYPE_PROFESSION] = {name = L["S_QUESTTYPE_PROFESSION"], icon = [[Interface\MINIMAP\TRACKING\Profession]], coords = {2/32, 30/32, 2/32, 30/32}},
@@ -1260,6 +1450,8 @@ WorldQuestTracker.MapData.QuestTypeIcons = {
 	[WQT_QUESTTYPE_REPUTATION] = {name = "Reputation", icon = [[Interface\ICONS\Achievement_Reputation_01]], coords = {5/64, 59/64, 5/64, 59/64}},
 	[WQT_QUESTTYPE_RACING] = {name = "Racing", icon = [[Interface\AddOns\WorldQuestTracker\media\icon_racing_nobackground]], coords = {0, 1, 0, 1}},
 }
+
+WorldQuestTracker.RefreshExpansionCurrencyInfo()
 
 WorldQuestTracker.MapData.GeneralIcons = {
 	["CRITERIA"] = {name = "criteria", icon = [[Interface\AdventureMap\AdventureMap]], coords = {833/1024, 856/1024, 270/1024, 307/1024}}

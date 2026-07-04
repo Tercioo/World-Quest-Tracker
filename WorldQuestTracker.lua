@@ -2,12 +2,12 @@
 local addonId, wqtInternal = ...
 --new 8.1.5 C_TaskQuest.GetQuestTimeLeftSeconds
 
-hooksecurefunc (WorldQuestDataProviderMixin, "RefreshAllData", function (self, fromOnShow)
+hooksecurefunc (WorldMap_WorldQuestDataProviderMixin, "RefreshAllData", function (self, fromOnShow)
 	--is triggering each 0.5 seconds
 	--print ("WorldQuestDataProviderMixin.RefreshAllData", "fromOnShow", fromOnShow)
 end)
 
-hooksecurefunc (WorldQuestPinMixin, "RefreshVisuals", function (pin)
+hooksecurefunc (WorldMap_WorldQuestPinMixin, "RefreshVisuals", function (pin)
 	--print ("WorldQuestDataProviderMixin.RefreshVisuals", "pin id:", pin.questID)
 end)
 
@@ -34,7 +34,15 @@ local HaveQuestData = HaveQuestData
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
 local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
 local GetQuestTimeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+if (not GetQuestTimeLeftMinutes) then
+	-- Midnight 12.x fallback: convert seconds API to minutes
+	local _getSecondsLeft = C_TaskQuest.GetQuestTimeLeftSeconds
+	GetQuestTimeLeftMinutes = _getSecondsLeft and function(questID)
+		local s = _getSecondsLeft(questID)
+		return s and (s / 60)
+	end
+end
+local GetQuestsOnMap = C_TaskQuest.GetQuestsOnMap
 
 local _
 
@@ -241,6 +249,8 @@ function WorldQuestTracker:OnInit()
 	WorldQuestTracker.CreateLoadingIcon()
 
 	C_Timer.After (.5, WorldQuestTracker.InitializeWorldWidgets)
+	C_Timer.After(1, WorldQuestTracker.RefreshGameFonts)
+	C_Timer.After(10, WorldQuestTracker.RefreshGameFonts)
 
 	WQTrackerDBChr = WQTrackerDBChr or {}
 	WorldQuestTracker.dbChr = WQTrackerDBChr
@@ -341,7 +351,7 @@ function WorldQuestTracker:OnInit()
 				--> is search for invasions enabled?
 				if (WorldQuestTracker.db.profile.groupfinder.invasion_points) then
 					--> can queue?
-					if (not IsInGroup() and not QueueStatusMinimapButton:IsShown()) then
+					if (not IsInGroup() and not C_LFGList.HasActiveEntryInfo()) then
 						local callback = nil
 						local ENNameFromMapFileName = mapFileName:gsub ("InvasionPoint", "")
 						if (ENNameFromMapFileName and WorldQuestTracker.db.profile.rarescan.always_use_english) then
@@ -564,7 +574,7 @@ function WorldQuestTracker:OnInit()
 
 					--professions
 					if (tradeskillLineIndex) then
-						local tradeskillLineID = tradeskillLineIndex and select (7, GetProfessionInfo(tradeskillLineIndex))
+						local tradeskillLineID = tradeskillLineIndex
 						if (tradeskillLineID) then
 							if (itemID) then
 								--print ("eh profissao 3", itemID)
@@ -620,7 +630,7 @@ function WorldQuestTracker:OnInit()
 
 					if (tradeskillLineIndex) then
 						--print ("eh profissao today 4", tradeskillLineIndex)
-						local tradeskillLineID = tradeskillLineIndex and select (7, GetProfessionInfo (tradeskillLineIndex))
+						local tradeskillLineID = tradeskillLineIndex
 						if (tradeskillLineID) then
 							--print ("eh profissao today 5", tradeskillLineID)
 							if (itemID) then
@@ -1090,7 +1100,7 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 			WorldQuestTracker:Msg("Character level too low for shadowlands, minimum is 51 for alts.")
 		end
 
-		local bastionQuests = GetQuestsForPlayerByMapID(1533, 1533)
+		local bastionQuests = GetQuestsOnMap(1533)
 		WorldQuestTracker:Msg("Finding quests on Bastion Map")
 		if (bastionQuests and type(bastionQuests) == "table") then
 			WorldQuestTracker:Msg("Found quests, amount:", #bastionQuests)
@@ -1221,9 +1231,6 @@ function SlashCmdList.WQTRACKER (msg, editbox)
 
 	else
 		WorldQuestTracker.curseforgeVersion = C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata("WorldQuestTracker", "Version")
-		if (not WorldQuestTracker.curseforgeVersion and GetAddOnMetadata) then
-			WorldQuestTracker.curseforgeVersion = GetAddOnMetadata("WorldQuestTracker", "Version")
-		end
 
 		pcall(function() WorldQuestTracker.version_alpha_id = tonumber(WorldQuestTracker.curseforgeVersion:match("%-(%d+)%-")) end)
 
@@ -1314,7 +1321,7 @@ talkingHeadSuppressFrame:RegisterEvent("TALKINGHEAD_REQUESTED")
 talkingHeadSuppressFrame:SetScript("OnEvent", function (self, event, arg1)
 	if (event == "TALKINGHEAD_REQUESTED") then
 		--get where the player is
-		local _, zoneType = GetInstanceInfo()
+		local _, zoneType = GetInstanceInfo() or "none"
 
 		--check if the zone type is enbaled under the options panel
 		if (zoneType == "none") then

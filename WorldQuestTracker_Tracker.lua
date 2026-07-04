@@ -371,6 +371,210 @@ local TrackerWidgetPool = {}
 WorldQuestTracker.TrackerHeight = 0
 
 
+--Kaliel's Tracker can load before or after WQT depending on addon-manager load order.
+--Keep frame discovery and hooks idempotent so attaching does not depend on a single timer.
+local kalielHookedObjects = setmetatable({}, {__mode = "k"})
+local kalielRefreshQueued = false
+
+local function QueueKalielAnchorRefresh()
+	if (kalielRefreshQueued) then
+		return
+	end
+
+	kalielRefreshQueued = true
+	C_Timer.After(0, function()
+		kalielRefreshQueued = false
+		if (WorldQuestTracker.db and WorldQuestTracker.db.profile and WorldQuestTracker.db.profile.tracker_attach_to_kaliel) then
+			WorldQuestTracker.RefreshTrackerAnchor()
+		end
+	end)
+end
+
+local function IsUsableKalielFrame(frame)
+	return frame and type(frame.GetBottom) == "function"
+end
+
+local function IsVisibleKalielRegion(region)
+	if (not IsUsableKalielFrame(region) or not region:GetBottom()) then
+		return false
+	end
+
+	if (type(region.IsVisible) == "function") then
+		return region:IsVisible()
+	elseif (type(region.IsShown) == "function") then
+		return region:IsShown()
+	end
+
+	return true
+end
+
+local function GetKalielModuleFrames()
+	return {
+		_G.KT_ScenarioObjectiveTracker,
+		_G.KT_UIWidgetObjectiveTracker,
+		_G.KT_CampaignQuestObjectiveTracker,
+		_G.KT_QuestObjectiveTracker,
+		_G.KT_AdventureObjectiveTracker,
+		_G.KT_AchievementObjectiveTracker,
+		_G.KT_MonthlyActivitiesObjectiveTracker,
+		_G.KT_ProfessionsRecipeTracker,
+		_G.KT_BonusObjectiveTracker,
+		_G.KT_WorldQuestObjectiveTracker,
+	}
+end
+
+--Kaliel's outer named frames are header/scroll containers, not the bottom of
+--the currently visible objective content. The live endpoint is often stored on
+--a quest block below ContentsFrame (for example ContentsFrame.<block>.lastRegion),
+--so scan the visible block tree instead of assuming ContentsFrame.lastRegion.
+local function GetKalielLowestContentRegion(scrollChild)
+	local lowestRegion
+	local lowestBottom
+	local scannedFrames = setmetatable({}, {__mode = "k"})
+
+	local function consider(region)
+		if (not IsVisibleKalielRegion(region)) then
+			return
+		end
+
+		local bottom = region:GetBottom()
+		if (bottom and (not lowestBottom or bottom < lowestBottom)) then
+			lowestRegion = region
+			lowestBottom = bottom
+		end
+	end
+
+	local function scanFrame(frame, depth)
+		if (not frame or scannedFrames[frame] or depth > 5) then
+			return
+		end
+		scannedFrames[frame] = true
+
+		consider(frame.lastRegion or frame.LastRegion)
+
+		if (type(frame.GetChildren) == "function") then
+			local children = {frame:GetChildren()}
+			for _, child in ipairs(children) do
+				scanFrame(child, depth + 1)
+			end
+		end
+	end
+
+	for _, moduleFrame in pairs(GetKalielModuleFrames()) do
+		if (moduleFrame) then
+			local contentsFrame = moduleFrame.ContentsFrame or moduleFrame.Contents or moduleFrame.contentsFrame
+			scanFrame(contentsFrame, 1)
+			scanFrame(moduleFrame, 1)
+		end
+	end
+
+	--Some Kaliel versions parent the generated objective blocks directly to the
+	--scroll child instead of exposing them through a module field.
+	scanFrame(scrollChild, 1)
+
+	return lowestRegion
+end
+
+local function GetKalielTrackerFrames()
+	local trackerFrame = _G["!KalielsTrackerFrame"] or _G.KalielsTrackerFrame
+	if (not trackerFrame) then
+		return
+	end
+
+	local kalielObjectiveFrame = _G.KT_QuestObjectiveTrackerFrame
+		or _G.KT_ObjectiveTrackerFrame
+		or trackerFrame.ObjectiveTrackerFrame
+		or trackerFrame.TrackerFrame
+
+	local kalielBlocksFrame = _G.KT_ObjectiveTrackerBlocksFrame
+		or (kalielObjectiveFrame and kalielObjectiveFrame.BlocksFrame)
+		or trackerFrame.BlocksFrame
+
+	local kalielScrollChild = _G["!KalielsTrackerScrollChild"]
+		or _G.KalielsTrackerScrollChild
+		or trackerFrame.ScrollChild
+		or (trackerFrame.ScrollFrame and trackerFrame.ScrollFrame.ScrollChild)
+
+	local lowestContentRegion = GetKalielLowestContentRegion(kalielScrollChild)
+	local positionFrame
+	if (lowestContentRegion) then
+		positionFrame = lowestContentRegion
+	elseif (IsVisibleKalielRegion(kalielScrollChild)) then
+		positionFrame = kalielScrollChild
+	elseif (IsVisibleKalielRegion(kalielBlocksFrame)) then
+		positionFrame = kalielBlocksFrame
+	elseif (IsVisibleKalielRegion(kalielObjectiveFrame)) then
+		positionFrame = kalielObjectiveFrame
+	else
+		positionFrame = trackerFrame.Content or trackerFrame.ScrollFrame or trackerFrame
+	end
+
+	--Use the visible tracker background for width and left-edge alignment. The
+	--content lastRegion often starts at the text indent instead of the artwork edge.
+	local widthFrame = trackerFrame.Background or _G["!KalielsTrackerBackground"]
+	if (not widthFrame or type(widthFrame.GetWidth) ~= "function") then
+		widthFrame = kalielScrollChild or kalielObjectiveFrame or trackerFrame
+	end
+
+	return trackerFrame, positionFrame, widthFrame, kalielObjectiveFrame, kalielBlocksFrame, kalielScrollChild
+end
+
+local function InstallKalielTrackerHooks()
+	local trackerFrame, positionFrame, widthFrame, kalielObjectiveFrame, kalielBlocksFrame, kalielScrollChild = GetKalielTrackerFrames()
+	if (not trackerFrame) then
+		return false
+	end
+
+	local function hookObject(object)
+		if (object and type(object.HookScript) == "function" and not kalielHookedObjects[object]) then
+			kalielHookedObjects[object] = true
+			object:HookScript("OnSizeChanged", QueueKalielAnchorRefresh)
+			object:HookScript("OnShow", QueueKalielAnchorRefresh)
+			object:HookScript("OnHide", QueueKalielAnchorRefresh)
+		end
+	end
+
+	hookObject(trackerFrame)
+	hookObject(positionFrame)
+	hookObject(widthFrame)
+	hookObject(kalielObjectiveFrame)
+	hookObject(kalielBlocksFrame)
+	hookObject(kalielScrollChild)
+
+	--Kaliel updates its KT_ module frames independently of Blizzard's tracker.
+	--Hook both the current Kaliel names and the Blizzard names as fallbacks so
+	--WQT follows scenario/quest/world-quest expansion immediately.
+	local hookedContentFrames = setmetatable({}, {__mode = "k"})
+	local function hookContentTree(frame, depth)
+		if (not frame or hookedContentFrames[frame] or depth > 5) then
+			return
+		end
+		hookedContentFrames[frame] = true
+		hookObject(frame)
+		hookObject(frame.lastRegion or frame.LastRegion)
+
+		if (type(frame.GetChildren) == "function") then
+			local children = {frame:GetChildren()}
+			for _, child in ipairs(children) do
+				hookContentTree(child, depth + 1)
+			end
+		end
+	end
+
+	for _, moduleFrame in pairs(GetKalielModuleFrames()) do
+		hookObject(moduleFrame)
+		if (moduleFrame) then
+			local contentsFrame = moduleFrame.ContentsFrame or moduleFrame.Contents or moduleFrame.contentsFrame
+			hookObject(moduleFrame.Header)
+			hookObject(moduleFrame.BlocksFrame)
+			hookContentTree(contentsFrame, 1)
+		end
+	end
+	hookContentTree(kalielScrollChild, 1)
+
+	return true
+end
+
 --refresh the tracker positioning
 function WorldQuestTracker.RefreshTrackerAnchor()
 	--if not using the tracker, hide it and return
@@ -378,6 +582,88 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 		WorldQuestTrackerScreenPanel:Hide()
 		return
 	end
+
+	--anchor to the bottom of Kaliel's Tracker frame if enabled and the addon is loaded
+	if (WorldQuestTracker.db.profile.tracker_attach_to_kaliel) then
+		InstallKalielTrackerHooks()
+		local kalielFrame, kalielPositionFrame, kalielWidthFrame = GetKalielTrackerFrames()
+
+		if (kalielFrame and kalielPositionFrame and kalielWidthFrame) then
+			WorldQuestTrackerScreenPanel:EnableMouse(false)
+			WorldQuestTrackerScreenPanel:SetMovable(false)
+
+			if (not WorldQuestTracker.KalielAnchorActive) then
+				WorldQuestTracker.KalielPreviousWidth = WorldQuestTrackerScreenPanel:GetWidth()
+			end
+			WorldQuestTracker.KalielAnchorActive = true
+
+			--Anchor below the lowest visible KT module lastRegion. The named Kaliel's
+			--tracker frames are header/scroll containers and do not represent the bottom
+			--of the current scenario, quest, or world-quest content.
+			local horizontalOffset = 0
+			local trackerLeft = type(kalielPositionFrame.GetLeft) == "function" and kalielPositionFrame:GetLeft()
+			local widthLeft = type(kalielWidthFrame.GetLeft) == "function" and kalielWidthFrame:GetLeft()
+			if (trackerLeft and widthLeft) then
+				horizontalOffset = widthLeft - trackerLeft
+			end
+
+			WorldQuestTrackerScreenPanel:ClearAllPoints()
+			WorldQuestTrackerScreenPanel:SetPoint("TOPLEFT", kalielPositionFrame, "BOTTOMLEFT", horizontalOffset, -6)
+
+			local ktWidth = kalielWidthFrame:GetWidth()
+			if (ktWidth and ktWidth > 1) then
+				WorldQuestTrackerScreenPanel:SetWidth(ktWidth)
+			end
+
+			--Keep WQT text on Blizzard font objects. The tracker widgets are created with
+			--GameFontNormal, so attaching to Kaliel must not replace them with a media path.
+			local _, gameFontSize = GameFontNormal:GetFont()
+			local ktFontSize = tonumber(gameFontSize) or 12
+
+			--Indent WQT quest rows to the same content column used by Kaliel.
+			local indentReference = _G.KT_QuestObjectiveTracker and _G.KT_QuestObjectiveTracker.ContentsFrame or kalielPositionFrame
+			local objectiveLeft = indentReference and type(indentReference.GetLeft) == "function" and indentReference:GetLeft()
+			local panelLeft = WorldQuestTrackerScreenPanel:GetLeft()
+			local contentOffset = (objectiveLeft and panelLeft) and math.floor(objectiveLeft - panelLeft + 0.5) or 40
+			local ktIconX = contentOffset + math.floor(ktFontSize * -0.4 + 0.5)
+			local ktTextX = ktIconX + 18
+			WorldQuestTracker.KalielIndent = {textX = ktTextX, iconX = ktIconX}
+
+			for _, widget in pairs(TrackerWidgetPool) do
+				if (widget.Title and widget.Zone and widget.Icon and widget.Circle) then
+					widget.Title:ClearAllPoints()
+					widget.Title:SetPoint("TOPLEFT", widget, "TOPLEFT", ktTextX, -1)
+					widget.Zone:ClearAllPoints()
+					widget.Zone:SetPoint("TOPLEFT", widget, "TOPLEFT", ktTextX, -17)
+					widget.Icon:ClearAllPoints()
+					widget.Icon:SetPoint("TOPLEFT", widget, "TOPLEFT", ktIconX, -2)
+					widget.Circle:ClearAllPoints()
+					widget.Circle:SetPoint("TOPLEFT", widget, "TOPLEFT", ktIconX - 3, -2)
+				end
+			end
+
+			WorldQuestTrackerHeader:ClearAllPoints()
+			WorldQuestTrackerHeader:SetPoint("TOP", WorldQuestTrackerScreenPanel, "TOP", 0, 0)
+			WorldQuestTrackerFrame_QuestHolder.LockButton:Hide()
+			WorldQuestTrackerFrame_QuestHolder.MoveMeLabel:Hide()
+			WorldQuestTrackerFrame_QuestHolder:SetBackdrop(nil)
+			WorldQuestTrackerScreenPanel:Show()
+			return
+		end
+		--Kaliel is not ready yet. Normal positioning remains active until ADDON_LOADED/OnShow retries the anchor.
+	end
+
+	--Reset Kaliel-specific state when not using its anchor.
+	WorldQuestTracker.KalielIndent = nil
+	if (WorldQuestTracker.KalielAnchorActive) then
+		WorldQuestTracker.KalielAnchorActive = nil
+		local previousWidth = WorldQuestTracker.KalielPreviousWidth
+		WorldQuestTracker.KalielPreviousWidth = nil
+		if (previousWidth and previousWidth > 1) then
+			WorldQuestTrackerScreenPanel:SetWidth(previousWidth)
+		end
+	end
+	WorldQuestTrackerScreenPanel:SetMovable(true)
 
 	--automatic calculate the tracker position based on the objective tracker
 	--when attached to the objective tracker, it'll ignore the locked setting
@@ -595,7 +881,7 @@ local buildTooltip = function(self)
 	end
 
 	--time left
-	local timeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes (questID)
+	local timeLeftMinutes = (C_TaskQuest.GetQuestTimeLeftMinutes or function(qid) local s = C_TaskQuest.GetQuestTimeLeftSeconds and C_TaskQuest.GetQuestTimeLeftSeconds(qid); return s and (s/60) end)(questID)
 	if (timeLeftMinutes) then
 		local color = NORMAL_FONT_COLOR
 		local timeString
@@ -646,7 +932,11 @@ local buildTooltip = function(self)
 		-- money
 		local money = GetQuestLogRewardMoney(questID);
 		if ( safeGT0(money) ) then
-			pcall(SetTooltipMoney, GameTooltip, money, nil);
+			if (type(GameTooltip_AddMoneyLine) == "function") then
+				GameTooltip_AddMoneyLine(GameTooltip, money)
+			elseif (type(GetCoinTextureString) == "function") then
+				GameTooltip:AddLine(GetCoinTextureString(money))
+			end
 			hasAnySingleLineRewards = true;
 		end
 		local artifactXP = GetQuestLogRewardArtifactXP(questID);
@@ -791,17 +1081,20 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.worldQuest = true
 
 	f.Title = DF:CreateLabel (f)
+	WorldQuestTracker.ApplyGameFont(f.Title)
 	f.Title.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
-	--f.Title = f:CreateFontString (nil, "overlay", "ObjectiveFont")
+	--f.Title = f:CreateFontString (nil, "overlay", "GameFontNormal")
 	f.Title:SetPoint("topleft", f, "topleft", 10, -1)
 	local titleColor = OBJECTIVE_TRACKER_COLOR["Header"]
 	f.Title:SetTextColor (titleColor.r, titleColor.g, titleColor.b)
 	f.Zone = DF:CreateLabel (f)
+	WorldQuestTracker.ApplyGameFont(f.Zone)
 	f.Zone.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
-	--f.Zone = f:CreateFontString (nil, "overlay", "ObjectiveFont")
+	--f.Zone = f:CreateFontString (nil, "overlay", "GameFontNormal")
 	f.Zone:SetPoint("topleft", f, "topleft", 10, -17)
 
 	f.QuestInfomation = DF:CreateLabel (f)
+	WorldQuestTracker.ApplyGameFont(f.QuestInfomation)
 	f.QuestInfomation:SetPoint("topright", f, "topleft", -10, 50)
 
 	f.YardsDistance = f:CreateFontString (nil, "overlay", "GameFontNormal")
@@ -842,7 +1135,7 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.Circle:SetDesaturated (true)
 	f.Circle:SetAlpha(.7)
 
-	f.RewardAmount = f:CreateFontString (nil, "overlay", "ObjectiveFont")
+	f.RewardAmount = f:CreateFontString (nil, "overlay", "GameFontNormal")
 	f.RewardAmount:SetTextColor (titleColor.r, titleColor.g, titleColor.b)
 	f.RewardAmount:SetPoint("top", f.Circle, "bottom", 1, 3)
 	DF:SetFontSize (f.RewardAmount, 10)
@@ -1220,6 +1513,24 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				local widget = WorldQuestTracker.GetOrCreateTrackerWidget(nextWidget)
 				widget:ClearAllPoints()
 				widget:SetPoint("topleft", WorldQuestTrackerFrame_ScreenPanel, "topleft", 0, y-10)
+
+				-- Apply Kaliel indent to title/zone/icon if anchored to KT, else restore defaults
+				local ktIndent = WorldQuestTracker.KalielIndent
+				widget.Title:ClearAllPoints()
+				widget.Zone:ClearAllPoints()
+				widget.Icon:ClearAllPoints()
+				widget.Circle:ClearAllPoints()
+				if ktIndent then
+					widget.Title:SetPoint("topleft", widget, "topleft", ktIndent.textX, -1)
+					widget.Zone:SetPoint("topleft", widget, "topleft", ktIndent.textX, -17)
+					widget.Icon:SetPoint("topleft", widget, "topleft", ktIndent.iconX, -2)
+					widget.Circle:SetPoint("topleft", widget, "topleft", ktIndent.iconX - 3, -2)
+				else
+					widget.Title:SetPoint("topleft", widget, "topleft", 10, -1)
+					widget.Zone:SetPoint("topleft", widget, "topleft", 10, -17)
+					widget.Icon:SetPoint("topleft", widget, "topleft", -13, -2)
+					widget.Circle:SetPoint("topleft", widget, "topleft", -16, 0)
+				end
 				widget.questID = quest.questID
 				widget.questMapID = quest.mapID
 				widget.info = quest
@@ -1397,17 +1708,19 @@ end
 local TrackerAnimation_OnAccept = CreateFrame ("frame", nil, UIParent, "BackdropTemplate")
 TrackerAnimation_OnAccept:SetSize(235, 30)
 TrackerAnimation_OnAccept.Title = DF:CreateLabel (TrackerAnimation_OnAccept)
+WorldQuestTracker.ApplyGameFont(TrackerAnimation_OnAccept.Title)
 TrackerAnimation_OnAccept.Title.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
 TrackerAnimation_OnAccept.Title:SetPoint("topleft", TrackerAnimation_OnAccept, "topleft", 10, -1)
 local titleColor = OBJECTIVE_TRACKER_COLOR["Header"]
 TrackerAnimation_OnAccept.Title:SetTextColor (titleColor.r, titleColor.g, titleColor.b)
 TrackerAnimation_OnAccept.Zone = DF:CreateLabel (TrackerAnimation_OnAccept)
+WorldQuestTracker.ApplyGameFont(TrackerAnimation_OnAccept.Zone)
 TrackerAnimation_OnAccept.Zone.textsize = TRACKER_TITLE_TEXT_SIZE_INMAP
 TrackerAnimation_OnAccept.Zone:SetPoint("topleft", TrackerAnimation_OnAccept, "topleft", 10, -17)
 TrackerAnimation_OnAccept.Icon = TrackerAnimation_OnAccept:CreateTexture(nil, "artwork")
 TrackerAnimation_OnAccept.Icon:SetPoint("topleft", TrackerAnimation_OnAccept, "topleft", -13, -2)
 TrackerAnimation_OnAccept.Icon:SetSize(16, 16)
-TrackerAnimation_OnAccept.RewardAmount = TrackerAnimation_OnAccept:CreateFontString (nil, "overlay", "ObjectiveFont")
+TrackerAnimation_OnAccept.RewardAmount = TrackerAnimation_OnAccept:CreateFontString (nil, "overlay", "GameFontNormal")
 TrackerAnimation_OnAccept.RewardAmount:SetTextColor (titleColor.r, titleColor.g, titleColor.b)
 TrackerAnimation_OnAccept.RewardAmount:SetPoint("top", TrackerAnimation_OnAccept.Icon, "bottom", 0, -2)
 DF:SetFontSize (TrackerAnimation_OnAccept.RewardAmount, 10)
@@ -1724,7 +2037,27 @@ function WorldQuestTracker:FullTrackerUpdate()
 	On_ObjectiveTracker_Update()
 end
 
+--Install immediately when Kaliel loaded first, and retry when addons or the world finish loading.
+local kalielLoadFrame = CreateFrame("Frame")
+kalielLoadFrame:RegisterEvent("ADDON_LOADED")
+kalielLoadFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+kalielLoadFrame:SetScript("OnEvent", function(_, event, addonName)
+	if (event == "ADDON_LOADED") then
+		if (addonName ~= "KalielsTracker" and addonName ~= "!KalielsTracker" and not _G["!KalielsTrackerFrame"] and not _G.KalielsTrackerFrame) then
+			return
+		end
+	end
 
+	C_Timer.After(0, function()
+		if (InstallKalielTrackerHooks()) then
+			QueueKalielAnchorRefresh()
+		end
+	end)
+end)
 
-
-
+C_Timer.After(0, InstallKalielTrackerHooks)
+C_Timer.After(1, function()
+	if (InstallKalielTrackerHooks()) then
+		QueueKalielAnchorRefresh()
+	end
+end)

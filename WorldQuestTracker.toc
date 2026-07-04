@@ -1,26 +1,15 @@
 ## Interface: 120007
-## Interface-Wrath: 30402
 
 ## Title: World Quest Tracker
 ## Notes: An addon by Terciob. Make more easy to see world quests
 ## SavedVariables: WQTrackerDB, WQTrackerLanguage
 ## SavedVariablesPerCharacter: WQTrackerDBChr
+## OptionalDeps: KalielsTracker, !KalielsTracker
 
 ## X-Curse-Project-ID: 100610
 ## X-Wago-ID: lQNlrEKe
 
-#@version-retail@
-## Version: @project-version@-Retail
-#@end-version-retail@
-#@version-bcc@
-## Version: @project-version@-BCC
-#@end-version-bcc@
-#@version-wrath@
-## Version: @project-version@-Wrath
-#@end-version-wrath@
-#@version-classic@
-## Version: @project-version@-Classic
-#@end-version-classic@
+## Version: v12.0.7.556-Custom-MultiClient
 
 
 #@no-lib-strip@

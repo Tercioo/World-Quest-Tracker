@@ -20,7 +20,7 @@ local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
 local L = DF.Language.GetLanguageTable(addonId)
 
 local _
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+local GetQuestsOnMap = C_TaskQuest.GetQuestsOnMap
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
 local GetNumQuestLogRewardCurrencies = WorldQuestTrackerAddon.GetNumQuestLogRewardCurrencies
 local GetQuestLogRewardInfo = GetQuestLogRewardInfo
@@ -222,6 +222,57 @@ function WorldQuestTracker.GetCurrentZoneType()
 	end
 end
 
+function WorldQuestTracker.GetMapHierarchyLevel(mapID)
+	mapID = mapID or (WorldMapFrame and WorldMapFrame.mapID) or WorldQuestTracker.GetCurrentMapAreaID()
+	if (not mapID) then
+		return "world"
+	end
+
+	if (WorldQuestTracker.ZoneHaveWorldQuest(mapID)) then
+		return "zone"
+	end
+
+	local mapInfo = C_Map.GetMapInfo(mapID)
+	local mapType = mapInfo and mapInfo.mapType
+	local uiMapType = Enum and Enum.UIMapType
+
+	if (uiMapType and mapType == uiMapType.Continent) then
+		return "continent"
+	elseif (uiMapType and (mapType == uiMapType.Zone or mapType == uiMapType.Dungeon or mapType == uiMapType.Micro)) then
+		return "zone"
+	end
+
+	return "world"
+end
+
+function WorldQuestTracker.GetWorldMapVisualSettings(mapID)
+	local hierarchy = WorldQuestTracker.GetMapHierarchyLevel(mapID)
+	local iconSize = WorldQuestTracker.Constants.QuestIconSize or 24
+	local rewardTextureSize = WorldQuestTracker.Constants.QuestRewardTextureSize or 17
+
+	if (hierarchy == "continent") then
+		return {
+			hierarchy = hierarchy,
+			locationIconSize = iconSize,
+			summaryIconSize = iconSize,
+			summaryColumnStep = iconSize + 1,
+			summaryRowStep = iconSize + 1,
+			rewardTextureSize = rewardTextureSize,
+			fontSize = 10,
+		}
+	end
+
+	return {
+		hierarchy = "world",
+		locationIconSize = iconSize,
+		summaryIconSize = iconSize,
+		summaryColumnStep = iconSize + 1,
+		summaryRowStep = 40, --extra clearance for the reward label beneath world-summary icons
+		rewardTextureSize = rewardTextureSize,
+		fontSize = 10,
+	}
+end
+
 function WorldQuestTracker.GetMapInfo (uiMapId)
 	if (not uiMapId) then
 		uiMapId = C_Map.GetBestMapForUnit ("player")
@@ -267,7 +318,7 @@ end
 function WorldQuestTracker.GetAllWorldQuests_Ids()
 	local allQuests, dataUnavaliable = {}, false
 	for mapId, configTable in pairs (WorldQuestTracker.mapTables) do
-		local taskInfo = GetQuestsForPlayerByMapID (mapId)
+		local taskInfo = GetQuestsOnMap(mapId)
 		if (taskInfo and #taskInfo > 0) then
 			for i, info  in ipairs (taskInfo) do
 				local questID = info.questID
@@ -305,7 +356,7 @@ end
 function WorldQuestTracker.GetConduitQuestData(questID)
 	local data = WorldQuestTracker.CachedConduitData[questID]
 	if (data) then
-		return unpack(data)
+		return data.conduitType, data.borderTexture, data.borderColor, data.itemLink
 	end
 end
 
@@ -372,36 +423,36 @@ function WorldQuestTracker.GetOrLoadQuestData(questID, canCache, dontCatchAP) --
 end
 
 function WorldQuestTracker.GetCurrentStandingMapAreaID()
-	if (C_Map) then
-		local mapId = C_Map.GetBestMapForUnit ("player")
-		if (mapId) then
-			return mapId
-		else
-			return 0
-		end
-	else
-		return GetCurrentMapAreaID()
+	local getBestMapForUnit = C_Map and C_Map.GetBestMapForUnit
+	if (type(getBestMapForUnit) == "function") then
+		return getBestMapForUnit("player") or 0
 	end
+
+	return 0
 end
 
 --return the current map the map is showing
 function WorldQuestTracker.GetCurrentMapAreaID()
-	local mapID = WorldMapFrame.mapID
+	local mapID
+
+	if (WorldMapFrame) then
+		if (type(WorldMapFrame.GetMapID) == "function") then
+			mapID = WorldMapFrame:GetMapID()
+		end
+
+		mapID = mapID or WorldMapFrame.mapID
+	end
 
 	if (mapID) then
 		return mapID
-	else
-		if (C_Map) then
-			local mapId = C_Map.GetBestMapForUnit ("player")
-			if (mapId) then
-				return mapId
-			else
-				return 0
-			end
-		else
-			return GetCurrentMapAreaID()
-		end
 	end
+
+	local getBestMapForUnit = C_Map and C_Map.GetBestMapForUnit
+	if (type(getBestMapForUnit) == "function") then
+		return getBestMapForUnit("player") or 0
+	end
+
+	return 0
 end
 
 ---@param mapID number
@@ -424,7 +475,7 @@ end
 
 function WorldQuestTracker.PreloadWorldQuestsForMap(mapID)
 	if (WorldQuestTracker.DoesMapHasWorldQuests(mapID)) then
-		local taskInfo = GetQuestsForPlayerByMapID(mapID)
+		local taskInfo = GetQuestsOnMap(mapID)
 		if (taskInfo and #taskInfo > 0) then
 			for i, info in ipairs(taskInfo) do
 				local questID = info.questID
@@ -561,96 +612,95 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 
 	--resource amount
 	function WorldQuestTracker.GetQuestReward_Resource(questID)
-		--local a = C_QuestLog.GetQuestRewardCurrencies(questID) --returning an empty table
-		--print(type(a))
-		--if (next(a)) then
-		--	dumpt(a)
-		--end
-
-		--local r = C_QuestInfoSystem.GetQuestRewardCurrencies(questID) --?
-		--dumpt(r)
-
-		--local p = C_QuestLog.GetQuestRewardCurrencies(questID)
-		--dumpt(p)
-
-		--C_Timer.After(3, function()
-		--	local p = C_QuestLog.GetQuestRewardCurrencies(questID) --got data after waiting
-		--	dumpt(p)
-		--end)
-
-		--dumpt(C_QuestLog.GetQuestRewardCurrencyInfo(questID))
-		--GetNumQuestRewards
-		--print(numQuestCurrencies, C_QuestLog.GetTitleForQuestID(questID))
-
 		---@type number
 		local numQuestCurrencies = safeNumber(GetNumQuestLogRewardCurrencies(questID), 0)
+		local primaryCurrencyReward
+		local currentMapID = WorldQuestTracker.UpdatingForMap or WorldQuestTracker.GetCurrentMapAreaID()
 
-		if (numQuestCurrencies == 2) then
-			for currencyIndex = 1, numQuestCurrencies do
-				--name, texture, baseRewardAmount, currencyID, bonusRewardAmount
-				local name, texture, numItems, currencyId, bonusAmount = WorldQuestTracker.GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
-				if (isSecretValue(texture)) then
-					texture = nil
+		for currencyIndex = 1, numQuestCurrencies do
+			--name, texture, totalRewardAmount, currencyID, bonusRewardAmount
+			local name, texture, numItems, currencyId, bonusAmount = WorldQuestTracker.GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
+			if (isSecretValue(texture)) then
+				texture = nil
+			end
+
+			if (not isSecretValue(currencyId)) then
+				name, texture = WorldQuestTracker.GetCurrencyDisplayInfo(currencyId, name, texture)
+			end
+
+			if (not isSecretValue(currencyId) and WorldQuestTracker.IsSecondaryExpansionCurrency(currencyId, currentMapID)) then
+				--The active expansion's secondary currency belongs in the Resources bucket.
+				if (texture) then
+					WorldQuestTracker.MapData.ResourceIcons[texture] = true
 				end
+				return name, texture, numItems, currencyId, bonusAmount
 
-				--legion invasion quest
-				if (texture and
-						(
-							(type (texture) == "number" and texture == 132775) or
-							(type (texture) == "string" and (texture:find ("inv_datacrystal01") or texture:find ("inv_misc_summonable_boss_token")))
-						)
-					) then -- [[Interface\Icons\inv_datacrystal01]]
+			elseif (not isSecretValue(currencyId) and WorldQuestTracker.IsPrimaryExpansionCurrency(currencyId, currentMapID)) then
+				--The primary currency is frequently included as a small completion reward.
+				--Hold it as a fallback so the actual secondary reward is not hidden.
+				primaryCurrencyReward = {name, texture, numItems, currencyId, bonusAmount}
+			else
+				local isLegionInvasionFixedReward = texture and
+					(
+						(type(texture) == "number" and texture == 132775) or
+						(type(texture) == "string" and (texture:find("inv_datacrystal01") or texture:find("inv_misc_summonable_boss_token")))
+					)
+				local isIgnoredFixedReward = texture and WorldQuestTracker.MapData.IgnoredRewardTexures[texture]
 
-					--BFA invasion quest (this check will force it to get the second reward
-				elseif (texture and not WorldQuestTracker.MapData.IgnoredRewardTexures[texture]) then
+				if (name and not isLegionInvasionFixedReward and not isIgnoredFixedReward) then
 					return name, texture, numItems, currencyId, bonusAmount
 				end
 			end
-		else
-			for currencyIndex = 1, numQuestCurrencies do
-				local name, texture, numItems, currencyId, bonusAmount = WorldQuestTracker.GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
-				if (name) then
-					return name, texture, numItems, currencyId, bonusAmount
-				end
-			end
+		end
+
+		if (primaryCurrencyReward) then
+			return unpack(primaryCurrencyReward)
 		end
 	end
 
 	function WorldQuestTracker.GetQuestRewardConduit(questID, itemID)
-		if (C_Soulbinds.IsItemConduitByItemInfo(itemID)) then
-			local conduitType, borderColor
-
-			for i = 1, 4 do
-				local textString = _G ["WQTItemTooltipScanTooltipTextLeft" .. i]
-				local text = safeTooltipText(textString)
-				if (text and text ~= "") then
-
-					--shadowlands
-					if (text == CONDUIT_TYPE_POTENCY) then
-						conduitType = CONDUIT_TYPE_POTENCY
-
-					elseif (text == CONDUIT_TYPE_FINESSE) then
-						conduitType = CONDUIT_TYPE_FINESSE
-
-					elseif (text == CONDUIT_TYPE_ENDURANCE) then
-						conduitType = CONDUIT_TYPE_ENDURANCE
-					end
-
-					if (conduitType) then
-						break
-					end
-				end
-			end
-
-			if (conduitType) then
-				if (not borderColor) then
-					borderColor = {.9, .9, .9, 1}
-				end
-				WorldQuestTracker.CachedConduitData[questID] = {conduitType, borderTexture, borderColor, itemLink}
-			end
-
-			return conduitType, borderColor
+		local isItemConduitByItemInfo = C_Soulbinds and C_Soulbinds.IsItemConduitByItemInfo
+		if (type(isItemConduitByItemInfo) ~= "function" or not itemID) then
+			return
 		end
+
+		local okay, isConduit = pcall(isItemConduitByItemInfo, itemID)
+		if (not okay or not isConduit) then
+			return
+		end
+
+		local conduitType, borderColor
+
+		for i = 1, 4 do
+			local textString = _G ["WQTItemTooltipScanTooltipTextLeft" .. i]
+			local text = safeTooltipText(textString)
+			if (text and text ~= "") then
+				--legacy Shadowlands conduit types
+				if (text == CONDUIT_TYPE_POTENCY) then
+					conduitType = CONDUIT_TYPE_POTENCY
+
+				elseif (text == CONDUIT_TYPE_FINESSE) then
+					conduitType = CONDUIT_TYPE_FINESSE
+
+				elseif (text == CONDUIT_TYPE_ENDURANCE) then
+					conduitType = CONDUIT_TYPE_ENDURANCE
+				end
+
+				if (conduitType) then
+					break
+				end
+			end
+		end
+
+		if (conduitType) then
+			borderColor = borderColor or {.9, .9, .9, 1}
+			WorldQuestTracker.CachedConduitData[questID] = {
+				conduitType = conduitType,
+				borderColor = borderColor,
+			}
+		end
+
+		return conduitType, borderColor
 	end
 
 	--pega o premio item da quest
@@ -688,6 +738,42 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 		end
 
 		local numQuestCurrencies = safeNumber(GetNumQuestLogRewardCurrencies(questID), 0)
+		local numQuestRewards = safeNumber(GetNumQuestLogRewards(questID), 0)
+		local questRewardMoney = safeNumber(GetQuestLogRewardMoney(questID), 0)
+
+		--The active expansion's primary currency uses the legacy artifact-power bucket.
+		--Only classify it as the main reward when the quest has no item, gold, or
+		--secondary currency reward. This prevents small completion-currency grants
+		--from hiding the actual reward.
+		if (numQuestCurrencies > 0 and numQuestRewards == 0 and questRewardMoney == 0) then
+			local currentMapID = WorldQuestTracker.UpdatingForMap or WorldQuestTracker.GetCurrentMapAreaID()
+			local primaryCurrencyReward
+			local hasOtherCurrencyReward = false
+
+			for currencyIndex = 1, numQuestCurrencies do
+				local name, texture, totalRewardAmount, currencyId = GetQuestLogRewardCurrencyInfo(currencyIndex, questID)
+				if (not isSecretValue(currencyId)) then
+					name, texture = WorldQuestTracker.GetCurrencyDisplayInfo(currencyId, name, texture)
+				end
+
+				if (not isSecretValue(currencyId) and WorldQuestTracker.IsPrimaryExpansionCurrency(currencyId, currentMapID)) then
+					primaryCurrencyReward = {name, texture, totalRewardAmount}
+				elseif (name) then
+					hasOtherCurrencyReward = true
+				end
+			end
+
+			if (primaryCurrencyReward and not hasOtherCurrencyReward) then
+				local name, texture, totalRewardAmount = unpack(primaryCurrencyReward)
+				local currencyData = WorldQuestTracker.RefreshPrimaryExpansionCurrencyInfo(currentMapID)
+				if (currencyData) then
+					if (isSecretValue(texture) or not texture) then
+						texture = currencyData.icon
+					end
+					return name or currencyData.name, texture, 0, 1, 1, false, 0, WorldQuestTracker.PRIMARY_CURRENCY_REWARD_TYPE, safeNumber(totalRewardAmount, 0), false, 1
+				end
+			end
+		end
 
 		if (numQuestCurrencies == 1) then
 			--is artifact power? bfa
@@ -699,16 +785,7 @@ local ItemTooltipScan = CreateFrame ("GameTooltip", "WQTItemTooltipScan", UIPare
 				end
 			end
 
-			--is artifact power wow11
-			do
-				local name, texture, baseRewardAmount, currencyId, bonusRewardAmount = GetQuestLogRewardCurrencyInfo(1, questID)
-				if (not isSecretValue(texture) and texture == 2967113) then --resonance crystals
-					return name, texture, 0, 1, 1, false, 0, 8, safeNumber(baseRewardAmount, 0), false, 1
-				end
-			end
 		end
-
-		local numQuestRewards = safeNumber(GetNumQuestLogRewards(questID), 0)
 
 		if (numQuestRewards > 0) then
 			local itemName, itemTexture, quantity, itemQuality, isUsable, itemID, itemLevel = GetQuestLogRewardInfo(1, questID)

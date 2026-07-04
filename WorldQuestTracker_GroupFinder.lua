@@ -22,7 +22,7 @@ local L = DF.Language.GetLanguageTable(addonId)
 local ff = WorldQuestTrackerFinderFrame
 local rf = WorldQuestTrackerRareFrame
 
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+local GetQuestsOnMap = C_TaskQuest.GetQuestsOnMap
 
 ff.cannot_group_quest = {}
 
@@ -942,7 +942,6 @@ local playerEnteredWorldQuestZone = function(questID, npcID, npcName)
 		wipe(ff.PlayersInvited)
 
 		if not DF.IsAddonApocalypseWow() then
-			--ff:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 		end
 
 		--> check for active timers and disable them
@@ -1060,11 +1059,6 @@ function ff:PlayerLeftWorldQuestZone (questID, questCompleted)
 		end
 	end
 
-	--add appocalypse
-	if not DF.IsAddonApocalypseWow() then
-		ff:UnregisterEvent ("COMBAT_LOG_EVENT_UNFILTERED")
-	end
-
 	--> check to left the group
 
 end
@@ -1145,12 +1139,12 @@ function WorldQuestTracker.InviteFromGroupApply()
 
 	local standingMapID = WorldQuestTracker.GetCurrentStandingMapAreaID()
 	local playerStandingMapName = WorldQuestTracker.GetMapName (standingMapID)
-	local activityID, categoryID, filters, questName = LFGListUtil_GetQuestCategoryData (ff.CurrentWorldQuest)
-
-	if (not LFGListUtil_GetQuestCategoryData) then
+	if (type(LFGListUtil_GetQuestCategoryData) ~= "function") then
 		WorldQuestTracker:Msg ("LFGListUtil_GetQuestCategoryData isn't accessible anymore.")
 		return
 	end
+
+	local activityID, categoryID, filters, questName = LFGListUtil_GetQuestCategoryData(ff.CurrentWorldQuest)
 
 	--/dump GetMouseFocus():Click()
 
@@ -1205,27 +1199,7 @@ ff:SetScript("OnEvent", function (self, event, questID, arg2, arg3)
 		return
 	end
 
-	if (event == "COMBAT_LOG_EVENT_UNFILTERED") then
-
-		local time, token, hidding, who_serial, who_name, who_flags, who_flags2, target_serial, target_name, target_flags, target_flags2, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12 = CombatLogGetCurrentEventInfo()
-
-		if (who_name and who_serial and type (who_serial) == "string" and who_serial:find ("Player") and not ff.PlayersNearby [who_name] and not ff.PlayersInvited [who_name]) then
-			if (who_flags and (bit.band (who_flags, 0x00000410) == 0x00000410)) then
-				if (who_name ~= UnitName ("player")) then
-					ff.PlayersNearby [who_name] = {GetTime(), who_serial} --when the player got spotted
-				end
-			end
-		end
-
-		if (target_name and target_serial and type (target_serial) == "string" and target_serial:find ("Player") and not ff.PlayersNearby [target_name] and not ff.PlayersInvited [target_name]) then
-			if (target_flags and (bit.band (target_flags, 0x00000410) == 0x00000410)) then
-				if (target_name ~= UnitName ("player")) then
-					ff.PlayersNearby [target_name] = {GetTime(), target_serial} --when the player got spotted
-				end
-			end
-		end
-
-	elseif (event == "LFG_LIST_APPLICANT_LIST_UPDATED") then
+	if (event == "LFG_LIST_APPLICANT_LIST_UPDATED") then
 		if (GetNumGroupMembers() <= 4 and IsInGroup() and UnitIsGroupLeader ("player")) then
 			C_Timer.After (3, WorldQuestTracker.InviteFromGroupApply)
 		end
@@ -1438,7 +1412,7 @@ ff:SetScript("OnEvent", function (self, event, questID, arg2, arg3)
 end)
 
 function ff.CheckForQuestsInTheArea()
-	local allQuestsInTheMap = GetQuestsForPlayerByMapID(WorldQuestTracker.GetCurrentStandingMapAreaID())
+	local allQuestsInTheMap = GetQuestsOnMap(WorldQuestTracker.GetCurrentStandingMapAreaID())
 	if (allQuestsInTheMap) then
 		for index, questInfo in ipairs(allQuestsInTheMap) do
 			local questId = questInfo.questId

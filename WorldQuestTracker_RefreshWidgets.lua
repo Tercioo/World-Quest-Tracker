@@ -354,11 +354,126 @@ function WorldQuestTracker.UpdateSquareWidget(widget, questData, bIsUsingTracker
 	if (okay) then
 		local conduitType, borderTexture, borderColor, itemLink = WorldQuestTracker.GetConduitQuestData(questID)
 		WorldQuestTracker.UpdateBorder(widget)
+		WorldQuestTracker.UpdateTransmogIndicator(widget, itemID)
 	else
 		widget.texture:SetTexture([[Interface\Icons\INV_Misc_QuestionMark]])
 		widget.amountText:SetText("")
 		widget.IconText = ""
+		if (widget.transmogIndicator) then
+			widget.transmogIndicator:Hide()
+		end
 	end
 
 	return okay, amountGold, amountResources, amountAPower
+end
+
+--equip slots that never have a transmog appearance, skip the collected/uncollected check for these
+local NonTransmogEquipSlots = {
+	INVTYPE_FINGER = true,
+	INVTYPE_TRINKET = true,
+	INVTYPE_NECK = true,
+	INVTYPE_AMMO = true,
+	INVTYPE_QUIVER = true,
+	INVTYPE_BAG = true,
+	INVTYPE_RELIC = true,
+}
+
+--return the exact quest reward link when the client exposes it. The link carries bonus IDs,
+--which matters because two rewards with the same base itemID can use different appearances.
+local function GetQuestRewardTransmogItemInfo(questID, itemID)
+	local rewardLinkFunction = _G.GetQuestLogRewardLink
+	if (type(rewardLinkFunction) == "function" and questID) then
+		local okay, itemLink = pcall(rewardLinkFunction, 1, questID)
+		if (okay and itemLink) then
+			return itemLink
+		end
+	end
+
+	local getItemInfo = _G.GetItemInfo
+	if (type(getItemInfo) == "function" and itemID) then
+		local _, itemLink = getItemInfo(itemID)
+		if (itemLink) then
+			return itemLink
+		end
+	end
+
+	return itemID
+end
+
+--shows a green check (collected) or red x (uncollected) on the top left of a quest square
+--if the quest's item reward has a transmog appearance, used by the "Show Transmog Status" option
+---@param widget table
+---@param itemID number?
+function WorldQuestTracker.UpdateTransmogIndicator(widget, itemID)
+	local indicator = widget.transmogIndicator
+	if (not indicator) then
+		return
+	end
+
+	indicator:Hide()
+
+	local worldMapConfig = WorldQuestTracker.db and WorldQuestTracker.db.profile and WorldQuestTracker.db.profile.world_map_config
+	if (not worldMapConfig or not worldMapConfig.summary_show_transmog_status or not itemID) then
+		return
+	end
+
+	local itemAPI = C_Item
+	local transmogAPI = C_TransmogCollection
+	if (not itemAPI or type(itemAPI.GetItemInfoInstant) ~= "function" or not transmogAPI) then
+		return
+	end
+
+	--only equippable armor/weapon pieces can have a transmog appearance
+	local _, _, _, equipLoc, _, classID = itemAPI.GetItemInfoInstant(itemID)
+	if (not equipLoc or equipLoc == "" or NonTransmogEquipSlots[equipLoc]) then
+		return
+	end
+
+	local itemClass = Enum and Enum.ItemClass
+	if (not itemClass or (classID ~= itemClass.Armor and classID ~= itemClass.Weapon)) then
+		return
+	end
+
+	local itemInfo = GetQuestRewardTransmogItemInfo(widget.questID, itemID)
+	local hasTransmog
+
+	--Prefer the exact modified appearance carried by the quest reward link.
+	--This avoids treating a collected base item as collected when the reward is a different visual variant.
+	if (type(transmogAPI.GetItemInfo) == "function" and type(transmogAPI.PlayerHasTransmogItemModifiedAppearance) == "function") then
+		local okay, _, itemModifiedAppearanceID = pcall(transmogAPI.GetItemInfo, itemInfo)
+		if (okay and itemModifiedAppearanceID) then
+			local knownOkay, known = pcall(transmogAPI.PlayerHasTransmogItemModifiedAppearance, itemModifiedAppearanceID)
+			if (knownOkay) then
+				hasTransmog = known
+			end
+		end
+	end
+
+	--Fallbacks for clients where the modified-appearance helpers are unavailable.
+	if (hasTransmog == nil and type(transmogAPI.PlayerHasTransmogByItemInfo) == "function") then
+		local okay, known = pcall(transmogAPI.PlayerHasTransmogByItemInfo, itemInfo)
+		if (okay) then
+			hasTransmog = known
+		end
+	end
+
+	if (hasTransmog == nil and type(transmogAPI.PlayerHasTransmog) == "function") then
+		local okay, known = pcall(transmogAPI.PlayerHasTransmog, itemID)
+		if (okay) then
+			hasTransmog = known
+		end
+	end
+
+	if (hasTransmog == nil) then
+		return
+	end
+
+	if (hasTransmog) then
+		indicator:SetTexture([[Interface\RAIDFRAME\ReadyCheck-Ready]])
+	else
+		indicator:SetTexture([[Interface\RAIDFRAME\ReadyCheck-NotReady]])
+	end
+
+	indicator:SetTexCoord(0, 1, 0, 1)
+	indicator:Show()
 end

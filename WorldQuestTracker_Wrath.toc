@@ -1,0 +1,11 @@
+## Interface: 38001
+
+## Title: World Quest Tracker
+## Notes: Loads safely on Classic clients. Retail World Quest features remain disabled because these clients do not provide the Retail World Quest system.
+## SavedVariables: WQTrackerDB, WQTrackerLanguage
+## SavedVariablesPerCharacter: WQTrackerDBChr
+## Version: v12.0.7.556-Custom-MultiClient
+## X-Curse-Project-ID: 100610
+## X-Wago-ID: lQNlrEKe
+
+WorldQuestTracker_Classic.lua
