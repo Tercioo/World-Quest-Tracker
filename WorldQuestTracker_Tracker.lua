@@ -63,6 +63,30 @@ local TRACKER_FRAME_ALPHA_OUTMAP = .75
 
 local worldFramePOIs = WorldQuestTrackerWorldMapPOI
 
+local function ApplyTrackerBackgroundAlpha(widget)
+	if (not widget) then
+		return
+	end
+
+	local backgroundAlpha = WorldQuestTracker.db.profile.tracker_background_alpha or TRACKER_BACKGROUND_ALPHA_MIN
+
+	local r, g, b = DF:GetDefaultBackdropColor()
+
+	if (widget.BackgroupTexture) then
+		widget.BackgroupTexture:SetVertexColor(r, g, b, backgroundAlpha)
+		widget.BackgroupTexture:SetAlpha(backgroundAlpha)
+	end
+
+	if (widget.roundedBackgroundTexture) then
+		widget.roundedBackgroundTexture:SetAlpha(backgroundAlpha)
+		widget.roundedBackgroundTexture:SetVertexColor(r, g, b, backgroundAlpha)
+	end
+
+	if (widget.RightBackground) then
+		widget.RightBackground:SetAlpha(backgroundAlpha)
+	end
+end
+
 --verifica se a quest ja esta na lista de track
 function WorldQuestTracker.IsQuestBeingTracked (questID)
 	for _, quest in ipairs (WorldQuestTracker.QuestTrackList) do
@@ -704,7 +728,7 @@ local TrackerFrameOnEnter = function(self)
 	local color = OBJECTIVE_TRACKER_COLOR["NormalHighlight"]
 	self.Zone:SetTextColor (color.r, color.g, color.b)
 
-	self.RightBackground:SetAlpha(TRACKER_BACKGROUND_ALPHA_MAX)
+	ApplyTrackerBackgroundAlpha(self)
 	self.Arrow:SetAlpha(TRACKER_ARROW_ALPHA_MAX)
 
 	self.HasOverHover = true
@@ -720,7 +744,7 @@ local TrackerFrameOnLeave = function(self)
 	local color = OBJECTIVE_TRACKER_COLOR["Normal"]
 	self.Zone:SetTextColor (color.r, color.g, color.b)
 
-	self.RightBackground:SetAlpha(TRACKER_BACKGROUND_ALPHA_MIN)
+	ApplyTrackerBackgroundAlpha(self)
 	self.Arrow:SetAlpha(TRACKER_ARROW_ALPHA_MIN)
 
 	self.HasOverHover = nil
@@ -785,7 +809,14 @@ function WorldQuestTracker.GetOrCreateTrackerWidget (index)
 	f.RightBackground:SetPoint("topright", f, "topright")
 	f.RightBackground:SetPoint("bottomright", f, "bottomright")
 	f.RightBackground:SetWidth (200)
-	f.RightBackground:SetAlpha(TRACKER_BACKGROUND_ALPHA_MIN)
+
+	f.roundedBackgroundTexture = f:CreateTexture(nil, "background", nil, -6)
+	f.roundedBackgroundTexture:SetPoint("topleft", f, "topleft", -18, 2)
+	f.roundedBackgroundTexture:SetSize(256, 33)
+	--f.roundedBackgroundTexture:SetPoint("topleft", f, "topleft", 0, 0)
+	--f.roundedBackgroundTexture:SetPoint("bottomright", f, "bottomright", 0, 0)
+	f.roundedBackgroundTexture:SetTexture([[Interface\AddOns\WorldQuestTracker\media\tracker_background.png]])
+	ApplyTrackerBackgroundAlpha(f)
 
 	--f.module = _G ["WORLD_QUEST_TRACKER_MODULE"]
 	f.worldQuest = true
@@ -1226,7 +1257,7 @@ function WorldQuestTracker.RefreshTrackerWidgets()
 				widget.numObjectives = quest.numObjectives
 				widget.SuperTrackButton.questID = quest.questID
 
-				widget.BackgroupTexture:SetVertexColor (0, 0, 0, WorldQuestTracker.db.profile.tracker_background_alpha)
+				ApplyTrackerBackgroundAlpha(widget)
 
 				widget.Title:SetText (title)
 				while (widget.Title:GetStringWidth() > TRACKER_TITLE_TEXTWIDTH_MAX) do

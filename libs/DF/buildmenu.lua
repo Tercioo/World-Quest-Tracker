@@ -28,6 +28,8 @@ local _
 ---@field hasLabel any
 ---@field hidden boolean?
 ---@field inline boolean?
+---@field onenter function?
+---@field onleave function?
 ---@field widget table?
 ---@field disableif function? a function that returns true or nil, if true the widget get :Disable(), :Enabled() otherwise
 ---@field tags string[] optional tags that help the search bar to find the option
@@ -328,6 +330,7 @@ local processLabelIcon = function(label, widgetTable, languageTable, textTemplat
 
     local namePhrase = getNamePhraseText(languageTable, widgetTable, useColon, languageAddonId)
 
+    local iconString = ""
     if widgetTable.icontexture then
         local tc = widgetTable.iconcoords or {.1, .9, .1, .9}
         local fileSize = widgetTable.iconfilesize or {64, 64}
@@ -337,10 +340,17 @@ local processLabelIcon = function(label, widgetTable, languageTable, textTemplat
         local bAddSpace = true
         local bAddAfterText = false
 
-        namePhrase = detailsFramework:AddTextureToText(namePhrase, detailsFramework:CreateTextureInfo(widgetTable.icontexture, iconSize[1], iconSize[2], tc[1], tc[2], tc[3], tc[4], fileSize[1], fileSize[2]), bAddSpace, bAddAfterText)
+        namePhrase, iconString = detailsFramework:AddTextureToText(namePhrase, detailsFramework:CreateTextureInfo(widgetTable.icontexture, iconSize[1], iconSize[2], tc[1], tc[2], tc[3], tc[4], fileSize[1], fileSize[2]), bAddSpace, bAddAfterText)
     end
 
-    label.text = namePhrase
+    label.__iconString = iconString
+    label.__iconStringBefore = true
+    if label.widget then
+        label.widget.__iconString = iconString
+        label.widget.__iconStringBefore = true
+    end
+
+    label:SetText(namePhrase)
 end
 
 --control the highlight color, if true, use color one, if false, use color two
@@ -1095,7 +1105,9 @@ local parseOptionsTable = function(menuOptions)
     --the scrollBox child will be used as the parent, and the height of the child will be resized to fit the widgets
     local bUseScrollFrame = menuOptions.use_scrollframe
     local languageAddonId = menuOptions.language_addonId
-    return bUseBoxFirstOnAllWidgets, widgetWidth, widgetHeight, bAlignAsPairs, nAlignAsPairsLength, nAlignAsPairsSpacing, bUseScrollFrame, languageAddonId, bAttachSliderButtonsToLeft
+    --fixed column width, when set the column advances by this amount instead of the widest widget on the column
+    local nFixedColumnWidth = menuOptions.fixed_width or 0
+    return bUseBoxFirstOnAllWidgets, widgetWidth, widgetHeight, bAlignAsPairs, nAlignAsPairsLength, nAlignAsPairsSpacing, bUseScrollFrame, languageAddonId, bAttachSliderButtonsToLeft, nFixedColumnWidth
 end
 
 local parseParent = function(bUseScrollFrame, parent, height, yOffset)
@@ -1181,6 +1193,7 @@ local getOrCreateGroupFrame = function(parent, groupName, widgetTable, isVolatil
         groupFrame = parent.widget_list_by_type["group"][poolIndex]
         if not groupFrame then
             groupFrame = CreateFrame("frame", nil, parent, "BackdropTemplate")
+            groupFrame:SetFrameLevel(parent:GetFrameLevel()+5)
             groupFrame.backgroundTexture = groupFrame:CreateTexture(nil, "background")
             groupFrame.backgroundTexture:SetAllPoints()
             table.insert(parent.widget_list_by_type["group"], groupFrame)
@@ -1188,6 +1201,7 @@ local getOrCreateGroupFrame = function(parent, groupName, widgetTable, isVolatil
         indexTable["group"] = poolIndex + 1
     else
         groupFrame = CreateFrame("frame", nil, parent, "BackdropTemplate")
+        groupFrame:SetFrameLevel(parent:GetFrameLevel()+5)
         groupFrame.backgroundTexture = groupFrame:CreateTexture(nil, "background")
         groupFrame.backgroundTexture:SetAllPoints()
         table.insert(parent.widget_list_by_type["group"], groupFrame)
@@ -1529,6 +1543,7 @@ function detailsFramework:BuildMenuVolatile(parent, menuOptions, xOffset, yOffse
     local currentYOffset = yOffset or 0
     local maxColumnWidth = 0 --biggest width of widget + text size on the current column loop pass
     local maxWidgetWidth = 0 --biggest widget width on the current column loop pass
+    local fixedColumnWidth = 0 --when different than zero, columns advance by this fixed amount instead of maxColumnWidth
     local canvasFrame = parent
 
     --which is the next widget to get from the pool
@@ -1545,7 +1560,8 @@ function detailsFramework:BuildMenuVolatile(parent, menuOptions, xOffset, yOffse
 
     parseOptionsTypes(menuOptions)
 
-    local bUseBoxFirstOnAllWidgets, widgetWidth, widgetHeight, bAlignAsPairs, nAlignAsPairsLength, nAlignAsPairsSpacing, bUseScrollFrame, languageAddonId, bAttachSliderButtonsToLeft = parseOptionsTable(menuOptions)
+    local bUseBoxFirstOnAllWidgets, widgetWidth, widgetHeight, bAlignAsPairs, nAlignAsPairsLength, nAlignAsPairsSpacing, bUseScrollFrame, languageAddonId, bAttachSliderButtonsToLeft, nFixedColumnWidth = parseOptionsTable(menuOptions)
+    fixedColumnWidth = nFixedColumnWidth
     parent, height = parseParent(bUseScrollFrame, parent, height, yOffset)
     local languageTable = parseLanguageTable(languageAddonId)
 
@@ -1704,7 +1720,7 @@ function detailsFramework:BuildMenuVolatile(parent, menuOptions, xOffset, yOffse
 
                     local descPhrase = getDescPhraseText(languageTable, widgetTable)
                     colorpick:SetTooltip(descPhrase)
-
+ 
                     processLabelIcon(colorpick.hasLabel, widgetTable, languageTable, widgetTable.text_template or textTemplate, useColon, languageAddonId)
 
                     maxColumnWidth, maxWidgetWidth, extraPaddingY = setColorProperties(parent, colorpick, widgetTable, currentXOffset, currentYOffset, switchTemplate, widgetWidth, widgetHeight, bAlignAsPairs, nAlignAsPairsLength, valueChangeHook, maxColumnWidth, maxWidgetWidth, bUseBoxFirstOnAllWidgets, extraPaddingY)
@@ -1760,6 +1776,25 @@ function detailsFramework:BuildMenuVolatile(parent, menuOptions, xOffset, yOffse
                     jumpToNextLine = false
                 end
 
+                if (widgetTable.onenter) then
+                    if (widgetCreated.SetHook) then
+                        widgetCreated:SetHook("OnEnter", widgetTable.onenter)
+                    else
+                        widgetCreated:SetScript("OnEnter", widgetTable.onenter)
+                    end
+                end
+                if (widgetTable.onleave) then
+                    if (widgetCreated.SetHook) then
+                        widgetCreated:SetHook("OnLeave", widgetTable.onleave)
+                    else
+                        widgetCreated:SetScript("OnLeave", widgetTable.onleave)
+                    end
+                end
+
+                if languageAddonId and widgetCreated then
+                    widgetCreated.__languageAddonId = languageAddonId
+                end
+
                 if (widgetTable.nocombat) then
                     table.insert(widgetsToDisableOnCombat, widgetCreated)
                 end
@@ -1790,7 +1825,7 @@ function detailsFramework:BuildMenuVolatile(parent, menuOptions, xOffset, yOffse
                             if (bAlignAsPairs) then
                                 currentXOffset = currentXOffset + nAlignAsPairsLength + (widgetWidth or maxWidgetWidth) + nAlignAsPairsSpacing
                             else
-                                currentXOffset = currentXOffset + maxColumnWidth + 20
+                                currentXOffset = currentXOffset + (fixedColumnWidth ~= 0 and fixedColumnWidth or maxColumnWidth) + 20
                             end
 
                             amountLineWidgetAdded = 0
@@ -1800,7 +1835,7 @@ function detailsFramework:BuildMenuVolatile(parent, menuOptions, xOffset, yOffse
                     else
                         if (widgetTable.type == "breakline" or currentYOffset < height) then
                             currentYOffset = yOffset
-                            currentXOffset = currentXOffset + maxColumnWidth + 20
+                            currentXOffset = currentXOffset + (fixedColumnWidth ~= 0 and fixedColumnWidth or maxColumnWidth) + 20
                             amountLineWidgetAdded = 0
                             maxColumnWidth = 0
                         end
@@ -1870,6 +1905,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
     local currentYOffset = yOffset or 0
     local maxColumnWidth = 0 --biggest width of widget + text size on the current column loop pass
     local maxWidgetWidth = 0 --biggest widget width on the current column loop pass
+    local fixedColumnWidth = 0 --when different than zero, columns advance by this fixed amount instead of maxColumnWidth
     local canvasFrame = parent
 
     textTemplate, dropdownTemplate, switchTemplate, sliderTemplate, buttonTemplate, switchIsCheckbox = parseTemplates(textTemplate, dropdownTemplate, switchTemplate, sliderTemplate, buttonTemplate, switchIsCheckbox)
@@ -1879,7 +1915,8 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
     --parse settings and the options table
     parseOptionsTypes(menuOptions)
 
-    local bUseBoxFirstOnAllWidgets, widgetWidth, widgetHeight, bAlignAsPairs, nAlignAsPairsLength, nAlignAsPairsSpacing, bUseScrollFrame, languageAddonId, bAttachSliderButtonsToLeft = parseOptionsTable(menuOptions)
+    local bUseBoxFirstOnAllWidgets, widgetWidth, widgetHeight, bAlignAsPairs, nAlignAsPairsLength, nAlignAsPairsSpacing, bUseScrollFrame, languageAddonId, bAttachSliderButtonsToLeft, nFixedColumnWidth = parseOptionsTable(menuOptions)
+    fixedColumnWidth = nFixedColumnWidth
     parent, height = parseParent(bUseScrollFrame, parent, height, yOffset)
     local languageTable = parseLanguageTable(languageAddonId)
 
@@ -2155,6 +2192,25 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
                 jumpToNextLine = false
             end
 
+            if (widgetTable.onenter) then
+                if (widgetCreated.SetHook) then
+                    widgetCreated:SetHook("OnEnter", widgetTable.onenter)
+                else
+                    widgetCreated:SetScript("OnEnter", widgetTable.onenter)
+                end
+            end
+            if (widgetTable.onleave) then
+                if (widgetCreated.SetHook) then
+                    widgetCreated:SetHook("OnLeave", widgetTable.onleave)
+                else
+                    widgetCreated:SetScript("OnLeave", widgetTable.onleave)
+                end
+            end
+
+            if languageAddonId and widgetCreated then
+                widgetCreated.__languageAddonId = languageAddonId
+            end
+
             if (widgetTable.nocombat) then
                 table.insert(widgetsToDisableOnCombat, widgetCreated)
             end
@@ -2185,7 +2241,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
                         if (bAlignAsPairs) then
                             currentXOffset = currentXOffset + nAlignAsPairsLength + (widgetWidth or maxWidgetWidth) + nAlignAsPairsSpacing
                         else
-                            currentXOffset = currentXOffset + maxColumnWidth + 20
+                            currentXOffset = currentXOffset + (fixedColumnWidth ~= 0 and fixedColumnWidth or maxColumnWidth) + 20
                         end
 
                         amountLineWidgetAdded = 0
@@ -2195,7 +2251,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
                 else
                     if (widgetTable.type == "breakline" or currentYOffset < height) then
                         currentYOffset = yOffset
-                        currentXOffset = currentXOffset + maxColumnWidth + 20
+                        currentXOffset = currentXOffset + (fixedColumnWidth ~= 0 and fixedColumnWidth or maxColumnWidth) + 20
                         amountLineWidgetAdded = 0
                         maxColumnWidth = 0
                     end

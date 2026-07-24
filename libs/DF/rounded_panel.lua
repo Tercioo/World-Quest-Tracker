@@ -250,8 +250,8 @@ detailsFramework.RoundedCornerPanelMixin = {
     CreateTitleBar = function(self, optionsTable)
         ---@type df_roundedpanel
         local titleBar = detailsFramework:CreateRoundedPanel(self, "$parentTitleBar", {width = self.options.width - 6, height = self.options.titlebar_height})
-        titleBar:SetPoint("top", self, "top", 0, -4)
-        titleBar:SetRoundness(5)
+        titleBar:SetPoint("top", self, "top", 0, -5)
+        titleBar:SetRoundness(8)
         titleBar:SetFrameLevel(9500)
         titleBar:SetColor(unpack(titleBarColor))
         titleBar.bIsTitleBar = true
@@ -576,7 +576,7 @@ local defaultOptions = {
     color = {.1, .1, .1, 1},
     border_color = {.2, .2, .2, .5},
     corner_texture = [[Interface\CHARACTERFRAME\TempPortraitAlphaMaskSmall]],
-    titlebar_height = 26,
+    titlebar_height = 20,
 }
 
 local defaultPreset = {
