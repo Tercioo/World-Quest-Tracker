@@ -106,7 +106,7 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
 		frameBackgroundTexture:SetPoint("bottomright", frame, "bottomright", -1, 20)
 		frameBackgroundTexture:SetColorTexture (0.2317647, 0.2317647, 0.2317647)
 		frameBackgroundTexture:SetVertexColor (0.27, 0.27, 0.27)
-		frameBackgroundTexture:SetAlpha (0.3)
+		frameBackgroundTexture:SetAlpha (1)
 		--frameBackgroundTexture:Hide()
 
 		--divisor shown above the background (create above)
@@ -899,157 +899,168 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
         DF:BuildMenu(generalSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
     end
 
-    do --Tracker Settings
-        local optionsTable = {
-            always_boxfirst = true,
-            language_addonId = addonId,
+do --Tracker Settings
+    local optionsTable = {
+        always_boxfirst = true,
+        language_addonId = addonId,
 
-            {
-                type = "toggle",
-                get = function()
-                    return WorldQuestTracker.db.profile.use_tracker
-                end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("use_tracker", value)
-                end,
-                name = "S_MAPBAR_OPTIONSMENU_QUESTTRACKER",
-                desc = "S_MAPBAR_OPTIONSMENU_QUESTTRACKER",
-            },
-            {
-                type = "toggle",
-                get = function()
-                    return WorldQuestTracker.db.profile.show_yards_distance
-                end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("show_yards_distance", value)
-                    WorldQuestTracker.RefreshTrackerWidgets()
-                end,
-                name = "S_MAPBAR_OPTIONSMENU_YARDSDISTANCE",
-                desc = "S_MAPBAR_OPTIONSMENU_YARDSDISTANCE",
-            },
-            {
-                type = "toggle",
-                get = function()
-                    return WorldQuestTracker.db.profile.tracker_only_currentmap
-                end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("tracker_only_currentmap", value)
-                    WorldQuestTracker.RefreshTrackerWidgets()
-                end,
-                name = "S_MAPBAR_OPTIONSMENU_TRACKER_CURRENTZONE",
-                desc = "S_MAPBAR_OPTIONSMENU_TRACKER_CURRENTZONE",
-            },
-            {
-                type = "toggle",
-                get = function()
-                    return WorldQuestTracker.db.profile.tracker_show_time
-                end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("tracker_show_time", value)
-                    WorldQuestTracker.RefreshTrackerWidgets()
-                end,
-                name = "S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_TITLE",
-                desc = "S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_TITLE",
-            },
+        {
+            type = "toggle",
+            get = function()
+                return WorldQuestTracker.db.profile.use_tracker
+            end,
+            set = function(self, fixedparam, value)
+                WorldQuestTracker.SetSetting("use_tracker", value)
+            end,
+            name = "S_MAPBAR_OPTIONSMENU_QUESTTRACKER",
+            desc = "S_MAPBAR_OPTIONSMENU_QUESTTRACKER",
+        },
+        {
+            type = "toggle",
+            get = function()
+                return WorldQuestTracker.db.profile.show_yards_distance
+            end,
+            set = function(self, fixedparam, value)
+                WorldQuestTracker.SetSetting("show_yards_distance", value)
+                if WorldQuestTracker.RefreshTrackerWidgets then WorldQuestTracker.RefreshTrackerWidgets() end
+            end,
+            name = "S_MAPBAR_OPTIONSMENU_YARDSDISTANCE",
+            desc = "S_MAPBAR_OPTIONSMENU_YARDSDISTANCE",
+        },
+        {
+            type = "toggle",
+            get = function()
+                return WorldQuestTracker.db.profile.tracker_only_currentmap
+            end,
+            set = function(self, fixedparam, value)
+                WorldQuestTracker.SetSetting("tracker_only_currentmap", value)
+                if WorldQuestTracker.RefreshTrackerWidgets then WorldQuestTracker.RefreshTrackerWidgets() end
+            end,
+            name = "S_MAPBAR_OPTIONSMENU_TRACKER_CURRENTZONE",
+            desc = "S_MAPBAR_OPTIONSMENU_TRACKER_CURRENTZONE",
+        },
+        {
+            type = "toggle",
+            get = function()
+                return WorldQuestTracker.db.profile.tracker_show_time
+            end,
+            set = function(self, fixedparam, value)
+                WorldQuestTracker.SetSetting("tracker_show_time", value)
+                if WorldQuestTracker.RefreshTrackerWidgets then WorldQuestTracker.RefreshTrackerWidgets() end
+            end,
+            name = "S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_TITLE",
+            desc = "S_MAPBAR_SORTORDER_TIMELEFTPRIORITY_TITLE",
+        },
 
-            {
-                type = "range",
-                get = function() return WorldQuestTracker.db.profile.tracker_scale end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("tracker_scale", value)
-                end,
-                min = 0.6,
-                max = 1.5,
-                step = 0.01,
-                usedecimals = true,
-                thumbscale = 1.8,
-                name = "S_MAPBAR_OPTIONSMENU_TRACKER_SCALE_NAME",
-                desc = "S_MAPBAR_OPTIONSMENU_TRACKER_SCALE_NAME",
-            },
-            {
-                type = "range",
-                get = function() return WorldQuestTracker.db.profile.tracker_textsize end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("tracker_textsize", value)
-                end,
-                min = 8,
-                max = 15,
-                step = 1,
-                thumbscale = 1.8,
-                name = "S_TEXT_SIZE",
-                desc = "S_TEXT_SIZE",
-            },
-            {
-                type = "range",
-                get = function() return WorldQuestTracker.db.profile.arrow_update_frequence end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("arrow_update_speed", value)
-                end,
-                min = 0,
-                max = 0.1,
-                step = 0.001,
-                usedecimals = true,
-                thumbscale = 1.8,
-                name = "S_MAPBAR_OPTIONSMENU_ARROWSPEED",
-                desc = "S_MAPBAR_OPTIONSMENU_ARROWSPEED",
-            },
-            {
-                type = "range",
-                get = function() return WorldQuestTracker.db.profile.tracker_background_alpha end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.db.profile.tracker_background_alpha = value
+        {
+            type = "range",
+            get = function() return WorldQuestTracker.db.profile.tracker_scale end,
+            set = function(self, fixedparam, value)
+                WorldQuestTracker.SetSetting("tracker_scale", value)
+            end,
+            min = 0.6,
+            max = 1.5,
+            step = 0.01,
+            usedecimals = true,
+            thumbscale = 1.8,
+            name = "S_MAPBAR_OPTIONSMENU_TRACKER_SCALE_NAME",
+            desc = "S_MAPBAR_OPTIONSMENU_TRACKER_SCALE_NAME",
+        },
+        {
+            type = "range",
+            get = function() return WorldQuestTracker.db.profile.tracker_textsize end,
+            set = function(self, fixedparam, value)
+                WorldQuestTracker.SetSetting("tracker_textsize", value)
+            end,
+            min = 8,
+            max = 15,
+            step = 1,
+            thumbscale = 1.8,
+            name = "S_TEXT_SIZE",
+            desc = "S_TEXT_SIZE",
+        },
+        {
+            type = "range",
+            get = function() return WorldQuestTracker.db.profile.arrow_update_frequence end,
+            set = function(self, fixedparam, value)
+                WorldQuestTracker.SetSetting("arrow_update_speed", value)
+            end,
+            min = 0,
+            max = 0.1,
+            step = 0.001,
+            usedecimals = true,
+            thumbscale = 1.8,
+            name = "S_MAPBAR_OPTIONSMENU_ARROWSPEED",
+            desc = "S_MAPBAR_OPTIONSMENU_ARROWSPEED",
+        },
+        {
+            type = "range",
+            get = function() return WorldQuestTracker.db.profile.tracker_background_alpha end,
+            set = function(self, fixedparam, value)
+                -- FIX for Midnight 12.0.1
+                WorldQuestTracker.db.profile.tracker_background_alpha = value
+                if WorldQuestTracker.SetSetting then
+                    WorldQuestTracker.SetSetting("tracker_background_alpha", value)
+                end
+                -- Trigger refresh if the function exists
+                if WorldQuestTracker.RefreshTrackerWidgets then
                     WorldQuestTracker.RefreshTrackerWidgets()
-                end,
-                min = 0,
-                max = 0.85,
-                step = 0.1,
-                usedecimals = true,
-                thumbscale = 1.8,
-                name = "S_TRACKEROPTIONS_BACKGROUNDALPHA",
-                desc = "S_TRACKEROPTIONS_BACKGROUNDALPHA",
-            },
+                end
+            end,
+            min = 0,
+            max = 1.0,
+            step = 0.05,
+            usedecimals = true,
+            thumbscale = 1.8,
+            name = "S_TRACKEROPTIONS_BACKGROUNDALPHA",
+            desc = "S_TRACKEROPTIONS_BACKGROUNDALPHA",
+        },
 
-            {type = "blank"},
+        {type = "blank"},
 
-            {
-                type = "toggle",
-                get = function()
-                    return WorldQuestTracker.db.profile.tracker_attach_to_questlog
-                end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("tracker_attach_to_questlog", value)
-                end,
-                name = "S_OPTIONS_TRACKER_ATTACH_TO_QUESTLOG",
-                desc = "S_OPTIONS_TRACKER_ATTACH_TO_QUESTLOG",
-            },
-            {
-                type = "toggle",
-                get = function()
-                    return WorldQuestTracker.db.profile.tracker_is_locked
-                end,
-                set = function(self, fixedparam, value)
-                    WorldQuestTracker.SetSetting("tracker_is_locked", value)
-                end,
-                name = "S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED",
-                desc = "S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED",
-            },
-            {
-                type = "execute",
-                func = function()
-					WorldQuestTracker.SetSetting("tracker_attach_to_questlog", true)
+        {
+            type = "toggle",
+            get = function()
+                return WorldQuestTracker.db.profile.tracker_attach_to_questlog
+            end,
+            set = function(self, fixedparam, value)
+                WorldQuestTracker.SetSetting("tracker_attach_to_questlog", value)
+            end,
+            name = "S_OPTIONS_TRACKER_ATTACH_TO_QUESTLOG",
+            desc = "S_OPTIONS_TRACKER_ATTACH_TO_QUESTLOG",
+        },
+        {
+            type = "toggle",
+            get = function()
+                return WorldQuestTracker.db.profile.tracker_is_locked
+            end,
+            set = function(self, fixedparam, value)
+                WorldQuestTracker.SetSetting("tracker_is_locked", value)
+            end,
+            name = "S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED",
+            desc = "S_MAPBAR_OPTIONSMENU_TRACKERMOVABLE_LOCKED",
+        },
+        {
+            type = "execute",
+            func = function()
+                WorldQuestTracker.SetSetting("tracker_attach_to_questlog", true)
+                if WorldQuestTrackerScreenPanel then
                     WorldQuestTrackerScreenPanel:ClearAllPoints()
                     WorldQuestTrackerScreenPanel:SetPoint("center", UIParent, "center", 0, 0)
 
-                    local LibWindow = LibStub("LibWindow-1.1")
-                    LibWindow.SavePosition(WorldQuestTrackerScreenPanel)
-                end,
-                name = "S_OPTIONS_TRACKER_RESETPOSITION",
-                desc = "S_OPTIONS_TRACKER_RESETPOSITION",
-            },
-        }
+                    local LibWindow = LibStub("LibWindow-1.1", true)
+                    if LibWindow then
+                        LibWindow.SavePosition(WorldQuestTrackerScreenPanel)
+                    end
+                end
+            end,
+            name = "S_OPTIONS_TRACKER_RESETPOSITION",
+            desc = "S_OPTIONS_TRACKER_RESETPOSITION",
+        },
+    }
 
-        DF:BuildMenu(trackerSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
-    end
+    DF:BuildMenu(trackerSettingsFrame, optionsTable, xStart, yStart, tabFrameHeight, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template, globalCallback)
+end
 
     do --World Map Settings
 
