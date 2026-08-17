@@ -54,6 +54,8 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		ZULAMAN = 2437,
 		VOIDSTORM = 2405,
 		HARANDAR = 2413,
+		COILED_ISLE = 2512,
+
 
 	--wow11
 		KHAZALGAR = 	2274,
@@ -128,7 +130,7 @@ WorldQuestTracker.DotLineScale = {
 	[zoneIDs.ZULAMAN] = 3,
 	[zoneIDs.VOIDSTORM] = 3,
 	[zoneIDs.HARANDAR] = 3,
-
+	[zoneIDs.COILED_ISLE] = 3,
 	[zoneIDs.ZARALEK] = 2,
 	[zoneIDs.OHNAHRANPLAINS] = 2,
 	[zoneIDs.WAKINGSHORES] = 2,
@@ -170,7 +172,7 @@ WorldQuestTracker.MapData.WorldQuestZones = {
 		[zoneIDs.ZULAMAN] = true,
 		[zoneIDs.VOIDSTORM] = true,
 		[zoneIDs.HARANDAR] = true,
-
+		[zoneIDs.COILED_ISLE] = true,
 	--wow 11
 		[zoneIDs.DORN] = true,
 		[zoneIDs.HALLOWFALL] = true,
@@ -300,8 +302,8 @@ WorldQuestTracker.mapTables = {
 
 	[zoneIDs.ZULAMAN] = 		{
 		widgets = {},
-		Anchor_X = 0.57,
-		Anchor_Y = 0.73,
+		Anchor_X = 0.18,
+		Anchor_Y = 0.82,
 		GrowRight = true,
 		show_on_map = {
 			[zoneIDs.WOW12_HUB] = true,
@@ -310,7 +312,7 @@ WorldQuestTracker.mapTables = {
 
 	[zoneIDs.VOIDSTORM] = 		{
 		widgets = {},
-		Anchor_X = 0.55,
+		Anchor_X = 0.45,
 		Anchor_Y = 0.368,
 		GrowRight = true,
 		show_on_map = {
@@ -320,8 +322,18 @@ WorldQuestTracker.mapTables = {
 
 	[zoneIDs.HARANDAR] = 		{
 		widgets = {},
-		Anchor_X = 0.72,
-		Anchor_Y = 0.08,
+		Anchor_X = 0.76,
+		Anchor_Y = 0.06,
+		GrowRight = false,
+		show_on_map = {
+			[zoneIDs.WOW12_HUB] = true,
+		},
+	},
+
+	[zoneIDs.COILED_ISLE] = 		{
+		widgets = {},
+		Anchor_X = 0.995,
+		Anchor_Y = 0.56,
 		GrowRight = false,
 		show_on_map = {
 			[zoneIDs.WOW12_HUB] = true,
@@ -839,6 +851,7 @@ WorldQuestTracker.MapData.ReputationIcons = {
 	[7505702] = true, --The Singularity 2699 
 	[7505704] = true, --Hara'ti 2704 
 	[7505700] = true, --Silvermoon Court 2710
+	[7903180] = true, --Zul'jarra's Forces 2772
 
 		--Midnight 2698
 		--Witherbark Tribe 2706
@@ -909,6 +922,7 @@ WorldQuestTracker.MapData.AllFactionIds = {
 	[2699] = true, --The Singularity
 	[2704] = true, --Hara'ti
 	[2710] = true, --Silvermoon Court
+	[2772] = true, --Zul'jarra's Forces
 
 	--DLC 10 (tww)
 	[2590] = true, --Council of Dornogal
@@ -972,6 +986,7 @@ WorldQuestTracker.MapData.FactionMapId = {
 	[2699] = zoneIDs.VOIDSTORM, --The Singularity
 	[2704] = zoneIDs.HARANDAR, --Hara'ti
 	[2710] = zoneIDs.EVERSONG_WOODS, --Silvermoon Court
+	[2772] = zoneIDs.COILED_ISLE, --Zul'jarra's Forces
 
 	--DLC 10 (tww)
 	[2590] = zoneIDs.DORN, --Council of Dornogal
@@ -1006,6 +1021,7 @@ WorldQuestTracker.MapData.FactionIcons = {
 	[2699] = 7505702, --The Singularity
 	[2704] = 7505704, --Hara'ti
 	[2710] = 7505700, --Silvermoon Court
+	[2772] = 7903180, --Zul'jarra's Forces
 
 	--DLC 10 (tww)
 	[2590] = 5891369, --Council of Dornogal
@@ -1066,6 +1082,7 @@ local WOW12Factions = { --DLC11 (midnight)
 	[2699] = true, --The Singularity
 	[2704] = true, --Hara'ti
 	[2710] = true, --Silvermoon Court
+	[2772] = true, --Zul'jarra's Forces
 }
 
 local WOW11Factions = { --DLC10 (tww)
