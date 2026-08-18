@@ -429,12 +429,16 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 			end
 		end
 
+		--user defined offset, positive values move the tracker up (closer to the quest log), negative moves it down
+		local yOffset = WorldQuestTracker.db.profile.tracker_questlog_yoffset or 0
+		local anchorY = -totalHeight - WorldQuestTrackerHeader:GetHeight() - 5 + yOffset
+
 		WorldQuestTrackerScreenPanel:EnableMouse(false)
 		WorldQuestTrackerScreenPanel:ClearAllPoints()
-		WorldQuestTrackerScreenPanel:SetPoint("topleft", ObjectiveTrackerFrame, "topleft", 7, -totalHeight - WorldQuestTrackerHeader:GetHeight() - 5)
+		WorldQuestTrackerScreenPanel:SetPoint("topleft", ObjectiveTrackerFrame, "topleft", 7, anchorY)
 
 		WorldQuestTrackerHeader:ClearAllPoints()
-		WorldQuestTrackerHeader:SetPoint("topright", ObjectiveTrackerFrame, "topright", 0, -totalHeight - WorldQuestTrackerHeader:GetHeight() - 5)
+		WorldQuestTrackerHeader:SetPoint("topright", ObjectiveTrackerFrame, "topright", 0, anchorY)
 
 		WorldQuestTrackerHeader:ClearAllPoints()
 		WorldQuestTrackerHeader:SetPoint("top", WorldQuestTrackerScreenPanel, "top", 0, 0)

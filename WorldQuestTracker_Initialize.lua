@@ -252,6 +252,7 @@ do
 			sound_enabled = true,--a
 			use_tracker = true,
 			tracker_attach_to_questlog = true,
+			tracker_questlog_yoffset = 0,
 			tracker_is_locked = false,
 			tracker_only_currentmap = false,
 			tracker_scale = 1,

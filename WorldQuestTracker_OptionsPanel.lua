@@ -1023,6 +1023,20 @@ function WorldQuestTrackerAddon.OpenOptionsPanel()
                 desc = "S_OPTIONS_TRACKER_ATTACH_TO_QUESTLOG",
             },
             {
+                type = "range",
+                get = function() return WorldQuestTracker.db.profile.tracker_questlog_yoffset end,
+                set = function(self, fixedparam, value)
+                    WorldQuestTracker.db.profile.tracker_questlog_yoffset = value
+                    WorldQuestTracker.RefreshTrackerAnchor()
+                end,
+                min = -200,
+                max = 200,
+                step = 1,
+                thumbscale = 1.8,
+                name = "S_OPTIONS_TRACKER_QUESTLOG_YOFFSET",
+                desc = "S_OPTIONS_TRACKER_QUESTLOG_YOFFSET",
+            },
+            {
                 type = "toggle",
                 get = function()
                     return WorldQuestTracker.db.profile.tracker_is_locked
