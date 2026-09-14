@@ -20,7 +20,7 @@ local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
 local L = DF.Language.GetLanguageTable(addonId)
 
 local _
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsOnMap
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
 local GetNumQuestLogRewardCurrencies = WorldQuestTrackerAddon.GetNumQuestLogRewardCurrencies
 local GetQuestLogRewardInfo = GetQuestLogRewardInfo
