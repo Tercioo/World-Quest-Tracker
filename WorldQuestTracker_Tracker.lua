@@ -1586,180 +1586,114 @@ function WorldQuestTracker.IsQuestOnObjectiveTracker (quest)
 	end
 end
 
-local latestTrackerPositionUpdate = GetTime()
-local bHasScheduledSizeUpdate = false
+-- Observe tracker layout without hooking Blizzard's shared manager methods.
+local trackerUpdatePending = false
+local questStatePending = true
+local leavingWorld = false
+local observedTrackerFrames = {}
+local questEventFrame = CreateFrame("frame")
 
-local onObjectiveTrackerChanges = function() --this will be called several times in a single frame
-	if (ObjectiveTrackerFrame:IsCollapsed()) then
+local function ObserveTrackerFrame(frame)
+	if (not frame or observedTrackerFrames[frame]) then
 		return
+	end
+
+	observedTrackerFrames[frame] = true
+	frame:HookScript("OnSizeChanged", WorldQuestTracker.OnObjectiveTrackerChanges)
+	frame:HookScript("OnShow", WorldQuestTracker.OnObjectiveTrackerChanges)
+	frame:HookScript("OnHide", WorldQuestTracker.OnObjectiveTrackerChanges)
+end
+
+local function RefreshObjectiveTracker()
+	trackerUpdatePending = false
+	if (leavingWorld or InCombatLockdown() or not WorldQuestTracker.db or not WorldQuestTracker.db.profile) then
+		return
+	end
+
+	local tracker = ObjectiveTrackerFrame
+	local manager = ObjectiveTrackerManager
+	if (not tracker or not manager or not manager.moduleToContainerMap) then
+		return
+	end
+
+	ObserveTrackerFrame(tracker)
+	ObserveTrackerFrame(tracker.Header)
+	local minimizeButton = tracker.Header and tracker.Header.MinimizeButton
+	if (minimizeButton and not observedTrackerFrames[minimizeButton]) then
+		observedTrackerFrames[minimizeButton] = true
+		minimizeButton:HookScript("OnClick", WorldQuestTracker.OnObjectiveTrackerChanges)
 	end
 
 	local objectiveTrackerHeight = 0
-    for moduleFrame in pairs (ObjectiveTrackerManager.moduleToContainerMap) do
-		if (type(moduleFrame) == "table" and moduleFrame.GetObjectType and moduleFrame:GetObjectType() == "Frame" and moduleFrame:IsShown()) then
-        	objectiveTrackerHeight = objectiveTrackerHeight + moduleFrame:GetHeight()
+	for moduleFrame in pairs(manager.moduleToContainerMap) do
+		if (type(moduleFrame) == "table" and moduleFrame.GetObjectType and moduleFrame:GetObjectType() == "Frame") then
+			ObserveTrackerFrame(moduleFrame)
+			if (moduleFrame:IsShown()) then
+				objectiveTrackerHeight = objectiveTrackerHeight + moduleFrame:GetHeight()
+			end
 		end
-    end
-	WorldQuestTracker.TrackerHeight = objectiveTrackerHeight + 50
-
-	WorldQuestTracker.RefreshTrackerAnchor()
-
-	--need to refresh again on next tick due to some modules being updated after the tracker
-	if (not bHasScheduledSizeUpdate) then
-		C_Timer.After(0, WorldQuestTracker.OnObjectiveTrackerChanges)
-		bHasScheduledSizeUpdate = true
 	end
+
+	WorldQuestTracker.TrackerHeight = tracker:IsCollapsed() and 35 or objectiveTrackerHeight + 50
+	if (questStatePending) then
+		questStatePending = false
+		WorldQuestTracker.UpdateQuestsInArea()
+	end
+	-- Widget refreshes can be throttled, so always apply the latest layout.
+	WorldQuestTracker.RefreshTrackerAnchor()
 end
 
 function WorldQuestTracker.OnObjectiveTrackerChanges()
-	--check the time to make sure only one update is triggered
-	if (GetTime() == latestTrackerPositionUpdate) then
-		return
+	if (not trackerUpdatePending) then
+		trackerUpdatePending = true
+		C_Timer.After(0, RefreshObjectiveTracker)
 	end
-
-	latestTrackerPositionUpdate = GetTime()
-	onObjectiveTrackerChanges()
-	bHasScheduledSizeUpdate = false
 end
-
-if (ObjectiveTrackerManager) then
-	hooksecurefunc(ObjectiveTrackerManager, "ReleaseFrame", onObjectiveTrackerChanges)
-	hooksecurefunc(ObjectiveTrackerManager, "AcquireFrame", onObjectiveTrackerChanges)
-
-	ObjectiveTrackerFrame.Header.MinimizeButton:HookScript("OnClick", function()
-		if (ObjectiveTrackerFrame:IsCollapsed()) then
-			WorldQuestTracker.TrackerHeight = 35
-			WorldQuestTracker.RefreshTrackerAnchor()
-		end
-	end)
-else
-	C_Timer.After(0, function()
-		hooksecurefunc(ObjectiveTrackerManager, "ReleaseFrame", onObjectiveTrackerChanges)
-		hooksecurefunc(ObjectiveTrackerManager, "AcquireFrame", onObjectiveTrackerChanges)
-	end)
-end
-
---ao completar uma world quest remover a quest do tracker e da refresh nos widgets
-hooksecurefunc(BonusObjectiveTracker, "OnQuestTurnedIn", function(self, questID)
-	for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
-		if (WorldQuestTracker.QuestTrackList[i].questID == questID) then
-			local questRemoved = tremove(WorldQuestTracker.QuestTrackList, i)
-			WorldQuestTracker.RefreshTrackerWidgets()
-			onObjectiveTrackerChanges()
-			break
-		end
-	end
-end)
-
-local questEventFrame = CreateFrame("frame")
-questEventFrame:RegisterEvent("QUEST_TURNED_IN")
-questEventFrame:SetScript("OnEvent", function(self, event, ...)
-	C_Timer.After(0, onObjectiveTrackerChanges)
-end)
-
-hooksecurefunc(C_SuperTrack, "SetSuperTrackedQuestID", function()
-	C_Timer.After(0, onObjectiveTrackerChanges)
-end)
-
-hooksecurefunc(QuestUtil, "TrackWorldQuest", function()
-	C_Timer.After(0, onObjectiveTrackerChanges)
-end)
-
-hooksecurefunc(QuestUtil, "UntrackWorldQuest", function()
-	C_Timer.After(0, onObjectiveTrackerChanges)
-end)
-
-
-
-
---[=[
-	["1"] = "ReleaseFrame",
-	["2"] = "ShowRewardsToast",
-	["3"] = "AddContainer",
-	["4"] = "OnVariablesLoaded",
-	["5"] = "HideRewardsToast",
-	["6"] = "HasRewardsToastForBlock",
-	["7"] = "UpdateModule",
-	["8"] = "SetTextSize",
-	["9"] = "OnCVarChanged",
-	["10"] = "UpdateAll",
-	["11"] = "UpdatePOIEnabled",
-	["12"] = "AssignModulesOrder",
-	["13"] = "OnPlayerEnteringWorld",
-	["14"] = "GetContainerForModule",
-	["15"] = "CanShowPOIs",
-	["16"] = "SetModuleContainer",
-	["17"] = "AcquireFrame",
-	["18"] = "SetOpacity",
---]=]
-
-
-
-local bHooked = false
---dispara quando o tracker da interface � atualizado, precisa dar refresh na nossa ancora
-local On_ObjectiveTracker_Update = function()
-	local blizzObjectiveTracker = ObjectiveTrackerFrame
-	if (not blizzObjectiveTracker.init) then
-		return
-	end
-
-	WorldQuestTracker.UpdateQuestsInArea()
-
-	if (not bHooked) then
-		bHooked = true
-	end
-
-	WorldQuestTracker.RefreshTrackerAnchor()
-
-	--[=[]] v7 up to v10
-		WorldQuestTracker.TrackerAttachToModule = nil
-
-		if (blizzObjectiveTracker.collapsed) then
-			WorldQuestTracker.TrackerHeight = 20
-		else
-			for moduleId = #blizzObjectiveTracker.MODULES_UI_ORDER, 1, -1 do
-				local module = blizzObjectiveTracker.MODULES_UI_ORDER[moduleId]
-				if (module.Header:IsShown()) then
-					WorldQuestTracker.TrackerAttachToModule = module
-					--for k,v in pairs(module) do
-					--	print(k)
-					--end
-					WorldQuestTracker.TrackerHeight = module.contentsHeight
-					break
-				end
-			end
-		end
-	--]=]
-	--update world quest tracker anchor
-	--WorldQuestTracker.RefreshTrackerAnchor()
-	
-end
-
---quando houver uma atualiza��o no quest tracker, atualizar as ancoras do nosso tracker
---hooksecurefunc ("ObjectiveTracker_Update", function (reason, id) --v10
---	On_ObjectiveTracker_Update()
---end)
-
-hooksecurefunc(ObjectiveTrackerManager, "UpdateAll", function()
-	On_ObjectiveTracker_Update() --v11
-end)
-hooksecurefunc(ObjectiveTrackerManager, "UpdateModule", function()
-	On_ObjectiveTracker_Update() --v11
-end)
-
-ObjectiveTrackerFrame.Header.MinimizeButton:HookScript("OnClick", function() --v11
-	On_ObjectiveTracker_Update()
-end)
---quando o jogador clicar no bot�o de minizar o quest tracker, atualizar as ancores do nosso tracker
---ObjectiveTrackerFrame.HeaderMenu.MinimizeButton:HookScript ("OnClick", function() --v10
---	On_ObjectiveTracker_Update()
---end)
 
 function WorldQuestTracker:FullTrackerUpdate()
-	On_ObjectiveTracker_Update()
+	questStatePending = true
+	WorldQuestTracker.OnObjectiveTrackerChanges()
 end
 
+questEventFrame:RegisterEvent("ADDON_LOADED")
+questEventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+questEventFrame:RegisterEvent("PLAYER_LEAVING_WORLD")
+questEventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+questEventFrame:RegisterEvent("QUEST_ACCEPTED")
+questEventFrame:RegisterEvent("QUEST_REMOVED")
+questEventFrame:RegisterEvent("QUEST_TURNED_IN")
+questEventFrame:RegisterEvent("QUEST_LOG_UPDATE")
+questEventFrame:RegisterEvent("QUEST_WATCH_LIST_CHANGED")
+questEventFrame:RegisterEvent("QUEST_POI_UPDATE")
+questEventFrame:RegisterEvent("SUPER_TRACKING_CHANGED")
+questEventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+questEventFrame:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
+questEventFrame:SetScript("OnEvent", function(self, event, questID)
+	if (event == "PLAYER_LEAVING_WORLD") then
+		leavingWorld = true
+		return
+	elseif (event == "PLAYER_ENTERING_WORLD") then
+		leavingWorld = false
+	end
 
+	if (event == "QUEST_TURNED_IN") then
+		for i = #WorldQuestTracker.QuestTrackList, 1, -1 do
+			if (WorldQuestTracker.QuestTrackList[i].questID == questID) then
+				tremove(WorldQuestTracker.QuestTrackList, i)
+			end
+		end
+	end
 
+	if (event ~= "ADDON_LOADED" and event ~= "PLAYER_REGEN_ENABLED" and event ~= "EDIT_MODE_LAYOUTS_UPDATED") then
+		questStatePending = true
+	end
+	WorldQuestTracker.OnObjectiveTrackerChanges()
+end)
 
+if (EventRegistry) then
+	EventRegistry:RegisterCallback("EditMode.Enter", WorldQuestTracker.OnObjectiveTrackerChanges, questEventFrame)
+	EventRegistry:RegisterCallback("EditMode.Exit", WorldQuestTracker.OnObjectiveTrackerChanges, questEventFrame)
+	EventRegistry:RegisterCallback("EditMode.SavedLayouts", WorldQuestTracker.OnObjectiveTrackerChanges, questEventFrame)
+end
 
+WorldQuestTracker.OnObjectiveTrackerChanges()
