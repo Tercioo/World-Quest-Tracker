@@ -22,7 +22,7 @@ local HereBeDragons = LibStub("HereBeDragons-2.0")
 local CONST_QUEST_LOADINGTIME = 1.333
 local _
 local isWorldQuest = QuestUtils_IsQuestWorldQuest
-local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap
+local GetQuestsForPlayerByMapID = C_TaskQuest.GetQuestsOnMap
 local IsQuestCriteriaForBounty = C_QuestLog.IsQuestCriteriaForBounty
 
 local faction_frames = {}
@@ -1556,6 +1556,3 @@ function WorldQuestTracker.UpdateFactionAlpha()
 		end
 	end
 end
-
-
-
