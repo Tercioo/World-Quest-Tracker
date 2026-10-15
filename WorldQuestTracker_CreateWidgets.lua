@@ -124,7 +124,10 @@ function WorldQuestTracker.CreateWorldMapSquareButton(mapName, index, parent)
 	button:SetSize(WorldQuestTracker.Constants.WorldMapSquareSize, WorldQuestTracker.Constants.WorldMapSquareSize)
 	button.IsWorldQuestButton = true
 	button:SetFrameLevel(302)
-	button:SetBackdrop(worldSquareBackdrop)
+	--one square per world quest on the world overview map, so this is the heaviest backdrop
+	--site in the addon; the border colour stays the white ApplyBackdrop used to default to.
+	wqtInternal.SetTiledBackground(button, [[Interface\TARGETINGFRAME\UI-TargetingFrame-LevelBackground]], 16)
+	wqtInternal.SetFlatBorder(button, 1.8)
 	button:SetBackdropColor(.1, .1, .1, .6)
 	button.OnLegendPinMouseEnter = emptyFunction
 	button.OnLegendPinMouseLeave = emptyFunction

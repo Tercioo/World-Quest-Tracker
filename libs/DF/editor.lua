@@ -13,6 +13,122 @@ local wipe = table.wipe
 --maximum number of entries kept in the undo / redo stacks; oldest entries are dropped beyond this.
 local MAX_UNDO_STACK = 50
 
+--the reset to default button at the right of each option row
+local RESET_BUTTON_ATLAS = "UI-RefreshButton"
+--space between the row and the reset button
+local RESET_BUTTON_GAP = 2
+--buildmenu ends the row highlight 3 pixels past the right edge of the widget
+local ROW_HIGHLIGHT_RIGHT_PADDING = 3
+--the row highlight starts 2 pixels left of the label and ends 3 pixels past the widget
+local ROW_HIGHLIGHT_EXTRA_WIDTH = 5
+--the dropdown height buildmenu uses when the dropdown template has none
+local DEFAULT_DROPDOWN_HEIGHT = 18
+--the icon is drawn this many pixels inside the button on each side
+local RESET_ICON_INSET = 2
+--the alpha of the whole button while it is disabled
+local RESET_BUTTON_DISABLED_ALPHA = 0.3
+--numbers stored in a profile pick up float error, a 1 can be read back as 0.99999999, so a value this close to the
+--default counts as the default
+local DEFAULT_VALUE_TOLERANCE = 0.00001
+--the resize grips drawn on the corners and sides of the object being edited: a corner is a 90 degree bracket,
+--a side is a short line along the edge
+--how thick the lines are
+local RESIZE_GRIP_THICKNESS = 2
+--the length of each arm of a corner bracket, also the size of the area a corner can be grabbed by
+local RESIZE_GRIP_CORNER_LENGTH = 6
+--the length of a side line
+local RESIZE_GRIP_SIDE_LENGTH = 8
+--how deep the area a side can be grabbed by is, measured from the outer edge of its line
+local RESIZE_GRIP_DEPTH = 5
+--the space between the object and the lines
+local RESIZE_GRIP_GAP = 1
+local RESIZE_GRIP_COLOR = {1, 1, 1, 1}
+local RESIZE_GRIP_HOVER_COLOR = {1, 0.82, 0, 1}
+--above the anchor points, which sit on frame level 10, so a grip over an anchor point still gets the click
+local RESIZE_GRIP_FRAME_LEVEL = 12
+--a drag never makes a width, height or font size smaller than this
+local RESIZE_MIN_VALUE = 1
+
+--classic clients have no secret values
+local issecretvalue = issecretvalue or function() return false end
+
+--the option keys a resize grip drags: width and height for textures and frames, the font size for fontstrings
+local RESIZE_KEYS = {width = true, height = true, size = true}
+
+--the point of the object each resize grip sits on, and which way it pulls each axis: 1 moves the right or top
+--edge, -1 moves the left or bottom edge, 0 leaves that axis alone
+local resizeGripPoints = {
+    {point = "topleft", directionX = -1, directionY = 1},
+    {point = "top", directionX = 0, directionY = 1},
+    {point = "topright", directionX = 1, directionY = 1},
+    {point = "right", directionX = 1, directionY = 0},
+    {point = "bottomright", directionX = 1, directionY = -1},
+    {point = "bottom", directionX = 0, directionY = -1},
+    {point = "bottomleft", directionX = -1, directionY = -1},
+    {point = "left", directionX = -1, directionY = 0},
+}
+
+--the horizontal position, in the object's own units, that a grip pulling along directionX leaves in place: the
+--opposite edge, or the center when the grip does not pull that axis. nil when the object has no usable position
+---@param object uiobject
+---@param directionX number
+---@return number?
+local getFixedPositionX = function(object, directionX)
+    local left, right = object:GetLeft(), object:GetRight()
+    if (not left or not right or issecretvalue(left) or issecretvalue(right)) then
+        return nil
+    end
+    if (directionX > 0) then
+        return left
+    elseif (directionX < 0) then
+        return right
+    end
+    return (left + right) / 2
+end
+
+--the vertical counterpart of getFixedPositionX
+---@param object uiobject
+---@param directionY number
+---@return number?
+local getFixedPositionY = function(object, directionY)
+    local bottom, top = object:GetBottom(), object:GetTop()
+    if (not bottom or not top or issecretvalue(bottom) or issecretvalue(top)) then
+        return nil
+    end
+    if (directionY > 0) then
+        return bottom
+    elseif (directionY < 0) then
+        return top
+    end
+    return (bottom + top) / 2
+end
+
+--adds a line to a resize grip, pinned to the grip's own point so it lies on the grip's outer edges. a dark
+--outline one pixel wide is drawn behind it, so the line reads over light and dark objects alike
+---@param grip df_editor_resizegrip
+---@param width number
+---@param height number
+local createResizeGripLine = function(grip, width, height)
+    local line = grip:CreateTexture(nil, "artwork")
+    line:SetSize(width, height)
+    line:SetPoint(grip.point, grip, grip.point, 0, 0)
+
+    local outline = grip:CreateTexture(nil, "border")
+    outline:SetColorTexture(0, 0, 0, 1)
+    outline:SetPoint("topleft", line, "topleft", -1, 1)
+    outline:SetPoint("bottomright", line, "bottomright", 1, -1)
+
+    grip.Lines[#grip.Lines + 1] = line
+end
+
+---@param grip df_editor_resizegrip
+---@param color number[]
+local setResizeGripColor = function(grip, color)
+    for i = 1, #grip.Lines do
+        grip.Lines[i]:SetColorTexture(unpack(color))
+    end
+end
+
 --shallow equality for undo snapshots. used to skip pushing undo entries when nothing actually
 --changed - this happens when BuildMenuVolatile fires set() during widget construction with the
 --current value, which would otherwise create no-op undo entries that wipe the redo stack.
@@ -73,6 +189,13 @@ end
 ---@field redoHistory undostate[]
 ---@field UndoButton df_button?
 ---@field RedoButton df_button?
+---@field resetButtons df_button[] the reset to default buttons, one per option row, reused on every menu build
+---@field bIsResettingOption boolean? true while a reset button writes its default, gives that undo step a key of its own
+---@field ResizeGrips df_editor_resizegrip[] the eight grips that resize the object being edited
+---@field resizeTargets table<string, df_editor_resizetarget>? the width, height and size options of the open menu, keyed by option key
+---@field resizeAnchorSettings table? the anchor table of the object being edited, moved during a resize so the edge opposite the grip stays put
+---@field resizeState df_editor_resizestate? the resize being dragged right now
+---@field resizeCount number counts the resizes, so each one is its own undo step
 ---each undo entry is a pair of closures. coalesceKey lets adjacent entries from the same widget
 ---(e.g. continuous slider drag) merge into one stack entry instead of N.
 ---@class undostate : table
@@ -120,6 +243,7 @@ end
 ---@field selectButtons button[] one click-to-select overlay per member widget
 ---@field activeMemberIndex number? which member was last clicked (or 1 by default); brackets/mover follow this member
 ---@field refFrame frame usually the parent of the object registered
+---@field defaults df_editor_defaultvalues? the values the reset to default buttons put back
 ---@field parentId any? id of the parent registration. when set, this entry renders nested under that parent in the object selector and is hidden while the parent is collapsed
 ---@field isExpanded boolean only meaningful for parents (entries that have at least one child registration). controls whether the children are shown in the selector. defaults to false
 
@@ -128,6 +252,42 @@ end
 ---@field startY number
 ---@field restingX number
 ---@field restingY number
+
+---@class df_editor_resizegrip : button
+---@field point string the point of the object the grip sits on
+---@field directionX number 1 moves the right edge, -1 the left edge, 0 leaves the width alone
+---@field directionY number 1 moves the top edge, -1 the bottom edge, 0 leaves the height alone
+---@field Lines texture[] the visible lines of the grip, recolored while the mouse is over it
+
+---an option of the open menu a resize grip drives
+---@class df_editor_resizetarget : table
+---@field applyValue fun(value:any) writes the profile, runs the callback and the setter on every member, the same path a slider edit takes
+---@field profileTable table
+---@field profileKey string
+---@field minValue number?
+---@field maxValue number?
+---@field bUseDecimals boolean?
+
+---@class df_editor_resizestate : table
+---@field grip df_editor_resizegrip
+---@field object uiobject
+---@field registeredObject df_editor_objectinfo
+---@field resizeTargets table<string, df_editor_resizetarget>
+---@field bIsFontString boolean
+---@field startCursorX number
+---@field startCursorY number
+---@field startWidth number
+---@field startHeight number
+---@field startValues table<string, number>
+---@field lastValues table<string, number>
+---@field fixedX number?
+---@field fixedY number?
+---@field anchorSettings table?
+---@field startAnchorX number?
+---@field startAnchorY number?
+---@field onEditCallback function?
+---@field profileTable table
+---@field anchorProfileKey string?
 
 
 
@@ -408,10 +568,22 @@ local attributes = {
 ---@field Undo fun(self:df_editor)
 ---@field Redo fun(self:df_editor)
 ---@field RefreshUndoButtons fun(self:df_editor) update enable/disable state of the toolbar undo/redo buttons
+---@field RefreshDisabledOptions fun(self:df_editor) re-run the disableif of every option in the open menu, without resetting any value
 ---@field PrepareObjectForEditing fun(self:df_editor)
 ---@field StartObjectMovement fun(self:df_editor, anchorSettings:df_anchor)
 ---@field StopObjectMovement fun(self:df_editor)
----@field RegisterObject fun(self:df_editor, object:uiobject|uiobject[], localizedLabel:string, id:string, profileTable:table, subTablePath:string, profileKeyMap:table, extraOptions:table?, callback:function?, options:df_editobjectoptions?, refFrame:frame):df_editor_objectinfo register one or more widgets under a single logical entry. When an array of widgets is passed, all members share the same option set and any in-place selection click selects the registration with the clicked member becoming the brackets/mover focus. All members must share the same object type.
+---@field CreateResizeGrips fun(self:df_editor)
+---@field ShowResizeGrips fun(self:df_editor, object:uiobject, resizeTargets:table<string, df_editor_resizetarget>, anchorSettings:table?):boolean show the grips the object can be resized with, none when it has nothing to resize. true when any grip is shown
+---@field HideResizeGrips fun(self:df_editor) end a resize being dragged and hide the grips
+---@field StartObjectResize fun(self:df_editor, grip:df_editor_resizegrip)
+---@field UpdateObjectResize fun(self:df_editor)
+---@field StopObjectResize fun(self:df_editor) end the resize being dragged, if any, and record it as one undo step
+---@field AddResizeUndoState fun(self:df_editor, resizeState:df_editor_resizestate, newValues:table<string, number>, newAnchorX:number?, newAnchorY:number?)
+---@field RegisterObject fun(self:df_editor, object:uiobject|uiobject[], localizedLabel:string, id:string, profileTable:table, subTablePath:string, profileKeyMap:table, extraOptions:table?, callback:function?, options:df_editobjectoptions?, refFrame:frame, defaultValues:df_editor_defaultvalues?):df_editor_objectinfo register one or more widgets under a single logical entry. When an array of widgets is passed, all members share the same option set and any in-place selection click selects the registration with the clicked member becoming the brackets/mover focus. All members must share the same object type. defaultValues are what the reset to default buttons put back.
+---@field GetResetButtonSize fun(self:df_editor):number the width and height of the reset to default buttons, the height of the dropdowns
+---@field LayoutResetButtons fun(self:df_editor, resetEntries:df_editor_resetentry[], widgetWidth:number) place a reset to default button beside each option row that has one
+---@field RefreshResetButtonStates fun(self:df_editor) enable each shown reset button whose option has a default, whose widget is enabled and whose value is not the default already
+---@field ResetOptionToDefault fun(self:df_editor, resetEntry:df_editor_resetentry) set an option back to its default, through the same path as a user edit so it can be undone
 ---@field UnregisterObject fun(self:df_editor, object:uiobject)
 ---@field OnHide fun(self:df_editor)
 ---@field OnShow fun(self:df_editor)
@@ -429,6 +601,8 @@ local attributes = {
 ---@field use_colon boolean? if true a colon is shown after the option name
 ---@field can_move boolean? if true the object can be moved
 ---@field can_click boolean? if true the live-preview click-to-select overlay is shown for this object
+---@field can_resize boolean? if true grips on the corners and sides of the object drag its width and height, or its font size for a fontstring. the grips drive the options keyed width, height and size, so profileKeyMap decides where the drag is saved
+---@field use_builtin_attributes boolean? defaults to true. when false the object type's built-in attribute rows are not offered at all and the menu is built from extraOptions alone
 ---@field icon any atlasName atlasTable (from DF:CreateAtlas) or texture path|id
 ---@field parentId any? id of the parent registration. nests this entry under that parent in the object selector. selecting a nested entry auto-expands its parent
 
@@ -437,12 +611,16 @@ local editObjectDefaultOptions = {
     use_colon = false,
     can_move = true,
     can_click = true,
+    can_resize = false,
+    use_builtin_attributes = true,
 }
 
 ---@class df_editor_defaultoptions : table
 ---@field width number
 ---@field height number
 ---@field options_width number
+---@field options_label_width number width of the label column in the center panel, the widget column starts right after it
+---@field options_widget_width number width of each widget in the center panel. label width + widget width + 7 must fit options_width
 ---@field create_object_list boolean
 ---@field object_list_width number
 ---@field object_list_height number
@@ -453,17 +631,33 @@ local editObjectDefaultOptions = {
 ---@field switch_template table
 ---@field button_template table
 ---@field slider_template table
+---@field color_template table? template for the color pickers, its width and height included; nil keeps them 18 x 18 with the switch template
 ---@field no_anchor_points boolean
 ---@field start_editing_callback fun(editorFrame: df_editor, registeredObject: df_editor_objectinfo)?
 ---@field selection_texture string
 ---@field selection_size number
 ---@field show_undo_buttons boolean
+---@field show_reset_buttons boolean if true each option row gets a reset to default button at its right; the widgets get narrower to make room for it
+---@field show_disabled_reset_buttons boolean what an option without a default gets while the reset buttons are shown: true shows the button disabled, false shows no button
+
+---the default of each option, keyed by the option key: the key used on profileKeyMap for the built-in options and the
+---key of each extra option. a nil value means the option has no default.
+---can also be a function(optionKey, profileTable, profileKey) returning the default, for defaults that follow the profile table or subTablePath
+---@alias df_editor_defaultvalues table<string, any>|fun(optionKey:string, profileTable:table, profileKey:string):any
+
+---@class df_editor_resetentry : table
+---@field optionTable table the option table given to BuildMenuVolatile, its .widget is the widget built for it
+---@field widgetType string
+---@field defaultValue any nil when the option has no default
+---@field getCurrentValue fun():any the option's value as the profile holds it now
 
 ---@type df_editor_defaultoptions
 local editorDefaultOptions = {
     width = 400,
     height = 548,
     options_width = 340,
+    options_label_width = 150,
+    options_widget_width = 180,
     create_object_list = true,
     object_list_width = 200,
     object_list_height = 420,
@@ -479,6 +673,8 @@ local editorDefaultOptions = {
     selection_texture = "GM_BehaviorMessage_CornerTopLeft_Frame",
     selection_size = 8,
     show_undo_buttons = true,
+    show_reset_buttons = false,
+    show_disabled_reset_buttons = true,
 }
 
 
@@ -492,6 +688,86 @@ local getParentTable = function(profileTable, profileKey)
 
     local parentTable = detailsFramework.table.getfrompath(profileTable, parentPath)
     return parentTable
+end
+
+---return the default of an option, nil when it has none
+---@param defaultValues df_editor_defaultvalues?
+---@param optionKey string
+---@param profileTable table
+---@param profileKey string
+---@return any
+local getOptionDefaultValue = function(defaultValues, optionKey, profileTable, profileKey)
+    if (type(defaultValues) == "table") then
+        return defaultValues[optionKey]
+
+    elseif (type(defaultValues) == "function") then
+        local bSuccess, defaultValue = xpcall(defaultValues, geterrorhandler(), optionKey, profileTable, profileKey)
+        if (bSuccess) then
+            return defaultValue
+        end
+    end
+end
+
+---the menu widgets do not agree on how they are disabled: dropdowns, sliders and toggles set 'lockdown' and leave their
+---frame enabled, color pickers and text entries disable their frame
+---@param widget table
+---@return boolean
+local isOptionWidgetEnabled = function(widget)
+    if (rawget(widget, "lockdown")) then
+        return false
+    end
+    if (widget.IsEnabled and not widget:IsEnabled()) then
+        return false
+    end
+    return true
+end
+
+---@param value1 any
+---@param value2 any
+---@return boolean
+local isNearlyEqual = function(value1, value2)
+    if (type(value1) == "number" and type(value2) == "number") then
+        return math.abs(value1 - value2) < DEFAULT_VALUE_TOLERANCE
+    end
+    return value1 == value2
+end
+
+---true when the option already holds its default, numbers within DEFAULT_VALUE_TOLERANCE of it included
+---@param resetEntry df_editor_resetentry
+---@return boolean
+local isOptionAtDefault = function(resetEntry)
+    local defaultValue = resetEntry.defaultValue
+    local currentValue = resetEntry.getCurrentValue()
+
+    --colors are compared channel by channel after ParseColors, so a default given in any color format still matches
+    if (resetEntry.widgetType == "color") then
+        if (type(currentValue) ~= "table") then
+            return false
+        end
+        local defaultRed, defaultGreen, defaultBlue, defaultAlpha = detailsFramework:ParseColors(defaultValue)
+        local red, green, blue, alpha = detailsFramework:ParseColors(currentValue)
+        return isNearlyEqual(red, defaultRed) and isNearlyEqual(green, defaultGreen) and isNearlyEqual(blue, defaultBlue) and isNearlyEqual(alpha, defaultAlpha)
+    end
+
+    if (type(currentValue) == "table" and type(defaultValue) == "table") then
+        for key, value in pairs(defaultValue) do
+            if (not isNearlyEqual(currentValue[key], value)) then
+                return false
+            end
+        end
+        for key in pairs(currentValue) do
+            if (defaultValue[key] == nil) then
+                return false
+            end
+        end
+        return true
+    end
+
+    return isNearlyEqual(currentValue, defaultValue)
+end
+
+local onClickResetButton = function(blizzButton, mouseButton, editorFrame, resetEntry)
+    editorFrame:ResetOptionToDefault(resetEntry)
 end
 
 ---@param self df_editor
@@ -661,6 +937,409 @@ detailsFramework.EditorMixin = {
     SetSelectedBackgroundColor = function(self, r, g, b, a)
         ---@diagnostic disable-next-line: undefined-field
         self.ObjectBackgroundTexture:SetColorTexture(r, g, b, a)
+    end,
+
+    ---creates the eight resize grips, hidden until an object with can_resize is edited
+    ---@param self df_editor
+    CreateResizeGrips = function(self)
+        self.ResizeGrips = {}
+        self.resizeCount = 0
+        local editorFrame = self
+
+        for i = 1, #resizeGripPoints do
+            local gripPoint = resizeGripPoints[i]
+            ---@type df_editor_resizegrip
+            local grip = CreateFrame("button", "$parentResizeGrip" .. i, self:GetOverTheTopFrame())
+            grip:SetFrameStrata("TOOLTIP")
+            grip:SetFrameLevel(RESIZE_GRIP_FRAME_LEVEL)
+            grip:Hide()
+            grip.point = gripPoint.point
+            grip.directionX = gripPoint.directionX
+            grip.directionY = gripPoint.directionY
+            grip.Lines = {}
+
+            --a corner draws a 90 degree bracket around the object's corner and a side draws a short line along
+            --its edge. the lines sit just outside the object so they do not hide it; the grip reaches a few
+            --pixels inside it, which is what the mouse grabs
+            if (grip.directionX ~= 0 and grip.directionY ~= 0) then
+                grip:SetSize(RESIZE_GRIP_CORNER_LENGTH, RESIZE_GRIP_CORNER_LENGTH)
+                createResizeGripLine(grip, RESIZE_GRIP_CORNER_LENGTH, RESIZE_GRIP_THICKNESS)
+                createResizeGripLine(grip, RESIZE_GRIP_THICKNESS, RESIZE_GRIP_CORNER_LENGTH)
+            elseif (grip.directionX ~= 0) then
+                grip:SetSize(RESIZE_GRIP_DEPTH, RESIZE_GRIP_SIDE_LENGTH)
+                createResizeGripLine(grip, RESIZE_GRIP_THICKNESS, RESIZE_GRIP_SIDE_LENGTH)
+            else
+                grip:SetSize(RESIZE_GRIP_SIDE_LENGTH, RESIZE_GRIP_DEPTH)
+                createResizeGripLine(grip, RESIZE_GRIP_SIDE_LENGTH, RESIZE_GRIP_THICKNESS)
+            end
+
+            grip:SetScript("OnEnter", function()
+                setResizeGripColor(grip, RESIZE_GRIP_HOVER_COLOR)
+            end)
+            grip:SetScript("OnLeave", function()
+                setResizeGripColor(grip, RESIZE_GRIP_COLOR)
+            end)
+
+            grip:SetScript("OnMouseDown", function(_, mouseButton)
+                if (mouseButton == "LeftButton") then
+                    editorFrame:StartObjectResize(grip)
+                end
+            end)
+            grip:SetScript("OnMouseUp", function()
+                editorFrame:StopObjectResize()
+            end)
+
+            self.ResizeGrips[i] = grip
+        end
+    end,
+
+    ---@param self df_editor
+    ---@param object uiobject
+    ---@param resizeTargets table<string, df_editor_resizetarget>
+    ---@param anchorSettings table?
+    ShowResizeGrips = function(self, object, resizeTargets, anchorSettings)
+        self:HideResizeGrips()
+
+        --an object held by two or more points takes its size from them, so setting a size would not change it
+        ---@diagnostic disable-next-line: undefined-field
+        if (object:GetNumPoints() > 1) then
+            return false
+        end
+
+        self.resizeTargets = resizeTargets
+        self.resizeAnchorSettings = anchorSettings
+
+        local bIsFontString = object:GetObjectType() == "FontString"
+        local bCanResizeWidth = resizeTargets.width ~= nil
+        local bCanResizeHeight = resizeTargets.height ~= nil
+        --any grip resizes a fontstring, there is a single font size behind both of its axes
+        if (bIsFontString) then
+            bCanResizeWidth = resizeTargets.size ~= nil
+            bCanResizeHeight = bCanResizeWidth
+        end
+
+        --how far outside the object the outer edge of a grip's line sits
+        local outset = RESIZE_GRIP_GAP + RESIZE_GRIP_THICKNESS
+
+        local bShownAnyGrip = false
+        for i = 1, #self.ResizeGrips do
+            local grip = self.ResizeGrips[i]
+            if ((grip.directionX == 0 or bCanResizeWidth) and (grip.directionY == 0 or bCanResizeHeight)) then
+                grip:ClearAllPoints()
+                grip:SetPoint(grip.point, object, grip.point, grip.directionX * outset, grip.directionY * outset)
+                setResizeGripColor(grip, RESIZE_GRIP_COLOR)
+                grip:Show()
+                bShownAnyGrip = true
+            end
+        end
+
+        --the mover's white dot sits in the middle of the object and, among the grips, reads as a ninth grip
+        if (bShownAnyGrip) then
+            self:GetMoverObject().MoverFrame.MoverIcon:Hide()
+        end
+
+        return bShownAnyGrip
+    end,
+
+    ---@param self df_editor
+    HideResizeGrips = function(self)
+        self:StopObjectResize()
+        for i = 1, #self.ResizeGrips do
+            self.ResizeGrips[i]:Hide()
+        end
+        self:GetMoverObject().MoverFrame.MoverIcon:Show()
+        self.resizeTargets = nil
+        self.resizeAnchorSettings = nil
+    end,
+
+    ---@param self df_editor
+    ---@param grip df_editor_resizegrip
+    StartObjectResize = function(self, grip)
+        self:StopObjectResize()
+
+        local object = self:GetEditingObject()
+        local registeredObject = self:GetEditingRegisteredObject()
+        local resizeTargets = self.resizeTargets
+        if (not object or not registeredObject or not resizeTargets) then
+            return
+        end
+
+        local width, height = object:GetWidth(), object:GetHeight()
+        if (issecretvalue(width) or issecretvalue(height)) then
+            return
+        end
+
+        --the drag adds to the values the profile holds, the same ones the sliders show
+        local startValues = {}
+        for key, resizeTarget in pairs(resizeTargets) do
+            local value = detailsFramework.table.getfrompath(resizeTarget.profileTable, resizeTarget.profileKey)
+            if (type(value) == "number") then
+                startValues[key] = value
+            end
+        end
+
+        local anchorSettings = self.resizeAnchorSettings
+        local profileTable, profileMap = self:GetEditingProfile()
+        ---@diagnostic disable-next-line: undefined-field
+        local scale = object:GetEffectiveScale()
+        local cursorX, cursorY = GetCursorPosition()
+
+        ---@type df_editor_resizestate
+        self.resizeState = {
+            grip = grip,
+            object = object,
+            registeredObject = registeredObject,
+            resizeTargets = resizeTargets,
+            bIsFontString = object:GetObjectType() == "FontString",
+            startCursorX = cursorX / scale,
+            startCursorY = cursorY / scale,
+            startWidth = width,
+            startHeight = height,
+            startValues = startValues,
+            lastValues = {},
+            fixedX = getFixedPositionX(object, grip.directionX),
+            fixedY = getFixedPositionY(object, grip.directionY),
+            anchorSettings = anchorSettings,
+            startAnchorX = anchorSettings and anchorSettings.x,
+            startAnchorY = anchorSettings and anchorSettings.y,
+            onEditCallback = self:GetOnEditCallback(),
+            profileTable = profileTable,
+            anchorProfileKey = profileMap and profileMap.anchor,
+        }
+
+        grip:SetScript("OnUpdate", function()
+            self:UpdateObjectResize()
+        end)
+    end,
+
+    ---@param self df_editor
+    UpdateObjectResize = function(self)
+        local resizeState = self.resizeState
+        if (not resizeState) then
+            return
+        end
+
+        --the button can be let go where the grip does not see it, such as over another window
+        if (not IsMouseButtonDown("LeftButton")) then
+            self:StopObjectResize()
+            return
+        end
+
+        local object = resizeState.object
+        local grip = resizeState.grip
+        local directionX, directionY = grip.directionX, grip.directionY
+        local startValues = resizeState.startValues
+
+        --how far the cursor went since the grip was grabbed, in the object's own units
+        ---@diagnostic disable-next-line: undefined-field
+        local scale = object:GetEffectiveScale()
+        local cursorX, cursorY = GetCursorPosition()
+        local deltaX = cursorX / scale - resizeState.startCursorX
+        local deltaY = cursorY / scale - resizeState.startCursorY
+
+        local newValues = {}
+        if (resizeState.bIsFontString) then
+            --the font size grows by as much as the text would have to grow to reach the cursor; a corner grip
+            --averages what its two axes ask for
+            if (startValues.size) then
+                local ratioSum, ratioCount = 0, 0
+                if (directionX ~= 0 and resizeState.startWidth > 0) then
+                    ratioSum = ratioSum + (resizeState.startWidth + deltaX * directionX) / resizeState.startWidth
+                    ratioCount = ratioCount + 1
+                end
+                if (directionY ~= 0 and resizeState.startHeight > 0) then
+                    ratioSum = ratioSum + (resizeState.startHeight + deltaY * directionY) / resizeState.startHeight
+                    ratioCount = ratioCount + 1
+                end
+                if (ratioCount > 0) then
+                    newValues.size = startValues.size * ratioSum / ratioCount
+                end
+            end
+        else
+            if (directionX ~= 0 and startValues.width) then
+                newValues.width = startValues.width + deltaX * directionX
+            end
+            if (directionY ~= 0 and startValues.height) then
+                newValues.height = startValues.height + deltaY * directionY
+            end
+
+            --shift on a corner keeps the proportions the object had when the grip was grabbed, as in photoshop.
+            --the axis the cursor pulled further sets the scale and the other follows it
+            local startWidth, startHeight = startValues.width, startValues.height
+            if (IsShiftKeyDown() and newValues.width and newValues.height and startWidth > 0 and startHeight > 0) then
+                local ratioX = newValues.width / startWidth
+                local ratioY = newValues.height / startHeight
+                local ratio = (math.abs(ratioX - 1) >= math.abs(ratioY - 1)) and ratioX or ratioY
+
+                --clamped here rather than per axis below, where hitting the limit on one axis would bend the proportions
+                local resizeTargets = resizeState.resizeTargets
+                local widthTarget, heightTarget = resizeTargets.width, resizeTargets.height
+                local minRatio = math.max((widthTarget.minValue or RESIZE_MIN_VALUE) / startWidth, (heightTarget.minValue or RESIZE_MIN_VALUE) / startHeight)
+                ratio = math.max(ratio, minRatio)
+                if (widthTarget.maxValue) then
+                    ratio = math.min(ratio, widthTarget.maxValue / startWidth)
+                end
+                if (heightTarget.maxValue) then
+                    ratio = math.min(ratio, heightTarget.maxValue / startHeight)
+                end
+
+                newValues.width = startWidth * ratio
+                newValues.height = startHeight * ratio
+            end
+        end
+
+        local optionsFrame = self:GetOptionsFrame()
+        local bChanged = false
+
+        for key, value in pairs(newValues) do
+            local resizeTarget = resizeState.resizeTargets[key]
+            if (not resizeTarget.bUseDecimals) then
+                value = math.floor(value + 0.5)
+            end
+            value = math.max(value, resizeTarget.minValue or RESIZE_MIN_VALUE, RESIZE_MIN_VALUE)
+            if (resizeTarget.maxValue) then
+                value = math.min(value, resizeTarget.maxValue)
+            end
+
+            if (value ~= resizeState.lastValues[key]) then
+                resizeState.lastValues[key] = value
+                resizeTarget.applyValue(value)
+                bChanged = true
+
+                local slider = optionsFrame:GetWidgetById(key)
+                if (slider and slider.SetValueNoCallback) then
+                    slider:SetValueNoCallback(value)
+                end
+            end
+        end
+
+        if (not bChanged) then
+            return
+        end
+
+        --the object grew around its anchor point, so the anchor is moved by however far the edge opposite the grip
+        --went, which puts that edge back where it was when the grip was grabbed
+        local anchorSettings = resizeState.anchorSettings
+        if (anchorSettings) then
+            local shiftX, shiftY = 0, 0
+            local fixedX = getFixedPositionX(object, directionX)
+            if (fixedX and resizeState.fixedX) then
+                shiftX = resizeState.fixedX - fixedX
+            end
+            local fixedY = getFixedPositionY(object, directionY)
+            if (fixedY and resizeState.fixedY) then
+                shiftY = resizeState.fixedY - fixedY
+            end
+
+            if (shiftX ~= 0 or shiftY ~= 0) then
+                anchorSettings.x = anchorSettings.x + shiftX
+                anchorSettings.y = anchorSettings.y + shiftY
+
+                local members = resizeState.registeredObject.objects or {object}
+                for i = 1, #members do
+                    local member = members[i]
+                    detailsFramework:SetAnchor(member, anchorSettings, member:GetParent())
+                end
+
+                local anchorXSlider = optionsFrame:GetWidgetById("anchoroffsetx")
+                if (anchorXSlider) then
+                    anchorXSlider:SetValueNoCallback(anchorSettings.x)
+                end
+                local anchorYSlider = optionsFrame:GetWidgetById("anchoroffsety")
+                if (anchorYSlider) then
+                    anchorYSlider:SetValueNoCallback(anchorSettings.y)
+                end
+
+                if (resizeState.onEditCallback) then
+                    resizeState.onEditCallback(object, "x", anchorSettings.x, resizeState.profileTable, resizeState.anchorProfileKey)
+                    resizeState.onEditCallback(object, "y", anchorSettings.y, resizeState.profileTable, resizeState.anchorProfileKey)
+                end
+            end
+        end
+
+        --the sliders above are moved without their callback, so the menu's value change hook does not run
+        self:RefreshResetButtonStates()
+    end,
+
+    ---@param self df_editor
+    StopObjectResize = function(self)
+        local resizeState = self.resizeState
+        if (not resizeState) then
+            return
+        end
+        self.resizeState = nil
+        resizeState.grip:SetScript("OnUpdate", nil)
+
+        local bChanged = false
+        local newValues = {}
+        for key, startValue in pairs(resizeState.startValues) do
+            local resizeTarget = resizeState.resizeTargets[key]
+            local value = detailsFramework.table.getfrompath(resizeTarget.profileTable, resizeTarget.profileKey)
+            newValues[key] = value
+            if (value ~= startValue) then
+                bChanged = true
+            end
+        end
+
+        local anchorSettings = resizeState.anchorSettings
+        local newAnchorX = anchorSettings and anchorSettings.x
+        local newAnchorY = anchorSettings and anchorSettings.y
+        if (newAnchorX ~= resizeState.startAnchorX or newAnchorY ~= resizeState.startAnchorY) then
+            bChanged = true
+        end
+
+        --a click on a grip without a drag records nothing
+        if (bChanged) then
+            self:AddResizeUndoState(resizeState, newValues, newAnchorX, newAnchorY)
+        end
+    end,
+
+    ---one undo step for a whole resize: the sizes it changed and the anchor offsets moved to keep the opposite edge
+    ---in place. the values go back through the same apply functions a slider edit uses
+    ---@param self df_editor
+    ---@param resizeState df_editor_resizestate
+    ---@param newValues table<string, number>
+    ---@param newAnchorX number?
+    ---@param newAnchorY number?
+    AddResizeUndoState = function(self, resizeState, newValues, newAnchorX, newAnchorY)
+        local registeredObject = resizeState.registeredObject
+        local resizeTargets = resizeState.resizeTargets
+        local anchorSettings = resizeState.anchorSettings
+        local members = registeredObject.objects or {registeredObject.object}
+        local onEditCallback = resizeState.onEditCallback
+        local profileTable = resizeState.profileTable
+        local anchorProfileKey = resizeState.anchorProfileKey
+        local oldValues = resizeState.startValues
+        local oldAnchorX, oldAnchorY = resizeState.startAnchorX, resizeState.startAnchorY
+
+        local applyResize = function(values, anchorX, anchorY)
+            for key, value in pairs(values) do
+                resizeTargets[key].applyValue(value)
+            end
+
+            if (anchorSettings) then
+                anchorSettings.x = anchorX
+                anchorSettings.y = anchorY
+                for i = 1, #members do
+                    local member = members[i]
+                    detailsFramework:SetAnchor(member, anchorSettings, member:GetParent())
+                end
+                if (onEditCallback) then
+                    onEditCallback(members[1], "x", anchorX, profileTable, anchorProfileKey)
+                    onEditCallback(members[1], "y", anchorY, profileTable, anchorProfileKey)
+                end
+            end
+        end
+
+        --a key of its own for every resize, so two resizes in a row are two undo steps
+        self.resizeCount = self.resizeCount + 1
+
+        self:AddToUndoHistory({
+            objectId = registeredObject.id,
+            coalesceKey = tostring(registeredObject.id) .. ":resize:" .. self.resizeCount,
+            undo = function() applyResize(oldValues, oldAnchorX, oldAnchorY) end,
+            redo = function() applyResize(newValues, newAnchorX, newAnchorY) end,
+        })
     end,
 
 ---@class df_editor_anchorframes : table
@@ -1025,6 +1704,7 @@ detailsFramework.EditorMixin = {
         self:StopObjectMovement()
         self:GetMoverObject():Hide()
         self.AnchorFrames:DisableAllAnchors()
+        self:HideResizeGrips()
         self:HideSelectedTextures()
 
         self.editingObject = nil
@@ -1042,6 +1722,152 @@ detailsFramework.EditorMixin = {
         self.undoHistory = {}
         self.redoHistory = {}
         self:RefreshUndoButtons()
+    end,
+
+    ---re-run the disableif of every option in the open menu. call it after an edit that changes whether other
+    ---options apply. RefreshOptions is not a substitute: each option's get() returns the value captured when the
+    ---menu was built, so it would put the old values back on screen
+    ---@param self df_editor
+    RefreshDisabledOptions = function(self)
+        detailsFramework:RefreshOptionsDisabledState(self:GetOptionsFrame())
+        self:RefreshResetButtonStates()
+    end,
+
+    ---the reset buttons are squares as tall as the dropdowns
+    ---@param self df_editor
+    ---@return number
+    GetResetButtonSize = function(self)
+        local dropdownTemplate = self.options.dropdown_template and detailsFramework:ParseTemplate("dropdown", self.options.dropdown_template)
+        return dropdownTemplate and dropdownTemplate.height or DEFAULT_DROPDOWN_HEIGHT
+    end,
+
+    ---place a reset to default button at the right of each option row in resetEntries and hide the rest.
+    ---widgetWidth is the width the menu was built with, already narrowed to make room for the buttons
+    ---@param self df_editor
+    ---@param resetEntries df_editor_resetentry[]
+    ---@param widgetWidth number
+    LayoutResetButtons = function(self, resetEntries, widgetWidth)
+        local optionsFrame = self:GetOptionsFrame()
+        local resetButtons = self.resetButtons
+        local buttonSize = self:GetResetButtonSize()
+        local labelWidth = self.options.options_label_width
+
+        for i = 1, #resetButtons do
+            resetButtons[i]:Hide()
+        end
+
+        --buildmenu sizes a row highlight only when it creates it, and the highlights are reused by the next menu
+        --build; a menu built after the reset buttons were turned on or off would keep the old width
+        local builtOptions = optionsFrame.build_menu_options or {}
+        for i = 1, #builtOptions do
+            local widget = builtOptions[i].widget
+            if (type(widget) == "table" and widget.highlightFrame) then
+                PixelUtil.SetWidth(widget.highlightFrame, labelWidth + widgetWidth + ROW_HIGHLIGHT_EXTRA_WIDTH)
+            end
+        end
+
+        local buttonIndex = 1
+        for i = 1, #resetEntries do
+            local resetEntry = resetEntries[i]
+            local widget = resetEntry.optionTable.widget
+            local bHasDefault = resetEntry.defaultValue ~= nil
+
+            if (widget and (bHasDefault or self.options.show_disabled_reset_buttons)) then
+                local resetButton = resetButtons[buttonIndex]
+                if (not resetButton) then
+                    resetButton = detailsFramework:CreateButton(optionsFrame, onClickResetButton, buttonSize, buttonSize, "", nil, nil, nil, nil, nil, nil, self.options.button_template)
+                    resetButton:SetTooltip("Reset to Default")
+
+                    local resetIcon = resetButton.widget:CreateTexture(nil, "overlay")
+                    resetIcon:SetAtlas(RESET_BUTTON_ATLAS, false, "TRILINEAR")
+                    resetIcon:SetPoint("topleft", resetButton.widget, "topleft", RESET_ICON_INSET, -RESET_ICON_INSET)
+                    resetIcon:SetPoint("bottomright", resetButton.widget, "bottomright", -RESET_ICON_INSET, RESET_ICON_INSET)
+                    resetButton.ResetIcon = resetIcon
+
+                    resetButtons[buttonIndex] = resetButton
+                end
+                buttonIndex = buttonIndex + 1
+
+                --the button template may carry a size of its own
+                resetButton:SetSize(buttonSize, buttonSize)
+                resetButton:SetClickFunction(onClickResetButton, self, resetEntry)
+
+                --toggles and color pickers end where the row highlight ends less its padding, and so do dropdowns, text
+                --entries and sliders, except a slider's value box drawn at its right, which ends there instead
+                local widgetFrame = widget.widget or widget
+                local xOffset = ROW_HIGHLIGHT_RIGHT_PADDING + RESET_BUTTON_GAP
+                if (widget.widget_type == "range" and widget.GetValueBoxSpace) then
+                    local valueBoxSpace, valueBoxSide = widget:GetValueBoxSpace()
+                    if (valueBoxSide == "right") then
+                        xOffset = xOffset + valueBoxSpace
+                    end
+                end
+
+                resetButton:ClearAllPoints()
+                resetButton:SetPoint("left", widgetFrame, "right", xOffset, 0)
+
+                resetButton.resetEntry = resetEntry
+                resetButton:Show()
+            end
+        end
+
+        self:RefreshResetButtonStates()
+    end,
+
+    ---enable each shown reset button whose option has a default, whose widget is enabled and whose value is not the
+    ---default already. runs after every menu build, after RefreshDisabledOptions, after every value change in the menu,
+    ---which is when a toggle enables or disables the options that follow it, and while the object is dragged
+    ---@param self df_editor
+    RefreshResetButtonStates = function(self)
+        local resetButtons = self.resetButtons
+        for i = 1, #resetButtons do
+            local resetButton = resetButtons[i]
+            if (resetButton:IsShown()) then
+                local resetEntry = resetButton.resetEntry
+                if (resetEntry.defaultValue ~= nil and isOptionWidgetEnabled(resetEntry.optionTable.widget) and not isOptionAtDefault(resetEntry)) then
+                    resetButton:Enable()
+                    resetButton.ResetIcon:SetDesaturated(false)
+                    resetButton:SetAlpha(1)
+                else
+                    resetButton:Disable()
+                    resetButton.ResetIcon:SetDesaturated(true)
+                    resetButton:SetAlpha(RESET_BUTTON_DISABLED_ALPHA)
+                end
+            end
+        end
+    end,
+
+    ---@param self df_editor
+    ---@param resetEntry df_editor_resetentry
+    ResetOptionToDefault = function(self, resetEntry)
+        local optionTable = resetEntry.optionTable
+        local defaultValue = resetEntry.defaultValue
+        if (defaultValue == nil or not isOptionWidgetEnabled(optionTable.widget) or isOptionAtDefault(resetEntry)) then
+            return
+        end
+
+        --the menu's own set() writes the profile, runs the callback and the setter, and records the undo step.
+        --the flag gives that undo step a key of its own, so it is not merged with an edit of the same option made
+        --just before or just after the reset; the flag is cleared even when set() errors
+        self.bIsResettingOption = true
+        xpcall(function()
+            if (resetEntry.widgetType == "color") then
+                local r, g, b, a = detailsFramework:ParseColors(defaultValue)
+                optionTable.set(optionTable.widget, r, g, b, a)
+            else
+                optionTable.set(optionTable.widget, nil, defaultValue)
+            end
+        end, geterrorhandler())
+        self.bIsResettingOption = false
+
+        --the widgets show the values read when the menu was built, so the menu is built again to show the default and
+        --anything that follows it, such as anchor offsets and options it enables; the scroll is kept where the user left it
+        local canvasScrollBox = self:GetCanvasScrollBox()
+        local verticalScroll = canvasScrollBox and canvasScrollBox:GetVerticalScroll()
+        self:Refresh()
+        if (verticalScroll) then
+            canvasScrollBox:SetVerticalScroll(verticalScroll)
+        end
     end,
 
     ---enable / disable the undo / redo buttons based on stack contents. safe to call
@@ -1187,6 +2013,7 @@ detailsFramework.EditorMixin = {
         local fanoutMembers = registeredForClosure and registeredForClosure.objects or {object}
 
         self.AnchorFrames:DisableAllAnchors()
+        self:HideResizeGrips()
 
         local conditionalKeys = profileMap.enable_if or {}
 
@@ -1240,6 +2067,21 @@ detailsFramework.EditorMixin = {
             attributeList = {}
         end
 
+        --a registration can decline the built-in rows outright, taking the same path an unrecognized
+        --object type already takes above.
+        --they are chosen by object type ALONE and are then kept or dropped by whether their key
+        --happens to resolve in the consumer's profile table, which has two consequences a consumer
+        --cannot otherwise avoid: a settings page standing on a hidden anchor frame is offered the
+        --whole Frame set even though it edits no widget, and a profile key that merely SHARES A NAME
+        --with a widget attribute ("alpha", "width", "scale") becomes a control nobody wrote -- with a
+        --setter that calls the widget method on an object the page is not about.
+        --profileKeyMap cannot express this: it REDIRECTS a row at another profile key, it does not
+        --select which rows exist, so the only way to drop one today is to point its key at a name
+        --that resolves to nil.
+        if (editingOptions.use_builtin_attributes == false) then
+            attributeList = {}
+        end
+
         --if there's extra options, add the attributeList to a new table and right after the extra options
         if (extraOptions and #extraOptions > 0) then
             local attributeListWithExtraOptions = {}
@@ -1260,6 +2102,16 @@ detailsFramework.EditorMixin = {
         end
 
         local anchorSettings
+
+        --the width, height and size options the resize grips drive, keyed by option key
+        ---@type table<string, df_editor_resizetarget>
+        local resizeTargets = {}
+
+        --each option row that gets a reset to default button, with the default it puts back
+        local bShowResetButtons = self.options.show_reset_buttons
+        local defaultValues = registeredForClosure and registeredForClosure.defaults
+        ---@type df_editor_resetentry[]
+        local resetEntries = {}
 
         --table to use on DF:BuildMenuVolatile()
         local menuOptions = {}
@@ -1407,6 +2259,17 @@ detailsFramework.EditorMixin = {
                             end
                         end
 
+                        if (RESIZE_KEYS[option.key] and widgetType == "range") then
+                            resizeTargets[option.key] = {
+                                applyValue = applyValue,
+                                profileTable = entryProfileTable,
+                                profileKey = profileKey,
+                                minValue = minValue,
+                                maxValue = maxValue,
+                                bUseDecimals = option.usedecimals,
+                            }
+                        end
+
                         local optionTable = {
                             type = widgetType,
                             name = option.label,
@@ -1456,7 +2319,7 @@ detailsFramework.EditorMixin = {
                                     if (registered) then
                                         self:AddToUndoHistory({
                                             objectId = registered.id,
-                                            coalesceKey = tostring(registered.id) .. ":" .. tostring(option.key),
+                                            coalesceKey = tostring(registered.id) .. ":" .. tostring(option.key) .. (self.bIsResettingOption and ":reset" or ""),
                                             undo = function() applyValue(oldSnapshot) end,
                                             redo = function() applyValue(newSnapshot) end,
                                         })
@@ -1471,6 +2334,19 @@ detailsFramework.EditorMixin = {
                             desc = option.desc,
                             onenter = option.onenter,
                             onleave = option.onleave,
+                            --BuildMenu's enable/disable dependency fields. a toggle with children_follow_enabled
+                            --enables or disables the widgets whose ids are in childrenids as it flips; the ids
+                            --are the children's option keys
+                            childrenids = option.childrenids,
+                            children_follow_enabled = option.children_follow_enabled,
+                            children_follow_reverse = option.children_follow_reverse,
+                            disableif = option.disableif,
+                            --BuildMenu's label icon fields: a texture drawn on the left side of the
+                            --row's label (buildmenu.lua processLabelIcon)
+                            icontexture = option.icontexture,
+                            iconcoords = option.iconcoords,
+                            iconsize = option.iconsize,
+                            iconfilesize = option.iconfilesize,
                         }
 
                         --forwarded for the generic `dropdown` widget; BuildMenu expects `values`
@@ -1500,6 +2376,18 @@ detailsFramework.EditorMixin = {
                         end
 
                         menuOptions[#menuOptions+1] = optionTable
+
+                        if (bShowResetButtons) then
+                            resetEntries[#resetEntries+1] = {
+                                optionTable = optionTable,
+                                widgetType = widgetType,
+                                defaultValue = getOptionDefaultValue(defaultValues, option.key, entryProfileTable, profileKey),
+                                --read from the profile, not from get(), which keeps the value of when the menu was built
+                                getCurrentValue = function()
+                                    return detailsFramework.table.getfrompath(entryProfileTable, profileKey)
+                                end,
+                            }
+                        end
                     end
                 end
             end
@@ -1511,8 +2399,15 @@ detailsFramework.EditorMixin = {
 
         --at this point, the optionsTable is ready to be used on DF:BuildMenuVolatile()
         menuOptions.align_as_pairs = true
-        menuOptions.align_as_pairs_length = 150
-        menuOptions.widget_width = 180
+        --buildmenu reads the label column from align_as_pairs_string_space and falls back to 160 without it,
+        --which made every row 10 pixels wider than planned, past options_width, and clipped the widgets on the right
+        menuOptions.align_as_pairs_string_space = self.options.options_label_width
+        --the reset buttons take their room from the widget column, so the rows keep their width
+        local widgetWidth = self.options.options_widget_width
+        if (bShowResetButtons) then
+            widgetWidth = widgetWidth - self:GetResetButtonSize() - RESET_BUTTON_GAP
+        end
+        menuOptions.widget_width = widgetWidth
         menuOptions.slider_buttons_to_left = true
 
         local optionsFrame = self:GetOptionsFrame()
@@ -1533,6 +2428,10 @@ detailsFramework.EditorMixin = {
         local options_button_template = self.options.button_template
         local options_slider_template = self.options.slider_template
         local options_text_template = self.options.text_template
+
+        --color pickers have no slot among BuildMenuVolatile's arguments, so their template travels on the menu
+        --table. nil keeps the 18 x 18 picker drawn with the switch template
+        menuOptions.color_template = self.options.color_template
 
         --remove any blank spaces at the start of the menu
         while (true) do
@@ -1555,7 +2454,16 @@ detailsFramework.EditorMixin = {
 
         --~build ~menu ~volatile
         menuOptions.no_refresh_on_change = true --the editor .get functions just return a value instead of getting the value from the profile
-        detailsFramework:BuildMenuVolatile(optionsFrame, menuOptions, 2, -2, maxHeight, bUseColon, options_text_template, options_dropdown_template, options_switch_template, bSwitchIsCheckbox, options_slider_template, options_button_template)
+        --the row highlight sits 5 pixels above its label, so the first row starts 7 pixels down to keep it inside the canvas
+        --the value change hook runs after a toggle has enabled or disabled the options that follow it, so the reset
+        --buttons follow too
+        local onMenuValueChanged = function()
+            self:RefreshResetButtonStates()
+        end
+        detailsFramework:BuildMenuVolatile(optionsFrame, menuOptions, 2, -7, maxHeight, bUseColon, options_text_template, options_dropdown_template, options_switch_template, bSwitchIsCheckbox, options_slider_template, options_button_template, onMenuValueChanged)
+
+        --runs with the buttons off too, so the ones a previous menu showed are hidden
+        self:LayoutResetButtons(resetEntries, widgetWidth)
 
         --reset the options scroll back to the top whenever the selection changes. without this
         --switching from a long widget (e.g. Auras Layout) to a short one (e.g. Raid Mark) leaves
@@ -1564,14 +2472,20 @@ detailsFramework.EditorMixin = {
             canvasScrollBox:SetVerticalScroll(0)
         end
 
-        if (editingOptions.can_move) then
+       if (editingOptions.can_move and self:IsVisible()) then
             self:StartObjectMovement(anchorSettings)
         else
             --hide mover frame
             self.moverObject:Hide()
         end
 
-        self:ShowSelectedTextures(object)
+        --the grips' corner brackets take the place of the selection corners, which would be drawn on top of them
+        local bHasResizeGrips = editingOptions.can_resize and self:ShowResizeGrips(object, resizeTargets, anchorSettings)
+        if (bHasResizeGrips) then
+            self:HideSelectedTextures()
+        else
+            self:ShowSelectedTextures(object)
+        end
     end,
 
     ---@param self df_editor
@@ -1630,6 +2544,9 @@ detailsFramework.EditorMixin = {
                 anchorXSlider:SetValueNoCallback(anchorSettings.x)
                 local anchorYSlider = optionsFrame:GetWidgetById("anchoroffsety")
                 anchorYSlider:SetValueNoCallback(anchorSettings.y)
+
+                --the offset sliders above are moved without their callback, so the menu's value change hook does not run
+                self:RefreshResetButtonStates()
 
                 --anchorSettings IS the profile sub-table (assigned from getParentTable() in
                 --PrepareObjectForEditing for the anchor option). lines 1440-1441 above already
@@ -1728,11 +2645,12 @@ detailsFramework.EditorMixin = {
         return true
     end,
 
-    RegisterObject = function(self, object, localizedLabel, id, profileTable, subTablePath, profileKeyMap, extraOptions, callback, options, refFrame)
+    RegisterObject = function(self, object, localizedLabel, id, profileTable, subTablePath, profileKeyMap, extraOptions, callback, options, refFrame, defaultValues)
         assert(type(object) == "table", "editor:RegisterObject() expects a UIObject or array of UIObjects on #2 parameter.")
         assert(type(profileTable) == "table", "editor:RegisterObject() expects a table on #5 parameter.")
         assert(type(id) ~= "nil" and type(id) ~= "boolean", "editor:RegisterObject() expects an ID on parameter #4.")
         assert(type(callback) == "function" or callback == nil, "editor:RegisterObject() expects a function or nil as the #8 parameter.")
+        assert(type(defaultValues) == "table" or type(defaultValues) == "function" or defaultValues == nil, "editor:RegisterObject() expects a table, a function or nil as the #11 parameter.")
 
         --param #2 may be a single UIObject or an array of them. WoW UIObjects expose GetObjectType,
         --so the presence of that method on the value itself distinguishes the two shapes.
@@ -1792,6 +2710,7 @@ detailsFramework.EditorMixin = {
             selectButtons = {},
             activeMemberIndex = 1,
             refFrame = refFrame,
+            defaults = defaultValues,
             --nesting support (object selector tree). parentId comes from options for a clean signature.
             --isExpanded only matters for parents; children read their parent's flag at refresh time.
             parentId = options.parentId,
@@ -2108,28 +3027,19 @@ detailsFramework.EditorMixin = {
 
             --row click selects the registration. we use line.objectRegistered (set in refresh)
             --instead of self.index so the array-index drift caused by hiding collapsed children
-            --does not point at the wrong entry. double-click on a parent row also toggles its
-            --expansion, same as clicking the +/- arrow. timestamp + registration check prevents
-            --misfires from scrollbox row recycling (the same frame line later representing a
-            --different registration) and from rapid clicks across two different rows.
+            --does not point at the wrong entry. a click on a parent row also opens or closes it,
+            --same as clicking the +/- arrow. the toggle goes first so the selector refresh inside
+            --EditObject already shows the children
             line:SetScript("OnClick", function(self)
                 if (not self.objectRegistered) then
                     return
                 end
-                editorFrame:EditObject(self.objectRegistered)
 
-                local now = GetTime()
-                local sameRow = self.lastClickedRegistration == self.objectRegistered
-                local isDoubleClick = sameRow and self.lastClickTime and (now - self.lastClickTime) < 0.4
-                if (isDoubleClick and editorFrame:HasChildRegistrations(self.objectRegistered)) then
+                if (editorFrame:HasChildRegistrations(self.objectRegistered)) then
                     self.objectRegistered.isExpanded = not self.objectRegistered.isExpanded
-                    selectObjectScrollBoxRefresh()
-                    self.lastClickTime = nil
-                    self.lastClickedRegistration = nil
-                else
-                    self.lastClickTime = now
-                    self.lastClickedRegistration = self.objectRegistered
                 end
+
+                editorFrame:EditObject(self.objectRegistered)
             end)
 
             --expand/collapse toggle, only shown for parent rows (refreshFunc shows/hides it).
@@ -2202,12 +3112,15 @@ detailsFramework.EditorMixin = {
         local moverObject = self:GetMoverObject()
         moverObject:Hide()
         self.AnchorFrames:DisableAllAnchors()
+        self:HideResizeGrips()
         self:HideSelectedTextures()
         self.overTheTopFrame:Hide()
 
         --stop receiving key events while hidden so Ctrl+Z / Ctrl+Y fall back to the
         --player's combat keybinds.
         self:EnableKeyboard(false)
+        self:UnregisterEvent("PLAYER_REGEN_DISABLED")
+        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
     end,
 
     ---@param self df_editor
@@ -2220,8 +3133,14 @@ detailsFramework.EditorMixin = {
         self.overTheTopFrame:Show()
 
         --start receiving Ctrl+Z / Ctrl+Y while the editor is shown.
-        self:EnableKeyboard(true)
-        self:SetPropagateKeyboardInput(true)
+        --SetPropagateKeyboardInput is protected in combat, OnEvent takes the keyboard after it
+        if (not InCombatLockdown()) then
+            self:EnableKeyboard(true)
+            self:SetPropagateKeyboardInput(true)
+        end
+
+        self:RegisterEvent("PLAYER_REGEN_DISABLED")
+        self:RegisterEvent("PLAYER_REGEN_ENABLED")
     end,
 }
 
@@ -2240,6 +3159,7 @@ function detailsFramework:CreateEditor(parent, name, options)
 
     editorFrame.registeredObjects = {}
     editorFrame.registeredObjectsByID = {}
+    editorFrame.resetButtons = {}
 
     editorFrame:BuildOptionsTable(editorDefaultOptions, options)
 
@@ -2296,6 +3216,10 @@ function detailsFramework:CreateEditor(parent, name, options)
     --handler only fires while the editor is visible; combat keybinds work normally otherwise.
     --propagation is left enabled for non-shortcut keys so other keybinds still pass through.
     editorFrame:SetScript("OnKeyDown", function(self, key)
+        if (InCombatLockdown()) then
+            return
+        end
+
         if (IsControlKeyDown() and key == "Z") then
             self:SetPropagateKeyboardInput(false)
             if (IsShiftKeyDown()) then
@@ -2311,9 +3235,22 @@ function detailsFramework:CreateEditor(parent, name, options)
         end
     end)
 
+    --registered only while shown. PLAYER_REGEN_DISABLED is the last event before lockdown,
+    --so the keyboard is handed back to the player's keybinds while that is still allowed
+    editorFrame:SetScript("OnEvent", function(self, event)
+        if (event == "PLAYER_REGEN_DISABLED") then
+            self:SetPropagateKeyboardInput(true)
+            self:EnableKeyboard(false)
+        else
+            self:EnableKeyboard(true)
+            self:SetPropagateKeyboardInput(true)
+        end
+    end)
+
     editorFrame.moverObject = editorFrame:CreateMoverFrame()
 
     editorFrame:CreateSelectedTextures()
+    editorFrame:CreateResizeGrips()
 
     editorFrame.optionsFrame = optionsFrame
     editorFrame.canvasScrollBox = canvasFrame

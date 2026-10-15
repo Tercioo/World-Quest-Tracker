@@ -25,7 +25,7 @@
 ---@field packhashsubtable fun(tbl:table) : string pack a hash table where the value of the key is a numerical table, example: {key1 = {1, 2, 3}, key2 = {4, 6}, key3 = {7}}, result: "key1,3,1,2,3,key2,2,4,6,key3,1,7"
 ---@field unpackhashsubtable fun(tbl:table) : table unpack a table packed with packhashsubtable()
 ---@field inserts fun(tbl:table, ...) : table receives an indexed table and N arguments, add all arguments passed into the table
-
+---@field isequal fun(tbl1:table, tbl2:table) : boolean check if two indexed tables are equal
 
 ---@class df_language : table
 ---@field Register fun(addonId:any, languageId:string, gameLanguageOnly:boolean?) : table
@@ -118,6 +118,10 @@ GameCooltipFrame2 = {}
 ---@field checked_yoffset any
 ---@field checked_size_percent any
 ---@field checked_color any
+---@field is_track any
+---@field track_height any
+---@field track_color any
+---@field track_fill_color any
 
 
 
@@ -214,6 +218,8 @@ GameCooltipFrame2 = {}
 ---@field IsWarWowOrBelow fun():boolean
 ---@field IsValidWidgetForBuildMenu fun(self:table, widgetType:string) : boolean check if a widget type is valid to be added in the build menu.
 ---@field IsAddonApocalypseWow fun():boolean
+---@field IsForeverWow fun():boolean
+---@field IsMidnightWowAPI fun():boolean
 ---@field CreateHealthBar fun(self:table, parent:frame, name:string, settingsOverride:table) : df_healthbar
 ---@field CreateCastBar fun(self:table, parent:frame, name:string, settingsOverride:table) : df_castbar
 ---@field CreateUnitFrame fun(self:table, parent:frame, name:string, settingsOverride:table) : df_unitframe
@@ -335,6 +341,7 @@ GameCooltipFrame2 = {}
 ---@field SetFontSize fun(self:table, fontstring:fontstring, size:number)
 ---@field GetFontSize fun(self:table, fontstring:fontstring) : number return the font size of the fontstring
 ---@field SetFontColor fun(self:table, fontstring:fontstring, red:any, green:number?, blue:number?, alpha:number?)
+---@field SetOptionLabelEnabled fun(self:table, widget:table, bIsEnabled:boolean) gray out the option name BuildMenu shows beside a widget while it is disabled, and restore its color once enabled
 ---@field SetFontFace fun(self:table, fontstring:fontstring, font:string)
 ---@field SetFontDefault fun(self:table, fontstring:fontstring)
 ---@field GetFontFace fun(self:table, fontstring:fontstring) : string return the font face of the fontstring
@@ -349,7 +356,7 @@ GameCooltipFrame2 = {}
 ---@field CommaValue fun(self:table, value:number) : string convert a number to a string with commas, e.g. 1000000 -> 1,000,000
 ---@field SplitTextInLines fun(self:table, text:string) : string[] split a text into lines
 ---@field SetAnchor fun(self:table, widget:uiobject, anchorTable:df_anchor, anchorTo:uiobject?) only adjust the anchors of a widget, does not save values
----@field AddTextureToText fun(self:table, text:string, textureInfo:table, bAddSpace:boolean?, bAddAfterText:any) : string textureInfo is a table with .texture .width .height .coords{left, right, top, bottom}
+---@field AddTextureToText fun(self:table, text:string, textureInfo:table, bAddSpace:boolean?, bAddAfterText:any) : string, string textureInfo is a table with .texture .width .height .coords{left, right, top, bottom}
 ---@field ApplyStandardBackdrop fun(self:table, frame:frame, bUseSolidColor:boolean?, alphaScale:number?)
 ---@field NewLabel fun(self:table, parent:frame, container:frame, name:string?, member:string?, text:string|table, font:string?, size:any?, color:any?, layer:drawlayer?) : df_label
 ---@field NewDropDown fun(self:table, parent:frame, container:frame?, name:string?, member:string?, width:number?, height:number?, func:function, default:any, template:table?) : df_dropdown
@@ -367,6 +374,7 @@ GameCooltipFrame2 = {}
 ---@field GetSizeFromPercent fun(self:table, uiObject:uiobject, percent:number) : number get the min size of a uiObject and multiply it by the percent passed
 ---@field BuildMenu fun(self:table, parent:frame, menuOptions:df_menu_table[], xOffset:number?, yOffset:number?, height:number?, useColon:boolean?, textTemplate:table?, dropdownTemplate:table?, switchTemplate:table?, switchIsCheckbox:boolean?, sliderTemplate:table?, buttonTemplate:table?, valueChangeHook:function?)
 ---@field BuildMenuVolatile fun(self:table, parent:frame, menuOptions:df_menu_table[], xOffset:number?, yOffset:number?, height:number?, useColon:boolean?, textTemplate:table?, dropdownTemplate:table?, switchTemplate:table?, switchIsCheckbox:boolean?, sliderTemplate:table?, buttonTemplate:table?, valueChangeHook:function?)
+---@field RefreshOptionsDisabledState fun(self:table, parent:frame) re-run every disableif of a menu built on 'parent' without setting any widget's value again
 ---@field GetColorBrightness fun(self:table, r:number, g:number, b:number) : number return the brightness of a color from zero to one
 ---@field GetColorHue fun(self:table, r:number, g:number, b:number) : number return the hue of a color from red to blue to green to  yellow and back to red
 ---@field IsHtmlColor fun(self:table, colorName:any) : unknown return true if DF.alias_text_colors has the colorName as a key

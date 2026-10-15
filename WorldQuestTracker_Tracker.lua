@@ -328,7 +328,7 @@ end
 
 local WorldQuestTrackerFrame_QuestHolder = CreateFrame ("frame", "WorldQuestTrackerScreenPanel_QuestHolder", WorldQuestTrackerFrame_ScreenPanel, "BackdropTemplate")
 WorldQuestTrackerFrame_QuestHolder:SetAllPoints()
-WorldQuestTrackerFrame_QuestHolder:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
+wqtInternal.SetFlatBackground(WorldQuestTrackerFrame_QuestHolder, "Interface\\Tooltips\\UI-Tooltip-Background")
 WorldQuestTrackerFrame_QuestHolder.MoveMeLabel = WorldQuestTracker:CreateLabel (WorldQuestTrackerFrame_QuestHolder, "== Move Me ==")
 
 local lock_window = function()
@@ -461,7 +461,7 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 		--hide the unlocked widgets
 		WorldQuestTrackerFrame_QuestHolder.LockButton:Hide()
 		WorldQuestTrackerFrame_QuestHolder.MoveMeLabel:Hide()
-		WorldQuestTrackerFrame_QuestHolder:SetBackdrop(nil)
+		wqtInternal.ClearFlatBackground(WorldQuestTrackerFrame_QuestHolder)
 
 		WorldQuestTrackerScreenPanel:Show()
 	else
@@ -469,7 +469,7 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 			WorldQuestTrackerScreenPanel:EnableMouse(true)
 
 			--show the unlocked widgets
-			WorldQuestTrackerFrame_QuestHolder:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
+			wqtInternal.SetFlatBackground(WorldQuestTrackerFrame_QuestHolder, "Interface\\Tooltips\\UI-Tooltip-Background")
 			WorldQuestTrackerFrame_QuestHolder:SetBackdropColor(0, 0, 0, 0.75)
 			WorldQuestTrackerFrame_QuestHolder.LockButton:Show()
 			WorldQuestTrackerFrame_QuestHolder.MoveMeLabel:Show()
@@ -479,7 +479,7 @@ function WorldQuestTracker.RefreshTrackerAnchor()
 			--hide the unlocked widgets
 			WorldQuestTrackerFrame_QuestHolder.LockButton:Hide()
 			WorldQuestTrackerFrame_QuestHolder.MoveMeLabel:Hide()
-			WorldQuestTrackerFrame_QuestHolder:SetBackdrop(nil)
+			wqtInternal.ClearFlatBackground(WorldQuestTrackerFrame_QuestHolder)
 		end
 
 		LibWindow.RestorePosition(WorldQuestTrackerScreenPanel)

@@ -615,7 +615,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 						line:SetScript("OnEnter", line_onenter)
 						line:SetScript("OnLeave", line_onleave)
 
-						line:SetBackdrop({bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
+						wqtInternal.SetFlatBackground(line, [[Interface\Tooltips\UI-Tooltip-Background]])
 						line:SetBackdropColor(unpack(config.backdrop_color))
 
 						local name = line:CreateFontString("$parentName", "overlay", "GameFontNormal")
@@ -871,7 +871,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			AzerothWorldQuestButton:GetPushedTexture():SetPoint("bottomright", -1, 1)
 			AzerothWorldQuestButton:GetPushedTexture():SetTexCoord(((azerothIconIndex-1)*32)/256,(azerothIconIndex*32)/256, 0, 1)
 
-			AzerothWorldQuestButton:SetBackdrop(navigateButtonsBackdrop)
+			wqtInternal.SetFlatBackground(AzerothWorldQuestButton, "Interface\\Tooltips\\UI-Tooltip-Background")
+			wqtInternal.SetFlatBorder(AzerothWorldQuestButton, 1)
 			AzerothWorldQuestButton:SetBackdropBorderColor(unpack(navigateButtonsBorderColor))
 			AzerothWorldQuestButton:SetBackdropColor(unpack(navigateButtonsbackdropColor))
 
@@ -906,7 +907,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				BrokenIslesWorldQuestButton:GetPushedTexture():SetPoint("bottomright", -1, 1)
 				BrokenIslesWorldQuestButton:GetPushedTexture():SetTexCoord(((brokenIslesIconIndex-1)*32)/256,(brokenIslesIconIndex*32)/256, 0, 1)
 
-				BrokenIslesWorldQuestButton:SetBackdrop(navigateButtonsBackdrop)
+				wqtInternal.SetFlatBackground(BrokenIslesWorldQuestButton, "Interface\\Tooltips\\UI-Tooltip-Background")
+				wqtInternal.SetFlatBorder(BrokenIslesWorldQuestButton, 1)
 				BrokenIslesWorldQuestButton:SetBackdropBorderColor(unpack(navigateButtonsBorderColor))
 				BrokenIslesWorldQuestButton:SetBackdropColor(unpack(navigateButtonsbackdropColor))
 
@@ -941,7 +943,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				ShadowlandsWorldQuestButton:GetPushedTexture():SetPoint("bottomright", -1, 1)
 				ShadowlandsWorldQuestButton:GetPushedTexture():SetTexCoord(((shadowlandsIconIndex-1)*32)/256,(shadowlandsIconIndex*32)/256, 0, 1)
 
-				ShadowlandsWorldQuestButton:SetBackdrop(navigateButtonsBackdrop)
+				wqtInternal.SetFlatBackground(ShadowlandsWorldQuestButton, "Interface\\Tooltips\\UI-Tooltip-Background")
+				wqtInternal.SetFlatBorder(ShadowlandsWorldQuestButton, 1)
 				ShadowlandsWorldQuestButton:SetBackdropBorderColor(unpack(navigateButtonsBorderColor))
 				ShadowlandsWorldQuestButton:SetBackdropColor(unpack(navigateButtonsbackdropColor))
 
@@ -1476,18 +1479,26 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				return WorldQuestTracker.MapData.DragonflightZones[WorldMapFrame.mapID]
 			end
 
-			--data provider
-			local worldQuestTrackerPathProvider = CreateFromMixins(MapCanvasDataProviderMixin)
+			--the route line used to be a map pin. acquiring one made the world map build a pin pool for our
+			--template inside its own pin pool list, from our code, while the map was opening, and the map walks
+			--that list on every update. it was the first thing in the taint log carrying forced taint, and from
+			--there the taint spread into blizzard's world quest pins and the quest tracker for the whole session.
+			--a plain frame on the map canvas draws the same dots without ever entering the map's pin system
+			local worldMapCanvas = WorldMapFrame:GetCanvas()
+			local linePin = CreateFrame("frame", nil, worldMapCanvas)
+			linePin:SetSize(30, 30)
+			--centred on the canvas top left, where the pin used to be parked, the dots are placed from here
+			linePin:SetPoint("CENTER", worldMapCanvas, "TOPLEFT", 0, 0)
+			linePin:EnableMouse(false)
+			linePin:Hide()
+			WQTPathFrame.LinePin = linePin
 
+			--keeps the old provider method names so the refresh and update code below stay the same
+			local worldQuestTrackerPathProvider = {}
+
+			--hides the line frame and all of its dots
 			function worldQuestTrackerPathProvider:HideLine()
-				if (InCombatLockdown()) then
-					C_Timer.After(0.5, function()
-						worldQuestTrackerPathProvider:HideLine()
-					end)
-					return
-				end
-
-				self:GetMap():RemoveAllPinsByTemplate("WorldQuestTrackerPathPinTemplate")
+				WQTPathFrame.LinePin:Hide()
 				for i = 1, #WQTPathFrame.texturePool do
 					local Dot = WQTPathFrame.texturePool[i]
 					Dot:Hide()
@@ -1495,15 +1506,12 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				WQTPathFrame.bIsShowingLine = false
 			end
 
+			--shows the line frame on the same frame level a map pin of this type used to get
 			function worldQuestTrackerPathProvider:ShowLine()
-				if (InCombatLockdown()) then
-					C_Timer.After(0.5, function()
-						worldQuestTrackerPathProvider:ShowLine()
-					end)
-					return
-				end
-
-				WQTPathFrame.LinePin = self:GetMap():AcquirePin("WorldQuestTrackerPathPinTemplate")
+				local frameLevels = WorldMapFrame:GetPinFrameLevelsManager()
+				local levelRange = frameLevels:GetFrameLevelRange("PIN_FRAME_LEVEL_AREA_POI")
+				WQTPathFrame.LinePin:SetFrameLevel(frameLevels:GetValidFrameLevel("PIN_FRAME_LEVEL_AREA_POI", levelRange))
+				WQTPathFrame.LinePin:Show()
 				WQTPathFrame.bIsShowingLine = true
 			end
 
@@ -1527,14 +1535,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				Dot:SetVertexColor(unpack(WorldQuestTracker.db.profile.path.ColorSRGB))
 			end
 
-			--add the provider to pins
-			WorldMapFrame:AddDataProvider(worldQuestTrackerPathProvider)
-
 			--pre create all dots
-			if (not WQTPathFrame.bIsShowingLine) then
-				worldQuestTrackerPathProvider:ShowLine()
-			end
-
 			for i = 1, WorldQuestTracker.db.profile.path.DotAmount do
 				local dotTexture = WQTPathFrame.LinePin:CreateTexture(nil, "overlay")
 				dotTexture:SetPoint("center")
@@ -1618,20 +1619,22 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 
 					local playerXPos, playerYPos = vec2Position.x, vec2Position.y
 
-					--update pin position
-					WQTPathFrame.LinePin:SetPosition(playerXPos, playerYPos)
+					--the line frame sits on the canvas top left, so work out where the player is on the
+					--canvas the same way MapCanvasMixin:ApplyPinPosition does, in the frame's own units.
+					--none of this runs blizzard map code, so nothing is tainted per frame
+					local linePin = WQTPathFrame.LinePin
+					local canvas = WorldMapFrame:GetCanvas()
+					--map pins are drawn at the map's global pin scale, match it so the dots keep their old size
+					linePin:SetScale(WorldMapFrame:GetGlobalPinScale())
+					local pinScale = linePin:GetScale()
+					local playerCanvasX = canvas:GetWidth() * playerXPos / pinScale
+					local playerCanvasY = canvas:GetHeight() * playerYPos / pinScale
 
 					--update all dot position
 					for i = 1, #WQTPathFrame.texturePool do
 						local dotTexture = WQTPathFrame.texturePool[i]
 
-						--calculate the dot position
-						local nx, ny = forwardVector.x * WQTPathFrame.Distance * i, forwardVector.y * WQTPathFrame.Distance * i
-						nx, ny = nx + playerXPos, ny + playerYPos
-
-						--set the dot position
-						dotTexture:SetPoint("CENTER", WQTPathFrame.LinePin, "CENTER", nx, -ny)
-
+						--scale first, the offsets below are measured in the dot's own scale
 						if (not dotTexture:IsShown()) then
 							dotTexture:Show()
 							if (WQTPathFrame.IsDragonflightMap()) then
@@ -1640,6 +1643,15 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 								dotTexture:SetScale(1)
 							end
 						end
+
+						--calculate the dot position
+						local nx, ny = forwardVector.x * WQTPathFrame.Distance * i, forwardVector.y * WQTPathFrame.Distance * i
+						nx, ny = nx + playerXPos, ny + playerYPos
+
+						--the player offset is converted into the dot's scale so the line still starts on the
+						--player on every map, the forward spacing keeps exactly the size it always had
+						local dotScale = dotTexture:GetScale()
+						dotTexture:SetPoint("CENTER", linePin, "CENTER", playerCanvasX / dotScale + nx, -(playerCanvasY / dotScale + ny))
 					end
 				else
 					--the map is closed or the player isn't flying, check if the line is showing
@@ -1686,7 +1698,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			local SummaryFrame = CreateFrame("frame", "WorldQuestTrackerSummaryPanel", WorldQuestTrackerWorldMapPOI, "BackdropTemplate")
 			SummaryFrame:SetPoint("topleft", WorldQuestTrackerWorldMapPOI, "topleft", 0, 0)
 			SummaryFrame:SetPoint("bottomright", WorldQuestTrackerWorldMapPOI, "bottomright", 0, 0)
-			SummaryFrame:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
+			wqtInternal.SetFlatBackground(SummaryFrame, "Interface\\Tooltips\\UI-Tooltip-Background")
+			wqtInternal.SetFlatBorder(SummaryFrame, 1)
 			SummaryFrame:SetBackdropColor(0, 0, 0, 1)
 			SummaryFrame:SetBackdropBorderColor(0, 0, 0, 1)
 			SummaryFrame:SetFrameStrata("DIALOG")
@@ -1715,7 +1728,8 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			SummaryFrameDown:SetPoint("topleft", WorldQuestTrackerWorldMapPOI, "topleft", 0, 0)
 			SummaryFrameDown:SetPoint("bottomright", WorldQuestTrackerWorldMapPOI, "bottomright", 0, 0)
 			SummaryFrameDown:SetFrameLevel(3499)
-			SummaryFrameDown:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
+			wqtInternal.SetFlatBackground(SummaryFrameDown, "Interface\\Tooltips\\UI-Tooltip-Background")
+			wqtInternal.SetFlatBorder(SummaryFrameDown, 1)
 			SummaryFrameDown:SetBackdropColor(0, 0, 0, 1)
 			SummaryFrameDown:SetBackdropBorderColor(0, 0, 0, 1)
 			SummaryFrameDown:Hide()
@@ -1929,7 +1943,7 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				line:SetScript("OnLeave", line_onleave)
 				line:SetScript("OnClick", line_onclick)
 
-				line:SetBackdrop({bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
+				wqtInternal.SetFlatBackground(line, [[Interface\Tooltips\UI-Tooltip-Background]])
 				line:SetBackdropColor(0, 0, 0, 0.2)
 
 				local icon = line:CreateTexture("$parentIcon", "overlay")
@@ -2054,7 +2068,10 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 				CharsQuestsScroll:CreateLine(scroll_createline)
 			end
 			SummaryFrameUp.CharsQuestsScroll = CharsQuestsScroll
-			CharsQuestsScroll:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
+			--CreateScrollBox already applied the framework's standard backdrop, which carries a
+			--1px border; the SetBackdrop call replaced here used to drop that border, so clear it.
+			CharsQuestsScroll:SetBackdrop(nil)
+			wqtInternal.SetFlatBackground(CharsQuestsScroll, "Interface\\Tooltips\\UI-Tooltip-Background")
 			CharsQuestsScroll:SetBackdropColor(0, 0, 0, .4)
 
 			-----------
@@ -2096,13 +2113,13 @@ WorldQuestTracker.OnToggleWorldMap = function(self)
 			-- ~gframe
 			local GoldGraphic = DF:CreateGFrame(SummaryFrameUp, 422, 160, 28, GF_LineOnEnter, GF_LineOnLeave, "GoldGraphic", "WorldQuestTrackerGoldGraphic")
 			GoldGraphic:SetPoint("topleft", 40, -248)
-			GoldGraphic:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
+			wqtInternal.SetFlatBackground(GoldGraphic, "Interface\\Tooltips\\UI-Tooltip-Background")
 			GoldGraphic:SetBackdropColor(0, 0, 0, .6)
 
 			local GoldGraphicTextBg = CreateFrame("frame", nil, GoldGraphic, "BackdropTemplate")
 			GoldGraphicTextBg:SetPoint("topleft", GoldGraphic, "bottomleft", 0, -2)
 			GoldGraphicTextBg:SetPoint("topright", GoldGraphic, "bottomright", 0, -2)
-			GoldGraphicTextBg:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16})
+			wqtInternal.SetFlatBackground(GoldGraphicTextBg, "Interface\\Tooltips\\UI-Tooltip-Background")
 			GoldGraphicTextBg:SetBackdropColor(0, 0, 0, .4)
 			GoldGraphicTextBg:SetHeight(20)
 			--DF:CreateBorder(GoldGraphic, .4, .2, .05)

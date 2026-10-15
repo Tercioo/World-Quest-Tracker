@@ -1,7 +1,8 @@
 -- SPDX-License-Identifier: LGPL-2.1-or-later
 -- Details Framework (DetailsFramework-1.0) -- see Libs/DF/LICENSE
 
-local dversion = 748
+local dversion = 771
+
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -165,14 +166,15 @@ end
 ---return if the wow version the player is playing is a classic version of wow
 ---@return boolean
 function DF.IsTimewalkWoW()
-    if (buildInfo < 60000) then        return true    end
+    if (buildInfo < 60000 and not DF.IsForeverWow()) then        return true    end
 	return false
 end
 
 ---return if the wow version the player is playing is the vanilla version of wow
 ---@return boolean
 function DF.IsClassicWow()
-    if (buildInfo < 20000) then        return true    end
+    --if (buildInfo < 20000) then        return true    end
+	if (buildInfo < 20000 and not DF.IsForeverWow()) then        return true    end
 	return false
 end
 
@@ -256,13 +258,19 @@ function DF.IsMidnightWow()
 end
 
 function DF.IsAddonApocalypseWow()
-	return buildInfo >= 120000
+	return buildInfo >= 120000 or DF.IsForeverWow()
+end
+
+function DF.IsForeverWow()
+	if (buildInfo < 20000 and buildInfo >= 16001) then   return true end
+	return false
 end
 
 function DF.IsMidnightWowAPI()
 	if (buildInfo < 130000 and buildInfo >= 120000) then return true end
 	if (buildInfo < 60000 and buildInfo >= 50504) then   return true end
 	if (buildInfo < 30000 and buildInfo >= 20506) then   return true end
+	if (buildInfo < 20000 and buildInfo >= 11509) then   return true end
 	return false
 end
 
@@ -1556,6 +1564,32 @@ end
 function DF:SetFontColor(fontString, r, g, b, a)
 	r, g, b, a = DF:ParseColors(r, g, b, a)
 	fontString:SetTextColor(r, g, b, a)
+end
+
+---gray out the option name BuildMenu shows beside a widget (widget.hasLabel) while the widget is disabled, and put
+---its own color back once it is enabled. the color is taken the first time it is grayed, so disabling an already
+---disabled widget keeps the right color to return to. a widget without a name beside it is left alone
+---@param self table
+---@param widget table a framework widget: slider, switch, dropdown or button
+---@param bIsEnabled boolean
+function DF:SetOptionLabelEnabled(widget, bIsEnabled)
+	local label = widget.hasLabel
+	if (not label) then
+		return
+	end
+
+	if (bIsEnabled) then
+		local originalColor = label.__disabled_original_color
+		if (originalColor) then
+			label:SetTextColor(originalColor[1], originalColor[2], originalColor[3], originalColor[4])
+			label.__disabled_original_color = nil
+		end
+	else
+		if (not label.__disabled_original_color) then
+			label.__disabled_original_color = {label:GetTextColor()}
+		end
+		label:SetTextColor(0.5, 0.5, 0.5)
+	end
 end
 
 ---get the FontString passed and set the font shadow color and offset
@@ -3420,6 +3454,22 @@ DF.switch_templates["OPTIONS_CIRCLECHECKBOX_TEMPLATE"] = {
 	},
 }
 
+--toggle switch: square dark gray track with a square knob, knob sits left and light gray when off, right and yellow when on
+DF.switch_templates["OPTIONS_TOGGLE_TEMPLATE"] = {
+	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Buttons\WHITE8X8]], tileSize = 8, tile = true},
+	backdropcolor = {.16, .16, .16, 1},
+	backdropbordercolor = {0, 0, 0, 1},
+	width = 36,
+	height = 18,
+	enabled_backdropcolor = {.16, .16, .16, 1},
+	disabled_backdropcolor = {.16, .16, .16, 1},
+	onenterbordercolor = {.5, .5, .5, 1},
+	is_toggle = true, --will call SetAsToggle()
+	toggle_knob_padding = 3,
+	toggle_knob_color_off = {.7, .7, .7, 1},
+	toggle_knob_color_on = {1, .82, 0, 1},
+}
+
 DF.switch_templates["OPTIONS_CHECKBOX_BRIGHT_TEMPLATE"] = {
 	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
 	backdropcolor = {1, 1, 1, .5},
@@ -3515,6 +3565,105 @@ DF.slider_templates["MODERN_SLIDER_TEMPLATE"] = {
 	amount_color = "white",
 	amount_size = 12,
 	amount_outline = "outline",
+}
+
+--thin rounded track, the part left of the round thumb is filled with blue, the value shows above the thumb while hovering
+DF.slider_templates["OPTIONS_SLIDER_TRACK_TEMPLATE"] = {
+	is_track = true, --will call SetAsTrack()
+	track_height = 4,
+	track_color = {.29, .29, .31, 1},
+	track_fill_color = {.39, .73, .96, 1},
+	thumbtexture = [[Interface\CHARACTERFRAME\TempPortraitAlphaMaskSmall]],
+	thumbwidth = 14,
+	thumbheight = 14,
+	thumbcolor = {.39, .73, .96, 1},
+	amount_color = "white",
+	amount_size = 10,
+	amount_outline = "outline",
+}
+
+--same track as above, the thumb is a thin vertical blue rectangle instead of a circle
+DF.slider_templates["OPTIONS_SLIDER_TRACK_BAR_TEMPLATE"] = {
+	is_track = true, --will call SetAsTrack()
+	track_height = 4,
+	track_color = {.29, .29, .31, 1},
+	track_fill_color = {.39, .73, .96, 1},
+	thumbtexture = [[Interface\Buttons\WHITE8X8]],
+	thumbwidth = 6,
+	thumbheight = 16,
+	thumbcolor = {.39, .73, .96, 1},
+	amount_color = "white",
+	amount_size = 10,
+	amount_outline = "outline",
+}
+
+--the templates of the details! options designer: toggle, slider, dropdown and color picker share one gray fill, a
+--36x18 size and a pale blue for the toggle knob and the slider thumb
+
+--the background of every designer template; change it here to change it on all four
+local designerBackgroundColor = {.19, .19, .21, 1}
+--the dropdown's background while hovered, a step lighter than the background
+local designerBackgroundHoverColor = {designerBackgroundColor[1] + .06, designerBackgroundColor[2] + .06, designerBackgroundColor[3] + .06, designerBackgroundColor[4]}
+
+DF.switch_templates["DESIGNER_SWITCH_TEMPLATE"] = {
+	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Buttons\WHITE8X8]], tileSize = 8, tile = true},
+	backdropcolor = designerBackgroundColor,
+	enabled_backdropcolor = designerBackgroundColor, --background while on
+	disabled_backdropcolor = designerBackgroundColor, --background while off
+	backdropbordercolor = {0, 0, 0, 1},
+	onenterbordercolor = {.5, .5, .5, 1},
+	width = 36,
+	height = 18,
+	is_toggle = true, --will call SetAsToggle()
+	toggle_knob_padding = 3,
+	toggle_knob_color_off = {.7, .7, .7, 1},
+	toggle_knob_color_on = {.62, .80, .92, 1}, --the slider thumb color
+}
+
+DF.slider_templates["DESIGNER_SLIDER_TEMPLATE"] = {
+	is_track = true, --will call SetAsTrack()
+	track_height = 4,
+	track_color = designerBackgroundColor, --background of the track
+	track_fill_color = {.24, .38, .49, 1},
+	track_fill_color_active = {.39, .73, .96, 1}, --while the thumb is dragged
+	thumbtexture = [[Interface\Buttons\WHITE8X8]],
+	thumbwidth = 6,
+	thumbheight = 16,
+	thumbcolor = {.62, .80, .92, 1},
+	thumbcolor_active = {.80, .94, 1, 1}, --while the thumb is dragged
+	amount_color = "white",
+	amount_size = 10,
+	amount_outline = "outline",
+	value_box = true, --will call SetValueBox()
+	value_box_side = "right", --"left", "right", "top" or "bottom"
+	value_box_width = 36,
+	value_box_height = 18,
+	value_box_backdropcolor = designerBackgroundColor, --background of the value box
+	value_box_bordercolor = {0, 0, 0, 1},
+}
+
+--no border on the box, resting or hovered; the list that opens below draws its own border and keeps it
+DF.dropdown_templates["DESIGNER_DROPDOWN_TEMPLATE"] = {
+	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Buttons\WHITE8X8]], tileSize = 8, tile = true},
+	backdropcolor = designerBackgroundColor,
+	onentercolor = designerBackgroundHoverColor,
+	backdropbordercolor = {0, 0, 0, 0},
+	onenterbordercolor = {0, 0, 0, 0},
+	dropicon = "Interface\\BUTTONS\\arrow-Down-Down",
+	dropiconsize = {16, 16},
+	dropiconpoints = {-2, -3},
+}
+
+--the color sits 1 pixel in from the edges so the border shows around it; the transparency grid behind it repeats
+--along the width
+DF.button_templates["DESIGNER_COLORPICK_TEMPLATE"] = {
+	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Buttons\WHITE8X8]], tileSize = 8, tile = true},
+	backdropcolor = designerBackgroundColor, --mostly covered by the color
+	backdropbordercolor = {0, 0, 0, 1},
+	onenterbordercolor = {.5, .5, .5, 1},
+	width = 36,
+	height = 18,
+	colorpick_inset = 1,
 }
 
 local templateTables = {DF.dropdown_templates, DF.button_templates, DF.switch_templates, DF.slider_templates, DF.font_templates}
@@ -4341,6 +4490,19 @@ local glow_overlay_onhide = function(self)
 	glow_overlay_stop(self)
 end
 
+--pick whichever spell alert template the running client actually ships, instead of guessing from the build number:
+--some clients (e.g. WoW Classic Titan) have neither the newer nor the legacy template, so CreateFrame() would
+--throw a hard "Couldn't find inherited node" error that isn't reliably catchable with pcall
+local create_glow_overlay_frame = function(frameName, parent)
+	if (DoesTemplateExist("ActionButtonSpellAlertTemplate")) then
+		return CreateFrame("frame", frameName, parent, "ActionButtonSpellAlertTemplate")
+	elseif (DoesTemplateExist("ActionBarButtonSpellActivationAlert")) then
+		return CreateFrame("frame", frameName, parent, "ActionBarButtonSpellActivationAlert")
+	else
+		return CreateFrame("frame", frameName, parent)
+	end
+end
+
 ---create a glow overlay around a frame, return a frame and also add parent.overlay to the parent frame
 ---@param self table
 ---@param parent frame
@@ -4354,12 +4516,7 @@ function DF:CreateGlowOverlay(parent, antsColor, glowColor)
 		frameName = string.sub(frameName, string.len(frameName)-49)
 	end
 
-	local glowFrame
-	if (DF.IsMidnightWowAPI() or DF.IsTBCWow()) then --24-05-2025: in the 11.1.7 patch, the template used here does not exist anymore, replacement used
-		glowFrame = CreateFrame("frame", frameName, parent, "ActionButtonSpellAlertTemplate")
-	else
-		glowFrame = CreateFrame("frame", frameName, parent, "ActionBarButtonSpellActivationAlert")
-	end
+	local glowFrame = create_glow_overlay_frame(frameName, parent)
 
 	--local glowFrame = CreateFrame("frame", frameName, parent)
 	glowFrame:HookScript("OnShow", glow_overlay_onshow)

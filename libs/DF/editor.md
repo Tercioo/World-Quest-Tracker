@@ -61,6 +61,8 @@ function detailsFramework:CreateEditor(parent, name, options)
 | `width` | number | `400` | Editor frame width. |
 | `height` | number | `548` | Editor frame height. |
 | `options_width` | number | `340` | Width of the center panel (the build-menu canvas). |
+| `options_label_width` | number | `150` | Width of the label column in the center panel; the widget column starts right after it. |
+| `options_widget_width` | number | `180` | Width of each widget in the center panel. Keep `options_label_width + options_widget_width + 7 <= options_width`, or the row highlight and the rightmost swatches are clipped. |
 | `create_object_list` | boolean | `true` | If false, the left panel is omitted; the editor becomes a single-pane form. |
 | `object_list_width` | number | `200` | Left-panel width. |
 | `object_list_height` | number | `420` | Left-panel height. |
@@ -70,12 +72,15 @@ function detailsFramework:CreateEditor(parent, name, options)
 | `switch_template` | template | OPTIONS_CHECKBOX_TEMPLATE | Visual style for toggles. |
 | `button_template` | template | OPTIONS_BUTTON_TEMPLATE | Visual style for buttons (incl. the Undo/Redo toolbar buttons). |
 | `slider_template` | template | OPTIONS_SLIDER_TEMPLATE | Visual style for sliders. |
+| `color_template` | template? | nil | Visual style for color pickers, width and height included (e.g. DESIGNER_COLORPICK_TEMPLATE, 36x18). nil keeps them 18x18 drawn with `switch_template`. |
 | `text_template` | template | OPTIONS_FONT_TEMPLATE | Visual style for label text in the build-menu. |
 | `no_anchor_points` | boolean | `false` | If true, suppresses the anchor-point selection UI for the anchor option. |
 | `start_editing_callback` | function? | nil | `function(editorFrame, registeredObjectInfo)` called at the end of every `EditObject`. |
 | `selection_texture` | string | `"GM_BehaviorMessage_CornerTopLeft_Frame"` | Atlas / texture used for the four selection corners. |
 | `selection_size` | number | `8` | Pixel size of each selection corner. |
 | `show_undo_buttons` | boolean | `true` | If true, places an Undo / Redo button pair at the bottom-right of the editor. Set to false if you want to wire your own keybinds (`editor:Undo()` / `editor:Redo()`) instead. |
+| `show_reset_buttons` | boolean | `false` | If true, every value row in the center panel gets a square "reset to default" button at its right. See "Reset to default buttons" below. |
+| `show_disabled_reset_buttons` | boolean | `true` | Only read while `show_reset_buttons` is on. What a row whose option has no default gets: true shows the button disabled, false shows no button. |
 
 ### Minimal example
 
@@ -123,7 +128,8 @@ editor:RegisterObject(
     extraOptions,      -- 7: array of additional widgets to append after the built-in ones
     callback,          -- 8: function fired on every set; per-object onEditCallback
     options,           -- 9: df_editobjectoptions for THIS object (use_colon, can_move, icon)
-    refFrame           -- 10: the parent that owns the object; used by anchor sliders for size limits
+    refFrame,          -- 10: the parent that owns the object; used by anchor sliders for size limits
+    defaultValues      -- 11: optional; what the reset to default buttons put back (see "Reset to default buttons")
 )
 ```
 
@@ -184,8 +190,9 @@ The 9th-parameter `options` is per-object (overrides anchor lock, icon, etc.); t
 | `use_colon` | boolean | `false` | If true, "Size" becomes "Size:" in the menu. |
 | `can_move` | boolean | `true` | If true, the mover handle is shown over the object and the user can drag it. Set to false for objects that shouldn't be repositioned (a fixed health bar, a non-movable icon). |
 | `can_click` | boolean | `true` | If true, an invisible full-size click-to-select overlay is shown over each member widget in the live preview. Set to false when the registration shares its canvas area with another widget that should win clicks (e.g. a parent that contains clickable children). |
+| `can_resize` | boolean | `false` | If true, resize grips are drawn on the corners and sides of the object while it is edited. Textures and frames: dragging changes `width` / `height`. FontStrings: every grip changes `size`. See "Resize grips". |
 | `icon` | atlas / texture | nil | Icon shown next to `localizedLabel` in the left panel. Accepts atlas name, atlas table from `DF:CreateAtlas`, or a texture path/id. |
-| `parentId` | any | nil | Nests this registration under another registration in the left-panel object selector. The parent shows a `+`/`-` toggle to expand/collapse its children. Selecting a nested entry (from the list OR via the canvas selectButton) auto-expands the parent. One level of nesting is supported. |
+| `parentId` | any | nil | Nests this registration under another registration in the left-panel object selector. The parent shows a `+`/`-` toggle to expand/collapse its children; a single click anywhere on the parent row also toggles it (and selects the parent). Selecting a nested entry (from the list OR via the canvas selectButton) auto-expands the parent. One level of nesting is supported. |
 
 ### Why these arguments are split into pairs
 
@@ -322,6 +329,8 @@ Recognized fields in any attribute (built-in or extra):
 | `step` | number | Slider increment. |
 | `usedecimals` | boolean | If true, slider stores fractional values (color alphas, scales, rotations). Otherwise the value is `math.floor`-ed. |
 | `subkey` | string | Reserved for nested addressing within compound widgets. Most widgets don't use this. |
+| `childrenids` / `children_follow_enabled` / `children_follow_reverse` | table / boolean / boolean | Forwarded to BuildMenu. On a toggle, `children_follow_enabled = true` enables the widgets listed in `childrenids` while it is on and disables them while it is off (`children_follow_reverse` inverts that). The ids are the children's `key`s. |
+| `disableif` | function? | Forwarded to BuildMenu. Returns true to disable the widget; checked on menu build. It should read the live profile, not a widget. After an edit that changes it, call `editor:RefreshDisabledOptions()` (not RefreshOptions, whose get() returns build-time values). |
 
 ---
 
@@ -488,6 +497,68 @@ The editor wires its own scripts:
 
 ---
 
+## Reset to default buttons
+
+With `show_reset_buttons = true` on `CreateEditor`, each value row (slider, toggle, dropdown, color, text entry) gets a square button at its right showing the `UI-RefreshButton` atlas (TRILINEAR filter). Label, blank and execute rows never get one.
+
+### Where the defaults come from
+
+The 11th `RegisterObject` argument, `defaultValues`. Two shapes:
+
+```lua
+--a table keyed by the OPTION key: the editor attribute key for built-ins ("size", "color", "anchor", ...)
+--and the `key` of each extra option. not the profile key the map points to
+local unitNameDefaults = {
+    size  = 10,
+    color = {1, 1, 1, 1},
+    outline = "OUTLINE",
+    show_underline = false, -- false is a real default; only nil means "no default"
+}
+
+--or a function, for defaults that depend on the profile table or the subTablePath in use
+local unitNameDefaults = function(optionKey, profileTable, profileKey)
+    return DF.table.getfrompath(MY_DEFAULT_PROFILE.plate_config[currentSubTablePath], profileKey)
+end
+
+editor:RegisterObject(unitName, "Unit Name", "UNITNAME", profile, subPath, unitNameMap, unitNameExtras, onChanged, options, refFrame, unitNameDefaults)
+```
+
+A `nil` result means the option has no default. The function is called inside `xpcall`; an error counts as no default.
+
+Not the attribute `default` field: Plater fills that with the CURRENT profile value, so it cannot mean "the value to reset to".
+
+### Options without a default
+
+| `show_disabled_reset_buttons` | Row with a default | Row without a default |
+|---|---|---|
+| `true` (default) | enabled button | button shown, disabled: whole button at alpha 0.3, desaturated icon |
+| `false` | enabled button | no button |
+
+The argument is optional; a registration without it behaves as if no option has a default.
+
+### What a click does
+
+`editor:ResetOptionToDefault(resetEntry)` calls the row's own `set()` with the default, so it goes through the same path as a user edit: the profile is written, the 8th-arg callback and the setter run, and an undo entry is pushed (Ctrl+Z brings the old value back). That entry gets a coalesce key of its own (`<id>:<key>:reset`), so it is never merged with an edit of the same option made just before or after: edit 10 → 20, reset → 5, Ctrl+Z gives 20, Ctrl+Z again gives 10.
+
+A reset button is enabled only while its option has a default, its widget is enabled, AND the value in the profile is not the default already. "Already the default" tolerates float error: numbers within `0.00001` of the default count as equal (a `1` read back as `0.99999999`), colors are compared channel by channel after `ParseColors` (so a default in any color format matches, a missing alpha counts as 1), and other tables are compared key by key with the same tolerance. The value is read from the profile, not from the row's `get()`, which keeps the value of when the menu was built; the mover refreshes the states on each drag tick, since it moves the offset sliders without their callback.
+
+A reset button is also disabled while its widget is disabled. It follows the widget when `enable_if`, `disableif` or a `children_follow_enabled` toggle disables it: the states are re-read after every menu build, after every value change in the menu, and in `RefreshDisabledOptions`. `ResetOptionToDefault` also refuses a disabled widget, so a direct call cannot write a disabled option either. A consumer that disables menu widgets some other way should call `editor:RefreshResetButtonStates()` afterwards. Colors are passed through `ParseColors`, so any color format works as a default. Then the menu is rebuilt (`Refresh`), because the widgets show the values read at build time; the scroll position is kept.
+
+### Layout
+
+The buttons are as tall as the editor's dropdowns (`dropdown_template.height`, or 18) and square. Their room comes out of the widget column: while the buttons are on, every widget is `buttonSize + 2` narrower, so `options_label_width + options_widget_width + 7 <= options_width` still holds and nothing new is clipped. Each button sits 2 px right of the row highlight, vertically centered on its widget (past a slider's right-side value box).
+
+### Turning them on or off at runtime
+
+```lua
+editor:SetOption("show_reset_buttons", true)
+editor:Refresh()
+```
+
+The row highlights are resized on every build, so the narrower and wider layouts can be swapped freely.
+
+---
+
 ## Mover (drag-to-position)
 
 When the user clicks any non-interactive part of the active widget, they can drag it to reposition. Mechanics:
@@ -504,6 +575,26 @@ When the user clicks any non-interactive part of the active widget, they can dra
 Plater's nameplate sub-widgets (Texture, FontString) have no clickable children. Making the mover the full size of the widget means *clicking anywhere on the widget* drags it. The audit's earlier reading suggested replacing this with a 16×16 grab handle for the sake of preserving child-click access. This was reverted because it broke the user's drag-anywhere expectation; the dual-anchor full-coverage approach is correct for this consumer.
 
 If you ever register an object that has interactive children inside, you'd want to either set `can_move = false` for that registration (no mover) or accept that the mover intercepts those child clicks while editing.
+
+---
+
+## Resize grips
+
+Opt-in per registration with `can_resize = true` on the 9th argument of `RegisterObject`. Off by default.
+
+- Eight small grips (`editor.ResizeGrips`, created once by `CreateResizeGrips`) sit on the object's corners and sides, on the over-the-top frame at frame level 12, above the anchor points and the mover. Grabbing a grip resizes; grabbing anywhere else still moves.
+- **Look.** A corner is a thin 90 degree bracket, a side is a short line along the edge, white with a dark outline, yellow under the mouse. The lines sit just outside the object so a small icon stays visible; the grabbable area reaches a few pixels inside it. While grips are shown, the selection corners and the mover's center dot are hidden, the brackets take their place.
+- **What a grip drives.** The grips do not call `SetWidth` / `SetSize` themselves. While building the menu, `PrepareObjectForEditing` keeps the `applyValue` of every `range` option keyed `width`, `height` or `size` (built-in or from `extraOptions`). The drag calls those, so the profile write, the onEditCallback, the setter fan-out across members, and the slider limits are the same as a slider edit. To save the drag somewhere else, point the key with `profileKeyMap` (e.g. `{width = "bar_width"}`).
+- **Which grips show.** Texture / Frame: side grips need the matching `width` or `height` option, corner grips need both. FontString: all eight grips when it has a `size` option. No grips when the object has more than one point (its size comes from those points), or none of the keys resolve in the profile.
+- **Shift keeps the proportions.** Holding Shift while dragging a corner of a Texture / Frame keeps the width-to-height ratio the object had when the grip was grabbed (Photoshop's Shift). The axis the cursor pulled further sets the scale; the min / max of both options are applied to the shared scale so hitting one limit does not bend the shape. Shift can be pressed or let go mid-drag. Side grips ignore it.
+- **Font size.** Grows by the ratio the text would have to grow to reach the cursor: width ratio for side grips, height ratio for top / bottom, the average of both for corners. Rounded to whole numbers unless the option has `usedecimals`.
+- **The opposite edge stays put.** An object anchored by its center would otherwise grow on both sides. After each size change the editor measures where the edge opposite the grip moved (the center, on an axis the grip does not pull) and shifts `anchorSettings.x/y` by the difference. Needs the `anchor` option; without it the object simply grows from its anchor point.
+- **Undo.** `StopObjectResize` pushes one entry per drag (`AddResizeUndoState`) holding the sizes and the anchor offsets. Its `coalesceKey` is `<objectId>:resize:<count>`, so two resizes in a row are two undo steps. A click without a drag records nothing.
+- The drag ends on mouse up, when the left button is found released, or when the grips are hidden (`HideResizeGrips`, called by `PrepareObjectForEditing`, `ClearEditing` and `OnHide`); in every case the undo step is recorded.
+
+```lua
+editor:RegisterObject(icon, "Icon", "ICON", profile, "icon", {}, nil, onChanged, {can_resize = true}, parentFrame)
+```
 
 ---
 
@@ -539,6 +630,7 @@ A slider drag fires `set()` 100 times between mouse-down and mouse-up. Without c
 `coalesceKey` shape:
 - Slider/dropdown/etc.: `<objectId>:<option.key>` (e.g. `"UNITNAME:size"`)
 - Mover: `<objectId>:mover`
+- Resize grip: `<objectId>:resize:<count>` (never coalesces, one entry per drag)
 
 Continuous edits to the same key on the same object coalesce. Switching widgets or switching keys breaks the coalesce chain.
 
@@ -793,6 +885,10 @@ editor:SetPoint("TOPLEFT", tabBodyFrame, "TOPLEFT", 10, TAB_TOP_OFFSET)
 | `AddToUndoHistory(state)` | Push a custom undo state (with coalescing). |
 | `AddMoverUndoState(registered, anchorTable, oldX, oldY, newX, newY)` | Push a mover-style undo state (used by the mover's OnMouseUp internally; expose if you build custom drag logic). |
 | `RefreshUndoButtons()` | Re-evaluate toolbar button enable/disable. |
+| `ResetOptionToDefault(resetEntry)` | Put one option back to its default through its `set()` (undoable), then rebuild the menu. Called by the reset buttons. |
+| `RefreshResetButtonStates()` | Re-read which reset buttons are enabled (option has a default and its widget is enabled). Called automatically after builds, value changes and `RefreshDisabledOptions`. |
+| `LayoutResetButtons(resetEntries, widgetWidth)` | Place / hide the reset buttons after a menu build (called automatically). |
+| `GetResetButtonSize()` | Width and height of the reset buttons: the dropdown template height, or 18. |
 | `StartObjectMovement(anchorSettings)` / `StopObjectMovement()` | Mover lifecycle (called automatically). |
 | `ShowSelectedTextures(object)` / `HideSelectedTextures()` | Four corner highlights. |
 | `SetSelectedBackgroundColor(r, g, b, a)` | Recolor the translucent fill drawn under the currently-edited widget (`ObjectBackgroundTexture`). Defaults to magenta `(1, 0, 1, 0.25)`. Pass values in `[0, 1]`. Effect is immediate — no `Refresh` needed. Useful when magenta clashes with the consumer's preview palette. |

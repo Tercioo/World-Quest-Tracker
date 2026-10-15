@@ -324,6 +324,7 @@ end
 	function DropDownMetaFunctions:Enable()
 		self:SetAlpha(1)
 		rawset(self, "lockdown", false)
+		DF:SetOptionLabelEnabled(self, true)
 
 		if (self:IsText()) then
 			self:GetTextEntry():Enable()
@@ -338,6 +339,7 @@ end
 	function DropDownMetaFunctions:Disable()
 		self:SetAlpha(.4)
 		rawset(self, "lockdown", true)
+		DF:SetOptionLabelEnabled(self, false)
 
 		if (self:IsText()) then
 			self:GetTextEntry():Disable()
@@ -722,11 +724,23 @@ function DropDownMetaFunctions:Selected(thisOption)
 		self.label:SetFont(thisOption.font, 10)
 
 	else
-		if select(4, GetBuildInfo()) >= 120005 then
-			local fontFace, fontSize, fontFlags = GameFontHighlightSmall:GetFont()
-			DF:SetFont(self.label, fontFace, fontSize, fontFlags)
+		if (self.__languageAddonId) then
+			local languageId = DF.Language.GetLanguageIdForAddonId(self.__languageAddonId)
+			local font = DF.Language.GetFontForLanguageID(languageId)
+			local _, _, flags = self.label:GetFont()
+			if DF.IsMidnightWowAPI() then
+				DF:SetFont(self.label, font, 10, flags)
+			else
+				self.label:SetFont(font, 10, flags)
+			end
 		else
-			self.label:SetFont("GameFontHighlightSmall", 10)
+			if DF.IsMidnightWowAPI() then
+				local fontFace, fontSize, fontFlags = GameFontHighlightSmall:GetFont()
+				DF:SetFont(self.label, fontFace, fontSize, fontFlags)
+			else
+				local fontFace, _, fontFlags = GameFontHighlightSmall:GetFont()
+				self.label:SetFont(fontFace, 10, fontFlags)
+			end
 		end
 	end
 
@@ -990,8 +1004,8 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 						thisOptionFrame.label:SetFont(thisOption.font, 10.5)
 
 					else
-						thisOptionFrame.label:SetFontObject(_G["GameFontHighlightSmall"])
-						local font, _, flags = thisOptionFrame.label:GetFont()
+						--read the default font from the font object, the label keeps the font of the previous option it showed
+						local font, _, flags = GameFontHighlightSmall:GetFont()
 						thisOptionFrame.label:SetFont(font, 10.5, flags)
 					end
 

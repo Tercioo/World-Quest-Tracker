@@ -38,7 +38,8 @@ function wqtInternal.CreateSummary()
     -- world map summary ~summary ~worldsummary
     local worldSummary = WorldQuestTracker.WorldSummary
     worldSummary:SetWidth(100)
-    worldSummary:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
+    wqtInternal.SetFlatBackground(worldSummary, "Interface\\Tooltips\\UI-Tooltip-Background")
+    wqtInternal.SetFlatBorder(worldSummary, 1)
     worldSummary:SetBackdropColor(0, 0, 0, 0)
     worldSummary:SetBackdropBorderColor(0, 0, 0, 0)
 
@@ -228,7 +229,8 @@ function wqtInternal.CreateSummary()
             end
         end)
 
-        anchor:SetBackdrop({bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
+        wqtInternal.SetFlatBackground(anchor, "Interface\\Tooltips\\UI-Tooltip-Background")
+        wqtInternal.SetFlatBorder(anchor, 1)
         anchor:SetBackdropColor(0, 0, 0, 0)
         anchor:SetBackdropBorderColor(0, 0, 0, 0)
 

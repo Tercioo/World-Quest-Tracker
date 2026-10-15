@@ -2,6 +2,127 @@
 local addonId, wqtInternal = ...
 --new 8.1.5 C_TaskQuest.GetQuestTimeLeftSeconds
 
+--Blizzard's SetBackdrop builds a fresh nine-slice layout table inside the call, and because
+--our code is on the stack when that happens the table belongs to us: NineSliceUtil.ApplyLayout
+--then reads about forty fields off it and off the backdropInfo we passed, and every one of
+--those reads writes a line to the taint log. A backdrop carrying only a bgFile paints nothing
+--but a flat rectangle, so a single texture draws the same thing and no secure code ever reads
+--a table of ours. Use this instead of SetBackdrop whenever there is no edgeFile.
+--
+--SetBackdropColor is replaced on the frame because Blizzard's version returns silently when
+--there is no backdropInfo, so every later recolour (row highlights and so on) would quietly
+--stop working rather than erroring.
+function wqtInternal.SetFlatBackground(frame, texturePath, red, green, blue, alpha)
+	local background = frame.__flatBackground
+
+	if (not background) then
+		background = frame:CreateTexture(nil, "BACKGROUND")
+		background:SetAllPoints(frame)
+		frame.__flatBackground = background
+
+		frame.SetBackdropColor = function(self, r, g, b, a)
+			self.__flatBackground:SetVertexColor(r, g, b, a or 1)
+		end
+	end
+
+	background:SetTexture(texturePath)
+	--mirrors the SetBackdropColor(1, 1, 1, 1) that ApplyBackdrop applied by default
+	background:SetVertexColor(red or 1, green or 1, blue or 1, alpha or 1)
+	background:Show()
+
+	return background
+end
+
+--counterpart of SetBackdrop(nil) for frames converted to SetFlatBackground.
+function wqtInternal.ClearFlatBackground(frame)
+	if (frame.__flatBackground) then
+		frame.__flatBackground:Hide()
+	end
+end
+
+--with a REPEAT wrap mode it is the texcoords that decide how many copies of the texture fit,
+--so they have to be recomputed whenever the frame is resized.
+local updateFlatBackgroundTiling = function(frame)
+	local background = frame.__flatBackground
+	local tileSize = frame.__flatBackgroundTileSize
+
+	if (not background or not tileSize or tileSize <= 0) then
+		return
+	end
+
+	local width = frame:GetWidth() or 0
+	local height = frame:GetHeight() or 0
+	background:SetTexCoord(0, width / tileSize, 0, height / tileSize)
+end
+
+--SetFlatBackground for a patterned texture: keeps it tiling at tileSize the way the backdrop
+--did instead of stretching a single copy over the frame. Only worth it when the texture has
+--visible detail; a flat fill looks the same either way.
+function wqtInternal.SetTiledBackground(frame, texturePath, tileSize, red, green, blue, alpha)
+	local background = wqtInternal.SetFlatBackground(frame, texturePath, red, green, blue, alpha)
+
+	background:SetTexture(texturePath, "REPEAT", "REPEAT")
+	frame.__flatBackgroundTileSize = tileSize
+
+	if (not frame.__flatBackgroundTileHooked) then
+		frame.__flatBackgroundTileHooked = true
+		frame:HookScript("OnSizeChanged", updateFlatBackgroundTiling)
+	end
+
+	updateFlatBackgroundTiling(frame)
+
+	return background
+end
+
+--Four thin textures in place of the eight nine-slice edge pieces a bordered SetBackdrop
+--builds, for the same reason as SetFlatBackground: no secure code ends up reading our tables.
+--Only valid for a solid single colour edge (WHITE8X8 and the like), not a textured border.
+--SetBackdropBorderColor is replaced on the frame for the same reason SetBackdropColor is.
+function wqtInternal.SetFlatBorder(frame, borderSize, red, green, blue, alpha)
+	local border = frame.__flatBorder
+
+	if (not border) then
+		border = {}
+		for i = 1, 4 do
+			border[i] = frame:CreateTexture(nil, "BORDER")
+		end
+
+		border[1]:SetPoint("topleft", frame, "topleft", 0, 0)
+		border[1]:SetPoint("topright", frame, "topright", 0, 0)
+		border[2]:SetPoint("bottomleft", frame, "bottomleft", 0, 0)
+		border[2]:SetPoint("bottomright", frame, "bottomright", 0, 0)
+		border[3]:SetPoint("topleft", frame, "topleft", 0, 0)
+		border[3]:SetPoint("bottomleft", frame, "bottomleft", 0, 0)
+		border[4]:SetPoint("topright", frame, "topright", 0, 0)
+		border[4]:SetPoint("bottomright", frame, "bottomright", 0, 0)
+
+		frame.__flatBorder = border
+
+		frame.SetBackdropBorderColor = function(self, r, g, b, a)
+			for i = 1, 4 do
+				self.__flatBorder[i]:SetColorTexture(r, g, b, a or 1)
+			end
+		end
+	end
+
+	for i = 1, 4 do
+		local piece = border[i]
+
+		--1 and 2 are the horizontal edges, 3 and 4 the vertical ones
+		if (i <= 2) then
+			piece:SetHeight(borderSize)
+		else
+			piece:SetWidth(borderSize)
+		end
+
+		--mirrors the SetBackdropBorderColor(1, 1, 1, 1) that ApplyBackdrop applied by default
+		piece:SetColorTexture(red or 1, green or 1, blue or 1, alpha or 1)
+		piece:Show()
+	end
+
+	return border
+end
+
 hooksecurefunc (WorldQuestDataProviderMixin, "RefreshAllData", function (self, fromOnShow)
 	--is triggering each 0.5 seconds
 	--print ("WorldQuestDataProviderMixin.RefreshAllData", "fromOnShow", fromOnShow)
